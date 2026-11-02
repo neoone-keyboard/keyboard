@@ -44,6 +44,7 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
 @Test func spaceDragMovesTheCursorInsteadOfTyping() {
     var g = gesture(Key(.space))
     #expect(g.moved(to: CGPoint(x: 105, y: 10)) == [])
+    #expect(g.moved(to: CGPoint(x: 120, y: 10)) == [])
     #expect(g.moved(to: CGPoint(x: 125, y: 10)) == [.moveCursor(2)])
     #expect(g.moved(to: CGPoint(x: 111, y: 10)) == [.moveCursor(-1)])
     #expect(g.ended() == [])
@@ -53,6 +54,19 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     var g = gesture(Key(.space))
     #expect(g.moved(to: CGPoint(x: 104, y: 10)) == [])
     #expect(g.ended() == [.tap(.space)])
+}
+
+@Test func spaceSlideShortOfActivationStillTypesSpace() {
+    var g = gesture(Key(.space))
+    #expect(g.moved(to: CGPoint(x: 112, y: 10)) == [])
+    #expect(g.ended() == [.tap(.space)])
+}
+
+@Test func spaceDragLeftActivatesToo() {
+    var g = gesture(Key(.space))
+    #expect(g.moved(to: CGPoint(x: 80, y: 10)) == [])
+    #expect(g.moved(to: CGPoint(x: 75, y: 10)) == [.moveCursor(-2)])
+    #expect(g.ended() == [])
 }
 
 @Test func backspaceTapDeletesOnce() {

@@ -16,6 +16,8 @@ public struct GestureTiming: Sendable {
     public var repeatDelay: TimeInterval = 0.45
     public var repeatInterval: TimeInterval = 0.08
     public var cursorStep: CGFloat = 12
+    /// How far the spacebar must slide before it moves the cursor instead of typing a space.
+    public var cursorActivation: CGFloat = 25
     public var deleteWordSwipe: CGFloat = 40
 
     public init() {}
@@ -80,7 +82,7 @@ public struct KeyGesture: Sendable {
         switch mode {
         case .pressing:
             let dx = point.x - start.x
-            if key.action == .space, abs(dx) >= timing.cursorStep {
+            if key.action == .space, abs(dx) >= timing.cursorActivation {
                 mode = .cursor
                 cursorAnchorX = start.x
                 return moveCursor(to: point.x)
