@@ -12,6 +12,44 @@ use mlengine_core::lexicon::{SEPARATOR, build};
 use mlengine_core::normalize::normalize;
 use mlengine_core::text::{Script, script, words};
 
+/// Longest English token counted, in bytes (the engine corrects up to 24).
+pub const MAX_ENGLISH_LEN: usize = 24;
+/// Longest Malayalam token counted, in chars.
+pub const MAX_MALAYALAM_CHARS: usize = 30;
+/// `NextWords` drops pairs seen once when it holds more pairs than this.
+pub const PAIR_PRUNE_THRESHOLD: usize = 20_000_000;
+
+/// Calls `f` with each valid UTF-8 line (up to `max_lines` lines read). Lines
+/// that aren't valid UTF-8 are skipped, not fatal.
+fn for_each_line(
+    mut reader: impl BufRead,
+    max_lines: Option<usize>,
+    mut f: impl FnMut(&str),
+) -> io::Result<()> {
+    let mut buf = Vec::new();
+    let mut n = 0;
+    loop {
+        if max_lines.is_some_and(|max| n >= max) {
+            return Ok(());
+        }
+        buf.clear();
+        if reader.read_until(b'\n', &mut buf)? == 0 {
+            return Ok(());
+        }
+        n += 1;
+        if let Ok(line) = std::str::from_utf8(&buf) {
+            f(line.trim_end_matches(['\n', '\r']));
+        }
+    }
+}
+
+fn token_fits(word: &str, want: Script) -> bool {
+    match want {
+        Script::Malayalam => word.chars().count() <= MAX_MALAYALAM_CHARS,
+        _ => word.len() <= MAX_ENGLISH_LEN,
+    }
+}
+
 pub type Counts = HashMap<String, u64>;
 /// FST input: key bytes and a count.
 pub type Entries = Vec<(Vec<u8>, u64)>;
@@ -22,7 +60,8 @@ pub struct Config {
     pub english_max: usize,
     /// Most Malayalam forms kept.
     pub malayalam_max: usize,
-    /// A word must occur this often to be kept (unless a word list vouches for it).
+    /// A word must occur this often to be kept. In English this applies to SCOWL
+    /// words too; in Malayalam an SMC word list entry is kept regardless.
     pub min_count: u64,
     /// An English word not in SCOWL must occur this often (names, new words).
     pub english_unlisted_min: u64,
@@ -45,8 +84,8 @@ impl Default for Config {
             english_unlisted_min: 2_000,
             next_word_max: 50_000,
             next_per_word: 3,
-            max_english_len: 24,
-            max_malayalam_chars: 30,
+            max_english_len: MAX_ENGLISH_LEN,
+            max_malayalam_chars: MAX_MALAYALAM_CHARS,
         }
     }
 }
@@ -63,17 +102,14 @@ pub fn count_words(
     max_lines: Option<usize>,
 ) -> io::Result<Counts> {
     let mut counts = Counts::new();
-    for (n, line) in reader.lines().enumerate() {
-        if max_lines.is_some_and(|max| n >= max) {
-            break;
-        }
-        let line = normalize(&line?);
+    for_each_line(reader, max_lines, |line| {
+        let line = normalize(line);
         for word in words(&line) {
-            if script(word) == want {
+            if script(word) == want && token_fits(word, want) {
                 *counts.entry(word.to_string()).or_default() += 1;
             }
         }
-    }
+    })?;
     Ok(counts)
 }
 
@@ -191,6 +227,7 @@ pub struct NextWords {
     forms: Vec<String>,
     previous_allowed: usize,
     pairs: HashMap<(u32, u32), u64>,
+    prune_at: usize,
 }
 
 impl NextWords {
@@ -209,15 +246,28 @@ impl NextWords {
             forms,
             previous_allowed: config.next_word_max,
             pairs: HashMap::new(),
+            prune_at: PAIR_PRUNE_THRESHOLD,
+        }
+    }
+
+    /// Overrides when singletons are pruned (tests use a tiny value).
+    pub fn with_prune_threshold(mut self, pairs: usize) -> Self {
+        self.prune_at = pairs.max(1);
+        self
+    }
+
+    /// Bounds memory on huge corpora: drop pairs seen once. If that frees
+    /// little, the limit doubles so we don't rescan on every pair.
+    fn prune_if_large(&mut self) {
+        if self.pairs.len() > self.prune_at {
+            self.pairs.retain(|_, count| *count > 1);
+            self.prune_at = self.prune_at.max(self.pairs.len() * 2);
         }
     }
 
     pub fn add_corpus(&mut self, reader: impl BufRead, max_lines: Option<usize>) -> io::Result<()> {
-        for (n, line) in reader.lines().enumerate() {
-            if max_lines.is_some_and(|max| n >= max) {
-                break;
-            }
-            let line = normalize(&line?);
+        for_each_line(reader, max_lines, |line| {
+            let line = normalize(line);
             // A pair never spans punctuation: "i.e." is not "i" followed by "e".
             for phrase in line.split(is_phrase_break) {
                 let mut previous: Option<u32> = None;
@@ -227,12 +277,12 @@ impl NextWords {
                         && (p as usize) < self.previous_allowed
                     {
                         *self.pairs.entry((p, next)).or_default() += 1;
+                        self.prune_if_large();
                     }
                     previous = id;
                 }
             }
-        }
-        Ok(())
+        })
     }
 
     /// FST entries `previous\0next` → count, keeping the best `per_word` for each previous word.
@@ -271,6 +321,15 @@ fn is_phrase_break(c: char) -> bool {
             | '\u{201C}'
             | '\u{201D}'
             | '\u{2013}'
+            | '\u{2026}'
+            | '/'
+            | '|'
+            | '\u{2018}'
+            | '{'
+            | '}'
+            | '<'
+            | '>'
+            | '*'
             | '\u{2014}'
     )
 }
@@ -443,5 +502,125 @@ mod tests {
     fn word_lists_trim_bom_and_blank_lines() {
         let list = read_word_list("\u{FEFF}അക്കാമ്മ\n\n  കൊച്ചി \n".as_bytes()).unwrap();
         assert_eq!(list, set(&["അക്കാമ്മ", "കൊച്ചി"]));
+    }
+
+    fn vocab_of(words: &[&str]) -> Vec<(String, u64)> {
+        words.iter().map(|w| (w.to_string(), 1)).collect()
+    }
+
+    #[test]
+    fn display_form_prefers_lowercase_from_five_percent() {
+        let scowl = set(&["foo", "Foo"]);
+        let at = display_form("foo", &[("foo", 1), ("Foo", 19)], 20, &scowl);
+        assert_eq!(at, "foo");
+        let below = display_form("foo", &[("foo", 1), ("Foo", 20)], 21, &scowl);
+        assert_eq!(below, "Foo");
+    }
+
+    #[test]
+    fn mixed_script_and_digit_tokens_are_dropped() {
+        let c = counts("abc123 x1 caf\u{e9}猫 ok 2020 a\u{0D15}", Script::Latin);
+        let mut keys: Vec<_> = c.keys().map(String::as_str).collect();
+        keys.sort();
+        assert_eq!(keys, ["ok"]);
+        let m = counts(
+            "\u{0D15}\u{0D3E}1 \u{0D15}\u{0D3E} ab\u{0D15}",
+            Script::Malayalam,
+        );
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn overlong_tokens_are_rejected_while_counting() {
+        let ok = "a".repeat(MAX_ENGLISH_LEN);
+        let long = "a".repeat(MAX_ENGLISH_LEN + 1);
+        let c = counts(&format!("{ok} {long}"), Script::Latin);
+        assert_eq!(c.len(), 1);
+        assert!(c.contains_key(&ok));
+        let ok_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS);
+        let long_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS + 1);
+        let m = counts(&format!("{ok_ml} {long_ml}"), Script::Malayalam);
+        assert_eq!(m.len(), 1);
+        assert!(m.contains_key(&ok_ml));
+    }
+
+    #[test]
+    fn invalid_utf8_lines_are_skipped() {
+        let mut data = b"cat dog\n".to_vec();
+        data.extend_from_slice(b"bad \xFF\xFE line\n");
+        data.extend_from_slice(b"cat bird\n");
+        let c = count_words(&data[..], Script::Latin, None).unwrap();
+        assert_eq!(c.get("cat"), Some(&2));
+        assert_eq!(c.get("bird"), Some(&1));
+        assert_eq!(c.get("bad"), None);
+        let mut next = NextWords::new(&vocab_of(&["cat", "dog", "bird"]), &Config::default());
+        next.add_corpus(&data[..], None).unwrap();
+        let keys: Vec<_> = next.entries(3).into_iter().map(|(k, _)| k).collect();
+        assert!(keys.contains(&b"cat\0bird".to_vec()));
+    }
+
+    #[test]
+    fn pairs_do_not_cross_punctuation_or_lines() {
+        let vocab = vocab_of(&["a", "b", "c", "d", "e", "f", "g"]);
+        let text = "a b. c\nd e\nf\u{2026} g";
+        let mut next = NextWords::new(&vocab, &Config::default());
+        next.add_corpus(text.as_bytes(), None).unwrap();
+        let mut keys: Vec<_> = next.entries(3).into_iter().map(|(k, _)| k).collect();
+        keys.sort();
+        assert_eq!(keys, [b"a\0b".to_vec(), b"d\0e".to_vec()]);
+    }
+
+    #[test]
+    fn newly_listed_breaks_split_phrases() {
+        for sep in [
+            "/", "|", "\u{2018}", "\u{201C}", "\u{201D}", "{", "}", "<", ">", "*",
+        ] {
+            let text = format!("a {sep} b");
+            let mut next = NextWords::new(&vocab_of(&["a", "b"]), &Config::default());
+            next.add_corpus(text.as_bytes(), None).unwrap();
+            assert!(next.entries(3).is_empty(), "{sep:?} should break a phrase");
+        }
+    }
+
+    #[test]
+    fn pruning_keeps_the_strongest_pairs() {
+        let vocab = vocab_of(&["a", "b", "c", "d", "e", "f", "g", "h"]);
+        let text = "a b\na b\na b\nc d\nc d\ne f\ng h\nh g\nf e\nd c\n";
+        let config = Config::default();
+        let mut pruned = NextWords::new(&vocab, &config).with_prune_threshold(3);
+        pruned.add_corpus(text.as_bytes(), None).unwrap();
+        let mut keys: Vec<_> = pruned.entries(3).into_iter().collect();
+        keys.sort();
+        assert!(keys.contains(&(b"a\0b".to_vec(), 3)));
+        assert!(keys.contains(&(b"c\0d".to_vec(), 2)));
+        assert!(pruned.pairs.len() <= 6);
+
+        let mut full = NextWords::new(&vocab, &config);
+        full.add_corpus(text.as_bytes(), None).unwrap();
+        let mut never = NextWords::new(&vocab, &config).with_prune_threshold(1_000);
+        never.add_corpus(text.as_bytes(), None).unwrap();
+        let (mut x, mut y) = (full.entries(3), never.entries(3));
+        x.sort();
+        y.sort();
+        assert_eq!(x, y);
+    }
+
+    #[test]
+    fn bundle_bytes_are_deterministic() {
+        let c = counts("the cat the dog the cat a b c d e f g", Script::Latin);
+        let config = Config {
+            min_count: 1,
+            ..Config::default()
+        };
+        let en = english_vocab(&c, &set(&["the", "cat", "dog"]), &config);
+        let build_once = || {
+            let dir = tempfile::tempdir().unwrap();
+            let mut next = NextWords::new(&en, &config);
+            next.add_corpus("the cat the dog the cat".as_bytes(), None)
+                .unwrap();
+            write_bundle(dir.path(), &en, &[], &next.entries(3)).unwrap();
+            ["en.fst", "ml.fst", "next.fst"].map(|n| fs::read(dir.path().join(n)).unwrap())
+        };
+        assert_eq!(build_once(), build_once());
     }
 }
