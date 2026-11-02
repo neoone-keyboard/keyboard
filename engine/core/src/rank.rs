@@ -63,6 +63,40 @@ pub const MANGLISH_SPLIT_PER_SUFFIX: f32 = 1.0;
 /// Stems rarer than this are not split from: a rare stem plus a suffix is
 /// more often nonsense than a word.
 pub const MANGLISH_SPLIT_STEM_MIN: f32 = -12.5;
+/// Manglish with the transliterator (`nn::Translit`, held to the lexicon and the
+/// suffix splits): each lexicon spelling it returns scores like a skeleton match
+/// (bias, fit bonus), its word's log probability (a split's: its stem's, as in
+/// `MANGLISH_SPLIT_PER_SUFFIX`) plus this times the model's score (log
+/// probability per generated token, eos included) in place of the
+/// `MANGLISH_DISTANCE` penalty: the model, not edit distance, judges how well
+/// the typed letters fit. A word the skeleton lookup also found keeps the
+/// better of the two scores.
+///
+/// Swept with the eval harness (Task 10) on chat_golden / translit-human /
+/// English no-harm; with the floor at −1.0, chat top-1 was 0.733 at 0.125–0.25,
+/// 0.730 at 0.5, 0.724 at 1–2, 0.718 at 4 and 0.714 at 6–8. A small weight
+/// wins: lexicon frequency should decide between spellings the model finds
+/// plausible (എന്തു over എന്ത്, as in the corpus), and the model's real gain
+/// is reach (തൃശ്ശൂർ, ശരി, മനസ്സിലായി) and dropping the distance penalty.
+/// Per-token score tuned better than the total log probability (0.724 at best).
+///
+/// Where English is likely, the model's spellings keep the `MANGLISH_DISTANCE`
+/// penalty as well: after an English word (`CONTEXT_AFTER_ENGLISH`), and for a
+/// typed word with a capital (a name in English text: `Anjali`, `to Wayanad`).
+/// There the model only widens what the skeleton lookup reaches; without this,
+/// English wrong-replacements rose from 0.0064 to 0.0075, and `I kazhicho`
+/// became കഴിച്ചോ. A sentence start the keyboard capitalised keeps the penalty too.
+pub const MANGLISH_MODEL_WEIGHT: f32 = 0.25;
+/// Model spellings scoring below this per token are dropped: the constrained
+/// beam fills its width with whatever lexicon words it can reach, and the
+/// tail is often junk (ജില്ല at −3.4 for `jishnu`). −0.5 cut good words
+/// (chat top-1 0.721); −1.25 and below let junk in (0.730).
+pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
+/// Score of the model's free spelling (off the lexicon), which replaces the
+/// rule-based one: side slot only, and only when no Malayalam word was found.
+/// It is often a near-duplicate of a lexicon word (കൊല്ലമൊ beside കൊല്ലമോ)
+/// and may outscore it, so it never competes for the middle.
+pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// Manglish bias from the previous word: after Malayalam, after English, at the start.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;

@@ -22,11 +22,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
         self.config = config
     }
 
-    /// Lexicons from the extension bundle; learned words in the extension's own container.
-    /// A lexicon missing from the bundle is passed as nil, which disables only that source.
+    /// Lexicons and the transliterator model from the extension bundle; learned words in the
+    /// extension's own container. A file missing from the bundle is passed as nil, which
+    /// disables only that source (without the model, Manglish uses the lexicons alone).
     static func bundled() -> EngineSuggestionProvider {
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
+        }
+        func model(_ name: String) -> String? {
+            Bundle.main.url(forResource: name, withExtension: "mlkbnn", subdirectory: "Models")?.path
         }
         let userDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appending(path: "LearnedWords", directoryHint: .isDirectory).path
@@ -35,6 +39,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             malayalam: lexicon("ml"),
             manglish: lexicon("manglish"),
             nextWords: lexicon("next"),
+            translit: model("translit"),
             userDir: userDir
         ))
     }

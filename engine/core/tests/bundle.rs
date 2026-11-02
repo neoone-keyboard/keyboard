@@ -21,6 +21,10 @@ fn bundle_dir() -> PathBuf {
 }
 
 fn engine() -> Engine {
+    open_engine(None)
+}
+
+fn open_engine(translit: Option<PathBuf>) -> Engine {
     let dir = bundle_dir();
     assert!(
         dir.join("en.fst").exists(),
@@ -32,8 +36,36 @@ fn engine() -> Engine {
         malayalam: Some(dir.join("ml.fst")),
         manglish: Some(dir.join("manglish.fst")),
         next_words: Some(dir.join("next.fst")),
+        translit,
         user_dir: None,
     })
+}
+
+fn model_path() -> Option<PathBuf> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/translit.mlkbnn");
+    if path.exists() {
+        Some(path)
+    } else {
+        println!(
+            "skipping the transliterator: {} is missing (export it with mlkb.translit.export)",
+            path.display()
+        );
+        None
+    }
+}
+
+/// The bundle with the trained transliterator; None (the row is skipped) without the model.
+fn model_engine() -> Option<Engine> {
+    model_path().map(|path| open_engine(Some(path)))
+}
+
+/// The engine without the model, then with it when the model file exists: every
+/// golden must hold for both.
+fn engines() -> Vec<Engine> {
+    let mut engines = vec![engine()];
+    engines.extend(model_engine());
+    engines
 }
 
 fn middle(engine: &Engine, context: &str) -> (String, Kind) {
@@ -51,35 +83,37 @@ fn every_bundle_file_loads() {
 
 #[test]
 fn english_golden() {
-    let engine = engine();
-    assert_eq!(middle(&engine, "teh").0, "the");
-    assert_eq!(middle(&engine, "dont").0, "don't");
-    assert_eq!(middle(&engine, "becuase").0, "because");
-    assert_eq!(middle(&engine, "i").0, "I");
-    for word in [
-        "hello", "the", "them", "then", "help", "enter", "man", "London",
-    ] {
-        assert_eq!(
-            middle(&engine, word),
-            (word.to_string(), Kind::Verbatim),
-            "{word}"
-        );
+    for engine in engines() {
+        assert_eq!(middle(&engine, "teh").0, "the");
+        assert_eq!(middle(&engine, "dont").0, "don't");
+        assert_eq!(middle(&engine, "becuase").0, "because");
+        assert_eq!(middle(&engine, "i").0, "I");
+        for word in [
+            "hello", "the", "them", "then", "help", "enter", "man", "London",
+        ] {
+            assert_eq!(
+                middle(&engine, word),
+                (word.to_string(), Kind::Verbatim),
+                "{word}"
+            );
+        }
+        let next = engine.suggest("I ", Layout::Latin, true);
+        assert_eq!(next.candidates.len(), 3, "next words after I: {next:?}");
     }
-    let next = engine.suggest("I ", Layout::Latin, true);
-    assert_eq!(next.candidates.len(), 3, "next words after I: {next:?}");
 }
 
 #[test]
 fn malayalam_layout_golden() {
-    let engine = engine();
-    let s = engine.suggest("എന്റ", Layout::Malayalam, true);
-    assert_eq!(
-        s.candidates[0].text, "എന്റ",
-        "typed text stays in the middle"
-    );
-    assert!(s.candidates.iter().any(|c| c.text == "എന്റെ"), "{s:?}");
-    let k = engine.suggest("ക", Layout::Malayalam, true);
-    assert!(!k.vowel_signs.is_empty());
+    for engine in engines() {
+        let s = engine.suggest("എന്റ", Layout::Malayalam, true);
+        assert_eq!(
+            s.candidates[0].text, "എന്റ",
+            "typed text stays in the middle"
+        );
+        assert!(s.candidates.iter().any(|c| c.text == "എന്റെ"), "{s:?}");
+        let k = engine.suggest("ക", Layout::Malayalam, true);
+        assert!(!k.vowel_signs.is_empty());
+    }
 }
 
 fn texts(engine: &Engine, context: &str) -> Vec<String> {
@@ -89,19 +123,20 @@ fn texts(engine: &Engine, context: &str) -> Vec<String> {
 
 #[test]
 fn manglish_golden() {
-    let engine = engine();
-    for (typed, want) in [
-        ("ente", "എന്റെ"),
-        ("ende", "എന്റെ"),
-        ("entey", "എന്റെ"),
-        ("njan", "ഞാൻ"),
-        ("illa", "ഇല്ല"),
-    ] {
-        assert_eq!(
-            middle(&engine, typed),
-            (want.to_string(), Kind::Manglish),
-            "{typed}"
-        );
+    for engine in engines() {
+        for (typed, want) in [
+            ("ente", "എന്റെ"),
+            ("ende", "എന്റെ"),
+            ("entey", "എന്റെ"),
+            ("njan", "ഞാൻ"),
+            ("illa", "ഇല്ല"),
+        ] {
+            assert_eq!(
+                middle(&engine, typed),
+                (want.to_string(), Kind::Manglish),
+                "{typed}"
+            );
+        }
     }
 }
 
@@ -109,128 +144,204 @@ fn manglish_golden() {
 fn unfinished_english_prefixes_stay_as_typed() {
     // `ent` has എന്റെ's skeleton, and `thi` is one slip from `the`, but far
     // more English words start with them (enter, entire …; this, think …).
-    let engine = engine();
-    for typed in ["ent", "wor", "bec", "thi"] {
-        assert_eq!(
-            middle(&engine, typed),
-            (typed.to_string(), Kind::Verbatim),
-            "{typed}: {:?}",
-            texts(&engine, typed)
-        );
+    for engine in engines() {
+        for typed in ["ent", "wor", "bec", "thi"] {
+            assert_eq!(
+                middle(&engine, typed),
+                (typed.to_string(), Kind::Verbatim),
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
+        }
+        assert!(texts(&engine, "ent").contains(&"എന്റെ".to_string()));
     }
-    assert!(texts(&engine, "ent").contains(&"എന്റെ".to_string()));
 }
 
 #[test]
 fn manglish_beats_english_corrections_when_nothing_points_to_english() {
-    let engine = engine();
-    for (typed, want) in [
-        ("nale", "നാളെ"),
-        ("ente", "എന്റെ"),
-        ("ende", "എന്റെ"),
-        ("njan", "ഞാൻ"),
-        ("sugham", "സുഖം"),
-        ("veedu", "വീട്"),
-        ("ഞാൻ veedu", "വീട്"),
-    ] {
-        assert_eq!(
-            middle(&engine, typed),
-            (want.to_string(), Kind::Manglish),
-            "{typed}: {:?}",
-            texts(&engine, typed)
-        );
+    for engine in engines() {
+        for (typed, want) in [
+            ("nale", "നാളെ"),
+            ("ente", "എന്റെ"),
+            ("ende", "എന്റെ"),
+            ("njan", "ഞാൻ"),
+            ("sugham", "സുഖം"),
+            ("veedu", "വീട്"),
+            ("ഞാൻ veedu", "വീട്"),
+        ] {
+            assert_eq!(
+                middle(&engine, typed),
+                (want.to_string(), Kind::Manglish),
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
+        }
+        // Known gap: എന്തു (the older spelling, five times as common in the
+        // corpus) wins over എന്ത്; both romanise as `enthu`. Either is Malayalam.
+        let (word, kind) = middle(&engine, "enthu");
+        assert_eq!(kind, Kind::Manglish);
+        assert!(["എന്ത്", "എന്തു"].contains(&word.as_str()), "{word}");
     }
-    // Known gap: എന്തു (the older spelling, five times as common in the
-    // corpus) wins over എന്ത്; both romanise as `enthu`. Either is Malayalam.
-    let (word, kind) = middle(&engine, "enthu");
-    assert_eq!(kind, Kind::Manglish);
-    assert!(["എന്ത്", "എന്തു"].contains(&word.as_str()), "{word}");
 }
 
 #[test]
 fn a_close_call_between_languages_keeps_the_typed_word() {
-    let engine = engine();
-    let s = texts(&engine, "I feel pani");
-    assert_eq!(s[0], "pani", "{s:?}");
-    assert!(s[1..].contains(&"pain".to_string()), "{s:?}");
-    assert!(
-        s[1..].iter().any(|t| t == "പനി" || t == "പണി"),
-        "{s:?}"
-    );
+    for engine in engines() {
+        let s = texts(&engine, "I feel pani");
+        assert_eq!(s[0], "pani", "{s:?}");
+        assert!(s[1..].contains(&"pain".to_string()), "{s:?}");
+        assert!(s[1..].iter().any(|t| t == "പനി" || t == "പണി"), "{s:?}");
+    }
 }
 
 #[test]
 fn english_stays_english_with_manglish_on() {
-    let engine = engine();
-    for word in ["hello", "the", "end", "then"] {
-        assert_eq!(
-            middle(&engine, word),
-            (word.to_string(), Kind::Verbatim),
-            "{word}"
-        );
-    }
-    assert_eq!(middle(&engine, "teh"), ("the".into(), Kind::Correction));
-    let sentence = "I am going home";
-    for (end, _) in sentence.match_indices(' ').chain([(sentence.len(), "")]) {
-        let context = &sentence[..end];
-        let word = context.rsplit(' ').next().unwrap();
-        assert_eq!(
-            middle(&engine, context),
-            (word.to_string(), Kind::Verbatim),
-            "{context}"
-        );
+    for engine in engines() {
+        for word in ["hello", "the", "end", "then"] {
+            assert_eq!(
+                middle(&engine, word),
+                (word.to_string(), Kind::Verbatim),
+                "{word}"
+            );
+        }
+        assert_eq!(middle(&engine, "teh"), ("the".into(), Kind::Correction));
+        let sentence = "I am going home";
+        for (end, _) in sentence.match_indices(' ').chain([(sentence.len(), "")]) {
+            let context = &sentence[..end];
+            let word = context.rsplit(' ').next().unwrap();
+            assert_eq!(
+                middle(&engine, context),
+                (word.to_string(), Kind::Verbatim),
+                "{context}"
+            );
+        }
     }
 }
 
 #[test]
 fn code_mixed_english_words_stay_english() {
-    let engine = engine();
-    for context in [
-        "njan innu office",
-        "ഞാൻ ഇന്ന് office",
-        "ente phone",
-        "എന്റെ phone",
-    ] {
-        let word = context.rsplit(' ').next().unwrap();
-        assert_eq!(
-            middle(&engine, context),
-            (word.to_string(), Kind::Verbatim),
-            "{context}"
-        );
+    for engine in engines() {
+        for context in [
+            "njan innu office",
+            "ഞാൻ ഇന്ന് office",
+            "ente phone",
+            "എന്റെ phone",
+        ] {
+            let word = context.rsplit(' ').next().unwrap();
+            assert_eq!(
+                middle(&engine, context),
+                (word.to_string(), Kind::Verbatim),
+                "{context}"
+            );
+        }
+        assert_eq!(middle(&engine, "njan").0, "ഞാൻ");
+        assert_eq!(middle(&engine, "ഞാൻ innu").0, "ഇന്ന്");
+        assert_eq!(middle(&engine, "ഞാൻ ഇന്ന് office il poyi").0, "പോയി");
     }
-    assert_eq!(middle(&engine, "njan").0, "ഞാൻ");
-    assert_eq!(middle(&engine, "ഞാൻ innu").0, "ഇന്ന്");
-    assert_eq!(middle(&engine, "ഞാൻ ഇന്ന് office il poyi").0, "പോയി");
 }
 
 /// Chat forms missing from the corpus (or too rare to convert on their own),
 /// read as a frequent stem plus suffixes.
 #[test]
 fn agglutinated_manglish_splits_into_stem_and_suffix() {
-    let engine = engine();
+    for engine in engines() {
+        for (typed, want) in [
+            ("sukhamano", "സുഖമാണോ"),         // സുഖം + ആണോ
+            ("kazhicho", "കഴിച്ചോ"),         // കഴിച്ചു + ഓ
+            ("varunnundo", "വരുന്നുണ്ടോ"),      // വരുന്നുണ്ട് + ഓ
+            ("ishtamano", "ഇഷ്ടമാണോ"),        // ഇഷ്ടം + ആണോ
+            ("sukhamalle", "സുഖമല്ലേ"),       // സുഖം + അല്ലേ
+            ("veettilano", "വീട്ടിലാണോ"),     // വീട്ടിൽ + ആണോ: chillu ൽ → ല
+            ("veettilundo", "വീട്ടിലുണ്ടോ"),   // വീട്ടിൽ + ഉണ്ടോ
+            ("sukhamayirunnu", "സുഖമായിരുന്നു"), // സുഖം + ആയിരുന്നു
+            ("kazhichille", "കഴിച്ചില്ലേ"),   // കഴിച്ചു + ഇല്ലേ
+            ("kazhichilla", "കഴിച്ചില്ല"),    // കഴിച്ചു + ഇല്ല
+            ("ethiyo", "എത്തിയോ"),           // എത്തി + ഓ: glide യ
+            ("paranjo", "പറഞ്ഞോ"),           // പറഞ്ഞു + ഓ
+            ("paranjennu", "പറഞ്ഞെന്ന്"),      // പറഞ്ഞു + എന്ന്
+            ("ammayodu", "അമ്മയോട്"),         // അമ്മ + ഓട്: typed glide y
+            ("makkalodu", "മക്കളോട്"),        // മക്കൾ + ഓട്: chillu ൾ → ള
+            ("ammakku", "അമ്മക്ക്"),           // അമ്മ + ക്ക്
+            // Rarer stems convert after a Malayalam word.
+            ("അവൻ poyirunno", "പോയിരുന്നോ"),  // പോയിരുന്നു + ഓ
+            ("കുട്ടി urangiyo", "ഉറങ്ങിയോ"),   // ഉറങ്ങി + ഓ
+            ("അവൻ chettanodu", "ചേട്ടനോട്"),  // ചേട്ടൻ + ഓട്
+            ("ഞാൻ kazhikkatte", "കഴിക്കട്ടെ"), // കഴിക്ക + ട്ടെ
+            ("ഞാൻ vaanganam", "വാങ്ങണം"),      // വാങ്ങ + ണം
+        ] {
+            assert_eq!(
+                middle(&engine, typed),
+                (want.to_string(), Kind::Manglish),
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
+        }
+        // Without Malayalam context, a rarer stem's split waits in a side slot.
+        let s = texts(&engine, "poyirunno");
+        assert_eq!(s[0], "poyirunno");
+        assert!(s.contains(&"പോയിരുന്നോ".to_string()), "{s:?}");
+    }
+}
+
+#[test]
+fn suffix_splitting_leaves_english_and_whole_forms_alone() {
+    for engine in engines() {
+        // English words ending in a suffix spelling (-o, -il, -ude, -anam …).
+        for word in [
+            "radio", "piano", "tomato", "studio", "pencil", "until", "attitude", "potato",
+        ] {
+            assert_eq!(
+                middle(&engine, word),
+                (word.to_string(), Kind::Verbatim),
+                "{word}: {:?}",
+                texts(&engine, word)
+            );
+        }
+        // Whole forms in the corpus keep their own spelling.
+        for (typed, want) in [
+            ("veettil", "വീട്ടിൽ"),
+            ("kandilla", "കണ്ടില്ല"),
+            ("varumo", "വരുമോ"),
+        ] {
+            assert_eq!(
+                middle(&engine, typed).0,
+                want,
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
+        }
+        // A rare whole form (പഠിക്കണം) outranks a split of a common stem
+        // (പട്ടിക + ണം), and neither is frequent enough to convert.
+        let s = texts(&engine, "padikkanam");
+        assert_eq!(s[0], "padikkanam", "{s:?}");
+        let whole = s.iter().position(|t| t == "പഠിക്കണം");
+        let split = s.iter().position(|t| t == "പട്ടികണം");
+        assert!(
+            whole.is_some() && (split.is_none() || split > whole),
+            "{s:?}"
+        );
+        // After an English word, a split with a misspelled stem stays on the side.
+        let s = texts(&engine, "I kazhicho");
+        assert_eq!(s[0], "kazhicho", "{s:?}");
+        assert!(s.contains(&"കഴിച്ചോ".to_string()), "{s:?}");
+    }
+}
+
+#[test]
+fn the_model_loads_as_a_source() {
+    let Some(engine) = model_engine() else { return };
+    assert!(engine.loaded_sources().contains(&"translit"));
+}
+
+/// Chat words the model's ranking converts.
+#[test]
+fn translit_model_converts_in_the_middle() {
+    let Some(engine) = model_engine() else { return };
     for (typed, want) in [
-        ("sukhamano", "സുഖമാണോ"),         // സുഖം + ആണോ
-        ("kazhicho", "കഴിച്ചോ"),         // കഴിച്ചു + ഓ
-        ("varunnundo", "വരുന്നുണ്ടോ"),      // വരുന്നുണ്ട് + ഓ
-        ("ishtamano", "ഇഷ്ടമാണോ"),        // ഇഷ്ടം + ആണോ
-        ("sukhamalle", "സുഖമല്ലേ"),       // സുഖം + അല്ലേ
-        ("veettilano", "വീട്ടിലാണോ"),     // വീട്ടിൽ + ആണോ: chillu ൽ → ല
-        ("veettilundo", "വീട്ടിലുണ്ടോ"),   // വീട്ടിൽ + ഉണ്ടോ
-        ("sukhamayirunnu", "സുഖമായിരുന്നു"), // സുഖം + ആയിരുന്നു
-        ("kazhichille", "കഴിച്ചില്ലേ"),   // കഴിച്ചു + ഇല്ലേ
-        ("kazhichilla", "കഴിച്ചില്ല"),    // കഴിച്ചു + ഇല്ല
-        ("ethiyo", "എത്തിയോ"),           // എത്തി + ഓ: glide യ
-        ("paranjo", "പറഞ്ഞോ"),           // പറഞ്ഞു + ഓ
-        ("paranjennu", "പറഞ്ഞെന്ന്"),      // പറഞ്ഞു + എന്ന്
-        ("ammayodu", "അമ്മയോട്"),         // അമ്മ + ഓട്: typed glide y
-        ("makkalodu", "മക്കളോട്"),        // മക്കൾ + ഓട്: chillu ൾ → ള
-        ("ammakku", "അമ്മക്ക്"),           // അമ്മ + ക്ക്
-        // Rarer stems convert after a Malayalam word.
-        ("അവൻ poyirunno", "പോയിരുന്നോ"),  // പോയിരുന്നു + ഓ
-        ("കുട്ടി urangiyo", "ഉറങ്ങിയോ"),   // ഉറങ്ങി + ഓ
-        ("അവൻ chettanodu", "ചേട്ടനോട്"),  // ചേട്ടൻ + ഓട്
-        ("ഞാൻ kazhikkatte", "കഴിക്കട്ടെ"), // കഴിക്ക + ട്ടെ
-        ("ഞാൻ vaanganam", "വാങ്ങണം"),      // വാങ്ങ + ണം
+        ("enthu", "എന്തു"),
+        ("thrissur", "തൃശ്ശൂർ"),       // M2: ത്രിശ്ശൂർ on the side
+        ("sheriyanu", "ശരിയാണ്"),     // M2: ശെരിയാൻ on the side
+        ("manasilayi", "മനസ്സിലായി"), // M2: on the side
     ] {
         assert_eq!(
             middle(&engine, typed),
@@ -239,61 +350,52 @@ fn agglutinated_manglish_splits_into_stem_and_suffix() {
             texts(&engine, typed)
         );
     }
-    // Without Malayalam context, a rarer stem's split waits in a side slot.
-    let s = texts(&engine, "poyirunno");
-    assert_eq!(s[0], "poyirunno");
-    assert!(s.contains(&"പോയിരുന്നോ".to_string()), "{s:?}");
 }
 
+/// Known misses, left for a later fix of chat forms; no ranking weight reaches them.
+/// - `nanni` → നന്ദി: neither source has it. The model can't spell it (after നന്, ദ is
+///   its 23rd token, log prob −7.4, outside the 8 expanded per step), and the skeleton
+///   lookup doesn't match it (ന്ദ romanises nd, not nn). The model's നന്നി (−14.2) and നണ്ണി are too
+///   rare to convert, so the middle stays M2's correction `bank`.
+/// - `kollamo` → കൊള്ളാമോ: both readings are splits with no corpus count, and both
+///   sources prefer കൊല്ലമോ: the model (−0.150 per token against −0.390) and the stem
+///   frequency (കൊല്ലം over കൊള്ളാം). കൊള്ളാമോ stays in a side slot.
 #[test]
-fn suffix_splitting_leaves_english_and_whole_forms_alone() {
-    let engine = engine();
-    // English words ending in a suffix spelling (-o, -il, -ude, -anam …).
-    for word in [
-        "radio", "piano", "tomato", "studio", "pencil", "until", "attitude", "potato",
-    ] {
+#[ignore = "known misses: model and stem frequency both prefer another spelling"]
+fn translit_model_known_misses() {
+    let Some(engine) = model_engine() else { return };
+    for (typed, want) in [("nanni", "നന്ദി"), ("kollamo", "കൊള്ളാമോ")] {
         assert_eq!(
-            middle(&engine, word),
-            (word.to_string(), Kind::Verbatim),
-            "{word}: {:?}",
-            texts(&engine, word)
-        );
-    }
-    // Whole forms in the corpus keep their own spelling.
-    for (typed, want) in [
-        ("veettil", "വീട്ടിൽ"),
-        ("kandilla", "കണ്ടില്ല"),
-        ("varumo", "വരുമോ"),
-    ] {
-        assert_eq!(
-            middle(&engine, typed).0,
-            want,
+            middle(&engine, typed),
+            (want.to_string(), Kind::Manglish),
             "{typed}: {:?}",
             texts(&engine, typed)
         );
     }
-    // A rare whole form (പഠിക്കണം) outranks a split of a common stem
-    // (പട്ടിക + ണം), and neither is frequent enough to convert.
-    let s = texts(&engine, "padikkanam");
-    assert_eq!(s[0], "padikkanam", "{s:?}");
-    let whole = s.iter().position(|t| t == "പഠിക്കണം");
-    let split = s.iter().position(|t| t == "പട്ടികണം");
-    assert!(
-        whole.is_some() && (split.is_none() || split > whole),
-        "{s:?}"
-    );
-    // After an English word, a split with a misspelled stem stays on the side.
-    let s = texts(&engine, "I kazhicho");
-    assert_eq!(s[0], "kazhicho", "{s:?}");
-    assert!(s.contains(&"കഴിച്ചോ".to_string()), "{s:?}");
 }
 
-/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6).
+#[test]
+fn translit_model_leaves_english_as_typed() {
+    let Some(engine) = model_engine() else { return };
+    for context in ["I said hello", "radio", "piano", "meeting"] {
+        let word = context.rsplit(' ').next().unwrap();
+        assert_eq!(
+            middle(&engine, context),
+            (word.to_string(), Kind::Verbatim),
+            "{context}: {:?}",
+            texts(&engine, context)
+        );
+    }
+}
+
+/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included.
 /// Run in release: `make bench`.
 #[test]
 #[ignore = "timing: run with `make bench` (release build)"]
 fn latency() {
-    let engine = engine();
+    // With the transliterator when it has been exported: that is what the keyboard runs.
+    let engine = model_engine().unwrap_or_else(engine);
+    println!("sources: {:?}", engine.loaded_sources());
     let words = [
         "the",
         "because",
@@ -364,16 +466,7 @@ fn latency() {
 }
 
 fn trained_translit() -> Option<Translit> {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/translit.mlkbnn");
-    if !path.exists() {
-        println!(
-            "skipping: {} is missing (export it with mlkb.translit.export)",
-            path.display()
-        );
-        return None;
-    }
-    Some(Translit::open(&path).unwrap())
+    model_path().map(|path| Translit::open(&path).unwrap())
 }
 
 fn bundle_lexicon(name: &str) -> Lexicon {
@@ -442,9 +535,28 @@ fn translit_latency() {
     let Some(t) = trained_translit() else { return };
     let (ml, manglish) = (bundle_lexicon("ml.fst"), bundle_lexicon("manglish.fst"));
     let words = [
-        "enthu", "nanni", "jishnu", "sukhamano", "kollamo", "ente", "njan", "veettil", "amma",
-        "kerala", "malayalam", "varunnundo", "kazhichille", "enikku", "thiruvananthapuram",
-        "pinne", "sheri", "evide", "ippol", "nale", "ammayodu", "paranjennu",
+        "enthu",
+        "nanni",
+        "jishnu",
+        "sukhamano",
+        "kollamo",
+        "ente",
+        "njan",
+        "veettil",
+        "amma",
+        "kerala",
+        "malayalam",
+        "varunnundo",
+        "kazhichille",
+        "enikku",
+        "thiruvananthapuram",
+        "pinne",
+        "sheri",
+        "evide",
+        "ippol",
+        "nale",
+        "ammayodu",
+        "paranjennu",
     ];
     for w in words {
         println!("{w}: {:?}", transliterations(&t, &ml, &manglish, w));

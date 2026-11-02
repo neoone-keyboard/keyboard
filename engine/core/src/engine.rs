@@ -9,6 +9,7 @@ use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::malayalam;
 use crate::manglish;
+use crate::nn::Translit;
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
@@ -21,6 +22,9 @@ use crate::user::UserStore;
 const CORRECTION_LIMIT: usize = 4_000;
 /// Candidates returned: the middle slot plus two side slots.
 const SHOWN: usize = 3;
+/// Lexicon spellings asked of the transliterator per word. On an iPhone 15 Pro Max, encode
+/// plus 10 decoder steps at this width takes about 8 ms (p50), 9 ms (p99).
+const MODEL_WIDTH: usize = 4;
 
 /// The vowel signs the strip offers, in aksharamala order (KeyboardCore's `Malayalam.stripSigns`).
 pub const STRIP_SIGNS: [char; 15] = [
@@ -70,6 +74,9 @@ pub struct Sources {
     pub malayalam: Option<Lexicon>,
     pub manglish: Option<Lexicon>,
     pub next_words: Option<Lexicon>,
+    /// The neural transliterator (`nn::Translit`). Without it, Manglish ranking is M2's:
+    /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
+    pub translit: Option<Translit>,
 }
 
 /// File paths handed over by the platform. Any of them may be missing.
@@ -79,6 +86,8 @@ pub struct Paths {
     pub malayalam: Option<PathBuf>,
     pub manglish: Option<PathBuf>,
     pub next_words: Option<PathBuf>,
+    /// The transliterator model (`.mlkbnn`).
+    pub translit: Option<PathBuf>,
     /// Directory for learned words; None keeps them in memory only.
     pub user_dir: Option<PathBuf>,
 }
@@ -91,6 +100,10 @@ impl Sources {
             malayalam: open(&paths.malayalam),
             manglish: open(&paths.manglish),
             next_words: open(&paths.next_words),
+            translit: paths
+                .translit
+                .as_deref()
+                .and_then(|p| Translit::open(p).ok()),
         }
     }
 
@@ -108,6 +121,9 @@ impl Sources {
         }
         if self.next_words.is_some() {
             names.push("next_words");
+        }
+        if self.translit.is_some() {
+            names.push("translit");
         }
         names
     }
@@ -476,53 +492,81 @@ impl Engine {
             found.push(m.word, unfitted, fit_bonus(m.missing), m.missing, m.spelled);
         }
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
-        if found.exact.is_empty() && !english_word {
-            self.add_splits(lex, typed_n, bias, &mut found);
+        let splits = if found.exact.is_empty() && !english_word {
+            self.scored_splits(lex, typed_n)
+        } else {
+            Vec::new()
+        };
+        if !splits.is_empty() {
+            Self::add_splits(&splits, bias, &mut found);
         }
-        // Names and rare words: the rule-based spelling, as a side-slot guess.
-        if found.exact.is_empty()
-            && found.side.is_empty()
-            && let Some(text) = transliterate(typed_n)
-        {
-            found.side.push(Candidate {
-                text,
-                kind: Kind::Manglish,
-                score: rank::UNKNOWN,
-            });
+        // The model's spellings, held to the lexicon and the splits. Not for a word that is
+        // English: it would never be replaced, and the model is the costliest step.
+        let free = if english_word {
+            None
+        } else {
+            self.add_model(typed_n, &splits, bias, &mut found)
+        };
+        // Names and rare words: the model's own spelling (or, without the model, the
+        // rule-based one), as a side-slot guess.
+        if found.exact.is_empty() && found.side.is_empty() {
+            let guess = match free {
+                Some(text) => Some((text, rank::MANGLISH_MODEL_FREE)),
+                None => transliterate(typed_n).map(|text| (text, rank::UNKNOWN)),
+            };
+            if let Some((text, score)) = guess {
+                found.side.push(Candidate {
+                    text,
+                    kind: Kind::Manglish,
+                    score,
+                });
+            }
         }
         found
     }
 
-    /// Suffix splits (`suffix::splits`) of a word with no common whole form,
-    /// scored as their stem. A whole form always beats a split: a split that
+    /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
+    fn scored_splits(&self, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
+        let mut splits: Vec<ScoredSplit> =
+            suffix::splits(lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
+                .into_iter()
+                .map(|split| {
+                    let (spelled, distance) = manglish::fit(typed_n, &split.word, false);
+                    let log_prob =
+                        split.log_prob - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32;
+                    ScoredSplit {
+                        word: split.word,
+                        log_prob,
+                        distance,
+                        spelled,
+                    }
+                })
+                .collect();
+        splits.sort_by(|a, b| {
+            let score = |s: &ScoredSplit| s.log_prob - rank::MANGLISH_DISTANCE * s.distance as f32;
+            score(b).total_cmp(&score(a))
+        });
+        let mut seen = std::collections::HashSet::new();
+        splits.retain(|s| seen.insert(s.word.clone()));
+        splits
+    }
+
+    /// Suffix splits of a word with no common whole form, scored as their
+    /// stem. A whole form always beats a split: a split that
     /// spells a rare whole form already found lifts it to the split's score
     /// (both readings agree), and any other split stays in a side slot, below
     /// the rare whole forms.
-    fn add_splits(&self, lex: &Lexicon, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
+    fn add_splits(splits: &[ScoredSplit], bias: f32, found: &mut ManglishCandidates) {
         let fit = rank::MANGLISH_EXACT_BONUS;
         let rare_whole = found
             .side
             .iter()
             .map(|c| c.score)
             .fold(f32::NEG_INFINITY, f32::max);
-        let mut splits: Vec<(String, f32, bool)> =
-            suffix::splits(lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
-                .into_iter()
-                .map(|split| {
-                    let (spelled, distance) = manglish::fit(typed_n, &split.word, false);
-                    let unfitted = split.log_prob
-                        - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32
-                        - rank::MANGLISH_DISTANCE * distance as f32
-                        + bias;
-                    (split.word, unfitted, spelled)
-                })
-                .collect();
-        splits.sort_by(|a, b| b.1.total_cmp(&a.1));
-        let mut seen = std::collections::HashSet::new();
-        for (word, unfitted, spelled) in splits {
-            if !seen.insert(word.clone()) {
-                continue;
-            }
+        for split in splits {
+            let word = split.word.clone();
+            let spelled = split.spelled;
+            let unfitted = split.log_prob - rank::MANGLISH_DISTANCE * split.distance as f32 + bias;
             if let Some(i) = found.side.iter().position(|c| c.text == word) {
                 let whole = found.side.remove(i);
                 found.push(word, unfitted.max(whole.score - fit), fit, 0, spelled);
@@ -536,6 +580,56 @@ impl Engine {
                 found.push(word, unfitted, fit, 0, spelled);
             }
         }
+    }
+
+    /// The transliterator's spellings of `typed_n` that are lexicon words or `splits`, added
+    /// as whole words; returns its free spelling (off the lexicon), if any. A lexicon word
+    /// scores its log probability, a split its stem's (as in `add_splits`), plus
+    /// `MANGLISH_MODEL_WEIGHT` × the model's per-token score, in place of the skeleton
+    /// lookup's romanisation-distance penalty, except where English is likely
+    /// (see `rank::MANGLISH_MODEL_WEIGHT`). One the skeleton lookup or a split found too
+    /// appears twice, and the better score wins (`arrange`, and the max over `exact`).
+    /// Nothing without the model or the Malayalam lexicon it is held to.
+    fn add_model(
+        &self,
+        typed_n: &str,
+        splits: &[ScoredSplit],
+        bias: f32,
+        found: &mut ManglishCandidates,
+    ) -> Option<String> {
+        let (Some(model), Some(ml)) = (&self.sources.translit, &self.sources.malayalam) else {
+            return None;
+        };
+        let split_words: Vec<String> = splits.iter().map(|s| s.word.clone()).collect();
+        let latin = typed_n.to_ascii_lowercase();
+        let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
+            || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
+        let mut free = None;
+        for t in model.candidates_with_splits(&latin, ml, &split_words, MODEL_WIDTH) {
+            if !t.in_lexicon {
+                free = Some(t.text);
+                continue;
+            }
+            if t.score < rank::MANGLISH_MODEL_FLOOR {
+                continue;
+            }
+            let prior = match ml.get(t.text.as_bytes()) {
+                Some(count) => ml.log_prob(count),
+                None => match splits.iter().find(|s| s.word == t.text) {
+                    Some(split) => split.log_prob,
+                    None => continue,
+                },
+            };
+            let (spelled, distance) = manglish::fit(typed_n, &t.text, false);
+            let distance_penalty = if keeps_distance {
+                rank::MANGLISH_DISTANCE * distance as f32
+            } else {
+                0.0
+            };
+            let unfitted = prior - distance_penalty + rank::MANGLISH_MODEL_WEIGHT * t.score + bias;
+            found.push(t.text, unfitted, rank::MANGLISH_EXACT_BONUS, 0, spelled);
+        }
+        free
     }
 
     fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
@@ -632,6 +726,16 @@ impl Engine {
         totals.sort_by_key(|&(_, total)| std::cmp::Reverse(total));
         totals.into_iter().map(|(sign, _)| sign).collect()
     }
+}
+
+/// A suffix split (`suffix::Split`) with how closely the typed letters fit it.
+struct ScoredSplit {
+    word: String,
+    /// The stem's log probability, less `MANGLISH_SPLIT_PER_SUFFIX` per suffix.
+    log_prob: f32,
+    /// As in `manglish::fit`.
+    distance: usize,
+    spelled: bool,
 }
 
 /// Manglish candidates for one typed word, by the role each may play.
@@ -758,6 +862,7 @@ mod tests {
                 ("കീ", 1),
             ]),
             manglish: None,
+            translit: None,
             next_words: lex(&[
                 ("i\0am", 30),
                 ("i\0have", 20),

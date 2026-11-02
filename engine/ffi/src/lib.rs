@@ -59,6 +59,9 @@ pub struct EngineConfig {
     pub manglish: Option<String>,
     #[uniffi(default = None)]
     pub next_words: Option<String>,
+    /// The transliterator model (`.mlkbnn`); nil keeps Manglish on the lexicons alone.
+    #[uniffi(default = None)]
+    pub translit: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
 }
@@ -71,6 +74,7 @@ impl From<&EngineConfig> for mlengine_core::Paths {
             malayalam: path(&c.malayalam),
             manglish: path(&c.manglish),
             next_words: path(&c.next_words),
+            translit: path(&c.translit),
             user_dir: path(&c.user_dir),
         }
     }

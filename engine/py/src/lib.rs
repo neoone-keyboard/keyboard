@@ -8,8 +8,8 @@ use mlengine_core::{Engine as Core, Kind, Layout, Paths};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-/// The engine over the given lexicon files; a missing or unreadable file is
-/// left out, exactly as on the device.
+/// The engine over the given lexicon files and transliterator model (`translit`, a
+/// `.mlkbnn`); a missing or unreadable file is left out, exactly as on the device.
 #[pyclass(frozen)]
 struct Engine(Core);
 
@@ -24,12 +24,12 @@ impl Engine {
         next_words: Option<PathBuf>,
         translit: Option<PathBuf>,
     ) -> Self {
-        let _ = translit; // wired in Task 10
         Engine(Core::open(&Paths {
             english,
             malayalam,
             manglish,
             next_words,
+            translit,
             user_dir: None,
         }))
     }
