@@ -91,3 +91,9 @@ private func actions(_ layout: KeyboardLayout) -> [KeyAction] {
     #expect(layout.rows[2].last == Key(.backspace, width: 1.5))
     #expect(actions(layout).contains(.page(.letters)))
 }
+
+@Test func stripOffersAnusvaraAndVisargaBeforeVirama() {
+    // ക → കാ … കൗ കം കഃ ക്
+    #expect(Malayalam.stripSigns.suffix(3) == ["\u{0D02}", "\u{0D03}", "\u{0D4D}"])
+    #expect(Malayalam.stripSigns.dropLast(3) == Malayalam.vowelSigns.dropLast())
+}

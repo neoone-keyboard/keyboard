@@ -156,7 +156,7 @@ final class KeyboardViewController: UIInputViewController {
         if input.language == .malayalam {
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
             if let base = try? malayalamVowelSignBase(contextBefore: context) {
-                topBar.showVowelSigns(base: base, signs: Malayalam.vowelSigns)
+                topBar.showVowelSigns(base: base, signs: Malayalam.stripSigns)
             } else {
                 topBar.showSuggestions([])
             }

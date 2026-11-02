@@ -7,6 +7,10 @@ public enum Malayalam {
         "\u{0D46}", "\u{0D47}", "\u{0D48}", "\u{0D4A}", "\u{0D4B}", "\u{0D57}", "\u{0D4D}",
     ]
 
+    /// What the strip offers after a consonant, in aksharamala order:
+    /// കാ … കൗ, then കം കഃ, then ക് for conjuncts.
+    public static let stripSigns: [String] = vowelSigns.dropLast() + ["\u{0D02}", "\u{0D03}", "\u{0D4D}"]
+
     /// Atomic chillu letters (U+0D7A–U+0D7F): ൺ ൻ ർ ൽ ൾ ൿ.
     public static let chillus: [String] = ["\u{0D7A}", "\u{0D7B}", "\u{0D7C}", "\u{0D7D}", "\u{0D7E}", "\u{0D7F}"]
 
