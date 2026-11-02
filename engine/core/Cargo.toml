@@ -8,6 +8,7 @@ license.workspace = true
 name = "mlengine_core"
 
 [dependencies]
+unicode-normalization = "0.1"
 unicode-segmentation = "1"
 
 [dev-dependencies]
