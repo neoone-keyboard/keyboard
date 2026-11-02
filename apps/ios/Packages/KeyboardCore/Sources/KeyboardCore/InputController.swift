@@ -20,6 +20,14 @@ public enum Language: Sendable {
     case english, malayalam
 }
 
+/// Something the engine should learn from what the user just did.
+public enum LearningEvent: Equatable, Sendable {
+    /// A word was committed as typed. Words in no lexicon are learned the second time.
+    case committed(String)
+    /// The user rejected a replacement: never replace this word again.
+    case learn(String)
+}
+
 /// Turns key actions into text and tracks which page is showing. Has no
 /// dependency on the engine, so typing keeps working when prediction fails
 /// (spec §4 rule 3).
@@ -31,8 +39,26 @@ public final class InputController {
     public var numberRow = false
     public var showsNextKeyboard = true
 
+    /// Reports words to learn. The extension forwards these to the engine off the main thread.
+    public var onLearningEvent: (@MainActor (LearningEvent) -> Void)?
+    /// The latest suggestions; space and punctuation commit their middle slot.
+    public private(set) var suggestions: SuggestionResult = .empty
+
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
+    /// The automatic replacement made by the last key, which backspace can undo.
+    private var lastReplacement: Replacement?
+    /// A word the user restored with backspace; it is never replaced again.
+    private var keptWord: String?
+
+    private struct Replacement {
+        let typed: String
+        let replacement: String
+        let separator: String
+    }
+
+    /// Typed straight after a word, these commit the middle suggestion first.
+    private static let committingPunctuation: Set<String> = [".", ",", "?", "!"]
     private var shiftIsAutomatic = false
     /// Set when the user taps shift: auto-capitalisation leaves shift alone until
     /// the text before the cursor differs from `manualShiftContext`.
@@ -49,15 +75,27 @@ public final class InputController {
 
     /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
     public func handle(_ action: KeyAction, at time: TimeInterval) {
+        let undoable = lastReplacement
+        lastReplacement = nil
         switch action {
+        case .character(let c) where Self.committingPunctuation.contains(c):
+            if !commitMiddle(separator: c) {
+                noteCommittedWord()
+                type(c)
+            }
         case .character(let c):
             type(c)
         case .space:
-            output.insertText(" ")
+            if !commitMiddle(separator: " ") {
+                noteCommittedWord()
+                output.insertText(" ")
+            }
             if page == .symbols || page == .moreSymbols { page = alphabetPage }
         case .returnKey:
+            noteCommittedWord()
             output.insertText("\n")
         case .backspace:
+            if let undoable, undo(undoable) { break }
             output.deleteBackward()
         case .shift:
             let interval = lastShiftTap.map { time - $0 }
@@ -100,8 +138,27 @@ public final class InputController {
         }
     }
 
+    /// Stores the engine's latest result. Only a result for the word now being
+    /// typed is ever committed, so a late result can't replace the wrong word.
+    public func updateSuggestions(_ result: SuggestionResult) {
+        suggestions = result
+    }
+
+    /// The word before the cursor, as the host shares it ("" after a space).
+    public var currentWord: String {
+        String(Self.wordSuffix(of: output.contextBefore ?? "", includingSpaces: false))
+    }
+
+    /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
+    public func commitSuggestion(_ slot: SuggestionSlot) {
+        if slot.quoted { onLearningEvent?(.learn(slot.suggestion.text)) }
+        commitSuggestion(slot.suggestion.text)
+    }
+
     /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
     public func commitSuggestion(_ text: String) {
+        lastReplacement = nil
+        suggestions = .empty
         let context = output.contextBefore ?? ""
         let word = Self.wordSuffix(of: context, includingSpaces: false)
         if !word.isEmpty { delete(String(word), from: context) }
@@ -171,6 +228,42 @@ public final class InputController {
 
     private var alphabetPage: KeyboardPage {
         language == .english ? .letters : .malayalam
+    }
+
+    /// English only: replaces the typed word with the middle suggestion, then
+    /// types `separator`. Native Malayalam is never replaced.
+    private func commitMiddle(separator: String) -> Bool {
+        guard language == .english else { return false }
+        let context = output.contextBefore ?? ""
+        let word = String(Self.wordSuffix(of: context, includingSpaces: false))
+        guard !word.isEmpty, word != keptWord, suggestions.typed == word,
+              let middle = suggestions.middle, middle.kind != .verbatim, middle.text != word
+        else { return false }
+        delete(word, from: context)
+        output.insertText(middle.text + separator)
+        lastReplacement = Replacement(typed: word, replacement: middle.text, separator: separator)
+        suggestions = .empty
+        shift = shift.afterCharacter
+        if shift == .off { shiftIsAutomatic = false }
+        return true
+    }
+
+    /// Backspace straight after a replacement puts back what was typed and learns it.
+    private func undo(_ replacement: Replacement) -> Bool {
+        let context = output.contextBefore ?? ""
+        let committed = replacement.replacement + replacement.separator
+        guard context.hasSuffix(committed) else { return false }
+        delete(committed, from: context)
+        output.insertText(replacement.typed)
+        keptWord = replacement.typed
+        suggestions = .empty
+        onLearningEvent?(.learn(replacement.typed))
+        return true
+    }
+
+    private func noteCommittedWord() {
+        let word = currentWord
+        if !word.isEmpty { onLearningEvent?(.committed(word)) }
     }
 
     private func type(_ text: String) {
