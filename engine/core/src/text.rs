@@ -1,24 +1,32 @@
 //! Text helpers that must be correct for both English and Malayalam.
 
+use unicode_segmentation::UnicodeSegmentation;
+
 /// Returns the word being typed at the end of `context_before`, or "" if the
 /// text ends in a space or punctuation.
 pub fn current_word(context_before: &str) -> &str {
+    // Walk grapheme clusters backwards so combining marks, virama, ZWJ and ZWNJ
+    // stay attached to their base character.
     let start = context_before
-        .char_indices()
+        .grapheme_indices(true)
         .rev()
-        .take_while(|&(_, c)| is_word_char(c))
+        .take_while(|&(_, g)| is_word_grapheme(g))
         .last()
         .map(|(i, _)| i);
-    match start {
-        Some(i) => &context_before[i..],
-        None => "",
-    }
+    let word = match start {
+        Some(i) => context_before[i..].trim_start_matches(is_apostrophe),
+        None => return "",
+    };
+    if word.chars().any(char::is_alphanumeric) { word } else { "" }
 }
 
-/// Letters, digits, Malayalam vowel signs (Unicode-alphabetic), plus the
-/// characters that join a word but aren't alphabetic: apostrophes, virama, ZWNJ, ZWJ.
-fn is_word_char(c: char) -> bool {
-    c.is_alphanumeric() || matches!(c, '\'' | '\u{2019}' | '\u{0D4D}' | '\u{200C}' | '\u{200D}')
+fn is_apostrophe(c: char) -> bool {
+    matches!(c, '\'' | '\u{2019}')
+}
+
+/// A grapheme belongs to a word if it starts with a letter, digit or apostrophe.
+fn is_word_grapheme(g: &str) -> bool {
+    g.chars().next().is_some_and(|c| c.is_alphanumeric() || is_apostrophe(c))
 }
 
 #[cfg(test)]
@@ -59,5 +67,50 @@ mod tests {
     #[test]
     fn digits_count_as_word_characters() {
         assert_eq!(current_word("room 42"), "42");
+    }
+
+    #[test]
+    fn combining_marks_attach_to_their_base() {
+        assert_eq!(current_word("cafe\u{301}"), "cafe\u{301}");
+        assert_eq!(current_word("e\u{301}x"), "e\u{301}x");
+    }
+
+    #[test]
+    fn malayalam_sign_variants_stay_in_word() {
+        assert_eq!(current_word("ക\u{0D3B}"), "ക\u{0D3B}");
+        assert_eq!(current_word("ക\u{0D3C}"), "ക\u{0D3C}");
+        assert_eq!(current_word("x ക\u{0D3B}"), "ക\u{0D3B}");
+    }
+
+    #[test]
+    fn emoji_and_whitespace_are_not_word_characters() {
+        assert_eq!(current_word("👍"), "");
+        assert_eq!(current_word("a\nb"), "b");
+        assert_eq!(current_word("a\tb"), "b");
+    }
+
+    #[test]
+    fn malayalam_signs_and_digits_are_kept_whole() {
+        assert_eq!(current_word("കം"), "കം");
+        assert_eq!(current_word("ദുഃ"), "ദുഃ");
+        assert_eq!(current_word("൧൨"), "൧൨");
+    }
+
+    #[test]
+    fn hyphen_splits_words() {
+        assert_eq!(current_word("well-known"), "known");
+    }
+
+    #[test]
+    fn never_returns_a_word_without_letters_or_digits() {
+        assert_eq!(current_word("x \u{200C}"), "");
+        assert_eq!(current_word("👨\u{200D}"), "");
+        assert_eq!(current_word("''"), "");
+    }
+
+    #[test]
+    fn leading_apostrophes_are_dropped() {
+        assert_eq!(current_word("'hi"), "hi");
+        assert_eq!(current_word("don't"), "don't");
     }
 }

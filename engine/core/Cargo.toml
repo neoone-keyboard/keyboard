@@ -6,3 +6,6 @@ license.workspace = true
 
 [lib]
 name = "mlengine_core"
+
+[dependencies]
+unicode-segmentation = "1"

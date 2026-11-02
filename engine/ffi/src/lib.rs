@@ -1,6 +1,8 @@
 //! The only door between platform code and the engine. Every exported call
-//! goes through `guarded`, so a Rust panic becomes an `EngineError` instead
-//! of killing the keyboard.
+//! goes through `guarded`, so a Rust panic becomes a typed `EngineError`
+//! instead of killing the keyboard. UniFFI's own `catch_unwind` is the
+//! backstop; `guarded` is what gives callers a typed error. Swift callers must
+//! use `try` with do/catch, never `try!`.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
@@ -26,8 +28,8 @@ pub struct Engine {
 #[uniffi::export]
 impl Engine {
     #[uniffi::constructor]
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self { inner: mlengine_core::Engine::new() })
+    pub fn new() -> Result<Arc<Self>, EngineError> {
+        guarded(|| Arc::new(Self { inner: mlengine_core::Engine::new() }))
     }
 
     pub fn suggest(&self, context_before: String) -> Result<Vec<Suggestion>, EngineError> {
@@ -42,8 +44,8 @@ impl Engine {
 }
 
 #[uniffi::export]
-pub fn engine_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
+pub fn engine_version() -> Result<String, EngineError> {
+    guarded(|| env!("CARGO_PKG_VERSION").to_string())
 }
 
 fn guarded<T>(f: impl FnOnce() -> T) -> Result<T, EngineError> {
@@ -74,8 +76,27 @@ mod tests {
     }
 
     #[test]
+    fn guarded_reports_formatted_string_payloads() {
+        let err = guarded(|| -> u8 { panic!("x {}", 1) }).unwrap_err();
+        let EngineError::Internal { message } = err;
+        assert!(message.contains("x 1"), "message was {message:?}");
+    }
+
+    #[test]
+    fn guarded_reports_unknown_payloads() {
+        let err = guarded(|| -> u8 { std::panic::panic_any(5_u8) }).unwrap_err();
+        let EngineError::Internal { message } = err;
+        assert_eq!(message, "unknown panic");
+    }
+
+    #[test]
+    fn engine_version_is_reported() {
+        assert_eq!(engine_version().unwrap(), env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
     fn engine_suggest_returns_records() {
-        let engine = Engine::new();
+        let engine = Engine::new().unwrap();
         assert_eq!(
             engine.suggest("hello wor".into()).unwrap(),
             vec![Suggestion { text: "wor".into() }]
