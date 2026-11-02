@@ -8,6 +8,7 @@ final class KeyboardViewController: UIInputViewController {
     private let budget = MemoryBudget.keyboardExtension
     private let topBar = TopBarView()
     private let keyboardView = KeyboardView()
+    private let settingsPanel = SettingsPanelView()
     private var heightConstraint: NSLayoutConstraint?
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
@@ -34,11 +35,20 @@ final class KeyboardViewController: UIInputViewController {
             afterInput(pageBefore: page, shiftBefore: shift)
         }
 
+        settingsPanel.onChange = { [unowned self] changed in
+            settings = changed
+            applySettings()
+        }
+        settingsPanel.onDone = { [unowned self] in hideSettings() }
+
         let stack = UIStackView(arrangedSubviews: [topBar, keyboardView])
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
+        settingsPanel.translatesAutoresizingMaskIntoConstraints = false
+        settingsPanel.isHidden = true
+        view.addSubview(settingsPanel)
 
         let height = view.heightAnchor.constraint(equalToConstant: 270)
         height.priority = .defaultHigh + 1
@@ -50,6 +60,10 @@ final class KeyboardViewController: UIInputViewController {
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
             stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
             stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -2),
+            settingsPanel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
+            settingsPanel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
+            settingsPanel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            settingsPanel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
         ])
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
@@ -61,6 +75,7 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         settings = KeyboardSettings.load(from: .standard)
+        hideSettings()
         applySettings()
     }
 
@@ -107,6 +122,7 @@ final class KeyboardViewController: UIInputViewController {
         case .showAlternates, .highlightAlternate:
             return // Handled inside KeyboardView.
         case .openSettings:
+            showSettings()
             return
         }
         afterInput(pageBefore: pageBefore, shiftBefore: shiftBefore)
@@ -133,12 +149,27 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
+    // MARK: Settings panel
+
+    /// Covers the keys; touches already on them are dropped so lifting doesn't type.
+    private func showSettings() {
+        keyboardView.cancelAllTouches()
+        settingsPanel.show(settings)
+        settingsPanel.apply(theme)
+        settingsPanel.isHidden = false
+    }
+
+    private func hideSettings() {
+        settingsPanel.isHidden = true
+    }
+
     // MARK: Appearance
 
     private func applySettings() {
         theme = KeyboardTheme.resolve(settings, style: traitCollection.userInterfaceStyle)
         view.backgroundColor = theme.background
         topBar.apply(theme)
+        if !settingsPanel.isHidden { settingsPanel.apply(theme) }
         input.numberRow = settings.numberRow
         keyboardView.playsClicks = settings.keyClicks
         heightConstraint?.constant = settings.numberRow ? 320 : 270

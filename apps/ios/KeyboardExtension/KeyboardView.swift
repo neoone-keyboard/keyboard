@@ -165,7 +165,8 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         timer = nil
     }
 
-    private func cancelAllTouches() {
+    /// Drops every touch in progress so none of them types when lifted.
+    func cancelAllTouches() {
         activeTouches.removeAll()
         caps.forEach { $0.isPressed = false }
         hidePopup()
