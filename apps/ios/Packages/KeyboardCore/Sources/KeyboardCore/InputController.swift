@@ -165,8 +165,9 @@ public final class InputController {
     }
 
     /// The word before the cursor, as the host shares it ("" after a space).
+    /// A leading quote isn't part of it (`'teh` → `teh`), as in the engine.
     public var currentWord: String {
-        String(Self.wordSuffix(of: output.contextBefore ?? "", includingSpaces: false))
+        String(Self.word(endingAt: output.contextBefore ?? ""))
     }
 
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
@@ -184,7 +185,7 @@ public final class InputController {
         lastReplacement = nil
         suggestions = .empty
         let context = output.contextBefore ?? ""
-        let word = Self.wordSuffix(of: context, includingSpaces: false)
+        let word = Self.word(endingAt: context)
         if !word.isEmpty { delete(String(word), from: context) }
         output.insertText(text + " ")
         shift = shift.afterCharacter
@@ -260,7 +261,7 @@ public final class InputController {
     private func commitMiddle(separator: String) -> Bool {
         guard autocorrectEnabled, language == .english else { return false }
         let context = output.contextBefore ?? ""
-        let word = String(Self.wordSuffix(of: context, includingSpaces: false))
+        let word = String(Self.word(endingAt: context))
         guard !word.isEmpty,
               Self.straight(suggestions.typed) == Self.straight(word),
               keptWord.map({ Self.straight($0) != Self.straight(word) }) ?? true,
@@ -310,9 +311,13 @@ public final class InputController {
         return true
     }
 
+    /// Reports a word committed as typed, but only one autocorrect looked at
+    /// and left alone: with autocorrect off, or before the word's result
+    /// arrived, a typo (`thnaks` in a search field) would be learned.
     private func noteCommittedWord() {
         let word = currentWord
-        if !word.isEmpty { onLearningEvent?(.committed(word)) }
+        guard !word.isEmpty, autocorrectEnabled, suggestions.isFor(word: word) else { return }
+        onLearningEvent?(.committed(word))
     }
 
     private func type(_ text: String) {
@@ -346,6 +351,18 @@ public final class InputController {
             index = context.index(before: index)
         }
         return context[index...]
+    }
+
+    /// The word being typed at the end of `context`, without leading
+    /// apostrophes (an opening quote), and "" when it has no letter or digit.
+    /// Matches the engine's `text::current_word`.
+    private static func word(endingAt context: String) -> Substring {
+        let word = wordSuffix(of: context, includingSpaces: false).drop { isApostrophe($0) }
+        return word.contains { $0.isLetter || $0.isNumber } ? word : word.suffix(0)
+    }
+
+    private static func isApostrophe(_ c: Character) -> Bool {
+        c == "'" || c == "\u{2019}"
     }
 
     private static func isWordCharacter(_ c: Character) -> Bool {

@@ -65,7 +65,6 @@ struct AutocorrectTests {
         output.text = "hi"
         input.handle(.character("!"), at: 0)
         #expect(output.text == "hi!")
-        #expect(events.events == [.committed("hi")])
     }
 
     @Test func backspaceRightAfterAReplacementRestoresAndLearns() {
@@ -299,8 +298,67 @@ struct AutocorrectTests {
 
     @Test func returnReportsTheCommittedWord() {
         output.text = "hello"
+        input.updateSuggestions(SuggestionResult(typed: "hello", candidates: [Suggestion("hello", kind: .verbatim)]))
         input.handle(.returnKey, at: 0)
         #expect(events.events == [.committed("hello")])
+    }
+
+    // MARK: Learning only from words autocorrect saw
+
+    @Test func aWordIsNotReportedWhenAutocorrectIsOff() {
+        input.autocorrectEnabled = false
+        for key in [KeyAction.space, .character("."), .returnKey] {
+            output.text = "thnaks"
+            input.updateSuggestions(corrected("thnaks", to: "thanks"))
+            input.handle(key, at: 0)
+        }
+        #expect(events.events.isEmpty)
+    }
+
+    @Test func aWordIsNotReportedBeforeItsResultArrives() {
+        for key in [KeyAction.space, .character(","), .returnKey] {
+            output.text = "thnaks"
+            input.updateSuggestions(SuggestionResult(typed: "thnak", candidates: [Suggestion("thnak", kind: .verbatim)]))
+            input.handle(key, at: 0)
+        }
+        #expect(events.events.isEmpty)
+    }
+
+    @Test func aWordAutocorrectDeclinedIsReported() {
+        output.text = "Anu"
+        input.updateSuggestions(SuggestionResult(typed: "Anu", candidates: [Suggestion("Anu", kind: .verbatim), Suggestion("Ann", kind: .correction)]))
+        input.handle(.space, at: 0)
+        #expect(output.text == "Anu ")
+        #expect(events.events == [.committed("Anu")])
+    }
+
+    // MARK: Leading apostrophes
+
+    @Test func aLeadingQuoteIsNotPartOfTheWord() {
+        output.text = "say 'teh"
+        #expect(input.currentWord == "teh")
+        output.text = "say \u{2019}teh"
+        #expect(input.currentWord == "teh")
+        output.text = "say '"
+        #expect(input.currentWord == "")
+        output.text = "say don't"
+        #expect(input.currentWord == "don't")
+    }
+
+    @Test func correctingAQuotedWordKeepsTheQuote() {
+        output.text = "say 'teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0)
+        #expect(output.text == "say 'the ")
+        input.handle(.backspace, at: 0.1)
+        #expect(output.text == "say 'teh")
+    }
+
+    @Test func tappingASuggestionForAQuotedWordKeepsTheQuote() throws {
+        output.text = "say 'cou"
+        let bar = SuggestionBar(SuggestionResult(typed: "cou", candidates: [Suggestion("could", kind: .completion)]))
+        input.commitSuggestion(try #require(bar.middle))
+        #expect(output.text == "say 'could ")
     }
 
     @Test func tappingASuggestionReportsTheCommittedWord() throws {
