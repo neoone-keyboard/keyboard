@@ -1,5 +1,6 @@
 //! Platform-free keyboard engine. Nothing in this crate may depend on iOS or Android APIs.
 
+pub mod lexicon;
 pub mod malayalam;
 pub mod normalize;
 pub mod text;
