@@ -1,21 +1,58 @@
 import UIKit
 
 /// The strip above the keys: suggestions in English, vowel signs after a Malayalam consonant.
-final class TopBarView: UIStackView {
+/// Suggestions sit in three fixed slots; vowel signs scroll sideways at full size.
+final class TopBarView: UIView {
     var onVowelSign: (@MainActor (String) -> Void)?
 
+    private let suggestionStack = UIStackView()
+    private let vowelScroll = UIScrollView()
+    private let vowelStack = UIStackView()
     private var theme: KeyboardTheme?
     /// What is showing now, so unchanged content isn't rebuilt on every keystroke.
     private var shownContent: [String] = []
 
+    /// Width of one vowel-sign button. Wide enough to tap without zooming;
+    /// the last one is cut off at the edge, which shows the row scrolls.
+    private static let vowelButtonWidth: CGFloat = 52
+
     override init(frame: CGRect) {
         super.init(frame: frame)
-        axis = .horizontal
-        distribution = .fillEqually
-        spacing = 3
+        suggestionStack.axis = .horizontal
+        suggestionStack.distribution = .fillEqually
+        suggestionStack.spacing = 3
+
+        vowelStack.axis = .horizontal
+        vowelStack.spacing = 4
+        vowelScroll.showsHorizontalScrollIndicator = false
+        vowelScroll.alwaysBounceHorizontal = true
+        vowelScroll.addSubview(vowelStack)
+
+        for view in [suggestionStack, vowelScroll, vowelStack] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+        }
+        addSubview(suggestionStack)
+        addSubview(vowelScroll)
+        let content = vowelScroll.contentLayoutGuide
+        NSLayoutConstraint.activate([
+            suggestionStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            suggestionStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            suggestionStack.topAnchor.constraint(equalTo: topAnchor),
+            suggestionStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            vowelScroll.leadingAnchor.constraint(equalTo: leadingAnchor),
+            vowelScroll.trailingAnchor.constraint(equalTo: trailingAnchor),
+            vowelScroll.topAnchor.constraint(equalTo: topAnchor),
+            vowelScroll.bottomAnchor.constraint(equalTo: bottomAnchor),
+            vowelStack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            vowelStack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            vowelStack.topAnchor.constraint(equalTo: content.topAnchor),
+            vowelStack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            vowelStack.heightAnchor.constraint(equalTo: vowelScroll.frameLayoutGuide.heightAnchor),
+        ])
+        vowelScroll.isHidden = true
     }
 
-    required init(coder: NSCoder) { fatalError("init(coder:) is not used") }
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     func apply(_ theme: KeyboardTheme) {
         self.theme = theme
@@ -27,7 +64,9 @@ final class TopBarView: UIStackView {
         let content = ["suggestions"] + suggestions
         guard content != shownContent else { return }
         shownContent = content
-        replaceItems(with: [1, 0, 2].map { index in
+        vowelScroll.isHidden = true
+        suggestionStack.isHidden = false
+        replaceItems(in: suggestionStack, with: [1, 0, 2].map { index in
             let label = UILabel()
             label.text = index < suggestions.count ? suggestions[index] : nil
             label.textAlignment = .center
@@ -44,22 +83,25 @@ final class TopBarView: UIStackView {
         let content = ["vowels", base] + signs
         guard content != shownContent else { return }
         shownContent = content
-        replaceItems(with: signs.map { sign in
+        suggestionStack.isHidden = true
+        vowelScroll.isHidden = false
+        replaceItems(in: vowelStack, with: signs.map { sign in
             let button = UIButton(type: .system)
             button.setTitle(base + sign, for: .normal)
-            button.titleLabel?.font = .systemFont(ofSize: 18)
-            button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.6
+            button.titleLabel?.font = .systemFont(ofSize: 20)
             button.setTitleColor(theme?.onAccent, for: .normal)
             button.backgroundColor = theme?.accent
             button.layer.cornerRadius = 6
+            button.widthAnchor.constraint(equalToConstant: Self.vowelButtonWidth).isActive = true
             button.addAction(UIAction { [weak self] _ in self?.onVowelSign?(sign) }, for: .touchUpInside)
             return button
         })
+        // A new consonant starts the row from കാ again.
+        vowelScroll.setContentOffset(.zero, animated: false)
     }
 
-    private func replaceItems(with views: [UIView]) {
-        arrangedSubviews.forEach { $0.removeFromSuperview() }
-        views.forEach(addArrangedSubview)
+    private func replaceItems(in stack: UIStackView, with views: [UIView]) {
+        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        views.forEach(stack.addArrangedSubview)
     }
 }
