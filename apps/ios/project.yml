@@ -30,6 +30,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - target: KeyboardExtension
+      - package: KeyboardCore
   KeyboardExtension:
     type: app-extension
     platform: iOS

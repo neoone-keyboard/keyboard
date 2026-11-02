@@ -31,6 +31,9 @@ struct ContentView: View {
                 Section("Stability") {
                     LabeledContent("Saved MetricKit reports", value: "\(MetricsSubscriber.reportCount())")
                 }
+                Section {
+                    NavigationLink("About and credits") { AboutView() }
+                }
             }
             .navigationTitle("Malayalam Keyboard")
         }

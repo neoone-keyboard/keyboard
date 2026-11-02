@@ -36,6 +36,7 @@ test: test-engine test-data test-swift
 
 test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
+	./scripts/shipped-crates.sh --check
 
 test-data:
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
