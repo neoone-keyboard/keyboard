@@ -17,7 +17,7 @@
 use std::ops::Range;
 
 use super::file::{Config, KIND_TRANSLIT, ModelFile, NnError, TensorRef};
-use super::ops::{QMatrix, add_assign, dot, layer_norm, matmul_i8, relu, softmax};
+use super::ops::{QMatrix, QuantBuf, add_assign, dot, layer_norm, matmul_i8, relu, softmax};
 
 /// An int8 matrix resolved from the file: its scales (copied) and where its values are.
 #[derive(Debug)]
@@ -245,14 +245,13 @@ struct Scratch {
     proj: Vec<f32>,
     ff: Vec<f32>,
     logits: Vec<f32>,
-    row: Vec<f32>,
+    quant: QuantBuf,
     scores: Vec<f32>,
 }
 
 impl Scratch {
     fn new(c: &Config, n: usize) -> Self {
         let mut s = Self {
-            row: vec![0.0; c.d.max(c.ff)],
             scores: vec![0.0; c.max_len],
             ..Self::default()
         };
@@ -381,8 +380,8 @@ impl Transformer {
     }
 
     /// `out = linear(x)` for `n` rows.
-    fn linear(&self, l: &Linear, x: &[f32], n: usize, out: &mut [f32], row: &mut [f32]) {
-        matmul_i8(self.q(&l.weight), Some(&l.bias), x, n, out, row);
+    fn linear(&self, l: &Linear, x: &[f32], n: usize, out: &mut [f32], quant: &mut QuantBuf) {
+        matmul_i8(self.q(&l.weight), Some(&l.bias), x, n, out, quant);
     }
 
     /// `x += W2·relu(W1·norm(x) + b1) + b2` for `n` rows of `x`.
@@ -394,7 +393,7 @@ impl Transformer {
             &s.h[..n * d],
             n,
             &mut s.ff[..n * f],
-            &mut s.row,
+            &mut s.quant,
         );
         relu(&mut s.ff[..n * f]);
         self.linear(
@@ -402,7 +401,7 @@ impl Transformer {
             &s.ff[..n * f],
             n,
             &mut s.proj[..n * d],
-            &mut s.row,
+            &mut s.quant,
         );
         add_assign(&mut s.x[..n * d], &s.proj[..n * d]);
     }
@@ -436,7 +435,7 @@ impl Transformer {
                 &s.h[..n * d],
                 n,
                 &mut s.qkv[..n * 3 * d],
-                &mut s.row,
+                &mut s.quant,
             );
             for i in 0..n {
                 attend(
@@ -454,7 +453,7 @@ impl Transformer {
                 &s.attn[..n * d],
                 n,
                 &mut s.proj[..n * d],
-                &mut s.row,
+                &mut s.quant,
             );
             add_assign(&mut s.x[..n * d], &s.proj[..n * d]);
             self.feed_forward(&layer.ff, &layer.norm2, n, &mut s);
@@ -468,7 +467,7 @@ impl Transformer {
                 let kv_rows = self.q(&layer.cross_attn.in_proj.weight).rows(d..3 * d);
                 let mut kv = vec![0.0; n * 2 * d];
                 let bias = &layer.cross_attn.in_proj.bias[d..3 * d];
-                matmul_i8(kv_rows, Some(bias), &output, n, &mut kv, &mut s.row);
+                matmul_i8(kv_rows, Some(bias), &output, n, &mut kv, &mut s.quant);
                 kv
             })
             .collect();
@@ -547,7 +546,7 @@ impl Decoder<'_> {
                 &s.h[..n * d],
                 n,
                 &mut s.qkv[..n * 3 * d],
-                &mut s.row,
+                &mut s.quant,
             );
             for (i, state) in states.iter_mut().enumerate() {
                 let qkv = &s.qkv[i * 3 * d..(i + 1) * 3 * d];
@@ -568,7 +567,7 @@ impl Decoder<'_> {
                 &s.attn[..n * d],
                 n,
                 &mut s.proj[..n * d],
-                &mut s.row,
+                &mut s.quant,
             );
             add_assign(&mut s.x[..n * d], &s.proj[..n * d]);
 
@@ -583,7 +582,7 @@ impl Decoder<'_> {
                 &s.h[..n * d],
                 n,
                 q,
-                &mut s.row,
+                &mut s.quant,
             );
             let kv = &self.encoded.cross_kv[l];
             for i in 0..n {
@@ -602,7 +601,7 @@ impl Decoder<'_> {
                 &s.attn[..n * d],
                 n,
                 &mut s.proj[..n * d],
-                &mut s.row,
+                &mut s.quant,
             );
             add_assign(&mut s.x[..n * d], &s.proj[..n * d]);
 
@@ -613,7 +612,14 @@ impl Decoder<'_> {
         }
         norm_rows(&m.dec_norm, &s.x[..n * d], &mut s.h[..n * d], d);
         let logits = &mut s.logits[..n * c.tgt_vocab];
-        matmul_i8(m.q(&m.tgt_emb), None, &s.h[..n * d], n, logits, &mut s.row);
+        matmul_i8(
+            m.q(&m.tgt_emb),
+            None,
+            &s.h[..n * d],
+            n,
+            logits,
+            &mut s.quant,
+        );
         logits
     }
 }
