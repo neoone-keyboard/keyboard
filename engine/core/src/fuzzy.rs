@@ -12,7 +12,9 @@ pub const MAX_LEN: usize = 24;
 
 /// Cost of one ordinary edit. `MAX_COST = 2 * EDIT` means "within two edits".
 pub const EDIT: u8 = 2;
-/// A substitution between neighbouring keys, a missed apostrophe, or a doubled letter typed once or three times.
+/// A substitution between neighbouring keys, two letters swapped, a missed
+/// apostrophe, or a doubled letter typed once or three times. (Swaps cost a
+/// full edit until Task 17: `pani` then ranked `land` above `pain`.)
 pub const CHEAP_EDIT: u8 = 1;
 
 const INF: u8 = u8::MAX;
@@ -127,7 +129,7 @@ impl Automaton for WeightedEdit {
             cost = cost.min(next[i - 1].saturating_add(self.delete_cost(i)));
             cost = cost.min(state.cur[i - 1].saturating_add(self.substitute_cost(q, b)));
             if i >= 2 && state.last == Some(q) && self.q(i - 2) == b && q != b {
-                cost = cost.min(state.prev[i - 2].saturating_add(EDIT));
+                cost = cost.min(state.prev[i - 2].saturating_add(CHEAP_EDIT));
             }
             next[i] = cost;
         }
@@ -158,8 +160,8 @@ mod tests {
     }
 
     #[test]
-    fn transposition_is_one_edit() {
-        assert_eq!(cost("teh", "the"), EDIT);
+    fn transposition_is_half_an_edit() {
+        assert_eq!(cost("teh", "the"), CHEAP_EDIT);
     }
 
     #[test]

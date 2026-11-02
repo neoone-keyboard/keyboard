@@ -349,6 +349,8 @@ impl Engine {
 
         let manglish = self.manglish(typed_n, manglish_bias);
         completions.extend(manglish.completions);
+        // Set when the best English and Malayalam replacements are too close to call.
+        let mut ambiguous: Vec<Candidate> = Vec::new();
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
@@ -358,6 +360,8 @@ impl Engine {
                 .iter()
                 .map(|c| c.score)
                 .fold(f32::NEG_INFINITY, f32::max);
+            // All English words that start with the typed letters, as one candidate.
+            let prefix = self.english_prefix_log_prob(typed_n);
             let english = match &case_fix {
                 Some(fix) => Some(fix.clone()),
                 None => corrections
@@ -365,18 +369,43 @@ impl Engine {
                     .max_by(|a, b| a.score.total_cmp(&b.score))
                     .cloned(),
             };
-            // A Malayalam word with exactly the typed skeleton competes as a correction.
+            // A Malayalam word with exactly the typed skeleton competes as a
+            // correction; one the typed letters spell out counts for more
+            // against English, unless an English word comes before it.
+            let spelled_bonus = if manglish_bias <= rank::CONTEXT_AFTER_ENGLISH {
+                0.0
+            } else {
+                rank::MANGLISH_SPELLED_OVER_CORRECTION
+            };
             let malayalam = manglish
                 .exact
                 .iter()
-                .max_by(|a, b| a.score.total_cmp(&b.score))
-                .cloned();
-            [english, malayalam]
-                .into_iter()
-                .flatten()
-                .max_by(|a, b| a.score.total_cmp(&b.score))
-            // A typed prefix more likely to be finished than mistyped stays as typed.
-            .filter(|best| best.score > best_completion)
+                .map(|(c, spelled)| {
+                    let against_english = c.score + if *spelled { spelled_bonus } else { 0.0 };
+                    (c.clone(), against_english)
+                })
+                .max_by(|a, b| a.1.total_cmp(&b.1));
+            match (english, malayalam) {
+                // Too close to call: keep what was typed and offer both.
+                (Some(e), Some((m, m_score))) if (e.score - m_score).abs() < rank::AMBIGUOUS => {
+                    ambiguous = vec![e, m];
+                    None
+                }
+                (english, malayalam) => {
+                    // A typed prefix more likely to be finished than mistyped stays as typed.
+                    let english = english.filter(|e| {
+                        e.score > best_completion && e.score > prefix + rank::PREFIX_VS_CORRECTION
+                    });
+                    let malayalam = malayalam.filter(|(c, against_english)| {
+                        *against_english > best_completion
+                            && c.score > prefix + rank::PREFIX_VS_MANGLISH
+                    });
+                    match (english, malayalam) {
+                        (Some(e), Some((m, m_score))) => Some(if e.score > m_score { e } else { m }),
+                        (e, m) => e.or(m.map(|(m, _)| m)),
+                    }
+                }
+            }
             .filter(|best| {
                 best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
             })
@@ -386,9 +415,26 @@ impl Engine {
         let mut others = corrections;
         others.extend(completions);
         others.extend(case_fix);
-        others.extend(manglish.exact);
+        others.extend(manglish.exact.into_iter().map(|(c, _)| c));
         others.extend(manglish.side);
-        arrange(typed_c, typed_n, others, replacement)
+        arrange(typed_c, typed_n, others, replacement, ambiguous)
+    }
+
+    /// Log-probability of all English words that start with `typed` and are
+    /// longer than it; minus infinity for none, or for a single letter.
+    fn english_prefix_log_prob(&self, typed: &str) -> f32 {
+        let Some(lex) = self.sources.english.as_ref().filter(|_| typed.len() >= 2) else {
+            return f32::NEG_INFINITY;
+        };
+        let own: u64 = lex
+            .case_variants(typed.as_bytes())
+            .iter()
+            .map(|(_, count)| count)
+            .sum();
+        match lex.subtree_count(typed.as_bytes()).saturating_sub(own) {
+            0 => f32::NEG_INFINITY,
+            mass => lex.log_prob(mass),
+        }
     }
 
     /// Malayalam candidates for a Latin word, scored to compete with English.
@@ -418,7 +464,7 @@ impl Engine {
             if m.missing > 0 {
                 found.completions.push(candidate);
             } else if unfitted >= rank::MIN_REPLACE {
-                found.exact.push(candidate);
+                found.exact.push((candidate, m.spelled));
             } else {
                 found.side.push(candidate);
             }
@@ -468,7 +514,7 @@ impl Engine {
             });
         }
         // Native Malayalam is never replaced: the typed word always stays in the middle.
-        arrange(verbatim(typed, 0.0), &typed_n, others, None)
+        arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
     }
 
     fn next_words(&self, context_before: &str) -> Vec<Candidate> {
@@ -536,8 +582,9 @@ impl Engine {
 /// Manglish candidates for one typed word, by the role each may play.
 #[derive(Default)]
 struct ManglishCandidates {
-    /// Same skeleton as typed and common enough: may take the middle, like a correction.
-    exact: Vec<Candidate>,
+    /// Same skeleton as typed and common enough: may take the middle, like a
+    /// correction. The flag is `manglish::Match::spelled`.
+    exact: Vec<(Candidate, bool)>,
     /// Longer words: completions, side slots only.
     completions: Vec<Candidate>,
     /// Side slots only, and they don't stop a correction: rare words with the
@@ -577,12 +624,14 @@ fn sort_and_dedup(candidates: &mut Vec<Candidate>) {
 /// Puts `replacement` (chosen by the caller, already checked against the
 /// margin and floor) in the middle with the typed word second; otherwise the
 /// typed word is in the middle. The best of the rest fill the side slots.
-/// Nothing equal to the typed word, as typed or normalised, is repeated.
+/// `first_sides` take the first side slots whatever their scores (an
+/// ambiguous pair). Nothing equal to the typed word, as typed or normalised, is repeated.
 fn arrange(
     typed: Candidate,
     typed_n: &str,
     mut others: Vec<Candidate>,
     replacement: Option<Candidate>,
+    first_sides: Vec<Candidate>,
 ) -> Vec<Candidate> {
     others.retain(|c| c.text != typed.text && c.text != typed_n);
     let mut out = Vec::with_capacity(SHOWN);
@@ -592,7 +641,13 @@ fn arrange(
     }
     sort_and_dedup(&mut others);
     out.push(typed);
-    out.extend(others.into_iter().take(SHOWN));
+    let mut sides: Vec<Candidate> = first_sides
+        .into_iter()
+        .filter(|c| c.text != typed_n && !out.iter().any(|o| o.text == c.text))
+        .collect();
+    others.retain(|c| !sides.iter().any(|s| s.text == c.text));
+    sides.extend(others);
+    out.extend(sides.into_iter().take(SHOWN));
     out
 }
 

@@ -21,6 +21,35 @@ pub const MARGIN: f32 = 2.0;
 /// a rare word is a guess, not a correction.
 pub const MIN_REPLACE: f32 = -13.0;
 
+/// The English words that start with the typed letters (`ent` → enter,
+/// entire, entry …) compete with any replacement as one candidate, scored by
+/// their summed log-probability plus a bonus. Space never commits an
+/// unfinished word, and a common prefix is more likely unfinished than mistyped.
+///
+/// Tuned on the real bundle (Task 17). Against an English correction the sum
+/// counts as an English word (`KNOWN_BONUS`): `thi` stays (this, think …: −3.6)
+/// rather than becoming `the` (−3.75); `wor` and `bec` likewise. `teh` (−9.9)
+/// still becomes `the`.
+pub const PREFIX_VS_CORRECTION: f32 = KNOWN_BONUS;
+/// Against a Manglish word with the typed skeleton, the sum gets less: the
+/// skeleton match is itself evidence the word is finished. `ent` stays (−6.6
+/// against എന്റെ at −7.3); `ente` (−7.5 against −6.5) and `ende` (−8.3) convert.
+pub const PREFIX_VS_MANGLISH: f32 = 0.5;
+
+/// Manglish: when nothing points to English (no English word before it), a
+/// Malayalam word the typed letters spell out (up to vowel length) gets this
+/// much over an English *correction*: a correction needs a typo, a spelled
+/// word needs none. `nale` → നാളെ (−9.7 + 4.5) rather than `name` (−6.9), clear of `AMBIGUOUS`; `teh`
+/// spells no Malayalam word and still becomes `the`. Not counted against the
+/// English prefix sum above, or `thi` would become തി.
+pub const MANGLISH_SPELLED_OVER_CORRECTION: f32 = 4.5;
+/// When the best English replacement and the best Malayalam one score within
+/// this of each other, neither takes the middle: the typed word stays, and
+/// both go in the side slots (`I feel pani` → pani, with pain and പണി). Half
+/// of `MARGIN`: on the small golden lexicon `pain` is 15 times as common as
+/// പണി and leads by 1.6 after an English word, which must still convert.
+pub const AMBIGUOUS: f32 = 1.0;
+
 /// Manglish: bonus when the typed skeleton is the word's whole skeleton.
 pub const MANGLISH_EXACT_BONUS: f32 = 1.5;
 /// Manglish: penalty per skeleton letter the word has beyond what was typed.

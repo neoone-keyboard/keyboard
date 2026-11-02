@@ -65,12 +65,12 @@ private let lexiconDir = URL(fileURLWithPath: #filePath)
 
 private func bundledConfig() -> EngineConfig {
     func path(_ name: String) -> String { lexiconDir.appending(path: "\(name).fst").path }
-    return EngineConfig(english: path("en"), malayalam: path("ml"), nextWords: path("next"))
+    return EngineConfig(english: path("en"), malayalam: path("ml"), manglish: path("manglish"), nextWords: path("next"))
 }
 
 @Test func bundledLexiconsLoadAndCorrect() throws {
     let engine = try Engine(config: bundledConfig())
-    #expect(try engine.loadedSources() == ["english", "malayalam", "next_words"])
+    #expect(try engine.loadedSources() == ["english", "malayalam", "manglish", "next_words"])
     let result = try engine.suggest(contextBefore: "I said teh", layout: .latin, autocorrect: true)
     #expect(result.candidates.first?.text == "the")
     #expect(result.candidates.first?.kind == .correction)

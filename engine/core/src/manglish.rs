@@ -72,6 +72,9 @@ pub struct Match {
     /// Edit distance between the typed letters and the word's romanisation
     /// (to its closest prefix, when the word is longer).
     pub distance: usize,
+    /// The typed letters spell the whole word, up to vowel length and t/d
+    /// (`nale` for നാളെ, romanised `naale`). `distance` is then 0.
+    pub spelled: bool,
 }
 
 /// Malayalam words matching a typed Latin word: those with exactly its
@@ -111,6 +114,7 @@ pub fn lookup(lexicon: &Lexicon, typed: &str) -> Vec<Match> {
                 log_prob,
                 missing,
                 distance: 0,
+                spelled: false,
             },
         ));
     }
@@ -124,10 +128,46 @@ pub fn lookup(lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     shortlist
         .into_iter()
         .map(|(_, mut m)| {
-            m.distance = prefix_distance(&typed_lower, romanize(&m.word).as_bytes(), m.missing > 0);
+            let roman = romanize(&m.word);
+            m.spelled = m.missing == 0 && relaxed(&typed_lower) == relaxed(roman.as_bytes());
+            m.distance = if m.spelled {
+                0
+            } else {
+                prefix_distance(&typed_lower, roman.as_bytes(), m.missing > 0)
+            };
             m
         })
         .collect()
+}
+
+/// Lowercase letters with vowel length and t/d collapsed (aa → a,
+/// ee/ii → i, oo/uu → u, d → t): what people type inconsistently. Doubled
+/// consonants are kept: `veedu` is വീട് (veetu), not വിട്ടു (vittu).
+fn relaxed(latin: &[u8]) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::with_capacity(latin.len());
+    for &b in latin {
+        // t and d: people type ട as either (veedu for വീട്, romanised veetu).
+        let b = match b.to_ascii_lowercase() {
+            b'd' => b't',
+            b => b,
+        };
+        if !b.is_ascii_alphabetic() {
+            continue;
+        }
+        match (out.last().copied(), b) {
+            (Some(b'e'), b'e') => {
+                out.pop();
+                out.push(b'i');
+            }
+            (Some(b'o'), b'o') => {
+                out.pop();
+                out.push(b'u');
+            }
+            (Some(last), b) if last == b && matches!(b, b'a' | b'i' | b'u') => {}
+            _ => out.push(b),
+        }
+    }
+    out
 }
 
 /// Levenshtein distance from `typed` to `target`, or to the closest prefix of
@@ -184,7 +224,8 @@ mod tests {
         let words: Vec<&str> = found.iter().map(|m| m.word.as_str()).collect();
         assert_eq!(words, ["എന്റെ", "എന്ത്"]);
         assert_eq!(found[0].missing, 0);
-        assert_eq!(found[0].distance, 1, "ende vs ente");
+        assert!(found[0].spelled, "ende spells ente, up to t/d");
+        assert_eq!(found[0].distance, 0);
         assert_eq!(found[1].distance, 3, "ende vs enthu");
     }
 
@@ -226,6 +267,20 @@ mod tests {
         let lex = lexicon(&[("എന്റെ", 100)]);
         assert!(lookup(&lex, "").is_empty());
         assert!(lookup(&lex, "123").is_empty());
+    }
+
+    #[test]
+    fn spelled_out_words_ignore_vowel_length() {
+        let lex = lexicon(&[("നാളെ", 10), ("നാല്", 100)]);
+        let found = lookup(&lex, "nale");
+        let naale = found.iter().find(|m| m.word == "നാളെ").unwrap();
+        assert!(naale.spelled && naale.distance == 0, "{naale:?}");
+        let naalu = found.iter().find(|m| m.word == "നാല്").unwrap();
+        assert!(!naalu.spelled && naalu.distance > 0, "{naalu:?}");
+        assert_eq!(relaxed(b"njaan"), relaxed(b"njan"));
+        assert_eq!(relaxed(b"veedu"), relaxed(b"vidu"));
+        assert_ne!(relaxed(b"te"), relaxed(b"teh"));
+        assert_ne!(relaxed(b"veedu"), relaxed(b"vittu"));
     }
 
     #[test]
