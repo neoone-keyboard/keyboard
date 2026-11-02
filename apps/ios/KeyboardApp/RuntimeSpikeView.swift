@@ -51,15 +51,23 @@ enum RuntimeCheck {
             .appendingPathComponent("runtime-check.txt")
     }
 
+    /// `-runtimeCheckCPU` runs only Core ML on the CPU, 3 times, so its memory isn't mixed
+    /// with the other runtimes'.
     static func runFromLaunchArguments() {
-        guard ProcessInfo.processInfo.arguments.contains("-runtimeCheck") else { return }
-        Task.detached(priority: .userInitiated) { await runAll { _ in } }
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-runtimeCheckCPU") {
+            Task.detached(priority: .userInitiated) {
+                await runAll((1...3).map { (.coreML(.cpuOnly), $0) }) { _ in }
+            }
+        } else if arguments.contains("-runtimeCheck") {
+            Task.detached(priority: .userInitiated) { await runAll { _ in } }
+        }
     }
 
-    static func runAll(_ each: (SpikeResult) async -> Void) async {
+    fileprivate static func runAll(_ jobs: [(Runtime, Int)] = Spike.jobs, _ each: (SpikeResult) async -> Void) async {
         var text = ""
         try? text.write(to: output, atomically: true, encoding: .utf8)
-        for job in Spike.jobs {
+        for job in jobs {
             let result = Spike.measure(job)
             text += "\(result.title)\n\(result.detail)\n\n"
             try? text.write(to: output, atomically: true, encoding: .utf8)
