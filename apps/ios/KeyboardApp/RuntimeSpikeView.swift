@@ -36,12 +36,37 @@ struct RuntimeSpikeView: View {
         running = true
         results = []
         Task.detached(priority: .userInitiated) {
-            for job in Spike.jobs {
-                let result = Spike.measure(job)
-                await MainActor.run { results.append(result) }
-            }
+            await RuntimeCheck.runAll { result in await MainActor.run { results.append(result) } }
             await MainActor.run { running = false }
         }
+    }
+}
+
+/// Runs every job and also writes the results to Documents/runtime-check.txt, so they can be
+/// copied off the phone with `xcrun devicectl device copy from --domain-type appDataContainer`.
+/// Launching the app with `-runtimeCheck` runs it without touching the screen.
+enum RuntimeCheck {
+    static var output: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("runtime-check.txt")
+    }
+
+    static func runFromLaunchArguments() {
+        guard ProcessInfo.processInfo.arguments.contains("-runtimeCheck") else { return }
+        Task.detached(priority: .userInitiated) { await runAll { _ in } }
+    }
+
+    static func runAll(_ each: (SpikeResult) async -> Void) async {
+        var text = ""
+        try? text.write(to: output, atomically: true, encoding: .utf8)
+        for job in Spike.jobs {
+            let result = Spike.measure(job)
+            text += "\(result.title)\n\(result.detail)\n\n"
+            try? text.write(to: output, atomically: true, encoding: .utf8)
+            await each(result)
+        }
+        text += "done\n"
+        try? text.write(to: output, atomically: true, encoding: .utf8)
     }
 }
 
