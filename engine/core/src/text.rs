@@ -113,4 +113,11 @@ mod tests {
         assert_eq!(current_word("'hi"), "hi");
         assert_eq!(current_word("don't"), "don't");
     }
+
+    proptest::proptest! {
+        #[test]
+        fn current_word_is_always_a_suffix(s in "\\PC{0,30}") {
+            proptest::prop_assert!(s.ends_with(current_word(&s)));
+        }
+    }
 }

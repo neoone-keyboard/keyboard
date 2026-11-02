@@ -1,6 +1,7 @@
 //! Platform-free keyboard engine. Nothing in this crate may depend on iOS or Android APIs.
 
 pub mod text;
+pub mod malayalam;
 
 /// The prediction engine. M0 echoes the current word; real candidates arrive in M2.
 #[derive(Debug, Default)]

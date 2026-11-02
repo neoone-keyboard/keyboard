@@ -1,0 +1,144 @@
+import CoreGraphics
+import Foundation
+
+/// What a touch on a key means once interpreted.
+public enum GestureEvent: Equatable, Sendable {
+    case tap(KeyAction)
+    case showAlternates([String])
+    case highlightAlternate(Int)
+    case commitAlternate(String)
+    case moveCursor(Int)
+    case deleteWord
+    /// Long-press on the language key: show the in-keyboard settings.
+    case openSettings
+}
+
+public struct GestureTiming: Sendable {
+    public var longPress: TimeInterval = 0.35
+    public var repeatDelay: TimeInterval = 0.45
+    public var repeatInterval: TimeInterval = 0.08
+    public var cursorStep: CGFloat = 12
+    /// How far the spacebar must slide before it moves the cursor instead of typing a space.
+    public var cursorActivation: CGFloat = 25
+    public var deleteWordSwipe: CGFloat = 40
+
+    public init() {}
+}
+
+/// Interprets one finger on one key: tap, long-press alternates, spacebar cursor
+/// drag, backspace repeat, swipe-left-to-delete-word and long-press-language for settings. Pure logic: the view feeds
+/// it touches and timer ticks (monotonic seconds) and acts on the returned events.
+public struct KeyGesture: Sendable {
+    public let key: Key
+
+    /// `swipeCancelled`: a backspace swipe slid back, so releasing does nothing.
+    /// `settingsOpened`: the language key was held, so releasing doesn't toggle.
+    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled, settingsOpened }
+
+    private let start: CGPoint
+    private let startTime: TimeInterval
+    private let alternateWidth: CGFloat
+    private let timing: GestureTiming
+    private var mode: Mode = .pressing
+    private var alternatesOriginX: CGFloat = 0
+    private var highlighted = 0
+    private var cursorAnchorX: CGFloat = 0
+    private var nextRepeat: TimeInterval = 0
+
+    public init(key: Key, at point: CGPoint, time: TimeInterval, alternateWidth: CGFloat, timing: GestureTiming = GestureTiming()) {
+        self.key = key
+        self.start = point
+        self.startTime = time
+        self.alternateWidth = max(alternateWidth, 1)
+        self.timing = timing
+    }
+
+    /// Where the alternates popup's first option starts, once the view has placed it.
+    /// The popup may be shifted to fit on screen, so this re-picks the option under
+    /// the finger and returns a highlight event if that changed.
+    public mutating func setAlternatesOrigin(x: CGFloat) -> [GestureEvent] {
+        alternatesOriginX = x
+        guard mode == .alternates else { return [] }
+        let index = alternateIndex(at: start.x)
+        guard index != highlighted else { return [] }
+        highlighted = index
+        return [.highlightAlternate(index)]
+    }
+
+    public mutating func tick(at time: TimeInterval) -> [GestureEvent] {
+        switch mode {
+        case .pressing:
+            if key.action == .backspace, time - startTime >= timing.repeatDelay {
+                mode = .repeating
+                nextRepeat = time + timing.repeatInterval
+                return [.tap(.backspace)]
+            }
+            if key.action == .toggleLanguage, time - startTime >= timing.longPress {
+                mode = .settingsOpened
+                return [.openSettings]
+            }
+            if !key.alternates.isEmpty, time - startTime >= timing.longPress {
+                mode = .alternates
+                alternatesOriginX = start.x - alternateWidth / 2
+                highlighted = 0
+                return [.showAlternates(key.alternates)]
+            }
+            return []
+        case .repeating:
+            guard time >= nextRepeat else { return [] }
+            nextRepeat = time + timing.repeatInterval
+            return [.tap(.backspace)]
+        case .alternates, .cursor, .deleteSwipe, .swipeCancelled, .settingsOpened:
+            return []
+        }
+    }
+
+    public mutating func moved(to point: CGPoint) -> [GestureEvent] {
+        switch mode {
+        case .pressing:
+            let dx = point.x - start.x
+            if key.action == .space, abs(dx) >= timing.cursorActivation {
+                mode = .cursor
+                cursorAnchorX = start.x
+                return moveCursor(to: point.x)
+            }
+            if key.action == .backspace, dx <= -timing.deleteWordSwipe {
+                mode = .deleteSwipe
+            }
+            return []
+        case .cursor:
+            return moveCursor(to: point.x)
+        case .alternates:
+            let index = alternateIndex(at: point.x)
+            guard index != highlighted else { return [] }
+            highlighted = index
+            return [.highlightAlternate(index)]
+        case .deleteSwipe, .swipeCancelled:
+            mode = point.x - start.x <= -timing.deleteWordSwipe ? .deleteSwipe : .swipeCancelled
+            return []
+        case .repeating, .settingsOpened:
+            return []
+        }
+    }
+
+    public func ended() -> [GestureEvent] {
+        switch mode {
+        case .pressing: [.tap(key.action)]
+        case .alternates: [.commitAlternate(key.alternates[highlighted])]
+        case .deleteSwipe: [.deleteWord]
+        case .cursor, .repeating, .swipeCancelled, .settingsOpened: []
+        }
+    }
+
+    private mutating func moveCursor(to x: CGFloat) -> [GestureEvent] {
+        let steps = Int((x - cursorAnchorX) / timing.cursorStep)
+        guard steps != 0 else { return [] }
+        cursorAnchorX += CGFloat(steps) * timing.cursorStep
+        return [.moveCursor(steps)]
+    }
+
+    private func alternateIndex(at x: CGFloat) -> Int {
+        let raw = Int(((x - alternatesOriginX) / alternateWidth).rounded(.down))
+        return min(max(raw, 0), key.alternates.count - 1)
+    }
+}

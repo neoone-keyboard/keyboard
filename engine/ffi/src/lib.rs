@@ -48,6 +48,12 @@ pub fn engine_version() -> Result<String, EngineError> {
     guarded(|| env!("CARGO_PKG_VERSION").to_string())
 }
 
+/// The consonant a vowel sign would attach to, if the text ends in one.
+#[uniffi::export]
+pub fn malayalam_vowel_sign_base(context_before: String) -> Result<Option<String>, EngineError> {
+    guarded(|| mlengine_core::malayalam::vowel_sign_base(&context_before).map(String::from))
+}
+
 fn guarded<T>(f: impl FnOnce() -> T) -> Result<T, EngineError> {
     catch_unwind(AssertUnwindSafe(f)).map_err(|payload| {
         let message = payload
@@ -101,5 +107,11 @@ mod tests {
             engine.suggest("hello wor".into()).unwrap(),
             vec![Suggestion { text: "wor".into() }]
         );
+    }
+
+    #[test]
+    fn malayalam_vowel_sign_base_crosses_ffi() {
+        assert_eq!(malayalam_vowel_sign_base("ന്റ".into()).unwrap(), Some("റ".to_string()));
+        assert_eq!(malayalam_vowel_sign_base("കി".into()).unwrap(), None);
     }
 }

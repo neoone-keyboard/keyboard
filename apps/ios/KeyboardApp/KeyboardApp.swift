@@ -25,6 +25,9 @@ struct ContentView: View {
                 Section("Try it") {
                     TextField("Type here", text: $testText, axis: .vertical)
                 }
+                Section("Keyboard") {
+                    Text("Settings are in the keyboard: touch and hold മ / EN.")
+                }
                 Section("Stability") {
                     LabeledContent("Saved MetricKit reports", value: "\(MetricsSubscriber.reportCount())")
                 }

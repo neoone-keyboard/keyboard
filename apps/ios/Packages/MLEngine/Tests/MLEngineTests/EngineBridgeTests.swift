@@ -27,3 +27,8 @@ import MLEngine
     let p99 = samples[samples.count * 99 / 100]
     #expect(p99 < .microseconds(200), "p99 FFI round-trip was \(p99)")
 }
+
+@Test func vowelSignBaseCrossesFFI() throws {
+    #expect(try malayalamVowelSignBase(contextBefore: "ന്റ") == "റ")
+    #expect(try malayalamVowelSignBase(contextBefore: "കി") == nil)
+}
