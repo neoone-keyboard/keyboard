@@ -4,6 +4,7 @@ import UIKit
 /// Suggestions sit in three fixed slots; vowel signs scroll sideways at full size.
 final class TopBarView: UIView {
     var onVowelSign: (@MainActor (String) -> Void)?
+    var onSuggestion: (@MainActor (String) -> Void)?
 
     private let suggestionStack = UIStackView()
     private let vowelScroll = UIScrollView()
@@ -72,14 +73,17 @@ final class TopBarView: UIView {
         vowelScroll.isHidden = true
         suggestionStack.isHidden = false
         replaceItems(in: suggestionStack, with: [1, 0, 2].map { index in
-            let label = UILabel()
-            label.text = index < suggestions.count ? suggestions[index] : nil
-            label.textAlignment = .center
-            label.font = .systemFont(ofSize: 17, weight: index == 0 ? .semibold : .regular)
-            label.textColor = theme?.keyText
-            label.adjustsFontSizeToFitWidth = true
-            label.minimumScaleFactor = 0.6
-            return label
+            let button = UIButton(type: .custom)
+            guard index < suggestions.count else { return button }
+            let suggestion = suggestions[index]
+            button.setTitle(suggestion, for: .normal)
+            button.titleLabel?.font = .systemFont(ofSize: 17, weight: index == 0 ? .semibold : .regular)
+            button.titleLabel?.adjustsFontSizeToFitWidth = true
+            button.titleLabel?.minimumScaleFactor = 0.6
+            button.setTitleColor(theme?.keyText, for: .normal)
+            button.setTitleColor(theme?.hintText, for: .highlighted)
+            button.addAction(UIAction { [weak self] _ in self?.onSuggestion?(suggestion) }, for: .touchUpInside)
+            return button
         })
     }
 

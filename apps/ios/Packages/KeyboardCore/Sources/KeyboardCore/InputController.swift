@@ -91,9 +91,23 @@ public final class InputController {
     /// Deletes the word before the cursor plus the spaces after it, or one
     /// character when there is no word (e.g. punctuation).
     public func deleteWordBackward() {
-        for _ in 0..<Self.wordDeletionLength(output.contextBefore ?? "") {
+        let context = output.contextBefore ?? ""
+        let word = Self.wordSuffix(of: context, includingSpaces: true)
+        if let removed = word.isEmpty ? context.last.map(String.init) : String(word) {
+            delete(removed, from: context)
+        } else {
             output.deleteBackward()
         }
+    }
+
+    /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
+    public func commitSuggestion(_ text: String) {
+        let context = output.contextBefore ?? ""
+        let word = Self.wordSuffix(of: context, includingSpaces: false)
+        if !word.isEmpty { delete(String(word), from: context) }
+        output.insertText(text + " ")
+        shift = shift.afterCharacter
+        if shift == .off { shiftIsAutomatic = false }
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
@@ -165,18 +179,28 @@ public final class InputController {
         if shift == .off { shiftIsAutomatic = false }
     }
 
-    private static func wordDeletionLength(_ context: String) -> Int {
+    /// Deletes `suffix` from the end of `context`. iOS removes one code point per
+    /// deleteBackward in Malayalam (കി → ക) but a whole cluster for emoji, so this
+    /// stops as soon as the host's context shows the suffix is gone.
+    private func delete(_ suffix: String, from context: String) {
+        let scalars = suffix.unicodeScalars.count
+        let target = context.unicodeScalars.count - scalars
+        for _ in 0..<scalars {
+            output.deleteBackward()
+            if let now = output.contextBefore, now.unicodeScalars.count <= target { break }
+        }
+    }
+
+    /// The word at the end of `context`, optionally with the spaces after it.
+    private static func wordSuffix(of context: String, includingSpaces: Bool) -> Substring {
         var index = context.endIndex
-        var count = 0
-        while index > context.startIndex, context[context.index(before: index)].isWhitespace {
+        while includingSpaces, index > context.startIndex, context[context.index(before: index)].isWhitespace {
             index = context.index(before: index)
-            count += 1
         }
         while index > context.startIndex, isWordCharacter(context[context.index(before: index)]) {
             index = context.index(before: index)
-            count += 1
         }
-        return max(count, 1)
+        return context[index...]
     }
 
     private static func isWordCharacter(_ c: Character) -> Bool {

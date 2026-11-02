@@ -41,6 +41,11 @@ final class KeyboardViewController: UIInputViewController {
             input.handle(.character(sign), at: ProcessInfo.processInfo.systemUptime)
             afterInput(pageBefore: page, shiftBefore: shift)
         }
+        topBar.onSuggestion = { [unowned self] suggestion in
+            let page = input.page, shift = input.shift
+            input.commitSuggestion(suggestion)
+            afterInput(pageBefore: page, shiftBefore: shift)
+        }
 
         settingsPanel.onChange = { [unowned self] changed in
             settings = changed

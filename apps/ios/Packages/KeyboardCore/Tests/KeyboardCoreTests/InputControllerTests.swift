@@ -10,7 +10,8 @@ final class RecordingOutput: TextOutput {
     var contextBefore: String? { hidesContext ? nil : text }
     var hasText: Bool { !text.isEmpty }
     func insertText(_ text: String) { self.text += text }
-    func deleteBackward() { if !text.isEmpty { text.removeLast() } }
+    /// Like iOS: one code point per call, so കി loses only its vowel sign.
+    func deleteBackward() { if !text.isEmpty { text.unicodeScalars.removeLast() } }
     func adjustTextPosition(byCharacterOffset offset: Int) { cursorMoves.append(offset) }
 }
 
@@ -138,6 +139,30 @@ struct InputControllerTests {
         output.text = "ഞാൻ എന്റെ"
         input.deleteWordBackward()
         #expect(output.text == "ഞാൻ ")
+    }
+
+    @Test func suggestionReplacesTheWordBeingTyped() {
+        output.text = "say hel"
+        input.commitSuggestion("hello")
+        #expect(output.text == "say hello ")
+    }
+
+    @Test func suggestionAfterASpaceIsAppended() {
+        output.text = "say "
+        input.commitSuggestion("hello")
+        #expect(output.text == "say hello ")
+    }
+
+    @Test func suggestionReplacesAPartialMalayalamWord() {
+        output.text = "ഞാൻ എന്റ"
+        input.commitSuggestion("എന്റെ")
+        #expect(output.text == "ഞാൻ എന്റെ ")
+    }
+
+    @Test func suggestionTurnsOffAOneShotShift() {
+        type(.shift)
+        input.commitSuggestion("Hello")
+        #expect(input.shift == .off)
     }
 
     @Test func deleteWordRemovesOnePunctuationMark() {
