@@ -3,7 +3,7 @@ import os
 import KeyboardCore
 
 final class KeyboardViewController: UIInputViewController {
-    private let log = Logger(subsystem: "com.example.mlkeyboard.keyboard", category: "keyboard")
+    private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "keyboard")
     private let budget = MemoryBudget.keyboardExtension
     private let suggestionBar = SuggestionBarView()
     private var keysView: KeysView!

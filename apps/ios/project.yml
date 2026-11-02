@@ -1,13 +1,13 @@
 name: MLKeyboard
 options:
-  bundleIdPrefix: com.example.mlkeyboard
+  bundleIdPrefix: me.jishnu.keyboard
   deploymentTarget:
     iOS: "26.0"
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    # Set your Apple team ID here (or with DEVELOPMENT_TEAM=... on the command line) for device builds.
-    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: Z52A4S8VKP
 packages:
   KeyboardCore:
     path: Packages/KeyboardCore
@@ -26,7 +26,7 @@ targets:
         UILaunchScreen: {}
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app
+        PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - target: KeyboardExtension
@@ -48,7 +48,7 @@ targets:
             RequestsOpenAccess: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard.extension
         TARGETED_DEVICE_FAMILY: "1"
         APPLICATION_EXTENSION_API_ONLY: YES
     dependencies:
