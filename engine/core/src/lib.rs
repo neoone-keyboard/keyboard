@@ -6,6 +6,7 @@ pub mod lexicon;
 pub mod malayalam;
 pub mod normalize;
 pub mod text;
+pub mod user;
 
 /// The prediction engine. M0 echoes the current word; real candidates arrive in M2.
 #[derive(Debug, Default)]
