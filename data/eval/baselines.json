@@ -1,14 +1,14 @@
 {
   "chat_golden": {
-    "top1": 0.6857,
-    "top3": 0.8603,
+    "top1": 0.7333,
+    "top3": 0.8921,
     "n": 315
   },
   "human": {
-    "top1": 0.217,
-    "top3": 0.6175,
+    "top1": 0.322,
+    "top3": 0.784,
     "n": 2000
   },
   "english_wrong_rate": 0.0064,
-  "engine": "m2"
+  "engine": "m3a"
 }
