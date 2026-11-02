@@ -12,3 +12,4 @@ training/build/
 training/.venv/
 __pycache__/
 .pytest_cache/
+apps/ios/KeyboardApp/SpikeAssets/

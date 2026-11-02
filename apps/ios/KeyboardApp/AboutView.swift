@@ -14,6 +14,11 @@ struct AboutView: View {
             Section("Software") {
                 ForEach(Credits.software) { CreditRow(credit: $0) }
             }
+            #if DEBUG
+            Section("Debug") {
+                NavigationLink("Runtime check") { RuntimeSpikeView() }
+            }
+            #endif
         }
         .navigationTitle("About")
     }

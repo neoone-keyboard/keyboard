@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons bench eval
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons bench eval spike-assets
 
 all: build
 
@@ -64,3 +64,15 @@ bench:
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
 	swift test --package-path apps/ios/Packages/MLEngine
+
+# Runtime spike (M3 design §5): a seeded random full-size transliterator as .mlkbnn and as an
+# int8 Core ML model, copied into the app (not the keyboard) for the debug "Runtime check"
+# screen. Git-ignored; run before `make device` for the spike. coremltools 9 has no native
+# libraries for Python 3.14, so this uses its own Python 3.13 environment.
+SPIKE_ASSETS := apps/ios/KeyboardApp/SpikeAssets
+spike-assets:
+	cd training && UV_PROJECT_ENVIRONMENT=build/spike-venv uv run --quiet --python 3.13 \
+	  --group spike --group train python -W ignore -m mlkb.translit.coreml_export --out-dir build/spike
+	rm -rf $(SPIKE_ASSETS) && mkdir -p $(SPIKE_ASSETS)
+	cp training/build/spike/translit-spike.mlkbnn $(SPIKE_ASSETS)/
+	cp -R training/build/spike/translit-spike.mlmodelc $(SPIKE_ASSETS)/
