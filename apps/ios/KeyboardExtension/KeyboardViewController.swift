@@ -26,6 +26,13 @@ final class KeyboardViewController: UIInputViewController {
         self?.refreshTopBar()
     }
 
+    /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
+    override func loadView() {
+        let root = KeyboardInputView(frame: .zero, inputViewStyle: .keyboard)
+        inputView = root
+        view = root
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         keyboardView.onEvent = { [unowned self] in handle($0) }

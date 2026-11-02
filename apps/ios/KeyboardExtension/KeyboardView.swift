@@ -3,10 +3,10 @@ import KeyboardCore
 
 /// Draws the keys and turns touches into GestureEvents. Typing decisions live in
 /// KeyGesture and InputController; this view only does layout and touch plumbing.
-final class KeyboardView: UIView, UIInputViewAudioFeedback {
+final class KeyboardView: UIView {
     var onEvent: (@MainActor (GestureEvent) -> Void)?
+    /// Clicks only sound because the controller's input view is a KeyboardInputView.
     var playsClicks = false
-    var enableInputClicksWhenVisible: Bool { true }
 
     private var layout = KeyboardLayout(rows: [])
     private var theme: KeyboardTheme?
