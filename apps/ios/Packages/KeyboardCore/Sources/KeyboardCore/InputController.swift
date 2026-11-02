@@ -8,6 +8,8 @@ public protocol TextOutput: AnyObject {
     func adjustTextPosition(byCharacterOffset offset: Int)
     /// Text before the cursor, as far as the host app shares it.
     var contextBefore: String? { get }
+    /// Whether the field has any text, even when `contextBefore` is nil.
+    var hasText: Bool { get }
 }
 
 public enum AutoCapitalization: Sendable {
@@ -103,7 +105,15 @@ public final class InputController {
             manualShiftPending = false
         }
         guard page == .letters, shift != .locked, shift == .off || shiftIsAutomatic else { return }
-        let wanted = Self.shouldCapitalize(output.contextBefore ?? "", mode: mode)
+        let context: String
+        if let shared = output.contextBefore {
+            context = shared
+        } else if output.hasText {
+            return // The host hides its text, so where the cursor sits is unknown.
+        } else {
+            context = ""
+        }
+        let wanted = Self.shouldCapitalize(context, mode: mode)
         shift = wanted ? .once : .off
         shiftIsAutomatic = wanted
     }

@@ -5,7 +5,10 @@ import KeyboardCore
 final class RecordingOutput: TextOutput {
     var text = ""
     var cursorMoves: [Int] = []
-    var contextBefore: String? { text }
+    /// Simulates a host that doesn't share the text before the cursor.
+    var hidesContext = false
+    var contextBefore: String? { hidesContext ? nil : text }
+    var hasText: Bool { !text.isEmpty }
     func insertText(_ text: String) { self.text += text }
     func deleteBackward() { if !text.isEmpty { text.removeLast() } }
     func adjustTextPosition(byCharacterOffset offset: Int) { cursorMoves.append(offset) }
@@ -191,6 +194,22 @@ struct InputControllerTests {
         input.applyAutoCapitalization(.sentences)
         #expect(output.text == "hi. ")
         #expect(input.shift == .once)
+    }
+
+    @Test func hiddenContextInAnEmptyFieldCapitalises() {
+        output.hidesContext = true
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .once)
+    }
+
+    @Test func hiddenContextWithTextLeavesShiftAlone() {
+        output.hidesContext = true
+        output.text = "abc"
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .off)
+        type(.character("d"))
+        input.applyAutoCapitalization(.sentences)
+        #expect(output.text == "abcd")
     }
 
     @Test func wordsModeCapitalisesAfterEverySpace() {

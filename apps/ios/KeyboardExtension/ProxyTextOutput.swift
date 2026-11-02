@@ -11,6 +11,7 @@ final class ProxyTextOutput: TextOutput {
     }
 
     var contextBefore: String? { proxy().documentContextBeforeInput }
+    var hasText: Bool { proxy().hasText }
 
     func insertText(_ text: String) { proxy().insertText(text) }
     func deleteBackward() { proxy().deleteBackward() }
