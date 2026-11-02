@@ -182,7 +182,9 @@ final class KeyboardViewController: UIInputViewController {
         Task { [provider] in await provider.unload() }
     }
 
+    /// English only: Malayalam shows the vowel-sign strip, not word suggestions.
     private func requestSuggestions() {
+        guard input.language == .english else { return }
         let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
         guard context != lastRequestedContext else { return }
         lastRequestedContext = context
