@@ -1,0 +1,13 @@
+[package]
+name = "lexbuild"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+mlengine-core = { path = "../core" }
+
+[dev-dependencies]
+tempfile = "3"
