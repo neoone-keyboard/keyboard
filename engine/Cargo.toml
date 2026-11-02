@@ -1,0 +1,14 @@
+[workspace]
+resolver = "3"
+members = ["core", "ffi"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "UNLICENSED"
+
+[profile.release]
+# Must stay "unwind": the FFI layer turns panics into errors with catch_unwind.
+panic = "unwind"
+lto = "thin"
+codegen-units = 1

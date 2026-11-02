@@ -1,0 +1,8 @@
+.DS_Store
+/build/
+engine/target/
+DerivedData/
+apps/ios/MLKeyboard.xcodeproj/
+apps/ios/Packages/*/.build/
+apps/ios/Packages/MLEngine/MLEngineFFI.xcframework/
+apps/ios/Packages/MLEngine/Sources/MLEngine/mlengine_ffi.swift
