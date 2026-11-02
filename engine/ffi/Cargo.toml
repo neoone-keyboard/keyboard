@@ -1,0 +1,19 @@
+[package]
+name = "mlengine-ffi"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "mlengine_ffi"
+# staticlib → the XCFramework; cdylib → host library that uniffi-bindgen reads.
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+mlengine-core = { path = "../core" }
+thiserror = "2"
+uniffi = { version = "0.29", features = ["cli"] }
