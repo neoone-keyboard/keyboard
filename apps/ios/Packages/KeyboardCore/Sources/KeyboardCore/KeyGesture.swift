@@ -51,8 +51,15 @@ public struct KeyGesture: Sendable {
     }
 
     /// Where the alternates popup's first option starts, once the view has placed it.
-    public mutating func setAlternatesOrigin(x: CGFloat) {
+    /// The popup may be shifted to fit on screen, so this re-picks the option under
+    /// the finger and returns a highlight event if that changed.
+    public mutating func setAlternatesOrigin(x: CGFloat) -> [GestureEvent] {
         alternatesOriginX = x
+        guard mode == .alternates else { return [] }
+        let index = alternateIndex(at: start.x)
+        guard index != highlighted else { return [] }
+        highlighted = index
+        return [.highlightAlternate(index)]
     }
 
     public mutating func tick(at time: TimeInterval) -> [GestureEvent] {

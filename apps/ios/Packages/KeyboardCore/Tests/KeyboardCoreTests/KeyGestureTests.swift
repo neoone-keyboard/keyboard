@@ -21,9 +21,9 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
 @Test func longPressShowsAlternatesAndCommitsTheHighlightedOne() {
     var g = gesture(Key(.character("e"), alternates: ["3", "é", "è"]))
     #expect(g.tick(at: 0.4) == [.showAlternates(["3", "é", "è"])])
-    g.setAlternatesOrigin(x: 0)
-    #expect(g.moved(to: CGPoint(x: 45, y: 10)) == [.highlightAlternate(1)])
-    #expect(g.moved(to: CGPoint(x: 50, y: 10)) == [])
+    #expect(g.setAlternatesOrigin(x: 85) == [])
+    #expect(g.moved(to: CGPoint(x: 125, y: 10)) == [.highlightAlternate(1)])
+    #expect(g.moved(to: CGPoint(x: 130, y: 10)) == [])
     #expect(g.ended() == [.commitAlternate("é")])
 }
 
@@ -36,9 +36,17 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
 @Test func alternateIndexIsClamped() {
     var g = gesture(Key(.character("e"), alternates: ["3", "é"]))
     _ = g.tick(at: 0.4)
-    g.setAlternatesOrigin(x: 0)
+    #expect(g.setAlternatesOrigin(x: 85) == [])
     #expect(g.moved(to: CGPoint(x: 500, y: 10)) == [.highlightAlternate(1)])
     #expect(g.moved(to: CGPoint(x: -500, y: 10)) == [.highlightAlternate(0)])
+}
+
+@Test func popupClampedAtTheEdgeHighlightsTheOptionUnderTheFinger() {
+    var g = gesture(Key(.character("e"), alternates: ["3", "é", "è"]))
+    _ = g.tick(at: 0.4)
+    #expect(g.setAlternatesOrigin(x: 50) == [.highlightAlternate(1)])
+    #expect(g.moved(to: CGPoint(x: 101, y: 10)) == [])
+    #expect(g.ended() == [.commitAlternate("é")])
 }
 
 @Test func spaceDragMovesTheCursorInsteadOfTyping() {

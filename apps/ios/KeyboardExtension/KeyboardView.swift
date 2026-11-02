@@ -13,9 +13,12 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     private var label: (@MainActor (Key) -> String)?
     private var frames: [KeyFrame] = []
     private var caps: [KeyCapView] = []
-    private var activeTouches: [ObjectIdentifier: (gesture: KeyGesture, index: Int)] = [:]
+    /// `index` is the touched key's cap, or nil once the keys were replaced mid-touch.
+    private var activeTouches: [ObjectIdentifier: (gesture: KeyGesture, index: Int?)] = [:]
     private var timer: Timer?
     private let popup = AlternatesPopupView()
+    /// The touch whose long-press is showing the alternates popup.
+    private var popupOwner: ObjectIdentifier?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -26,9 +29,11 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// Replaces every key. Cancels touches in progress, since their keys are gone.
+    /// Replaces every key. Touches in progress keep their gesture (another finger's
+    /// key still types when this one switches page) but lose their highlight and popup.
     func configure(layout: KeyboardLayout, theme: KeyboardTheme, label: @escaping @MainActor (Key) -> String) {
-        cancelAllTouches()
+        for id in Array(activeTouches.keys) { activeTouches[id]?.index = nil }
+        hidePopup()
         self.layout = layout
         self.theme = theme
         self.label = label
@@ -39,6 +44,7 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
             return cap
         }
         refreshLabels()
+        layoutKeys()
         setNeedsLayout()
     }
 
@@ -52,6 +58,16 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        layoutKeys()
+    }
+
+    override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        if newWindow == nil { cancelAllTouches() }
+    }
+
+    /// Keeps `frames` and `caps` in step: both always describe the current layout.
+    private func layoutKeys() {
         frames = KeyboardGeometry.frames(for: layout, in: bounds.size)
         for (cap, frame) in zip(caps, frames) {
             cap.frame = frame.rect
@@ -63,11 +79,11 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             let point = touch.location(in: self)
-            guard let index = KeyboardGeometry.index(at: point, in: frames) else { continue }
+            guard let index = KeyboardGeometry.index(at: point, in: frames), frames.indices.contains(index) else { continue }
             let frame = frames[index]
             let gesture = KeyGesture(key: frame.key, at: point, time: touch.timestamp, alternateWidth: frame.rect.width)
             activeTouches[ObjectIdentifier(touch)] = (gesture, index)
-            caps[index].isPressed = true
+            setPressed(true, at: index)
             if playsClicks { UIDevice.current.playInputClick() }
         }
         startTimerIfNeeded()
@@ -85,9 +101,10 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            guard let entry = activeTouches.removeValue(forKey: ObjectIdentifier(touch)) else { continue }
-            caps[entry.index].isPressed = false
-            popup.hide()
+            let id = ObjectIdentifier(touch)
+            guard let entry = activeTouches.removeValue(forKey: id) else { continue }
+            setPressed(false, at: entry.index)
+            if id == popupOwner { hidePopup() }
             handle(entry.gesture.ended(), for: nil)
         }
         stopTimerIfIdle()
@@ -95,10 +112,11 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            guard let entry = activeTouches.removeValue(forKey: ObjectIdentifier(touch)) else { continue }
-            caps[entry.index].isPressed = false
+            let id = ObjectIdentifier(touch)
+            guard let entry = activeTouches.removeValue(forKey: id) else { continue }
+            setPressed(false, at: entry.index)
+            if id == popupOwner { hidePopup() }
         }
-        popup.hide()
         stopTimerIfIdle()
     }
 
@@ -106,11 +124,15 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
         for event in events {
             switch event {
             case .showAlternates(let options):
-                guard let id, var entry = activeTouches[id], let theme else { continue }
-                let x = popup.show(options, above: frames[entry.index].rect, within: bounds, theme: theme)
-                entry.gesture.setAlternatesOrigin(x: x)
+                guard let id, var entry = activeTouches[id], let index = entry.index,
+                      frames.indices.contains(index), let theme else { continue }
+                let x = popup.show(options, above: frames[index].rect, within: bounds, theme: theme)
+                popupOwner = id
+                let highlight = entry.gesture.setAlternatesOrigin(x: x)
                 activeTouches[id] = entry
+                handle(highlight, for: id)
             case .highlightAlternate(let index):
+                guard let id, id == popupOwner else { continue }
                 popup.highlight(index)
             default:
                 onEvent?(event)
@@ -146,8 +168,18 @@ final class KeyboardView: UIView, UIInputViewAudioFeedback {
     private func cancelAllTouches() {
         activeTouches.removeAll()
         caps.forEach { $0.isPressed = false }
-        popup.hide()
+        hidePopup()
         stopTimerIfIdle()
+    }
+
+    private func hidePopup() {
+        popup.hide()
+        popupOwner = nil
+    }
+
+    private func setPressed(_ pressed: Bool, at index: Int?) {
+        guard let index, caps.indices.contains(index) else { return }
+        caps[index].isPressed = pressed
     }
 
     private static func isSpecial(_ action: KeyAction) -> Bool {
