@@ -8,9 +8,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     func suggestions(contextBefore: String) async throws -> [String] {
         try Task.checkCancellation()
-        let engine = try self.engine ?? Engine()
+        let engine = try self.engine ?? Engine(config: EngineConfig())
         self.engine = engine
-        return try engine.suggest(contextBefore: contextBefore).map(\.text)
+        return try engine.suggest(contextBefore: contextBefore, layout: .latin, autocorrect: true)
+            .candidates.map(\.text)
     }
 
     /// Drops the engine so its memory is released; it is recreated on the next request.
