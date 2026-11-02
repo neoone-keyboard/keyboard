@@ -13,9 +13,6 @@ extension KeyboardLayout {
         return KeyboardLayout(rows: rows + [bottom.filter { showsNextKeyboard || $0.action != .nextKeyboard }])
     }
 
-    /// The M0 name, still used by KeyboardViewController. Task 12 removes it.
-    public static var qwerty: KeyboardLayout { forPage(.letters) }
-
     // MARK: English
 
     private static let letterRows: [[Key]] = [
