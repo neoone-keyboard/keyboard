@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons bench
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons bench eval
 
 all: build
 
@@ -44,6 +44,10 @@ test-data:
 # The eval harness, through the engine's Python bindings (engine/py, never shipped).
 test-training:
 	cd training && uv run --quiet pytest -q
+
+# Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json.
+eval:
+	cd training && uv run python -m mlkb.eval
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
