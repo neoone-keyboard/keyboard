@@ -195,11 +195,14 @@ impl UserStore {
             line.push('\n');
         }
         line.push_str(&format!("{tag}\t{word}\n"));
-        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path)
-            && file.write_all(line.as_bytes()).is_ok()
-        {
-            self.dirty_tail = false;
-            self.log_lines += 1;
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
+            if file.write_all(line.as_bytes()).is_ok() {
+                self.dirty_tail = false;
+                self.log_lines += 1;
+            } else {
+                // A failed write (e.g. a full disk) may have left part of the line.
+                self.dirty_tail = true;
+            }
         }
         if self.log_lines > CAPACITY * 4 {
             self.compact(&path);
