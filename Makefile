@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: all tools engine project build device test test-engine test-data test-swift lexicons
+.PHONY: all tools engine project build device test test-engine test-data test-swift lexicons bench
 
 all: build
 
@@ -43,6 +43,10 @@ test-data:
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
 	./data/build-lexicons.sh
+
+# Suggestion latency on the real bundle, release build: p99 must stay under 8 ms.
+bench:
+	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore

@@ -56,3 +56,41 @@ import MLEngine
     #expect(try malayalamVowelSignBase(contextBefore: "ന്റ") == "റ")
     #expect(try malayalamVowelSignBase(contextBefore: "കി") == nil)
 }
+
+/// The committed lexicon bundle, found from this file's path.
+private let lexiconDir = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    .deletingLastPathComponent().deletingLastPathComponent()
+    .appending(path: "KeyboardExtension/Lexicon")
+
+private func bundledConfig() -> EngineConfig {
+    func path(_ name: String) -> String { lexiconDir.appending(path: "\(name).fst").path }
+    return EngineConfig(english: path("en"), malayalam: path("ml"), nextWords: path("next"))
+}
+
+@Test func bundledLexiconsLoadAndCorrect() throws {
+    let engine = try Engine(config: bundledConfig())
+    #expect(try engine.loadedSources() == ["english", "malayalam", "next_words"])
+    let result = try engine.suggest(contextBefore: "I said teh", layout: .latin, autocorrect: true)
+    #expect(result.candidates.first?.text == "the")
+    #expect(result.candidates.first?.kind == .correction)
+}
+
+/// With the real lexicons a whole request must fit well inside the 15 ms coordinator deadline.
+@Test func bundledSuggestIsFast() throws {
+    let engine = try Engine(config: bundledConfig())
+    let clock = ContinuousClock()
+    var samples: [Duration] = []
+    for word in ["becuase", "tomorrow", "ente", "malayalam", "keyboard"] {
+        for end in 1...word.count {
+            let context = "I said " + word.prefix(end)
+            _ = try engine.suggest(contextBefore: context, layout: .latin, autocorrect: true)
+            let start = clock.now
+            _ = try engine.suggest(contextBefore: context, layout: .latin, autocorrect: true)
+            samples.append(clock.now - start)
+        }
+    }
+    samples.sort()
+    let p99 = samples[samples.count * 99 / 100]
+    #expect(p99 < .milliseconds(8), "p99 suggest with lexicons was \(p99)")
+}
