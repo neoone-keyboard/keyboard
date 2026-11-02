@@ -7,6 +7,7 @@ import KeyboardCore
 final class SettingsPanelView: UIView {
     var onChange: (@MainActor (KeyboardSettings) -> Void)?
     var onDone: (@MainActor () -> Void)?
+    var onForgetLearned: (@MainActor () -> Void)?
 
     private(set) var settings = KeyboardSettings()
     private var theme: KeyboardTheme?
@@ -20,6 +21,13 @@ final class SettingsPanelView: UIView {
     private let numberRowSwitch = UISwitch()
     private let clicksLabel = UILabel()
     private let clicksSwitch = UISwitch()
+    private let autocorrectLabel = UILabel()
+    private let autocorrectSwitch = UISwitch()
+    private let forgetButton = UIButton(type: .system)
+    /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
+    private var forgetArmed = false
+    /// Puts the Forget row back to its first state a few seconds after a tap.
+    private var forgetRevert: Task<Void, Never>?
 
     private static let themes: [ThemeChoice] = [.system, .light, .dark]
     private static let swatchSize: CGFloat = 28
@@ -65,18 +73,29 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.keyClicks = self.clicksSwitch.isOn }
         }, for: .valueChanged)
+        autocorrectLabel.text = "Autocorrect"
+        autocorrectSwitch.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            update { $0.autocorrect = self.autocorrectSwitch.isOn }
+        }, for: .valueChanged)
+        forgetButton.titleLabel?.font = .systemFont(ofSize: 15)
+        forgetButton.contentHorizontalAlignment = .leading
+        forgetButton.addAction(UIAction { [weak self] _ in self?.forgetTapped() }, for: .touchUpInside)
         let numberRow = UIStackView(arrangedSubviews: [numberRowLabel, UIView(), numberRowSwitch])
         let clicksRow = UIStackView(arrangedSubviews: [clicksLabel, UIView(), clicksSwitch])
+        let autocorrectRow = UIStackView(arrangedSubviews: [autocorrectLabel, UIView(), autocorrectSwitch])
 
-        for row in [header, accentRow, numberRow, clicksRow] {
+        for row in [header, accentRow, numberRow, clicksRow, autocorrectRow] {
             row.axis = .horizontal
             row.alignment = .center
         }
-        for label in [accentLabel, numberRowLabel, clicksLabel] {
+        for label in [accentLabel, numberRowLabel, clicksLabel, autocorrectLabel] {
             label.font = .systemFont(ofSize: 15)
         }
 
-        let stack = UIStackView(arrangedSubviews: [header, themeControl, accentRow, numberRow, clicksRow])
+        let stack = UIStackView(arrangedSubviews: [
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, forgetButton,
+        ])
         stack.axis = .vertical
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -105,6 +124,7 @@ final class SettingsPanelView: UIView {
             header.heightAnchor.constraint(equalToConstant: 36),
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
+            forgetButton.heightAnchor.constraint(equalToConstant: 36),
         ])
     }
 
@@ -116,6 +136,8 @@ final class SettingsPanelView: UIView {
         themeControl.selectedSegmentIndex = Self.themes.firstIndex(of: settings.theme) ?? 0
         numberRowSwitch.isOn = settings.numberRow
         clicksSwitch.isOn = settings.keyClicks
+        autocorrectSwitch.isOn = settings.autocorrect
+        setForgetArmed(false)
         refreshSwatches()
     }
 
@@ -123,18 +145,48 @@ final class SettingsPanelView: UIView {
         self.theme = theme
         overrideUserInterfaceStyle = theme.isDark ? .dark : .light
         backgroundColor = theme.background
-        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel] {
+        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel] {
             label.textColor = theme.keyText
         }
         doneButton.tintColor = theme.keyText
+        forgetButton.tintColor = theme.keyText
         themeControl.backgroundColor = theme.specialKey
         themeControl.selectedSegmentTintColor = theme.key
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .selected)
-        for toggle in [numberRowSwitch, clicksSwitch] {
+        for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch] {
             toggle.onTintColor = theme.accent
         }
         refreshSwatches()
+    }
+
+    private func forgetTapped() {
+        if forgetArmed {
+            onForgetLearned?()
+            setForgetArmed(false)
+            forgetButton.setTitle("Learned words forgotten", for: .normal)
+            scheduleForgetRevert(resetting: false)
+        } else {
+            setForgetArmed(true)
+        }
+    }
+
+    private func setForgetArmed(_ armed: Bool) {
+        forgetArmed = armed
+        forgetButton.setTitle(armed ? "Tap again to forget all learned words" : "Forget learned words", for: .normal)
+        scheduleForgetRevert(resetting: armed)
+    }
+
+    /// After a few seconds the armed (or confirmed) row goes back to "Forget learned words".
+    private func scheduleForgetRevert(resetting armed: Bool) {
+        forgetRevert?.cancel()
+        forgetRevert = nil
+        guard armed || !forgetArmed && forgetButton.title(for: .normal) == "Learned words forgotten" else { return }
+        forgetRevert = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            self?.setForgetArmed(false)
+        }
     }
 
     private func themeChanged() {

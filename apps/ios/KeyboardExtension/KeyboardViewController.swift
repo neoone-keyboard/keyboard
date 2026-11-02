@@ -67,6 +67,10 @@ final class KeyboardViewController: UIInputViewController {
             applySettings()
         }
         settingsPanel.onDone = { [unowned self] in hideSettings() }
+        // The actor clears the log and the in-memory store; the main thread doesn't wait.
+        settingsPanel.onForgetLearned = { [provider] in
+            Task { await provider.forgetLearned() }
+        }
 
         let stack = UIStackView(arrangedSubviews: [topBar, keyboardView])
         stack.axis = .vertical
