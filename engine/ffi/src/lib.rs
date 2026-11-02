@@ -29,15 +29,22 @@ pub struct Engine {
 impl Engine {
     #[uniffi::constructor]
     pub fn new() -> Result<Arc<Self>, EngineError> {
-        guarded(|| Arc::new(Self { inner: mlengine_core::Engine::new() }))
+        guarded(|| {
+            let inner = mlengine_core::Engine::new(
+                mlengine_core::Sources::default(),
+                mlengine_core::user::UserStore::in_memory(),
+            );
+            Arc::new(Self { inner })
+        })
     }
 
     pub fn suggest(&self, context_before: String) -> Result<Vec<Suggestion>, EngineError> {
         guarded(|| {
             self.inner
-                .suggest(&context_before)
+                .suggest(&context_before, mlengine_core::Layout::Latin, true)
+                .candidates
                 .into_iter()
-                .map(|text| Suggestion { text })
+                .map(|c| Suggestion { text: c.text })
                 .collect()
         })
     }
