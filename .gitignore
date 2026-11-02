@@ -8,5 +8,7 @@ apps/ios/Packages/MLEngine/MLEngineFFI.xcframework/
 apps/ios/Packages/MLEngine/Sources/MLEngine/mlengine_ffi.swift
 data/raw/
 data/pipeline/.venv/
+training/build/
+training/.venv/
 __pycache__/
 .pytest_cache/

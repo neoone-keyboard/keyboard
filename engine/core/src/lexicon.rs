@@ -274,6 +274,14 @@ impl Lexicon {
             visit(key, value)
         });
     }
+
+    /// Every word with its count, in key order; reserved keys are skipped.
+    /// Unbounded, so it is for offline tools (the eval harness), never typing.
+    pub fn words(&self, mut visit: impl FnMut(&[u8], u64)) {
+        self.search(fst::automaton::AlwaysMatch, usize::MAX, |key, value, _| {
+            visit(key, value)
+        });
+    }
 }
 
 /// Builds FST bytes from (key, count) pairs in any order. Duplicate keys are
@@ -768,6 +776,20 @@ mod tests {
         });
         assert_eq!(seen, 801);
         assert_eq!(lex.get(&count_key(b"a")), None);
+    }
+
+    #[test]
+    fn words_visits_every_word_and_no_reserved_key() {
+        let mut many: Vec<(Vec<u8>, u64)> = (0..800)
+            .map(|i| (format!("a{i}").into_bytes(), i + 1))
+            .collect();
+        many.push(("ഒരു".as_bytes().to_vec(), 9000));
+        let lex = Lexicon::from_bytes(build(many.clone()).unwrap()).unwrap();
+        assert!(lex.is_precomputed(b"a"), "reserved entries exist to be skipped");
+        let mut seen = Vec::new();
+        lex.words(|k, v| seen.push((k.to_vec(), v)));
+        many.sort();
+        assert_eq!(seen, many, "every word once, in key order, nothing reserved");
     }
 
     #[test]
