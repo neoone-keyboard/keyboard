@@ -7,6 +7,7 @@ pub mod lexicon;
 pub mod malayalam;
 pub mod normalize;
 pub mod rank;
+pub mod romanize;
 pub mod text;
 pub mod user;
 
