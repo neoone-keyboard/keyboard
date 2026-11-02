@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 /// Most words kept; the least recently used are evicted beyond this.
@@ -31,6 +31,8 @@ pub struct UserStore {
     entries: HashMap<String, Entry>,
     clock: u64,
     log_lines: usize,
+    /// The log ended mid-line and could not be truncated; the next append starts a fresh line.
+    dirty_tail: bool,
 }
 
 /// Lookups ignore ASCII case, so "Thom" typed at a sentence start is still the learned "Thom".
@@ -57,18 +59,31 @@ impl UserStore {
             ..Self::default()
         };
         let _ = fs::create_dir_all(dir);
-        if let Some(path) = &store.path
-            && let Ok(file) = File::open(path)
-        {
-            let lines: Vec<String> = BufReader::new(file).lines().map_while(Result::ok).collect();
-            for line in &lines {
-                match line.split_once('\t') {
-                    Some(("L", word)) => store.apply_learn(word),
-                    Some(("S", word)) => store.apply_seen(word),
-                    _ => {}
-                }
+        let Some(path) = store.path.clone() else {
+            return store;
+        };
+        let Ok(bytes) = fs::read(&path) else {
+            return store;
+        };
+        // Only complete (newline-terminated) lines count; a kill mid-write leaves a partial tail.
+        let end = bytes.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
+        for raw in bytes[..end].split(|&b| b == b'\n') {
+            let Ok(line) = std::str::from_utf8(raw) else {
+                continue;
+            };
+            match line.split_once('\t') {
+                Some(("L", word)) if acceptable(word) => store.apply_learn(word),
+                Some(("S", word)) if acceptable(word) => store.apply_seen(word),
+                _ => {}
             }
-            store.log_lines = lines.len();
+        }
+        store.log_lines = bytes[..end].iter().filter(|&&b| b == b'\n').count();
+        if end < bytes.len() {
+            let truncated = OpenOptions::new()
+                .write(true)
+                .open(&path)
+                .and_then(|f| f.set_len(end as u64));
+            store.dirty_tail = truncated.is_err();
         }
         store
     }
@@ -119,8 +134,12 @@ impl UserStore {
     pub fn forget_all(&mut self) {
         self.entries.clear();
         self.log_lines = 0;
+        self.dirty_tail = false;
         if let Some(path) = &self.path {
-            let _ = File::create(path);
+            let _ = fs::remove_file(path.with_extension("tmp"));
+            if fs::remove_file(path).is_err() {
+                let _ = File::create(path);
+            }
         }
     }
 
@@ -155,10 +174,11 @@ impl UserStore {
     }
 
     fn evict_oldest(&mut self) {
+        // Unlearned (seen-once) entries go first; learned ones only when none remain.
         if let Some(oldest) = self
             .entries
             .iter()
-            .min_by_key(|(_, e)| e.last_used)
+            .min_by_key(|(_, e)| (e.learned, e.last_used))
             .map(|(k, _)| k.clone())
         {
             self.entries.remove(&oldest);
@@ -169,13 +189,20 @@ impl UserStore {
         let Some(path) = self.path.clone() else {
             return;
         };
-        self.log_lines += 1;
+        // One write call per event, so a kill can leave at worst a partial tail.
+        let mut line = String::new();
+        if self.dirty_tail {
+            line.push('\n');
+        }
+        line.push_str(&format!("{tag}\t{word}\n"));
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path)
+            && file.write_all(line.as_bytes()).is_ok()
+        {
+            self.dirty_tail = false;
+            self.log_lines += 1;
+        }
         if self.log_lines > CAPACITY * 4 {
             self.compact(&path);
-            return;
-        }
-        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
-            let _ = writeln!(file, "{tag}\t{word}");
         }
     }
 
@@ -199,6 +226,11 @@ impl UserStore {
         let tmp = path.with_extension("tmp");
         if fs::write(&tmp, text).is_ok() && fs::rename(&tmp, path).is_ok() {
             self.log_lines = lines;
+            self.dirty_tail = false;
+        } else {
+            // Back off instead of retrying on every keystroke.
+            let _ = fs::remove_file(&tmp);
+            self.log_lines = 0;
         }
     }
 }
@@ -294,6 +326,96 @@ mod tests {
         let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
         assert!(text.lines().count() < 100, "log was compacted");
         assert!(UserStore::open(dir.path()).is_learned("Thom"));
+    }
+
+    #[test]
+    fn partial_last_line_is_ignored_and_not_glued_to_the_next_append() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(LOG_NAME), "L\tok\nL\tpart").unwrap();
+        let mut store = UserStore::open(dir.path());
+        assert!(store.is_learned("ok"));
+        assert!(!store.is_learned("part"));
+        store.learn("next");
+        let reopened = UserStore::open(dir.path());
+        assert!(reopened.is_learned("ok"));
+        assert!(reopened.is_learned("next"));
+        assert!(!reopened.is_learned("part"));
+        assert!(!reopened.is_learned("partnext"));
+    }
+
+    #[test]
+    fn invalid_utf8_line_does_not_stop_replay() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut bytes = b"L\tbefore\nL\t".to_vec();
+        bytes.extend_from_slice(&[0xFF, 0xFE, 0xC0]);
+        bytes.extend_from_slice(b"\nL\tafter\n");
+        fs::write(dir.path().join(LOG_NAME), bytes).unwrap();
+        let store = UserStore::open(dir.path());
+        assert!(store.is_learned("before"));
+        assert!(store.is_learned("after"));
+        assert_eq!(store.learned_count(), 2);
+    }
+
+    #[test]
+    fn replay_applies_the_same_validation_as_live_input() {
+        let dir = tempfile::tempdir().unwrap();
+        let long = "a".repeat(MAX_WORD_CHARS + 1);
+        let log = format!("L\ttwo words\nL\t{long}\nL\t\nL\tfine\n");
+        fs::write(dir.path().join(LOG_NAME), log).unwrap();
+        let store = UserStore::open(dir.path());
+        assert_eq!(store.learned_count(), 1);
+        assert!(store.is_learned("fine"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn failed_compaction_backs_off_and_leaves_no_tmp_file() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        store.learn("Thom");
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o555)).unwrap();
+        let can_still_write = fs::write(dir.path().join("probe"), "x").is_ok();
+        if !can_still_write {
+            for _ in 0..(CAPACITY * 4 + 10) {
+                store.learn("Thom");
+            }
+            assert!(store.log_lines <= CAPACITY * 4, "backed off after failing");
+            assert!(!dir.path().join(LOG_NAME).with_extension("tmp").exists());
+        }
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(store.is_learned("Thom"));
+    }
+
+    #[test]
+    fn forget_all_removes_a_leftover_tmp_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let tmp = dir.path().join(LOG_NAME).with_extension("tmp");
+        let mut store = UserStore::open(dir.path());
+        store.learn("Thom");
+        fs::write(&tmp, "L\tstale\n").unwrap();
+        store.forget_all();
+        assert!(!tmp.exists());
+        assert_eq!(store.learned_count(), 0);
+        assert_eq!(UserStore::open(dir.path()).learned_count(), 0);
+    }
+
+    #[test]
+    fn one_off_words_do_not_evict_learned_ones() {
+        let mut store = UserStore::in_memory();
+        for i in 0..10 {
+            store.learn(&format!("keep{i}"));
+        }
+        for i in 0..(CAPACITY - 10) {
+            store.note_typed(&format!("once{i}"));
+        }
+        for i in 0..200 {
+            store.note_typed(&format!("fresh{i}"));
+        }
+        for i in 0..10 {
+            assert!(store.is_learned(&format!("keep{i}")));
+        }
+        assert_eq!(store.learned_count(), 10);
     }
 
     #[test]
