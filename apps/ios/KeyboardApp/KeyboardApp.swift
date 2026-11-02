@@ -1,5 +1,4 @@
 import SwiftUI
-import KeyboardCore
 
 @main
 struct KeyboardApp: App {
@@ -14,7 +13,6 @@ struct KeyboardApp: App {
 
 struct ContentView: View {
     @State private var testText = ""
-    @State private var model = SettingsModel()
 
     var body: some View {
         NavigationStack {
@@ -28,19 +26,7 @@ struct ContentView: View {
                     TextField("Type here", text: $testText, axis: .vertical)
                 }
                 Section("Keyboard") {
-                    Picker("Theme", selection: $model.settings.theme) {
-                        Text("Match system").tag(ThemeChoice.system)
-                        Text("Light").tag(ThemeChoice.light)
-                        Text("Dark").tag(ThemeChoice.dark)
-                    }
-                    Picker("Accent", selection: $model.settings.accent) {
-                        Text("Saffron").tag(AccentChoice.saffron)
-                        Text("Teal").tag(AccentChoice.teal)
-                        Text("Indigo").tag(AccentChoice.indigo)
-                        Text("Rose").tag(AccentChoice.rose)
-                    }
-                    Toggle("Number row", isOn: $model.settings.numberRow)
-                    Toggle("Key click sound", isOn: $model.settings.keyClicks)
+                    Text("Settings are in the keyboard: touch and hold മ / EN.")
                 }
                 Section("Stability") {
                     LabeledContent("Saved MetricKit reports", value: "\(MetricsSubscriber.reportCount())")

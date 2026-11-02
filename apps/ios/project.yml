@@ -19,10 +19,6 @@ targets:
     platform: iOS
     sources: [KeyboardApp]
     scheme: {}
-    entitlements:
-      path: KeyboardApp/KeyboardApp.entitlements
-      properties:
-        com.apple.security.application-groups: [group.me.jishnu.keyboard]
     info:
       path: KeyboardApp/Info.plist
       properties:
@@ -34,15 +30,10 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - target: KeyboardExtension
-      - package: KeyboardCore
   KeyboardExtension:
     type: app-extension
     platform: iOS
     sources: [KeyboardExtension]
-    entitlements:
-      path: KeyboardExtension/KeyboardExtension.entitlements
-      properties:
-        com.apple.security.application-groups: [group.me.jishnu.keyboard]
     info:
       path: KeyboardExtension/Info.plist
       properties:
