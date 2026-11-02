@@ -8,15 +8,19 @@
   "attribution": "Dakshina dataset by Google Research (Roark et al., 2020, LREC), CC BY-SA 4.0. Native-script text from Wikipedia; romanisations by Google's annotators.",
   "verdict": "use",
   "verdict_reason": "Share-alike, same position as Wikipedia (see the licence audit). Human romanisations are exactly what the rule probabilities need. Train split for training and for fitting the rule probabilities; dev and test splits held out for eval.",
-  "used_for": "Only ml/lexicons/*.tsv (word, romanisation, count) and ml/romanized/*. The native_script_wikipedia text duplicates mlwiki and isn't used.",
+  "used_for": "Only ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv (native word, romanisation, annotator count). Train: transliterator training pairs and the romaniser's rule calibration (training/mlkb/data/calibrate.py). Dev: validation during training. Test: data/eval/translit-human.tsv (2,000 pairs). Dev and test words are kept out of every training pair. The romanized/ sentences and the native_script_wikipedia text (a copy of mlwiki) aren't used.",
   "retrieved": "2026-11-03",
-  "status": "audited, not fetched",
-  "notes": "The tar holds all 12 languages and is 2,008,340,480 bytes (Content-Length, 2026-11-03), over the 50 MB limit for this audit. Add a checksum when it is first fetched.",
-  "files": [],
-  "candidate_files": [
+  "notes": "The tar holds all 12 languages (2,008,340,480 bytes). After data/fetch.sh, extract only the Malayalam lexicons: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/lexicons/*'. The SHA-256 of each extracted file is under `extracted`.",
+  "files": [
     {
       "url": "https://storage.googleapis.com/gresearch/dakshina/dakshina_dataset_v1.0.tar",
+      "sha256": "83530bec211893d9df429298f42e63c350c25ad56f9f5172f85edb0575ee5b03",
       "path": "dakshina_dataset_v1.0.tar"
     }
-  ]
+  ],
+  "extracted": {
+    "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.train.tsv": "f674db775d570785ce9ca27b95738824cf86222822ed5b23f841976b0a638bb9",
+    "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.dev.tsv": "0b0b2da1dc949bde42461265f47010c9c24ff81de61b89681e7fa383e19361b3",
+    "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.test.tsv": "ccc081c6211a9a5ade9527872f60fdf72703dea1fb6f6c80afbd2b9032a4ef55"
+  }
 }

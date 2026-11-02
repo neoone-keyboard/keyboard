@@ -1,0 +1,275 @@
+{
+  "about": "Romaniser rule probabilities fitted to Dakshina train romanisations by mlkb.data.calibrate.",
+  "stats": {
+    "pairs": 58378,
+    "aligned": 39059,
+    "skipped": 19319
+  },
+  "rules": {
+    "long_a_short": 0.1981,
+    "long_i_short": 0.0835,
+    "long_u_short": 0.143,
+    "long_e_short": 0.95,
+    "long_o_short": 0.8947,
+    "e_as_ae": 0.01,
+    "aspiration_drop": 0.0599,
+    "kh_as_gh": 0.0474,
+    "pha_as_f": 0.6624,
+    "tha_as_dha": 0.1763,
+    "geminate_single": 0.1753,
+    "tth_as_th": 0.8101,
+    "tth_as_tt": 0.01,
+    "cch_double": 0.116,
+    "cch_chch": 0.031,
+    "chh_as_ch": 0.5455,
+    "shsh_as_sh": 0.2385,
+    "shsh_as_ssh": 0.3119,
+    "shsh_as_s": 0.0459,
+    "nt_as_nd": 0.0204,
+    "nt_as_nth": 0.01,
+    "nd_as_nt": 0.0688,
+    "mp_as_mb": 0.5905,
+    "nk_as_ng": 0.2082,
+    "nch_as_nj": 0.3466,
+    "ksh_as_x": 0.01,
+    "ksh_as_ks": 0.01,
+    "ks_as_x": 0.2458,
+    "jn_as_gn": 0.1064,
+    "jn_as_nj": 0.5319,
+    "tta_voiced": 0.8918,
+    "ttha_voiced": 0.5027,
+    "final_e_ey": 0.01,
+    "final_u_drop_cluster": 0.4785,
+    "final_u_drop_single": 0.4015,
+    "final_u_drop_sibilant": 0.9112,
+    "zh_as_l": 0.01,
+    "zh_as_z": 0.01,
+    "ru_as_ri": 0.5079,
+    "ru_as_r": 0.0867,
+    "v_as_w": 0.0445,
+    "y_drop_between_vowels": 0.014,
+    "sha_vowel_e": 0.01,
+    "sha_as_s": 0.1341,
+    "ssa_as_s": 0.0301,
+    "ai_as_ei": 0.01,
+    "au_as_ou": 0.4462,
+    "final_i_y": 0.0686,
+    "anusvara_as_n": 0.3023,
+    "visarga_drop": 0.6857,
+    "initial_e_drop": 0.0369,
+    "medial_vowel_drop": 0.05,
+    "variant_counts": [
+      0.4,
+      0.3,
+      0.2,
+      0.1
+    ],
+    "canonical_share": 0.1
+  },
+  "evidence": {
+    "ai_as_ei": {
+      "fired": 4.0,
+      "opportunities": 1029.0
+    },
+    "anusvara_as_n": {
+      "fired": 496.0,
+      "opportunities": 1654.0
+    },
+    "aspiration_drop": {
+      "fired": 1528.0,
+      "opportunities": 25609.0
+    },
+    "au_as_ou": {
+      "fired": 168.0,
+      "opportunities": 370.0
+    },
+    "cch_chch": {
+      "fired": 124.0,
+      "opportunities": 3997.0
+    },
+    "cch_double": {
+      "fired": 463.0,
+      "opportunities": 3997.0
+    },
+    "chh_as_ch": {
+      "fired": 20.0,
+      "opportunities": 35.0
+    },
+    "e_as_ae": {
+      "fired": 13.0,
+      "opportunities": 6305.0
+    },
+    "final_e_ey": {
+      "fired": 9.0,
+      "opportunities": 6935.0
+    },
+    "final_i_y": {
+      "fired": 298.0,
+      "opportunities": 4333.0
+    },
+    "final_u_drop_cluster": {
+      "fired": 2517.0,
+      "opportunities": 5253.0
+    },
+    "final_u_drop_sibilant": {
+      "fired": 952.0,
+      "opportunities": 1038.0
+    },
+    "final_u_drop_single": {
+      "fired": 2741.0,
+      "opportunities": 6817.0
+    },
+    "geminate_single": {
+      "fired": 6690.0,
+      "opportunities": 38208.0
+    },
+    "initial_e_drop": {
+      "fired": 0.0,
+      "opportunities": 45.0
+    },
+    "jn_as_gn": {
+      "fired": 1.0,
+      "opportunities": 27.0
+    },
+    "jn_as_nj": {
+      "fired": 19.0,
+      "opportunities": 27.0
+    },
+    "kh_as_gh": {
+      "fired": 43.0,
+      "opportunities": 951.0
+    },
+    "ks_as_x": {
+      "fired": 52.0,
+      "opportunities": 216.0
+    },
+    "ksh_as_ks": {
+      "fired": 8.0,
+      "opportunities": 1317.0
+    },
+    "ksh_as_x": {
+      "fired": 2.0,
+      "opportunities": 1317.0
+    },
+    "long_a_short": {
+      "fired": 7109.0,
+      "opportunities": 35935.0
+    },
+    "long_e_short": {
+      "fired": 6046.0,
+      "opportunities": 6305.0
+    },
+    "long_i_short": {
+      "fired": 322.0,
+      "opportunities": 3942.0
+    },
+    "long_o_short": {
+      "fired": 6271.0,
+      "opportunities": 7009.0
+    },
+    "long_u_short": {
+      "fired": 490.0,
+      "opportunities": 3470.0
+    },
+    "mp_as_mb": {
+      "fired": 574.0,
+      "opportunities": 969.0
+    },
+    "nch_as_nj": {
+      "fired": 142.0,
+      "opportunities": 407.0
+    },
+    "nd_as_nt": {
+      "fired": 164.0,
+      "opportunities": 2409.0
+    },
+    "nk_as_ng": {
+      "fired": 140.0,
+      "opportunities": 686.0
+    },
+    "nt_as_nd": {
+      "fired": 26.0,
+      "opportunities": 1649.0
+    },
+    "nt_as_nth": {
+      "fired": 7.0,
+      "opportunities": 1649.0
+    },
+    "pha_as_f": {
+      "fired": 719.0,
+      "opportunities": 1076.0
+    },
+    "ru_as_r": {
+      "fired": 102.0,
+      "opportunities": 1175.0
+    },
+    "ru_as_ri": {
+      "fired": 597.0,
+      "opportunities": 1175.0
+    },
+    "sha_as_s": {
+      "fired": 636.0,
+      "opportunities": 4768.0
+    },
+    "sha_vowel_e": {
+      "fired": 10.0,
+      "opportunities": 3522.0
+    },
+    "shsh_as_s": {
+      "fired": 3.0,
+      "opportunities": 89.0
+    },
+    "shsh_as_sh": {
+      "fired": 22.0,
+      "opportunities": 89.0
+    },
+    "shsh_as_ssh": {
+      "fired": 31.0,
+      "opportunities": 89.0
+    },
+    "ssa_as_s": {
+      "fired": 84.0,
+      "opportunities": 2867.0
+    },
+    "tha_as_dha": {
+      "fired": 247.0,
+      "opportunities": 1398.0
+    },
+    "tta_voiced": {
+      "fired": 7795.0,
+      "opportunities": 8734.0
+    },
+    "tth_as_th": {
+      "fired": 6804.0,
+      "opportunities": 8393.0
+    },
+    "tth_as_tt": {
+      "fired": 79.0,
+      "opportunities": 8393.0
+    },
+    "ttha_voiced": {
+      "fired": 174.0,
+      "opportunities": 346.0
+    },
+    "v_as_w": {
+      "fired": 772.0,
+      "opportunities": 17429.0
+    },
+    "visarga_drop": {
+      "fired": 14.0,
+      "opportunities": 15.0
+    },
+    "y_drop_between_vowels": {
+      "fired": 40.0,
+      "opportunities": 3121.0
+    },
+    "zh_as_l": {
+      "fired": 1.0,
+      "opportunities": 1674.0
+    },
+    "zh_as_z": {
+      "fired": 11.0,
+      "opportunities": 1674.0
+    }
+  }
+}

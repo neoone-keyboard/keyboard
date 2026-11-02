@@ -2,21 +2,25 @@
   "id": "aksharantar",
   "name": "Aksharantar (AI4Bharat), Malayalam",
   "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
-  "licence": "Mixed: CC BY (version not stated) for manually collected data; CC0 1.0 for mined data and existing sources, as the dataset card states. Rows from Dakshina inherit CC BY-SA 4.0 whatever the card says.",
+  "licence": "CC BY and CC0 1.0",
   "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/blob/main/README.md (Licensing Information); paper arXiv:2205.03018 §1: \"the Aksharantar benchmark and all data we created manually are available under the CC-BY license, whereas all the mined data is available under the CC0 license.\"",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/blob/main/README.md (Licensing Information); paper arXiv:2205.03018 §1: \"the Aksharantar benchmark and all data we created manually are available under the CC-BY license, whereas all the mined data is available under the CC0 license.\" Only CC0 rows (IndicCorp, Samanantar, Wikidata) are used; the Dakshina rows (CC BY-SA 4.0) and 'Existing' rows are dropped, and the CC BY manual rows are only in the unused test split.",
   "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
   "verdict": "use (filtered)",
   "verdict_reason": "Mined (IndicCorp, Samanantar), Wikidata and AI4Bharat's manual rows (AK-NEI, AK-NEF, AK-Uni, AK-Freq) are CC0 or CC BY. Drop rows whose source is 'Dakshina Dataset' or 'Existing sources': the Dakshina rows are CC BY-SA 4.0 (AI4Bharat can't relicense them as CC0, so take them from the Dakshina release itself), and for Malayalam 'Existing sources' also covers 3,201 BrahmiNet pairs mined from the ILCI corpus, whose licence wasn't found.",
-  "used_for": "Malayalam train split (about 4.1M pairs before filtering) for transliterator training; the test split (6,911 pairs, manual, CC BY) held out for eval. Dedupe against the Dakshina dev/test words.",
+  "used_for": "mal_train.json rows whose source is IndicCorp (mining score >= -0.2), Samanantar or Wikidata, as transliterator training pairs (training/mlkb/data/human.py), minus every Dakshina dev/test word and eval target. Not used for the rule calibration (the IndicCorp romanisations are mined with a model). mal_valid.json and mal_test.json are not used; the test split stays held out.",
   "retrieved": "2026-11-03",
-  "status": "audited, not fetched",
-  "notes": "mal.zip is 130,628,425 bytes, over the 50 MB limit for this audit. Check the 'source' column values when it is fetched; the card's licence tag is just 'cc'. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own. IndicCorp-mined pairs are English loanwords and their Malayalam spellings, not chat romanisations.",
-  "files": [],
-  "candidate_files": [
+  "notes": "Fetched 2026-11-03. Extract with: unzip mal.zip -d data/raw/aksharantar/extracted. mal_train.json has 4,100,621 rows: IndicCorp 4,019,370, Dakshina 49,142, Samanantar 30,680, Existing 1,158, Wikidata 271; no AK-* manual rows (those are only in mal_test.json: AK-Freq 4,858, AK-NEI 1,191, AK-NEF 833, plus 5,569 Dakshina). Kept 3,207,918: IndicCorp 3,176,967 (842,394 dropped for a mining score below -0.2, 9 for non a-z or length), Samanantar 30,680, Wikidata 271. Dropped for licence: Dakshina 49,142, Existing 1,158. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
     {
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/mal.zip",
+      "sha256": "182a7c4e30cb6144e35accdddb5669c6001bc18d68184dec2ec34cdc8a6cce09",
       "path": "mal.zip"
     }
-  ]
+  ],
+  "extracted": {
+    "mal_train.json": "d7c456b840aa353297c133807be69772794277ef26fb7962196629bc9de3dbdb",
+    "mal_valid.json": "712f7e9e66624ceb70173f4f5072b7c519fa363645e028025c68b8238de05cfa",
+    "mal_test.json": "c7764cd0e33083363d29b9d23ffefa4d2d6929166261bf40165de37b1796a0e1"
+  }
 }

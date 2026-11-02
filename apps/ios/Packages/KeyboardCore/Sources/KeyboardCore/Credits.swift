@@ -47,6 +47,16 @@ public enum Credits {
             licenceURL: "https://creativecommons.org/licenses/by-sa/3.0/",
             attribution: "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project."
         ),
+        Credit(
+            id: "dakshina", name: "Dakshina dataset (Google Research)", licence: "CC BY-SA 4.0",
+            licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
+            attribution: "Malayalam romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator. https://github.com/google-research-datasets/dakshina"
+        ),
+        Credit(
+            id: "aksharantar", name: "Aksharantar (AI4Bharat)", licence: "CC BY and CC0 1.0",
+            licenceURL: "https://creativecommons.org/publicdomain/zero/1.0/",
+            attribution: "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator. https://huggingface.co/datasets/ai4bharat/Aksharantar"
+        ),
     ]
 
     /// Open-source Rust crates linked into the keyboard's engine. The link is each crate's

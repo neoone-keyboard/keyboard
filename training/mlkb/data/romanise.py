@@ -173,9 +173,10 @@ class Slot(NamedTuple):
     cumulative: tuple[float, ...]
     tag: str = ""  # "e-drop" (V), "y-drop" (C)
     lone: bool = False  # a C slot that is a single consonant letter, not part of a cluster
+    src: str = ""  # the Malayalam letters or sign this slot spells (read by the calibration)
 
 
-def _slot(kind: str, options: Options, tag: str = "", lone: bool = False) -> Slot:
+def _slot(kind: str, options: Options, tag: str = "", lone: bool = False, src: str = "") -> Slot:
     """A slot from (spelling, weight) options; zero-weight options after the first are dropped."""
     kept = [options[0]] + [(s, w) for s, w in options[1:] if w > 0]
     total = sum(max(w, 0.0) for _, w in kept) or 1.0
@@ -183,7 +184,7 @@ def _slot(kind: str, options: Options, tag: str = "", lone: bool = False) -> Slo
     for _, w in kept:
         acc += max(w, 0.0) / total
         cumulative.append(acc)
-    return Slot(kind, tuple(s for s, _ in kept), tuple(cumulative), tag, lone)
+    return Slot(kind, tuple(s for s, _ in kept), tuple(cumulative), tag, lone, src)
 
 
 def _consonant(letter: str, r: Rules, voicing: float = 0.0) -> Options:
@@ -295,21 +296,21 @@ def _vowel(key: str, r: Rules, *, after_sha: bool = False, final_after_consonant
             return ((key, 1.0),)
 
 
-def _pieces(cluster: list[str], r: Rules) -> list[tuple[Options, bool]]:
-    """Splits a consonant cluster into spelled pieces, each with whether it is a lone letter."""
-    out: list[tuple[Options, bool]] = []
+def _pieces(cluster: list[str], r: Rules) -> list[tuple[Options, str]]:
+    """Splits a consonant cluster into spelled pieces, each with the letters it spells."""
+    out: list[tuple[Options, str]] = []
     i = 0
     while i < len(cluster):
         pair = tuple(cluster[i : i + 2])
         special = _special(pair, r) if len(pair) == 2 else None  # type: ignore[arg-type]
         if special:
-            out.append((special, False))
+            out.append((special, "".join(pair)))
             i += 2
         elif len(pair) == 2 and pair[0] == pair[1]:
-            out.append((_geminate(pair[0], r), False))
+            out.append((_geminate(pair[0], r), "".join(pair)))
             i += 2
         else:
-            out.append((_consonant(cluster[i], r), len(cluster) == 1))
+            out.append((_consonant(cluster[i], r), cluster[i]))
             i += 1
     return out
 
@@ -331,11 +332,11 @@ def _slots(word: str, r: Rules) -> tuple[Slot, ...]:
                 j += 2
             pieces = _pieces(cluster, r)
             lone = len(cluster) == 1
-            for options, _ in pieces:
+            for options, letters in pieces:
                 if lone and c == "ട":
                     after_vowel = bool(slots) and slots[-1].kind == "V"
                     options = _consonant("ട", r, r.tta_voiced if after_vowel else r.tta_voiced / 4)
-                slots.append(_slot("C", options, lone=lone))
+                slots.append(_slot("C", options, lone=lone, src=letters))
             after_sha = cluster[-1] in "ശഷ" and (len(cluster) == 1 or cluster[-2] != cluster[-1])
             # The vowel this cluster carries.
             sign = chars[j] if j < n else ""
@@ -346,7 +347,7 @@ def _slots(word: str, r: Rules) -> tuple[Slot, ...]:
                 j += 1
                 key = VOWEL_SIGNS[sign]
                 final = j >= n and cluster[-1] != "യ"
-                slots.append(_slot("V", _vowel(key, r, final_after_consonant=final)))
+                slots.append(_slot("V", _vowel(key, r, final_after_consonant=final), src=sign))
             elif sign in VIRAMAS:
                 j += 1
                 if j < n and chars[j] == ZWJ:  # old-style chillu: no vowel at all
@@ -358,9 +359,9 @@ def _slots(word: str, r: Rules) -> tuple[Slot, ...]:
                         drop = r.final_u_drop_single
                     else:
                         drop = r.final_u_drop_cluster
-                    slots.append(_slot("U", (("u", 1 - drop), ("", drop))))
+                    slots.append(_slot("U", (("u", 1 - drop), ("", drop)), src=c if lone else "".join(cluster)))
             else:
-                slots.append(_slot("V", _vowel("a", r, after_sha=after_sha)))
+                slots.append(_slot("V", _vowel("a", r, after_sha=after_sha), src="a"))
             # A lone യ between o / oo / aa and i / ee may be dropped (poyi→poi).
             if (
                 lone
@@ -377,21 +378,21 @@ def _slots(word: str, r: Rules) -> tuple[Slot, ...]:
             # എന്റെ → nte, എന്താ → ntha.
             starts_nt = "".join(chars[i : i + 4]) in ("എന്റ", "എന്ത")
             tag = "e-drop" if not slots and starts_nt else ""
-            slots.append(_slot("V", _vowel(key, r), tag))
+            slots.append(_slot("V", _vowel(key, r), tag, src=c))
             i += 1
         elif c in VOWEL_SIGNS:  # a stray sign: spell it as its vowel
-            slots.append(_slot("V", _vowel(VOWEL_SIGNS[c], r)))
+            slots.append(_slot("V", _vowel(VOWEL_SIGNS[c], r), src=c))
             i += 1
         elif c in FINALS:
             latin = FINALS[c]
             if c == "ഃ":
-                slots.append(_slot("F", (("h", 1 - r.visarga_drop), ("", r.visarga_drop))))
+                slots.append(_slot("F", (("h", 1 - r.visarga_drop), ("", r.visarga_drop)), src=c))
             elif c == "ം" and i + 1 < n and chars[i + 1] in CONSONANTS and chars[i + 1] not in LABIALS:
-                slots.append(_slot("F", (("m", 1 - r.anusvara_as_n), ("n", r.anusvara_as_n))))
+                slots.append(_slot("F", (("m", 1 - r.anusvara_as_n), ("n", r.anusvara_as_n)), src=c))
             elif c == "ൖ":
-                slots.append(_slot("F", _consonant("ഴ", r)))
+                slots.append(_slot("F", _consonant("ഴ", r), src=c))
             else:
-                slots.append(_slot("F", ((latin, 1.0),)))
+                slots.append(_slot("F", ((latin, 1.0),), src=c))
             i += 1
         elif "a" <= c.lower() <= "z" and c.isascii():
             slots.append(_slot("F", ((c.lower(), 1.0),)))
