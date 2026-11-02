@@ -26,6 +26,11 @@ final class TopBarView: UIView {
         vowelStack.spacing = 4
         vowelScroll.showsHorizontalScrollIndicator = false
         vowelScroll.alwaysBounceHorizontal = true
+        // iOS 26 blurs scroll content near each edge; in a 40 pt strip that blurs every button.
+        for edge in [vowelScroll.topEdgeEffect, vowelScroll.bottomEdgeEffect,
+                     vowelScroll.leftEdgeEffect, vowelScroll.rightEdgeEffect] {
+            edge.isHidden = true
+        }
         vowelScroll.addSubview(vowelStack)
 
         for view in [suggestionStack, vowelScroll, vowelStack] {
