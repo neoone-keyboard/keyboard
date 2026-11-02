@@ -84,6 +84,10 @@ final class SettingsPanelView: UIView {
         // Scrolls only if the keys area is shorter than the panel's content.
         let scroll = UIScrollView()
         scroll.alwaysBounceVertical = false
+        // iOS 26 blurs scroll content near each edge, which smears the rows in a short panel.
+        for edge in [scroll.topEdgeEffect, scroll.bottomEdgeEffect, scroll.leftEdgeEffect, scroll.rightEdgeEffect] {
+            edge.isHidden = true
+        }
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.addSubview(stack)
         addSubview(scroll)
