@@ -41,9 +41,10 @@ test-engine:
 test-data:
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
-# The eval harness, through the engine's Python bindings (engine/py, never shipped).
+# The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
+# transliterator model tests, which need torch from the `train` group.
 test-training:
-	cd training && uv run --quiet pytest -q
+	cd training && uv run --quiet --group train pytest -q
 
 # Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json.
 eval:
