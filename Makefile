@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons bench eval spike-assets
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons models bench eval spike-assets
 
 all: build
 
@@ -32,7 +32,7 @@ device: tools project $(XCFRAMEWORK)
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
 
-test: test-engine test-data test-training test-swift
+test: test-engine test-data test-training test-swift eval
 
 test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
@@ -46,13 +46,29 @@ test-data:
 test-training:
 	cd training && uv run --quiet --group train pytest -q
 
-# Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json.
+# Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json,
+# with the bundled transliterator. Fails on a regression past the recorded baseline. Needs only
+# committed files (the lexicons, the model and the eval sets), not the training data.
+TRANSLIT_MODEL := apps/ios/KeyboardExtension/Models/translit.mlkbnn
 eval:
-	cd training && uv run python -m mlkb.eval
+	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL)
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
 	./data/build-lexicons.sh
+
+# Rebuilds the bundled transliterator: training pairs (needs the Dakshina and Aksharantar
+# extracts in data/raw, see data/manifests), training (several hours; skipped when
+# training/build/translit.pt exists), int8 export, then the copy into the keyboard bundle.
+models:
+	@if [ ! -f training/build/translit.pt ]; then \
+	  cd training && uv run --group train python -m mlkb.data.pairs && \
+	  uv run --group train python -m mlkb.translit.train; \
+	fi
+	cd training && uv run --group train python -m mlkb.translit.export \
+	  --checkpoint build/translit.pt --out build/translit.mlkbnn --reference build/translit-reference.json
+	mkdir -p $(dir $(TRANSLIT_MODEL))
+	cp training/build/translit.mlkbnn $(TRANSLIT_MODEL)
 
 # Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model, and
