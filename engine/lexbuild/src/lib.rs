@@ -226,8 +226,15 @@ pub struct NextWords {
     ids: HashMap<String, u32>,
     forms: Vec<String>,
     previous_allowed: usize,
-    pairs: HashMap<(u32, u32), u64>,
+    pairs: HashMap<(u32, u32), PairCount>,
     prune_at: usize,
+}
+
+/// How often a pair was seen, and how often the second word had a capital there.
+#[derive(Debug, Default, Clone, Copy)]
+struct PairCount {
+    count: u32,
+    capitalised: u32,
 }
 
 impl NextWords {
@@ -260,7 +267,7 @@ impl NextWords {
     /// little, the limit doubles so we don't rescan on every pair.
     fn prune_if_large(&mut self) {
         if self.pairs.len() > self.prune_at {
-            self.pairs.retain(|_, count| *count > 1);
+            self.pairs.retain(|_, pair| pair.count > 1);
             self.prune_at = self.prune_at.max(self.pairs.len() * 2);
         }
     }
@@ -279,7 +286,11 @@ impl NextWords {
                         && (p as usize) < self.previous_allowed
                         && !last.is_some_and(|l| is_roman_one(l, before))
                     {
-                        *self.pairs.entry((p, next)).or_default() += 1;
+                        let pair = self.pairs.entry((p, next)).or_default();
+                        pair.count = pair.count.saturating_add(1);
+                        if word.starts_with(|c: char| c.is_uppercase()) {
+                            pair.capitalised = pair.capitalised.saturating_add(1);
+                        }
                         self.prune_if_large();
                     }
                     previous = id;
@@ -291,18 +302,30 @@ impl NextWords {
     }
 
     /// FST entries `previous\0next` → count, keeping the best `per_word` for each previous word.
+    /// The next word is in its display spelling, capitalised if it mostly was
+    /// after this word ("the United", though "united" alone).
     pub fn entries(&self, per_word: usize) -> Entries {
-        let mut by_previous: HashMap<u32, Vec<(u32, u64)>> = HashMap::new();
-        for (&(p, n), &count) in &self.pairs {
-            by_previous.entry(p).or_default().push((n, count));
+        let mut by_previous: HashMap<u32, Vec<(u32, u64, bool)>> = HashMap::new();
+        for (&(p, n), pair) in &self.pairs {
+            let capital = u64::from(pair.capitalised) * 2 > u64::from(pair.count);
+            by_previous
+                .entry(p)
+                .or_default()
+                .push((n, u64::from(pair.count), capital));
         }
         let mut entries = Vec::new();
         for (p, mut nexts) in by_previous {
             nexts.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-            for (n, count) in nexts.into_iter().take(per_word) {
+            for (n, count, capital) in nexts.into_iter().take(per_word) {
                 let mut key = lookup_key(&self.forms[p as usize]).into_bytes();
                 key.push(SEPARATOR);
-                key.extend_from_slice(self.forms[n as usize].as_bytes());
+                let form = &self.forms[n as usize];
+                if capital && form.starts_with(|c: char| c.is_ascii_lowercase()) {
+                    key.push(form.as_bytes()[0].to_ascii_uppercase());
+                    key.extend_from_slice(&form.as_bytes()[1..]);
+                } else {
+                    key.extend_from_slice(form.as_bytes());
+                }
                 entries.push((key, count));
             }
         }
@@ -606,6 +629,25 @@ mod tests {
             .collect();
         i_entries.sort();
         assert_eq!(i_entries, [(b"i\0am".to_vec(), 2)]);
+    }
+
+    #[test]
+    fn a_next_word_keeps_the_capital_it_mostly_has_after_that_word() {
+        // "united" is shown lowercase on its own, but after "the" it is "United".
+        let vocab = vocab_of(&["the", "united", "states", "we"]);
+        let text = "the United States\nthe United States\nthe united front\nwe united";
+        let mut next = NextWords::new(&vocab, &Config::default());
+        next.add_corpus(text.as_bytes(), None).unwrap();
+        let mut keys: Vec<_> = next.entries(3).into_iter().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                (b"the\0United".to_vec(), 3),
+                (b"united\0States".to_vec(), 2),
+                (b"we\0united".to_vec(), 1),
+            ]
+        );
     }
 
     #[test]
