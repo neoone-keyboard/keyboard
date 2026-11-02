@@ -149,12 +149,24 @@ impl Engine {
         self.user().learn(&normalize(word));
     }
 
-    /// A word was committed as typed. Unknown words are learned the second time.
+    /// A word was committed as typed. Unknown words are learned the second
+    /// time, unless autocorrect would replace them: a typo committed where
+    /// autocorrect couldn't run (`thnaks` in a search field) stays a typo.
     pub fn note_committed(&self, word: &str) {
         let word = normalize(word);
-        if !self.is_known(&word) {
+        if !self.is_known(&word) && !self.would_replace(&word) {
             self.user().note_typed(&word);
         }
+    }
+
+    /// Whether autocorrect would put something else in the middle for `word`.
+    /// The previous word isn't known here, so the context bias is neutral.
+    fn would_replace(&self, word: &str) -> bool {
+        text::script(word) == Script::Latin
+            && self
+                .suggest_latin(word, word, true, false, 0.0)
+                .first()
+                .is_some_and(|c| c.kind != Kind::Verbatim)
     }
 
     pub fn forget_learned(&self) {
@@ -830,18 +842,30 @@ mod tests {
     #[test]
     fn unknown_words_typed_twice_are_learned_known_words_are_not_recorded() {
         let engine = engine();
-        engine.note_committed("thw");
-        assert_eq!(
-            engine.suggest("thw", Layout::Latin, true).candidates[0].text,
-            "the"
-        );
-        engine.note_committed("thw");
-        assert_eq!(
-            engine.suggest("thw", Layout::Latin, true).candidates[0].text,
-            "thw"
-        );
+        engine.note_committed("Thomasina");
+        assert!(!texts(&engine.suggest("thoma", Layout::Latin, true)).contains(&"Thomasina"));
+        engine.note_committed("Thomasina");
+        assert!(texts(&engine.suggest("thoma", Layout::Latin, true)).contains(&"Thomasina"));
         engine.note_committed("hello");
         assert!(!engine.user().is_learned("hello"));
+    }
+
+    #[test]
+    fn a_word_with_a_confident_correction_is_not_learned_from_commits() {
+        // Committed twice where autocorrect couldn't run (a search field): still a typo.
+        let sources = Sources {
+            english: lex(&[("thanks", 500), ("the", 1000)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thanks");
+        engine.note_committed("thnaks");
+        engine.note_committed("thnaks");
+        assert!(!engine.user().is_learned("thnaks"));
+        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thanks");
+        // An explicit choice (undo, or a tap on the quoted word) still learns it.
+        engine.learn("thnaks");
+        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thnaks");
     }
 
     #[test]
