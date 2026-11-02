@@ -328,10 +328,10 @@ impl Engine {
                 None => corrections
                     .iter()
                     .max_by(|a, b| a.score.total_cmp(&b.score))
-                    // A typed prefix more likely to be finished than mistyped stays as typed.
-                    .filter(|best| best.score > best_completion)
                     .cloned(),
             }
+            // A typed prefix more likely to be finished than mistyped stays as typed.
+            .filter(|best| best.score > best_completion)
             .filter(|best| {
                 best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
             })

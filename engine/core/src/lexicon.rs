@@ -8,7 +8,8 @@
 //! - its `TOP_K` most frequent keys, under `TOP_PREFIX` (`top_completions`);
 //! - its total count, under `COUNT_PREFIX` (`subtree_count`).
 //!
-//! Any other prefix has at most `SCAN_LIMIT` keys, so scanning it is exact.
+//! Any other prefix has at most `SCAN_LIMIT` keys, so scanning it is exact
+//! (prefixes longer than 255 bytes are never precomputed and may be cut off).
 //! Reserved keys start with a byte below `FIRST_WORD_BYTE`, which no word
 //! starts with; `get`, `search` and `scan_prefix` never return them.
 

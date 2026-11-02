@@ -18,7 +18,7 @@ const ENGLISH: &[(&str, u64)] = &[
     ("enter", 120_000), ("entry", 100_000), ("Tom", 100_000), ("an", 4_000_000),
     ("ant", 20_000), ("any", 1_000_000), ("am", 900_000), ("have", 4_000_000),
     ("could", 1_500_000), ("us", 900_000), ("US", 200_000), ("will", 2_000_000),
-    ("Will", 50_000),
+    ("Will", 50_000), ("ENT", 3_000),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -130,6 +130,12 @@ fn a_known_word_shows_no_other_case_of_itself() {
 #[test]
 fn a_case_variant_is_the_best_correction() {
     assert_eq!(middle(&engine(), "tom"), ("Tom".into(), Kind::Correction));
+}
+
+#[test]
+fn a_case_variant_does_not_replace_an_unfinished_word() {
+    // ENT is a rarer word than the completions of "ent", so space keeps "ent".
+    assert_eq!(middle(&engine(), "ent"), ("ent".into(), Kind::Verbatim));
 }
 
 #[test]
