@@ -5,7 +5,7 @@ import Synchronization
 /// Implementations should call `try Task.checkCancellation()` before doing
 /// synchronous work, so a request that is already stale never starts it.
 public protocol SuggestionProvider: Sendable {
-    func suggestions(contextBefore: String) async throws -> [String]
+    func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult
 }
 
 /// Asks the provider for suggestions off the main thread. A result from an
@@ -23,14 +23,14 @@ public final class SuggestionCoordinator {
 
     private let provider: any SuggestionProvider
     private let timeout: Duration
-    private let onUpdate: @MainActor ([String]) -> Void
+    private let onUpdate: @MainActor (SuggestionResult) -> Void
     private var generation = 0
     private var inFlight: Task<Void, Never>?
 
     public init(
         provider: any SuggestionProvider,
         timeout: Duration = .milliseconds(15),
-        onUpdate: @escaping @MainActor ([String]) -> Void
+        onUpdate: @escaping @MainActor (SuggestionResult) -> Void
     ) {
         self.provider = provider
         self.timeout = timeout
@@ -42,7 +42,7 @@ public final class SuggestionCoordinator {
     }
 
     @discardableResult
-    public func request(contextBefore: String) -> Task<Void, Never> {
+    public func request(_ request: SuggestionRequest) -> Task<Void, Never> {
         generation += 1
         let requestGeneration = generation
         inFlight?.cancel()
@@ -54,7 +54,7 @@ public final class SuggestionCoordinator {
         let provider = self.provider
         let timeout = self.timeout
         let task = Task { [weak self] in
-            let result = await Self.fetch(from: provider, contextBefore: contextBefore, timeout: timeout)
+            let result = await Self.fetch(from: provider, request: request, timeout: timeout)
             guard let self, requestGeneration == self.generation else { return }
             self.onUpdate(result)
         }
@@ -67,34 +67,34 @@ public final class SuggestionCoordinator {
         generation += 1
         inFlight?.cancel()
         inFlight = nil
-        onUpdate([])
+        onUpdate(.empty)
     }
 
-    /// Returns whichever finishes first: the provider's result or `[]` on
+    /// Returns whichever finishes first: the provider's result or `.empty` on
     /// timeout, error or cancellation. Nothing waits for the loser, so a
     /// provider that blocks its thread (a synchronous FFI call ignores
     /// cancellation) cannot delay the timeout.
     @concurrent
     private static func fetch(
         from provider: any SuggestionProvider,
-        contextBefore: String,
+        request: SuggestionRequest,
         timeout: Duration
-    ) async -> [String] {
+    ) async -> SuggestionResult {
         let gate = FirstResultGate()
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 gate.install(continuation)
                 let work = Task {
-                    gate.finish((try? await provider.suggestions(contextBefore: contextBefore)) ?? [])
+                    gate.finish((try? await provider.suggestions(for: request)) ?? .empty)
                 }
                 let timer = Task {
                     try? await Task.sleep(for: timeout)
-                    gate.finish([])
+                    gate.finish(.empty)
                 }
                 gate.attach([work, timer])
             }
         } onCancel: {
-            gate.finish([])
+            gate.finish(.empty)
         }
     }
 }
@@ -103,15 +103,15 @@ public final class SuggestionCoordinator {
 /// cancels the tasks racing for it.
 private final class FirstResultGate: Sendable {
     private struct State {
-        var continuation: CheckedContinuation<[String], Never>?
-        var result: [String]?
+        var continuation: CheckedContinuation<SuggestionResult, Never>?
+        var result: SuggestionResult?
         var tasks: [Task<Void, Never>] = []
     }
 
     private let state = Mutex(State())
 
-    func install(_ continuation: CheckedContinuation<[String], Never>) {
-        let early = state.withLock { state -> [String]? in
+    func install(_ continuation: CheckedContinuation<SuggestionResult, Never>) {
+        let early = state.withLock { state -> SuggestionResult? in
             if let result = state.result { return result }
             state.continuation = continuation
             return nil
@@ -128,8 +128,8 @@ private final class FirstResultGate: Sendable {
         if finished { tasks.forEach { $0.cancel() } }
     }
 
-    func finish(_ result: [String]) {
-        let (continuation, tasks) = state.withLock { state -> (CheckedContinuation<[String], Never>?, [Task<Void, Never>]) in
+    func finish(_ result: SuggestionResult) {
+        let (continuation, tasks) = state.withLock { state -> (CheckedContinuation<SuggestionResult, Never>?, [Task<Void, Never>]) in
             guard state.result == nil else { return (nil, []) }
             state.result = result
             defer { state.continuation = nil; state.tasks = [] }

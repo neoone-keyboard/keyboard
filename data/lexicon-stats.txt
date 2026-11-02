@@ -1,0 +1,6 @@
+en.fst: 119761 keys, 966280 bytes
+ml.fst: 300000 keys, 4212403 bytes
+manglish.fst: 299998 keys, 6794431 bytes
+next.fst: 297822 keys, 5895485 bytes
+English top 20: the of and in to a was as is for by on with that from at were his it he
+Malayalam top 20: ഒരു ഈ എന്ന ചെയ്തു ഇത് ആ അവർ അദ്ദേഹം നിന്ന് എന്നു തന്നെ തന്റെ ഞാൻ ആണ് എന്നാൽ ഏറ്റവും ഓഫ് മുതൽ എന്ന് അവരുടെ

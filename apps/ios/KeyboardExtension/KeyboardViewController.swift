@@ -13,17 +13,27 @@ final class KeyboardViewController: UIInputViewController {
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
 
-    private let provider = EngineSuggestionProvider()
-    private var lastRequestedContext: String?
-    private var latestSuggestions: [String] = []
+    private let provider = EngineSuggestionProvider.bundled()
+    private var lastRequest: SuggestionRequest?
+    private var latest = SuggestionResult.empty
+    /// A request was sent and neither its result nor its timeout has arrived.
+    private var awaitingResult = false
+    /// The word the bar's slots were made for (straight apostrophes). A tap on
+    /// a slot made for another word is ignored.
+    private var barWord: String?
 
-    private lazy var input = InputController(output: ProxyTextOutput { [unowned self] in
-        self.textDocumentProxy
-    })
+    private lazy var output = ProxyTextOutput { [unowned self] in self.textDocumentProxy }
+    private lazy var input = InputController(output: output)
 
-    private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] results in
-        self?.latestSuggestions = results
-        self?.refreshTopBar()
+    private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] result in
+        guard let self else { return }
+        awaitingResult = false
+        latest = result
+        if !result.isFor(word: Self.straight(input.currentWord)) {
+            log.debug("Result for '\(result.typed, privacy: .public)' but word is '\(self.input.currentWord, privacy: .public)'; \(result.candidates.count) candidates")
+        }
+        input.updateSuggestions(result)
+        refreshTopBar()
     }
 
     /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
@@ -38,13 +48,21 @@ final class KeyboardViewController: UIInputViewController {
         keyboardView.onEvent = { [unowned self] in handle($0) }
         topBar.onVowelSign = { [unowned self] sign in
             let page = input.page, shift = input.shift
+            output.beginEdit()
             input.handle(.character(sign), at: ProcessInfo.processInfo.systemUptime)
             afterInput(pageBefore: page, shiftBefore: shift)
         }
-        topBar.onSuggestion = { [unowned self] suggestion in
+        topBar.onSuggestion = { [unowned self] slot in
+            // The bar may still show another word's slots while a result is on its way.
+            guard barWord == Self.straight(input.currentWord) else { return }
             let page = input.page, shift = input.shift
-            input.commitSuggestion(suggestion)
+            output.beginEdit()
+            input.commitSuggestion(slot)
             afterInput(pageBefore: page, shiftBefore: shift)
+        }
+        // Learning runs on the provider's actor; the main thread never waits for it.
+        input.onLearningEvent = { [provider] event in
+            Task { await provider.handle(event) }
         }
 
         settingsPanel.onChange = { [unowned self] changed in
@@ -52,6 +70,10 @@ final class KeyboardViewController: UIInputViewController {
             applySettings()
         }
         settingsPanel.onDone = { [unowned self] in hideSettings() }
+        // The actor clears the log and the in-memory store; the main thread doesn't wait.
+        settingsPanel.onForgetLearned = { [provider] in
+            Task { await provider.forgetLearned() }
+        }
 
         let stack = UIStackView(arrangedSubviews: [topBar, keyboardView])
         stack.axis = .vertical
@@ -88,7 +110,17 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         settings = KeyboardSettings.load(from: .standard)
         hideSettings()
+        noteExternalChange()
         applySettings()
+    }
+
+    /// The keys are showing: open the lexicons now, off the main thread, so the
+    /// first word typed already has suggestions.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        log.info("Appeared; prediction \(self.suggestions.isEnabled ? "on" : "off", privacy: .public); footprint \(MemoryMonitor.footprintBytes(), privacy: .public) bytes")
+        guard suggestions.isEnabled else { return }
+        Task { [provider] in await provider.warmUp() }
     }
 
     override func viewWillLayoutSubviews() {
@@ -101,6 +133,8 @@ final class KeyboardViewController: UIInputViewController {
 
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
+        if !output.hostTextIsOwn { noteExternalChange() }
+        updateAutocorrect()
         let shiftBefore = input.shift
         input.applyAutoCapitalization(autoCapitalization)
         if input.shift != shiftBefore { keyboardView.refreshLabels() }
@@ -119,6 +153,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func handle(_ event: GestureEvent) {
         let pageBefore = input.page, shiftBefore = input.shift
+        output.beginEdit()
         switch event {
         case .tap(.nextKeyboard):
             advanceToNextInputMode()
@@ -150,6 +185,29 @@ final class KeyboardViewController: UIInputViewController {
         checkMemoryBudget()
         requestSuggestions()
         refreshTopBar()
+        output.endEdit()
+    }
+
+    /// The cursor moved or the host changed the text: no undo, and no stale
+    /// result may replace a word or stay in the bar.
+    private func noteExternalChange() {
+        input.textDidChangeExternally()
+        latest = .empty
+        lastRequest = nil
+        barWord = nil
+        output.resetEdits()
+    }
+
+    /// Autocorrect needs the user's setting, a host field that allows it, and a
+    /// field that isn't for URLs, email addresses or web searches.
+    private func updateAutocorrect() {
+        let proxy = textDocumentProxy
+        let fieldAllows: Bool
+        switch proxy.keyboardType ?? .default {
+        case .URL, .emailAddress, .webSearch: fieldAllows = false
+        default: fieldAllows = proxy.autocorrectionType != .no
+        }
+        input.autocorrectEnabled = settings.autocorrect && fieldAllows
     }
 
     private var autoCapitalization: AutoCapitalization {
@@ -185,6 +243,9 @@ final class KeyboardViewController: UIInputViewController {
         input.numberRow = settings.numberRow
         keyboardView.playsClicks = settings.keyClicks
         heightConstraint?.constant = settings.numberRow ? 320 : 270
+        updateAutocorrect()
+        lastRequest = nil // autocorrect may have changed: ask again
+        requestSuggestions()
         reloadKeys()
         refreshTopBar()
     }
@@ -195,19 +256,38 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Malayalam: vowel signs when the text ends in a consonant. English: suggestions.
-    /// If the Rust call fails the strip simply doesn't appear; typing is unaffected.
+    /// After a Malayalam consonant: the best completion and the vowel signs,
+    /// likeliest first. Otherwise the three suggestion slots.
+    ///
+    /// Only a result for the word now before the cursor is shown. While that
+    /// result is on its way the bar stays as it is (a strip, or slots for this
+    /// same word), so it isn't redrawn twice per key. Once the result or its
+    /// timeout arrives without a match, the strip falls back to aksharamala
+    /// order and the slots go empty; typing is unaffected either way.
     private func refreshTopBar() {
+        let word = Self.straight(input.currentWord)
+        let current = latest.isFor(word: word) ? latest : nil
         if input.language == .malayalam {
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
             if let base = try? malayalamVowelSignBase(contextBefore: context) {
-                topBar.showVowelSigns(base: base, signs: Malayalam.stripSigns)
-            } else {
-                topBar.showSuggestions([])
+                // Vowel signs apply to whatever consonant is there, so an older strip can stay.
+                if current == nil, awaitingResult, topBar.showsVowelSigns { return }
+                barWord = word
+                topBar.showVowelSigns(
+                    base: base,
+                    signs: Malayalam.orderedStripSigns(preferred: current?.vowelSigns ?? []),
+                    completion: current?.candidates.first { $0.kind == .completion }
+                )
+                return
             }
-            return
         }
-        topBar.showSuggestions(latestSuggestions)
+        if current == nil, awaitingResult, !topBar.showsVowelSigns, barWord == word { return }
+        barWord = word
+        topBar.showSuggestions(SuggestionBar(current ?? .empty))
+    }
+
+    private static func straight(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{2019}", with: "'")
     }
 
     // MARK: Prediction and memory
@@ -215,7 +295,7 @@ final class KeyboardViewController: UIInputViewController {
     private func checkMemoryBudget() {
         guard suggestions.isEnabled else { return }
         if budget.pressure(footprintBytes: MemoryMonitor.footprintBytes()) == .shed {
-            log.warning("Over memory budget; prediction off")
+            log.warning("Over memory budget (\(MemoryMonitor.footprintBytes(), privacy: .public) bytes); prediction off")
             shedPrediction()
         }
     }
@@ -223,16 +303,23 @@ final class KeyboardViewController: UIInputViewController {
     /// Permanent until the system recreates the extension: prediction is never re-enabled.
     private func shedPrediction() {
         suggestions.isEnabled = false
-        lastRequestedContext = nil
+        lastRequest = nil
         Task { [provider] in await provider.unload() }
     }
 
-    /// English only: Malayalam shows the vowel-sign strip, not word suggestions.
     private func requestSuggestions() {
-        guard input.language == .english else { return }
-        let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
-        guard context != lastRequestedContext else { return }
-        lastRequestedContext = context
-        suggestions.request(contextBefore: context)
+        let request = SuggestionRequest(
+            contextBefore: String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64)),
+            language: input.language,
+            autocorrect: input.autocorrectEnabled
+        )
+        guard request != lastRequest else { return }
+        // A result for the other language must not stay in the bar.
+        if request.language != lastRequest?.language { latest = .empty }
+        if let last = lastRequest, last.language != request.language { barWord = nil }
+        lastRequest = request
+        suggestions.request(request)
+        // A disabled coordinator never answers, so nothing is awaited.
+        awaitingResult = suggestions.isEnabled
     }
 }

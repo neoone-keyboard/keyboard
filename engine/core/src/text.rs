@@ -29,9 +29,68 @@ fn is_word_grapheme(g: &str) -> bool {
     g.chars().next().is_some_and(|c| c.is_alphanumeric() || is_apostrophe(c))
 }
 
+/// Which writing system a word is in. Only `Latin` and `Malayalam` words go into a lexicon.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Script {
+    /// ASCII letters, optionally with apostrophes inside (don't).
+    Latin,
+    /// Malayalam letters and signs (U+0D00–U+0D63, U+0D7A–U+0D7F), ZWJ and ZWNJ.
+    Malayalam,
+    /// Anything else: digits, mixed scripts, other alphabets.
+    Other,
+}
+
+pub fn script(word: &str) -> Script {
+    if word.is_empty() {
+        return Script::Other;
+    }
+    if word.bytes().all(|b| b.is_ascii_alphabetic() || b == b'\'')
+        && word.bytes().any(|b| b.is_ascii_alphabetic())
+    {
+        return Script::Latin;
+    }
+    let malayalam_letter = |c: char| ('\u{0D00}'..='\u{0D63}').contains(&c) || ('\u{0D7A}'..='\u{0D7F}').contains(&c);
+    if word.chars().all(|c| malayalam_letter(c) || c == '\u{200C}' || c == '\u{200D}')
+        && word.chars().any(malayalam_letter)
+    {
+        return Script::Malayalam;
+    }
+    Script::Other
+}
+
+/// A char that can be part of a word when tokenising a corpus line. Cheaper
+/// than grapheme segmentation, which matters for 500M words.
+fn is_token_char(c: char) -> bool {
+    c.is_alphanumeric() || ('\u{0D00}'..='\u{0D7F}').contains(&c) || matches!(c, '\u{200C}' | '\u{200D}') || is_apostrophe(c)
+}
+
+/// Splits a line of corpus text into words. Apostrophes are kept inside words
+/// (don't) but trimmed from their ends ('quoted').
+pub fn words(line: &str) -> impl Iterator<Item = &str> {
+    line.split(|c: char| !is_token_char(c))
+        .map(|w| w.trim_matches(is_apostrophe))
+        .filter(|w| !w.is_empty())
+}
+
+/// The last complete word before the cursor when the text ends in a space,
+/// plus whether a sentence ended right after it (". ", "? ", "! ").
+/// Returns None while a word is being typed or when there is no word.
+pub fn previous_word(context_before: &str) -> Option<(&str, bool)> {
+    if !context_before.ends_with(char::is_whitespace) {
+        return None;
+    }
+    let trimmed = context_before.trim_end();
+    let sentence_end = trimmed.ends_with(['.', '?', '!']);
+    let without_punct = trimmed.trim_end_matches(|c: char| !is_token_char(c) || is_apostrophe(c));
+    match current_word(without_punct) {
+        "" => None,
+        word => Some((word, sentence_end)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::current_word;
+    use super::*;
 
     #[test]
     fn english_word_at_end() {
@@ -112,6 +171,37 @@ mod tests {
     fn leading_apostrophes_are_dropped() {
         assert_eq!(current_word("'hi"), "hi");
         assert_eq!(current_word("don't"), "don't");
+    }
+
+    #[test]
+    fn scripts() {
+        assert_eq!(script("hello"), Script::Latin);
+        assert_eq!(script("don't"), Script::Latin);
+        assert_eq!(script("എന്റെ"), Script::Malayalam);
+        assert_eq!(script("അവൻ"), Script::Malayalam);
+        assert_eq!(script("abcഎ"), Script::Other);
+        assert_eq!(script("42"), Script::Other);
+        assert_eq!(script("൧൨"), Script::Other);
+        assert_eq!(script("café"), Script::Other);
+        assert_eq!(script("'"), Script::Other);
+        assert_eq!(script(""), Script::Other);
+    }
+
+    #[test]
+    fn words_split_on_spaces_and_punctuation() {
+        let got: Vec<&str> = words("Hello, world! I don't 'know' എന്റെ വീട്.").collect();
+        assert_eq!(got, ["Hello", "world", "I", "don't", "know", "എന്റെ", "വീട്"]);
+    }
+
+    #[test]
+    fn previous_word_after_a_space() {
+        assert_eq!(previous_word("I am "), Some(("am", false)));
+        assert_eq!(previous_word("It rains. "), Some(("rains", true)));
+        assert_eq!(previous_word("Really? "), Some(("Really", true)));
+        assert_eq!(previous_word("ഞാൻ "), Some(("ഞാൻ", false)));
+        assert_eq!(previous_word("I am"), None);
+        assert_eq!(previous_word(" "), None);
+        assert_eq!(previous_word(""), None);
     }
 
     proptest::proptest! {

@@ -11,6 +11,15 @@ public enum Malayalam {
     /// കാ … കൗ, then കം കഃ, then ക് for conjuncts.
     public static let stripSigns: [String] = vowelSigns.dropLast() + ["\u{0D02}", "\u{0D03}", "\u{0D4D}"]
 
+    /// The strip's signs with the engine's likeliest first (`preferred`, most
+    /// likely first), then the rest in aksharamala order. Unknown signs in
+    /// `preferred` are ignored, so the strip always offers exactly `stripSigns`.
+    public static func orderedStripSigns(preferred: [String]) -> [String] {
+        var seen = Set<String>()
+        let first = preferred.filter { stripSigns.contains($0) && seen.insert($0).inserted }
+        return first + stripSigns.filter { !seen.contains($0) }
+    }
+
     /// Atomic chillu letters (U+0D7A–U+0D7F): ൺ ൻ ർ ൽ ൾ ൿ.
     public static let chillus: [String] = ["\u{0D7A}", "\u{0D7B}", "\u{0D7C}", "\u{0D7D}", "\u{0D7E}", "\u{0D7F}"]
 

@@ -1,0 +1,47 @@
+{
+  "id": "enwiki",
+  "name": "English Wikipedia",
+  "homepage": "https://en.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "Text of English Wikipedia articles by Wikipedia contributors.",
+  "used_for": "English word frequencies and next-word pairs: the first 6 of 27 article files of the 2026-10-01 dump, capped at 500 million words.",
+  "retrieved": "2026-11-02",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles1.xml-p1p41242.bz2",
+      "sha1": "e471e5a4d0ebcadc3d6b2732d864b5a54f225ea8",
+      "path": "enwiki-20261001-pages-articles1.xml-p1p41242.bz2"
+    },
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles2.xml-p41243p151573.bz2",
+      "sha1": "fbb37e27e61c1dc21a3035691ab34390356832eb",
+      "path": "enwiki-20261001-pages-articles2.xml-p41243p151573.bz2"
+    },
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles3.xml-p151574p311329.bz2",
+      "sha1": "f95fb2ba9efb859dcaf95c76cc36f30d5433f872",
+      "path": "enwiki-20261001-pages-articles3.xml-p151574p311329.bz2"
+    },
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles4.xml-p311330p558391.bz2",
+      "sha1": "60a7f031817436883453fffc693d4835fa28f94a",
+      "path": "enwiki-20261001-pages-articles4.xml-p311330p558391.bz2"
+    },
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles5.xml-p558392p958045.bz2",
+      "sha1": "325713a5ff02557c458458e78b6c5d54f1e167d6",
+      "path": "enwiki-20261001-pages-articles5.xml-p558392p958045.bz2"
+    },
+    {
+      "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles6.xml-p958046p1483661.bz2",
+      "sha1": "7ec10269069355e7298850f3858dc269948b24d3",
+      "path": "enwiki-20261001-pages-articles6.xml-p958046p1483661.bz2"
+    }
+  ]
+}
