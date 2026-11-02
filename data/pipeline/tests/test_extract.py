@@ -120,3 +120,31 @@ def test_wikisource_page_namespace_is_read_when_asked():
     out = io.StringIO()
     extract([io.BytesIO(dump)], out, None)
     assert out.getvalue() == ""
+
+
+def test_malayalam_words_broken_across_printed_lines_are_joined():
+    # Wikisource Page text keeps the book's line-end hyphens.
+    text = "ഇഷ്ടാനുരൂപം തപോനിഷ്ഠയാ വസിക്ക സ-\nന്തുഷ്ട്യാ താപസകുലം വാഴുന്നു"
+    assert list(paragraphs(text)) == ["ഇഷ്ടാനുരൂപം തപോനിഷ്ഠയാ വസിക്ക സന്തുഷ്ട്യാ താപസകുലം വാഴുന്നു"]
+
+
+def test_english_line_end_hyphens_are_left_alone():
+    text = "the town is well-\nknown for its old fort"
+    assert list(paragraphs(text)) == ["the town is well-", "known for its old fort"]
+
+
+def test_sanskrit_verse_in_malayalam_script_is_skipped():
+    sanskrit = [
+        "അശ്വത്ഥാമ്നശ് ച ജനനീ കൃപശ് ചൈവ മഹാബലഃ",
+        "15 ന വിഗ്രഹഃ കുതസ് തന്ദ്രീ ന ദ്വേഷോ നാപി വൈ കൃതം",
+        "ഹേതോർനിദർശനകൃതഃ സ ദൃഷ്ടാന്ത ഇതി സ്മൃതഃ || 142||",
+    ]
+    malayalam = [
+        "അദ്ദേഹം ഒരു വലിയ ക്ഷേത്രം പണിതു എന്ന് പറയപ്പെടുന്നു",
+        "ദുഃഖം നിറഞ്ഞ ഒരു കാലത്ത് അവൻ വീട്ടിൽ നിന്ന് പോയി",
+    ]
+    assert list(paragraphs("\n".join(sanskrit + malayalam))) == malayalam
+
+
+def test_lines_without_malayalam_are_never_taken_for_sanskrit():
+    assert list(paragraphs("x || y and some more words")) == ["x || y and some more words"]

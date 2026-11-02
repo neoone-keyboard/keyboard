@@ -46,6 +46,25 @@ INTERWIKI = re.compile(r"^[a-z]{2,3}(?:-[a-z]+)*$")
 
 MIN_WORDS = 4
 
+# A printed line-end hyphen inside a Malayalam word (Wikisource Page text): "സ-\nന്തുഷ്ട്യാ".
+MALAYALAM_LINE_BREAK = re.compile(r"(?<=[\u0D00-\u0D7F])-[ \t]*\n[ \t]*(?=[\u0D00-\u0D7F])")
+MALAYALAM_TOKEN = re.compile(r"[\u0D00-\u0D7F\u200C\u200D]+")
+# Sanskrit particles that are not Malayalam words on their own ("ച" = and, "ന" = not, ...).
+SANSKRIT_PARTICLES = {
+    "ച", "ന", "തു", "ഹി", "വൈ", "ഏവ", "സഃ", "ഇതി", "തഥാ", "ചൈവ", "തതഃ", "തതോ", "മേ",
+    "തേ", "അപി", "തത്ര", "യഥാ", "സ", "ഇവ", "വാ", "ചാപി", "നൈവ", "യത്", "തത്", "ഇഹ", "ഹേ",
+}  # fmt: skip
+
+
+def is_sanskrit(line: str) -> bool:
+    """Sanskrit verse in Malayalam script (common on Wikisource): dandas, word-final
+    visarga or bare Sanskrit particles make up at least 12% of the Malayalam words."""
+    tokens = MALAYALAM_TOKEN.findall(line)
+    markers = sum(1 for t in tokens if t in SANSKRIT_PARTICLES or t.endswith("ഃ"))
+    if "॥" in line or "।" in line or "||" in line:
+        markers += 2
+    return bool(tokens) and markers >= 2 and markers >= 0.12 * len(tokens)
+
 
 def remove_braces(text: str) -> str:
     """Delete {{templates}}, {{{params}}} and {|tables|}, nested to any depth.
@@ -177,9 +196,10 @@ def strip_wikitext(text: str) -> str:
 
 
 def paragraphs(wikitext: str) -> Iterator[str]:
-    for line in strip_wikitext(wikitext).splitlines():
+    text = MALAYALAM_LINE_BREAK.sub("", strip_wikitext(wikitext))
+    for line in text.splitlines():
         line = line.strip()
-        if not line or HEADING.match(line) or line[0] in "|!{}":
+        if not line or HEADING.match(line) or line[0] in "|!{}" or is_sanskrit(line):
             continue
         line = SPACES.sub(" ", LIST_MARKER.sub("", line)).strip()
         if len(line.split()) >= MIN_WORDS:
