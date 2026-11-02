@@ -130,7 +130,7 @@ struct AutocorrectTests {
         let middle = try #require(bar.middle)
         input.commitSuggestion(middle)
         #expect(output.text == "the ")
-        #expect(events.events.isEmpty)
+        #expect(events.events == [.committed("the")])
     }
 
     @Test func currentWordFollowsTheText() {
@@ -138,5 +138,174 @@ struct AutocorrectTests {
         #expect(input.currentWord == "hel")
         output.text = "say "
         #expect(input.currentWord == "")
+    }
+
+    // MARK: Review fixes
+
+    @Test func nothingIsReplacedWhenAutocorrectIsOff() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.autocorrectEnabled = false
+        input.handle(.space, at: 0)
+        #expect(output.text == "teh ")
+    }
+
+    @Test func nothingIsReplacedBeforePunctuationWhenAutocorrectIsOff() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.autocorrectEnabled = false
+        input.handle(.character("."), at: 0)
+        #expect(output.text == "teh.")
+    }
+
+    @Test func switchingLanguageDropsTheOldResult() {
+        input.handle(.toggleLanguage, at: 0)
+        output.text = "എന്റ"
+        input.updateSuggestions(SuggestionResult(typed: "എന്റ", candidates: [Suggestion("എന്റെ", kind: .completion)]))
+        input.handle(.toggleLanguage, at: 0.1)
+        input.handle(.space, at: 0.2)
+        #expect(output.text == "എന്റ ")
+    }
+
+    @Test func aPageChangeDropsTheOldResult() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.page(.symbols), at: 0)
+        #expect(input.suggestions == .empty)
+    }
+
+    @Test func completionsNeverReplaceOnSpace() {
+        output.text = "cou"
+        input.updateSuggestions(corrected("cou", to: "could", kind: .completion))
+        input.handle(.space, at: 0)
+        #expect(output.text == "cou ")
+    }
+
+    @Test func malayalamScriptIsNeverReplaced() {
+        output.text = "എന്റ"
+        input.updateSuggestions(corrected("എന്റ", to: "എന്റെ"))
+        input.handle(.space, at: 0)
+        #expect(output.text == "എന്റ ")
+    }
+
+    @Test func backspaceAfterACursorMoveIsAnOrdinaryDelete() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0)
+        input.moveCursor(by: -1)
+        input.handle(.backspace, at: 0.1)
+        #expect(output.text == "the")
+        #expect(events.events.isEmpty)
+    }
+
+    @Test func aCursorMoveDropsTheResult() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.moveCursor(by: -1)
+        input.handle(.space, at: 0)
+        #expect(output.text == "teh ")
+    }
+
+    @Test func externalTextChangesForgetTheReplacementAndResult() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0)
+        input.textDidChangeExternally()
+        input.handle(.backspace, at: 0.1)
+        #expect(output.text == "the")
+        #expect(events.events.isEmpty)
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.textDidChangeExternally()
+        #expect(input.suggestions == .empty)
+    }
+
+    @Test func undoNeedsTheContextToEndWithWhatWeInserted() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0)
+        output.text = "something else"   // changed behind our back
+        input.handle(.backspace, at: 0.1)
+        #expect(output.text == "something els")
+        #expect(events.events.isEmpty)
+    }
+
+    @Test func dottedNamesAreNotCorrected() {
+        output.text = "tom.smith"
+        input.updateSuggestions(corrected("smith", to: "Smith"))
+        input.handle(.space, at: 0)
+        #expect(output.text == "tom.smith ")
+    }
+
+    @Test func urlPathsAreNotCorrected() {
+        output.text = "github.com/example"
+        input.updateSuggestions(corrected("jishnu", to: "Jishnu"))
+        input.handle(.space, at: 0)
+        #expect(output.text == "github.com/example ")
+    }
+
+    @Test func wordsAfterSchemeWwwEmailAndHashtagAreNotCorrected() {
+        for prefix in ["https://", "www.", "me@", "a_", "#", "\\", "x:"] {
+            output.text = prefix + "teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            input.handle(.space, at: 0)
+            #expect(output.text == prefix + "teh ")
+        }
+    }
+
+    @Test func aKeptWordIsReplacedAgainOnceTheNextWordStarts() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0)
+        input.handle(.backspace, at: 0.1)
+        input.handle(.space, at: 0.2)
+        #expect(output.text == "teh ")
+        input.handle(.character("o"), at: 0.3)
+        input.handle(.character("k"), at: 0.4)
+        input.handle(.space, at: 0.5)
+        input.handle(.character("t"), at: 0.6)
+        input.handle(.character("e"), at: 0.7)
+        input.handle(.character("h"), at: 0.8)
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.space, at: 0.9)
+        #expect(output.text == "teh ok the ")
+    }
+
+    @Test func undoKeepsTheSeparatorOutAndRestoresTheWord() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.character(","), at: 0)
+        #expect(output.text == "the,")
+        input.handle(.backspace, at: 0.1)
+        #expect(output.text == "teh")
+    }
+
+    @Test func committingWithSpaceLeavesShiftAlone() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        input.handle(.shift, at: 0)
+        input.handle(.space, at: 0.1)
+        input.handle(.character("a"), at: 0.2)
+        #expect(output.text == "the A")
+    }
+
+    @Test func curlyApostropheMatchesTheEnginesStraightOne() {
+        output.text = "I don\u{2019}"
+        input.updateSuggestions(corrected("don'", to: "don't"))
+        input.handle(.space, at: 0)
+        #expect(output.text == "I don't ")
+    }
+
+    @Test func returnReportsTheCommittedWord() {
+        output.text = "hello"
+        input.handle(.returnKey, at: 0)
+        #expect(events.events == [.committed("hello")])
+    }
+
+    @Test func tappingASuggestionReportsTheCommittedWord() throws {
+        output.text = "cou"
+        let bar = SuggestionBar(SuggestionResult(typed: "cou", candidates: [Suggestion("could", kind: .completion)]))
+        input.commitSuggestion(try #require(bar.middle))
+        #expect(output.text == "could ")
+        #expect(events.events == [.committed("could")])
     }
 }

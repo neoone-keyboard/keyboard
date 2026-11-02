@@ -43,6 +43,9 @@ public final class InputController {
     public var onLearningEvent: (@MainActor (LearningEvent) -> Void)?
     /// The latest suggestions; space and punctuation commit their middle slot.
     public private(set) var suggestions: SuggestionResult = .empty
+    /// Whether space and punctuation may replace the word. The extension sets
+    /// this from the user's setting and the host field's traits.
+    public var autocorrectEnabled = true
 
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
@@ -107,8 +110,10 @@ public final class InputController {
         case .nextKeyboard:
             break // The host view controller switches keyboards.
         case .page(let target):
+            suggestions = .empty
             page = target == .letters ? alphabetPage : target
         case .toggleLanguage:
+            suggestions = .empty
             language = language == .english ? .malayalam : .english
             page = alphabetPage
             shift = .off
@@ -119,16 +124,19 @@ public final class InputController {
 
     /// Types a long-press alternate; follows shift like a normal letter.
     public func insertAlternate(_ text: String) {
+        lastReplacement = nil
         type(text)
     }
 
     public func moveCursor(by offset: Int) {
+        forgetPendingState()
         output.adjustTextPosition(byCharacterOffset: offset)
     }
 
     /// Deletes the word before the cursor plus the spaces after it, or one
     /// character when there is no word (e.g. punctuation).
     public func deleteWordBackward() {
+        forgetPendingState()
         let context = output.contextBefore ?? ""
         let word = Self.wordSuffix(of: context, includingSpaces: true)
         if let removed = word.isEmpty ? context.last.map(String.init) : String(word) {
@@ -144,6 +152,17 @@ public final class InputController {
         suggestions = result
     }
 
+    /// Call from `textDidChange` when the text isn't what this keyboard just
+    /// produced (the host or the user changed it). Drops the undo and the result.
+    public func textDidChangeExternally() {
+        forgetPendingState()
+    }
+
+    private func forgetPendingState() {
+        lastReplacement = nil
+        suggestions = .empty
+    }
+
     /// The word before the cursor, as the host shares it ("" after a space).
     public var currentWord: String {
         String(Self.wordSuffix(of: output.contextBefore ?? "", includingSpaces: false))
@@ -152,11 +171,15 @@ public final class InputController {
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
     public func commitSuggestion(_ slot: SuggestionSlot) {
         if slot.quoted { onLearningEvent?(.learn(slot.suggestion.text)) }
-        commitSuggestion(slot.suggestion.text)
+        insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted)
     }
 
     /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
     public func commitSuggestion(_ text: String) {
+        insert(suggestion: text, reportsCommit: true)
+    }
+
+    private func insert(suggestion text: String, reportsCommit: Bool) {
         lastReplacement = nil
         suggestions = .empty
         let context = output.contextBefore ?? ""
@@ -165,6 +188,7 @@ public final class InputController {
         output.insertText(text + " ")
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
+        if reportsCommit { onLearningEvent?(.committed(text)) }
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
@@ -233,19 +257,43 @@ public final class InputController {
     /// English only: replaces the typed word with the middle suggestion, then
     /// types `separator`. Native Malayalam is never replaced.
     private func commitMiddle(separator: String) -> Bool {
-        guard language == .english else { return false }
+        guard autocorrectEnabled, language == .english else { return false }
         let context = output.contextBefore ?? ""
         let word = String(Self.wordSuffix(of: context, includingSpaces: false))
-        guard !word.isEmpty, word != keptWord, suggestions.typed == word,
-              let middle = suggestions.middle, middle.kind != .verbatim, middle.text != word
+        guard !word.isEmpty,
+              Self.straight(suggestions.typed) == Self.straight(word),
+              keptWord.map({ Self.straight($0) != Self.straight(word) }) ?? true,
+              !Self.containsMalayalam(word),
+              !Self.looksLikeCodeOrAddress(before: context.dropLast(word.count)),
+              let middle = suggestions.middle,
+              middle.kind == .correction || middle.kind == .manglish,
+              middle.text != word
         else { return false }
         delete(word, from: context)
         output.insertText(middle.text + separator)
         lastReplacement = Replacement(typed: word, replacement: middle.text, separator: separator)
         suggestions = .empty
-        shift = shift.afterCharacter
-        if shift == .off { shiftIsAutomatic = false }
+        if separator != " " {
+            // Punctuation moves shift on like any typed character; space doesn't.
+            shift = shift.afterCharacter
+            if shift == .off { shiftIsAutomatic = false }
+        }
         return true
+    }
+
+    private static func straight(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{2019}", with: "'")
+    }
+
+    private static func containsMalayalam(_ text: String) -> Bool {
+        text.unicodeScalars.contains { (0x0D00...0x0D7F).contains($0.value) }
+    }
+
+    /// URLs, emails, handles, hashtags, paths and versions: the character just
+    /// before the word is one of `@ . / : _ # \` or a digit.
+    private static func looksLikeCodeOrAddress(before prefix: Substring) -> Bool {
+        guard let last = prefix.last else { return false }
+        return "@./:_#\\".contains(last) || last.isNumber
     }
 
     /// Backspace straight after a replacement puts back what was typed and learns it.
@@ -267,6 +315,9 @@ public final class InputController {
     }
 
     private func type(_ text: String) {
+        if keptWord != nil, let first = text.first, Self.isWordCharacter(first), currentWord.isEmpty {
+            keptWord = nil // A new word starts after the kept one.
+        }
         output.insertText(showsUppercase ? text.uppercased() : text)
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
