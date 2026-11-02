@@ -32,6 +32,10 @@ public final class InputController {
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
     private var shiftIsAutomatic = false
+    /// Set when the user taps shift: auto-capitalisation leaves shift alone until
+    /// the text before the cursor differs from `manualShiftContext`.
+    private var manualShiftPending = false
+    private var manualShiftContext: String?
 
     public init(output: TextOutput) {
         self.output = output
@@ -58,6 +62,8 @@ public final class InputController {
             lastShiftTap = time
             shift = shift.tapped(sinceLastTap: interval)
             shiftIsAutomatic = false
+            manualShiftPending = true
+            manualShiftContext = output.contextBefore
         case .nextKeyboard:
             break // The host view controller switches keyboards.
         case .page(let target):
@@ -67,6 +73,7 @@ public final class InputController {
             page = alphabetPage
             shift = .off
             shiftIsAutomatic = false
+            manualShiftPending = false
         }
     }
 
@@ -88,8 +95,13 @@ public final class InputController {
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
-    /// no longer applies. Never overrides caps lock or a shift the user tapped.
+    /// no longer applies. Never overrides caps lock or a shift the user tapped,
+    /// including tapping it off, until the text context changes.
     public func applyAutoCapitalization(_ mode: AutoCapitalization) {
+        if manualShiftPending {
+            guard output.contextBefore != manualShiftContext else { return }
+            manualShiftPending = false
+        }
         guard page == .letters, shift != .locked, shift == .off || shiftIsAutomatic else { return }
         let wanted = Self.shouldCapitalize(output.contextBefore ?? "", mode: mode)
         shift = wanted ? .once : .off

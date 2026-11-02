@@ -172,6 +172,27 @@ struct InputControllerTests {
         #expect(input.shift == .off)
     }
 
+    @Test func shiftTappedOffAtSentenceStartStaysOff() {
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .once)
+        type(.shift)
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .off)
+        type(.character("h"))
+        input.applyAutoCapitalization(.sentences)
+        #expect(output.text == "h")
+    }
+
+    @Test func autoCapitalisationResumesAfterTheContextChanges() {
+        input.applyAutoCapitalization(.sentences)
+        type(.shift)
+        input.applyAutoCapitalization(.sentences)
+        type(.character("h"), .character("i"), .character("."), .space, startingAt: 1)
+        input.applyAutoCapitalization(.sentences)
+        #expect(output.text == "hi. ")
+        #expect(input.shift == .once)
+    }
+
     @Test func wordsModeCapitalisesAfterEverySpace() {
         output.text = "hello "
         input.applyAutoCapitalization(.words)
