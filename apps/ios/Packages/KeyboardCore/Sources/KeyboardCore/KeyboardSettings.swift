@@ -15,6 +15,8 @@ public struct KeyboardSettings: Equatable, Sendable {
     public var accent: AccentChoice = .saffron
     public var numberRow = false
     public var keyClicks = false
+    /// When off, space always keeps what was typed.
+    public var autocorrect = true
 
     public init() {}
 
@@ -24,6 +26,7 @@ public struct KeyboardSettings: Equatable, Sendable {
         settings.accent = defaults.string(forKey: Keys.accent).flatMap(AccentChoice.init(rawValue:)) ?? settings.accent
         settings.numberRow = defaults.bool(forKey: Keys.numberRow)
         settings.keyClicks = defaults.bool(forKey: Keys.keyClicks)
+        settings.autocorrect = defaults.object(forKey: Keys.autocorrect) as? Bool ?? settings.autocorrect
         return settings
     }
 
@@ -32,6 +35,7 @@ public struct KeyboardSettings: Equatable, Sendable {
         defaults.set(accent.rawValue, forKey: Keys.accent)
         defaults.set(numberRow, forKey: Keys.numberRow)
         defaults.set(keyClicks, forKey: Keys.keyClicks)
+        defaults.set(autocorrect, forKey: Keys.autocorrect)
     }
 
     private enum Keys {
@@ -39,5 +43,6 @@ public struct KeyboardSettings: Equatable, Sendable {
         static let accent = "accent"
         static let numberRow = "numberRow"
         static let keyClicks = "keyClicks"
+        static let autocorrect = "autocorrect"
     }
 }

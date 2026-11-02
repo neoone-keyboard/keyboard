@@ -15,14 +15,14 @@ final class KeyboardViewController: UIInputViewController {
 
     private let provider = EngineSuggestionProvider()
     private var lastRequestedContext: String?
-    private var latestSuggestions: [String] = []
+    private var latest = SuggestionResult.empty
 
     private lazy var input = InputController(output: ProxyTextOutput { [unowned self] in
         self.textDocumentProxy
     })
 
-    private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] results in
-        self?.latestSuggestions = results
+    private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] result in
+        self?.latest = result
         self?.refreshTopBar()
     }
 
@@ -207,7 +207,7 @@ final class KeyboardViewController: UIInputViewController {
             }
             return
         }
-        topBar.showSuggestions(latestSuggestions)
+        topBar.showSuggestions(latest.candidates.map(\.text))
     }
 
     // MARK: Prediction and memory
@@ -233,6 +233,6 @@ final class KeyboardViewController: UIInputViewController {
         let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
         guard context != lastRequestedContext else { return }
         lastRequestedContext = context
-        suggestions.request(contextBefore: context)
+        suggestions.request(SuggestionRequest(contextBefore: context, language: .english, autocorrect: true))
     }
 }

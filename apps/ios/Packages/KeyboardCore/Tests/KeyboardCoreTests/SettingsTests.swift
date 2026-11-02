@@ -16,6 +16,7 @@ private func freshDefaults() -> UserDefaults {
     #expect(settings.accent == .saffron)
     #expect(!settings.numberRow)
     #expect(!settings.keyClicks)
+    #expect(settings.autocorrect, "autocorrect is on until the user turns it off")
 }
 
 @Test func roundTrips() {
@@ -25,6 +26,7 @@ private func freshDefaults() -> UserDefaults {
     settings.accent = .teal
     settings.numberRow = true
     settings.keyClicks = true
+    settings.autocorrect = false
     settings.save(to: defaults)
     #expect(KeyboardSettings.load(from: defaults) == settings)
 }
