@@ -1,6 +1,7 @@
 import Foundation
 import KeyboardCore
 import MLEngine
+import os
 
 /// Runs the Rust engine off the main thread. The engine is created on first use
 /// so the keys appear before anything else loads (spec §4 rule 2). Opening it
@@ -8,6 +9,7 @@ import MLEngine
 /// the actor. Callers reach it only through `Task { await … }`, so the main
 /// thread never waits.
 actor EngineSuggestionProvider: SuggestionProvider {
+    private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "engine")
     private let config: EngineConfig
     private var engine: Engine?
     /// Set when memory ran short or the engine failed to open: it stays
@@ -37,11 +39,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult {
         try Task.checkCancellation()
-        let result = try loadedEngine().suggest(
+        let engine = try loadedEngine()
+        let start = ContinuousClock.now
+        let result = try engine.suggest(
             contextBefore: request.contextBefore,
             layout: request.language == .malayalam ? .malayalam : .latin,
             autocorrect: request.autocorrect
         )
+        let elapsed = ContinuousClock.now - start
+        if elapsed > .milliseconds(10) {
+            log.warning("Slow suggest: \(elapsed, privacy: .public) for \(result.typed.count) chars")
+        }
         return SuggestionResult(
             typed: result.typed,
             candidates: result.candidates.map { Suggestion($0.text, kind: Self.kind($0.kind)) },
@@ -84,10 +92,13 @@ actor EngineSuggestionProvider: SuggestionProvider {
         if let engine { return engine }
         if shed { throw Shed() }
         do {
+            let start = ContinuousClock.now
             let created = try Engine(config: config)
             engine = created
+            log.info("Engine open in \(ContinuousClock.now - start, privacy: .public); sources \((try? created.loadedSources()) ?? [], privacy: .public); config en=\(self.config.english != nil) ml=\(self.config.malayalam != nil)")
             return created
         } catch {
+            log.error("Engine failed to open: \(String(describing: error), privacy: .public)")
             // Don't re-read every lexicon on each keystroke: prediction stays off.
             shed = true
             throw error

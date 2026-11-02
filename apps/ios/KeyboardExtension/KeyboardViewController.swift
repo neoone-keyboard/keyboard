@@ -29,6 +29,9 @@ final class KeyboardViewController: UIInputViewController {
         guard let self else { return }
         awaitingResult = false
         latest = result
+        if !result.isFor(word: Self.straight(input.currentWord)) {
+            log.debug("Result for '\(result.typed, privacy: .public)' but word is '\(self.input.currentWord, privacy: .public)'; \(result.candidates.count) candidates")
+        }
         input.updateSuggestions(result)
         refreshTopBar()
     }
@@ -115,6 +118,7 @@ final class KeyboardViewController: UIInputViewController {
     /// first word typed already has suggestions.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        log.info("Appeared; prediction \(self.suggestions.isEnabled ? "on" : "off", privacy: .public); footprint \(MemoryMonitor.footprintBytes(), privacy: .public) bytes")
         guard suggestions.isEnabled else { return }
         Task { [provider] in await provider.warmUp() }
     }
@@ -291,7 +295,7 @@ final class KeyboardViewController: UIInputViewController {
     private func checkMemoryBudget() {
         guard suggestions.isEnabled else { return }
         if budget.pressure(footprintBytes: MemoryMonitor.footprintBytes()) == .shed {
-            log.warning("Over memory budget; prediction off")
+            log.warning("Over memory budget (\(MemoryMonitor.footprintBytes(), privacy: .public) bytes); prediction off")
             shedPrediction()
         }
     }
