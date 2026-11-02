@@ -5,29 +5,50 @@ import Foundation
 public protocol TextOutput: AnyObject {
     func insertText(_ text: String)
     func deleteBackward()
+    func adjustTextPosition(byCharacterOffset offset: Int)
+    /// Text before the cursor, as far as the host app shares it.
+    var contextBefore: String? { get }
 }
 
-/// Turns key actions into text. Has no dependency on the engine, so typing
-/// keeps working when prediction fails (spec §4 rule 3).
+public enum AutoCapitalization: Sendable {
+    case off, words, sentences, allCharacters
+}
+
+public enum Language: Sendable {
+    case english, malayalam
+}
+
+/// Turns key actions into text and tracks which page is showing. Has no
+/// dependency on the engine, so typing keeps working when prediction fails
+/// (spec §4 rule 3).
 @MainActor
 public final class InputController {
     public private(set) var shift: ShiftState = .off
+    public private(set) var page: KeyboardPage = .letters
+    public private(set) var language: Language = .english
+    public var numberRow = false
+    public var showsNextKeyboard = true
+
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
+    private var shiftIsAutomatic = false
 
     public init(output: TextOutput) {
         self.output = output
     }
 
-    /// - Parameter time: Monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
-    ///   Used only to detect a double tap on shift.
+    public var layout: KeyboardLayout {
+        .forPage(page, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard)
+    }
+
+    /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
     public func handle(_ action: KeyAction, at time: TimeInterval) {
         switch action {
         case .character(let c):
-            output.insertText(shift == .off ? c : c.uppercased())
-            shift = shift.afterCharacter
+            type(c)
         case .space:
             output.insertText(" ")
+            if page == .symbols || page == .moreSymbols { page = alphabetPage }
         case .returnKey:
             output.insertText("\n")
         case .backspace:
@@ -36,22 +57,114 @@ public final class InputController {
             let interval = lastShiftTap.map { time - $0 }
             lastShiftTap = time
             shift = shift.tapped(sinceLastTap: interval)
+            shiftIsAutomatic = false
         case .nextKeyboard:
             break // The host view controller switches keyboards.
-        case .page, .toggleLanguage:
-            break // Task 7
+        case .page(let target):
+            page = target == .letters ? alphabetPage : target
+        case .toggleLanguage:
+            language = language == .english ? .malayalam : .english
+            page = alphabetPage
+            shift = .off
+            shiftIsAutomatic = false
         }
+    }
+
+    /// Types a long-press alternate; follows shift like a normal letter.
+    public func insertAlternate(_ text: String) {
+        type(text)
+    }
+
+    public func moveCursor(by offset: Int) {
+        output.adjustTextPosition(byCharacterOffset: offset)
+    }
+
+    /// Deletes the word before the cursor plus the spaces after it, or one
+    /// character when there is no word (e.g. punctuation).
+    public func deleteWordBackward() {
+        for _ in 0..<Self.wordDeletionLength(output.contextBefore ?? "") {
+            output.deleteBackward()
+        }
+    }
+
+    /// Turns shift on at the start of a sentence (or word) and off again when it
+    /// no longer applies. Never overrides caps lock or a shift the user tapped.
+    public func applyAutoCapitalization(_ mode: AutoCapitalization) {
+        guard page == .letters, shift != .locked, shift == .off || shiftIsAutomatic else { return }
+        let wanted = Self.shouldCapitalize(output.contextBefore ?? "", mode: mode)
+        shift = wanted ? .once : .off
+        shiftIsAutomatic = wanted
     }
 
     public func label(for action: KeyAction) -> String {
         switch action {
-        case .character(let c): shift == .off ? c : c.uppercased()
-        case .space: "space"
+        case .character(let c): showsUppercase ? c.uppercased() : c
+        case .space: language == .english ? "English" : "മലയാളം"
         case .backspace: "⌫"
-        case .shift: shift == .locked ? "⇪" : "⇧"
+        case .shift:
+            switch shift {
+            case .off: "⇧"
+            case .once: "⬆︎"
+            case .locked: "⇪"
+            }
         case .returnKey: "return"
         case .nextKeyboard: "🌐"
-        case .page, .toggleLanguage: ""
+        case .page(.letters): language == .english ? "ABC" : "കഖ"
+        case .page(.symbols): "123"
+        case .page(.moreSymbols): "#+="
+        case .page(.malayalam): "കഖ"
+        case .page(.malayalamMore): "ശഷ"
+        case .page(.malayalamVowels): "അആ"
+        case .toggleLanguage: language == .english ? "മ" : "EN"
+        }
+    }
+
+    private var showsUppercase: Bool {
+        page == .letters && shift != .off
+    }
+
+    private var alphabetPage: KeyboardPage {
+        language == .english ? .letters : .malayalam
+    }
+
+    private func type(_ text: String) {
+        output.insertText(showsUppercase ? text.uppercased() : text)
+        shift = shift.afterCharacter
+        if shift == .off { shiftIsAutomatic = false }
+    }
+
+    private static func wordDeletionLength(_ context: String) -> Int {
+        var index = context.endIndex
+        var count = 0
+        while index > context.startIndex, context[context.index(before: index)].isWhitespace {
+            index = context.index(before: index)
+            count += 1
+        }
+        while index > context.startIndex, isWordCharacter(context[context.index(before: index)]) {
+            index = context.index(before: index)
+            count += 1
+        }
+        return max(count, 1)
+    }
+
+    private static func isWordCharacter(_ c: Character) -> Bool {
+        c.isLetter || c.isNumber || c == "'" || c == "\u{2019}"
+    }
+
+    private static func shouldCapitalize(_ context: String, mode: AutoCapitalization) -> Bool {
+        switch mode {
+        case .off:
+            return false
+        case .allCharacters:
+            return true
+        case .words:
+            return context.isEmpty || context.last?.isWhitespace == true
+        case .sentences:
+            guard let last = context.last else { return true }
+            if last.isNewline { return true }
+            guard last.isWhitespace else { return false }
+            guard let end = context.trimmingCharacters(in: .whitespaces).last else { return true }
+            return end == "." || end == "?" || end == "!" || end.isNewline
         }
     }
 }

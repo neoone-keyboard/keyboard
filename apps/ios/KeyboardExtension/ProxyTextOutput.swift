@@ -10,6 +10,9 @@ final class ProxyTextOutput: TextOutput {
         self.proxy = proxy
     }
 
+    var contextBefore: String? { proxy().documentContextBeforeInput }
+
     func insertText(_ text: String) { proxy().insertText(text) }
     func deleteBackward() { proxy().deleteBackward() }
+    func adjustTextPosition(byCharacterOffset offset: Int) { proxy().adjustTextPosition(byCharacterOffset: offset) }
 }
