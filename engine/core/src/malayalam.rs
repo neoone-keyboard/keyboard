@@ -12,9 +12,33 @@ pub fn vowel_sign_base(context_before: &str) -> Option<char> {
     context_before.chars().last().filter(|&c| is_consonant(c))
 }
 
+/// The dependent vowel signs a loose spelling may add
+/// (ാ ി ീ ു ൂ ൃ െ േ ൈ ൊ ോ).
+const VOWEL_SIGNS: [char; 11] = [
+    '\u{0D3E}', '\u{0D3F}', '\u{0D40}', '\u{0D41}', '\u{0D42}', '\u{0D43}', '\u{0D46}', '\u{0D47}',
+    '\u{0D48}', '\u{0D4A}', '\u{0D4B}',
+];
+
+/// Every spelling of `word` with one vowel sign dropped (ആവിശ്യം → ആവശ്യം):
+/// the vowel loose spelling inserts between consonants.
+pub fn vowel_sign_drops(word: &str) -> Vec<String> {
+    let chars: Vec<char> = word.chars().collect();
+    (0..chars.len())
+        .filter(|&i| VOWEL_SIGNS.contains(&chars[i]))
+        .map(|i| chars[..i].iter().chain(&chars[i + 1..]).collect())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn vowel_sign_drops_drop_one_sign() {
+        assert_eq!(vowel_sign_drops("ആവിശ്യം"), ["ആവശ്യം"]);
+        assert_eq!(vowel_sign_drops("കിളി"), ["കളി", "കിള"]);
+        assert!(vowel_sign_drops("അവൻ").is_empty());
+    }
     use proptest::prelude::*;
 
     #[test]

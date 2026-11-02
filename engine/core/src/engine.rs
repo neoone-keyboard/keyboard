@@ -430,7 +430,9 @@ impl Engine {
                             && c.score > prefix + rank::PREFIX_VS_MANGLISH
                     });
                     match (english, malayalam) {
-                        (Some(e), Some((m, m_score))) => Some(if e.score > m_score { e } else { m }),
+                        (Some(e), Some((m, m_score))) => {
+                            Some(if e.score > m_score { e } else { m })
+                        }
                         (e, m) => e.or(m.map(|(m, _)| m)),
                     }
                 }
@@ -489,7 +491,14 @@ impl Engine {
             // Without the fit bonus: it ranks a word against English, but
             // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
             let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
-            found.push(m.word, unfitted, fit_bonus(m.missing), m.missing, m.spelled);
+            found.push(
+                m.word,
+                unfitted,
+                fit_bonus(m.missing),
+                m.missing,
+                m.spelled,
+                rank::MIN_REPLACE,
+            );
         }
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
         let splits = if found.exact.is_empty() && !english_word {
@@ -507,6 +516,9 @@ impl Engine {
         } else {
             self.add_model(typed_n, &splits, bias, &mut found)
         };
+        // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
+        // is a variant of it: offer the common one beside it.
+        self.add_standard_neighbour(&mut found);
         // Names and rare words: the model's own spelling (or, without the model, the
         // rule-based one), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
@@ -523,6 +535,46 @@ impl Engine {
             }
         }
         found
+    }
+
+    /// Adds, as a side slot, the commonest Malayalam word one vowel sign (dropped)
+    /// away from the best whole-word candidate, when it is far more
+    /// common (`rank::MANGLISH_NEIGHBOUR_GAIN`). See `rank::MANGLISH_NEIGHBOUR_PENALTY`.
+    fn add_standard_neighbour(&self, found: &mut ManglishCandidates) {
+        let Some(ml) = &self.sources.malayalam else {
+            return;
+        };
+        let best = found
+            .exact
+            .iter()
+            .map(|(c, _)| c)
+            .chain(&found.side)
+            .max_by(|a, b| a.score.total_cmp(&b.score));
+        let Some(best) = best else {
+            return;
+        };
+        let Some(own) = ml.get(best.text.as_bytes()).map(|c| ml.log_prob(c)) else {
+            return;
+        };
+        let mut neighbour: Option<(String, f32)> = None;
+        for variant in malayalam::vowel_sign_drops(&best.text) {
+            let Some(log_prob) = ml.get(variant.as_bytes()).map(|c| ml.log_prob(c)) else {
+                continue;
+            };
+            if log_prob >= own + rank::MANGLISH_NEIGHBOUR_GAIN
+                && neighbour.as_ref().is_none_or(|(_, lp)| log_prob > *lp)
+            {
+                neighbour = Some((variant, log_prob));
+            }
+        }
+        if let Some((text, _)) = neighbour {
+            let score = best.score - rank::MANGLISH_NEIGHBOUR_PENALTY;
+            found.side.push(Candidate {
+                text,
+                kind: Kind::Manglish,
+                score,
+            });
+        }
     }
 
     /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
@@ -569,7 +621,14 @@ impl Engine {
             let unfitted = split.log_prob - rank::MANGLISH_DISTANCE * split.distance as f32 + bias;
             if let Some(i) = found.side.iter().position(|c| c.text == word) {
                 let whole = found.side.remove(i);
-                found.push(word, unfitted.max(whole.score - fit), fit, 0, spelled);
+                found.push(
+                    word,
+                    unfitted.max(whole.score - fit),
+                    fit,
+                    0,
+                    spelled,
+                    rank::MIN_REPLACE,
+                );
             } else if rare_whole.is_finite() {
                 found.side.push(Candidate {
                     text: word,
@@ -577,7 +636,7 @@ impl Engine {
                     score: (unfitted + fit).min(rare_whole - 0.01),
                 });
             } else {
-                found.push(word, unfitted, fit, 0, spelled);
+                found.push(word, unfitted, fit, 0, spelled, rank::MIN_REPLACE);
             }
         }
     }
@@ -627,7 +686,20 @@ impl Engine {
                 0.0
             };
             let unfitted = prior - distance_penalty + rank::MANGLISH_MODEL_WEIGHT * t.score + bias;
-            found.push(t.text, unfitted, rank::MANGLISH_EXACT_BONUS, 0, spelled);
+            // A confident model reading is evidence the rare word is meant, not a guess.
+            let floor = if !keeps_distance && t.score >= rank::MANGLISH_MODEL_CONFIDENT {
+                rank::MIN_REPLACE - rank::MANGLISH_MODEL_CONFIDENT_RELIEF
+            } else {
+                rank::MIN_REPLACE
+            };
+            found.push(
+                t.text,
+                unfitted,
+                rank::MANGLISH_EXACT_BONUS,
+                0,
+                spelled,
+                floor,
+            );
         }
         free
     }
@@ -754,8 +826,18 @@ struct ManglishCandidates {
 impl ManglishCandidates {
     /// Files a Malayalam word by role. `unfitted` is its score before the
     /// `fit` bonus for how much of its skeleton was typed; `missing` and
-    /// `spelled` are as in `manglish::Match`.
-    fn push(&mut self, text: String, unfitted: f32, fit: f32, missing: usize, spelled: bool) {
+    /// `spelled` are as in `manglish::Match`. `floor` is the least `unfitted`
+    /// that may take the middle (`rank::MIN_REPLACE`, or below it for a
+    /// confident model reading: `rank::MANGLISH_MODEL_CONFIDENT`).
+    fn push(
+        &mut self,
+        text: String,
+        unfitted: f32,
+        fit: f32,
+        missing: usize,
+        spelled: bool,
+        floor: f32,
+    ) {
         let candidate = Candidate {
             text,
             kind: Kind::Manglish,
@@ -763,7 +845,7 @@ impl ManglishCandidates {
         };
         if missing > 0 {
             self.completions.push(candidate);
-        } else if unfitted >= rank::MIN_REPLACE {
+        } else if unfitted >= floor {
             self.exact.push((candidate, spelled));
         } else {
             self.side.push(candidate);
@@ -1026,14 +1108,23 @@ mod tests {
             ..Sources::default()
         };
         let engine = Engine::new(sources, UserStore::in_memory());
-        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thanks");
+        assert_eq!(
+            engine.suggest("thnaks", Layout::Latin, true).candidates[0].text,
+            "thanks"
+        );
         engine.note_committed("thnaks");
         engine.note_committed("thnaks");
         assert!(!engine.user().is_learned("thnaks"));
-        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thanks");
+        assert_eq!(
+            engine.suggest("thnaks", Layout::Latin, true).candidates[0].text,
+            "thanks"
+        );
         // An explicit choice (undo, or a tap on the quoted word) still learns it.
         engine.learn("thnaks");
-        assert_eq!(engine.suggest("thnaks", Layout::Latin, true).candidates[0].text, "thnaks");
+        assert_eq!(
+            engine.suggest("thnaks", Layout::Latin, true).candidates[0].text,
+            "thnaks"
+        );
     }
 
     #[test]

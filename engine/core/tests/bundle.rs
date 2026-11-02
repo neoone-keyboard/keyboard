@@ -276,9 +276,19 @@ fn agglutinated_manglish_splits_into_stem_and_suffix() {
                 texts(&engine, typed)
             );
         }
-        // Without Malayalam context, a rarer stem's split waits in a side slot.
+        // Without Malayalam context, a rarer stem's split waits in a side slot,
+        // unless the model reads it confidently (`rank::MANGLISH_MODEL_CONFIDENT`).
         let s = texts(&engine, "poyirunno");
-        assert_eq!(s[0], "poyirunno");
+        let has_model = engine.loaded_sources().contains(&"translit");
+        assert_eq!(
+            s[0],
+            if has_model {
+                "പോയിരുന്നോ"
+            } else {
+                "poyirunno"
+            },
+            "{s:?}"
+        );
         assert!(s.contains(&"പോയിരുന്നോ".to_string()), "{s:?}");
     }
 }
@@ -311,9 +321,19 @@ fn suffix_splitting_leaves_english_and_whole_forms_alone() {
             );
         }
         // A rare whole form (പഠിക്കണം) outranks a split of a common stem
-        // (പട്ടിക + ണം), and neither is frequent enough to convert.
+        // (പട്ടിക + ണം). Neither is frequent enough to convert on its own; the
+        // model's confident reading converts the whole form.
         let s = texts(&engine, "padikkanam");
-        assert_eq!(s[0], "padikkanam", "{s:?}");
+        let has_model = engine.loaded_sources().contains(&"translit");
+        assert_eq!(
+            s[0],
+            if has_model {
+                "പഠിക്കണം"
+            } else {
+                "padikkanam"
+            },
+            "{s:?}"
+        );
         let whole = s.iter().position(|t| t == "പഠിക്കണം");
         let split = s.iter().position(|t| t == "പട്ടികണം");
         assert!(
@@ -352,6 +372,25 @@ fn translit_model_converts_in_the_middle() {
     }
 }
 
+/// Loose spellings of a rare lexicon word the model reads confidently convert in
+/// the middle (`rank::MANGLISH_MODEL_CONFIDENT`), with the far commoner standard
+/// spelling one vowel sign away beside them (`rank::MANGLISH_NEIGHBOUR_GAIN`).
+/// User-reported on device, 2026-11-03: ആവിശ്യം is the user's own spelling.
+#[test]
+fn translit_model_forgives_loose_spellings() {
+    let Some(engine) = model_engine() else { return };
+    for typed in ["avshyam", "avishyam"] {
+        let bar = texts(&engine, typed);
+        assert_eq!(
+            middle(&engine, typed),
+            ("ആവിശ്യം".to_string(), Kind::Manglish),
+            "{typed}: {bar:?}"
+        );
+        assert!(bar.contains(&"ആവശ്യം".to_string()), "{typed}: {bar:?}");
+    }
+    assert_eq!(middle(&engine, "aavashyam").0, "ആവശ്യം");
+}
+
 /// Known misses, left for a later fix of chat forms; no ranking weight reaches them.
 /// - `nanni` → നന്ദി: neither source has it. The model can't spell it (after നന്, ദ is
 ///   its 23rd token, log prob −7.4, outside the 8 expanded per step), and the skeleton
@@ -360,6 +399,10 @@ fn translit_model_converts_in_the_middle() {
 /// - `kollamo` → കൊള്ളാമോ: both readings are splits with no corpus count, and both
 ///   sources prefer കൊല്ലമോ: the model (−0.150 per token against −0.390) and the stem
 ///   frequency (കൊല്ലം over കൊള്ളാം). കൊള്ളാമോ stays in a side slot.
+/// - `chakshusravanam` → ചക്ഷുശ്രവണം (user-reported on device, 2026-11-03): not in the
+///   lexicon, so only the model's free spelling (side slot) can offer it, and the model
+///   spells ചക്ഷുസ്രാവണം (s → സ, −0.09 per token). A rare word; left to a better model,
+///   and not asserted below: off the lexicon it could only ever reach a side slot.
 #[test]
 #[ignore = "known misses: model and stem frequency both prefer another spelling"]
 fn translit_model_known_misses() {
@@ -496,9 +539,9 @@ fn translit_spells_lexicon_words_and_splits() {
         // Known model gap: നന്ദി is out of reach. After നന്, ദ is the model's 23rd token
         // (log prob -7.4), far outside the 8 expanded per step; നന്നി is in ml.fst too.
         ("nanni", "നന്നി"),
-        ("jishnu", "ജിഷ്ണു"), // a name, but in ml.fst
+        ("jishnu", "ജിഷ്ണു"),     // a name, but in ml.fst
         ("sukhamano", "സുഖമാണോ"), // split: സുഖം + ആണോ
-        ("kollamo", "കൊള്ളാമോ"), // split: കൊള്ളാം + ഓ
+        ("kollamo", "കൊള്ളാമോ"),  // split: കൊള്ളാം + ഓ
     ] {
         let got = transliterations(&t, &ml, &manglish, typed);
         assert!(
