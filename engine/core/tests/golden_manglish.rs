@@ -10,6 +10,7 @@ const ENGLISH: &[(&str, u64)] = &[
     ("the", 50_000_000), ("I", 8_000_000), ("my", 2_000_000), ("feel", 200_000),
     ("hello", 30_000), ("man", 500_000), ("enter", 120_000), ("pain", 300_000),
     ("panic", 40_000), ("end", 400_000), ("and", 25_000_000), ("then", 1_400_000),
+    ("potato", 30_000),
 ];
 
 #[rustfmt::skip]
@@ -18,6 +19,9 @@ const MALAYALAM: &[(&str, u64)] = &[
     ("വീട്ടിൽ", 300_000), ("അവൻ", 900_000), ("മലയാളം", 600_000), ("പണി", 20_000),
     ("ഹലോ", 5_000), ("മാൻ", 20_000), ("ഇല്ല", 2_000_000), ("അമ്മ", 700_000),
     ("എന്റേത്", 50_000), ("തേ", 3_000), ("ഉറങ്ങി", 22),
+    // Stems for suffix splitting; none of the joined forms is listed.
+    ("സുഖം", 300_000), ("കഴിച്ചു", 200_000), ("വരുന്നു", 400_000), ("വന്നു", 800_000),
+    ("പൊട്ടാട്ട്", 50_000),
 ];
 
 fn lexicon(entries: Vec<(Vec<u8>, u64)>) -> Option<Lexicon> {
@@ -182,4 +186,48 @@ fn without_the_manglish_source_latin_stays_english() {
     let s = engine.suggest("ente", Layout::Latin, true);
     assert_eq!(s.candidates[0].text, "ente");
     assert!(s.candidates.iter().all(|c| c.kind != Kind::Manglish));
+}
+
+#[test]
+fn agglutinated_forms_split_into_stem_and_suffix() {
+    let engine = engine();
+    for (typed, want) in [
+        ("sukhamano", "സുഖമാണോ"),    // സുഖം + ആണോ: ം becomes മ + the vowel sign
+        ("kazhicho", "കഴിച്ചോ"),    // കഴിച്ചു + ഓ: ു gives way to the vowel sign
+        ("varunnundo", "വരുന്നുണ്ടോ"), // വരുന്നു + ഉണ്ട് + ഓ: two suffixes
+        ("vanno", "വന്നോ"),
+    ] {
+        assert_eq!(
+            middle(&engine, typed),
+            (want.to_string(), Kind::Manglish),
+            "{typed}: {:?}",
+            engine.suggest(typed, Layout::Latin, true)
+        );
+    }
+}
+
+#[test]
+fn english_words_are_not_split() {
+    // potato = potat + o, and പൊട്ടാട്ട് has the skeleton of potat.
+    let engine = engine();
+    let s = engine.suggest("potato", Layout::Latin, true);
+    assert_eq!(s.candidates[0].text, "potato");
+    assert!(s.candidates.iter().all(|c| c.text != "പൊട്ടാട്ടോ"), "{s:?}");
+}
+
+#[test]
+fn a_whole_form_beats_a_split() {
+    // veettil is വീട്ടിൽ; the split വീട് + ഇൽ would give വീടിൽ.
+    let engine = engine();
+    let s = engine.suggest("ഞാൻ veettil", Layout::Latin, true);
+    assert_eq!(s.candidates[0].text, "വീട്ടിൽ");
+    assert!(s.candidates.iter().all(|c| c.text != "വീടിൽ"), "{s:?}");
+}
+
+#[test]
+fn short_words_are_not_split() {
+    // vano (4 letters) could be വന്നു + ഓ, like vanno.
+    let engine = engine();
+    assert!(!has(&engine, "vano", "വന്നോ"));
+    assert!(has(&engine, "vanno", "വന്നോ"));
 }

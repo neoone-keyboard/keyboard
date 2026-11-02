@@ -56,6 +56,13 @@ pub const MANGLISH_EXACT_BONUS: f32 = 1.5;
 pub const MANGLISH_MISSING_PER_CHAR: f32 = 0.4;
 /// Manglish: penalty per edit between the typed letters and the word's romanisation.
 pub const MANGLISH_DISTANCE: f32 = 0.8;
+/// Manglish suffix splitting (`suffix.rs`): a word read as stem + suffixes
+/// scores as its stem, less this per suffix: the joined form is rarer than
+/// the stem, and the reading is a guess. `sukhamano` → സുഖം (−9.8) + ആണോ.
+pub const MANGLISH_SPLIT_PER_SUFFIX: f32 = 1.0;
+/// Stems rarer than this are not split from: a rare stem plus a suffix is
+/// more often nonsense than a word.
+pub const MANGLISH_SPLIT_STEM_MIN: f32 = -12.5;
 /// Manglish bias from the previous word: after Malayalam, after English, at the start.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;

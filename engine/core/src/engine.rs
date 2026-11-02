@@ -11,6 +11,7 @@ use crate::malayalam;
 use crate::manglish;
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
+use crate::suffix;
 use crate::text::{self, Script};
 use crate::translit::transliterate;
 use crate::user::UserStore;
@@ -359,7 +360,7 @@ impl Engine {
             });
         }
 
-        let manglish = self.manglish(typed_n, manglish_bias);
+        let manglish = self.manglish(typed_n, manglish_bias, known_score.is_some());
         completions.extend(manglish.completions);
         // Set when the best English and Malayalam replacements are too close to call.
         let mut ambiguous: Vec<Candidate> = Vec::new();
@@ -450,7 +451,9 @@ impl Engine {
     }
 
     /// Malayalam candidates for a Latin word, scored to compete with English.
-    fn manglish(&self, typed_n: &str, bias: f32) -> ManglishCandidates {
+    /// `english_word`: the typed word is in the English lexicon, so it isn't
+    /// split into stem and suffix.
+    fn manglish(&self, typed_n: &str, bias: f32, english_word: bool) -> ManglishCandidates {
         let mut found = ManglishCandidates::default();
         let Some(lex) = &self.sources.manglish else {
             return found;
@@ -459,27 +462,22 @@ impl Engine {
         if typed_n.len() < 2 || typed_n.contains('\'') {
             return found;
         }
-        for m in manglish::lookup(lex, typed_n) {
-            let fit = if m.missing == 0 {
+        let fit_bonus = |missing: usize| {
+            if missing == 0 {
                 rank::MANGLISH_EXACT_BONUS
             } else {
-                -rank::MANGLISH_MISSING_PER_CHAR * m.missing as f32
-            };
+                -rank::MANGLISH_MISSING_PER_CHAR * missing as f32
+            }
+        };
+        for m in manglish::lookup(lex, typed_n) {
             // Without the fit bonus: it ranks a word against English, but
             // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
             let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
-            let candidate = Candidate {
-                text: m.word,
-                kind: Kind::Manglish,
-                score: unfitted + fit,
-            };
-            if m.missing > 0 {
-                found.completions.push(candidate);
-            } else if unfitted >= rank::MIN_REPLACE {
-                found.exact.push((candidate, m.spelled));
-            } else {
-                found.side.push(candidate);
-            }
+            found.push(m.word, unfitted, fit_bonus(m.missing), m.missing, m.spelled);
+        }
+        // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
+        if found.exact.is_empty() && !english_word {
+            self.add_splits(lex, typed_n, bias, &mut found);
         }
         // Names and rare words: the rule-based spelling, as a side-slot guess.
         if found.exact.is_empty()
@@ -493,6 +491,51 @@ impl Engine {
             });
         }
         found
+    }
+
+    /// Suffix splits (`suffix::splits`) of a word with no common whole form,
+    /// scored as their stem. A whole form always beats a split: a split that
+    /// spells a rare whole form already found lifts it to the split's score
+    /// (both readings agree), and any other split stays in a side slot, below
+    /// the rare whole forms.
+    fn add_splits(&self, lex: &Lexicon, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
+        let fit = rank::MANGLISH_EXACT_BONUS;
+        let rare_whole = found
+            .side
+            .iter()
+            .map(|c| c.score)
+            .fold(f32::NEG_INFINITY, f32::max);
+        let mut splits: Vec<(String, f32, bool)> =
+            suffix::splits(lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
+                .into_iter()
+                .map(|split| {
+                    let (spelled, distance) = manglish::fit(typed_n, &split.word, false);
+                    let unfitted = split.log_prob
+                        - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32
+                        - rank::MANGLISH_DISTANCE * distance as f32
+                        + bias;
+                    (split.word, unfitted, spelled)
+                })
+                .collect();
+        splits.sort_by(|a, b| b.1.total_cmp(&a.1));
+        let mut seen = std::collections::HashSet::new();
+        for (word, unfitted, spelled) in splits {
+            if !seen.insert(word.clone()) {
+                continue;
+            }
+            if let Some(i) = found.side.iter().position(|c| c.text == word) {
+                let whole = found.side.remove(i);
+                found.push(word, unfitted.max(whole.score - fit), fit, 0, spelled);
+            } else if rare_whole.is_finite() {
+                found.side.push(Candidate {
+                    text: word,
+                    kind: Kind::Manglish,
+                    score: (unfitted + fit).min(rare_whole - 0.01),
+                });
+            } else {
+                found.push(word, unfitted, fit, 0, spelled);
+            }
+        }
     }
 
     fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
@@ -602,6 +645,26 @@ struct ManglishCandidates {
     /// Side slots only, and they don't stop a correction: rare words with the
     /// typed skeleton, or else the transliteration (names, words not in the list).
     side: Vec<Candidate>,
+}
+
+impl ManglishCandidates {
+    /// Files a Malayalam word by role. `unfitted` is its score before the
+    /// `fit` bonus for how much of its skeleton was typed; `missing` and
+    /// `spelled` are as in `manglish::Match`.
+    fn push(&mut self, text: String, unfitted: f32, fit: f32, missing: usize, spelled: bool) {
+        let candidate = Candidate {
+            text,
+            kind: Kind::Manglish,
+            score: unfitted + fit,
+        };
+        if missing > 0 {
+            self.completions.push(candidate);
+        } else if unfitted >= rank::MIN_REPLACE {
+            self.exact.push((candidate, spelled));
+        } else {
+            self.side.push(candidate);
+        }
+    }
 }
 
 /// Whether `word` is `typed` with apostrophes put back, ignoring case.

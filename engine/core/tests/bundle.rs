@@ -198,6 +198,91 @@ fn code_mixed_english_words_stay_english() {
     assert_eq!(middle(&engine, "ഞാൻ ഇന്ന് office il poyi").0, "പോയി");
 }
 
+/// Chat forms missing from the corpus (or too rare to convert on their own),
+/// read as a frequent stem plus suffixes.
+#[test]
+fn agglutinated_manglish_splits_into_stem_and_suffix() {
+    let engine = engine();
+    for (typed, want) in [
+        ("sukhamano", "സുഖമാണോ"),         // സുഖം + ആണോ
+        ("kazhicho", "കഴിച്ചോ"),         // കഴിച്ചു + ഓ
+        ("varunnundo", "വരുന്നുണ്ടോ"),      // വരുന്നുണ്ട് + ഓ
+        ("ishtamano", "ഇഷ്ടമാണോ"),        // ഇഷ്ടം + ആണോ
+        ("sukhamalle", "സുഖമല്ലേ"),       // സുഖം + അല്ലേ
+        ("veettilano", "വീട്ടിലാണോ"),     // വീട്ടിൽ + ആണോ: chillu ൽ → ല
+        ("veettilundo", "വീട്ടിലുണ്ടോ"),   // വീട്ടിൽ + ഉണ്ടോ
+        ("sukhamayirunnu", "സുഖമായിരുന്നു"), // സുഖം + ആയിരുന്നു
+        ("kazhichille", "കഴിച്ചില്ലേ"),   // കഴിച്ചു + ഇല്ലേ
+        ("kazhichilla", "കഴിച്ചില്ല"),    // കഴിച്ചു + ഇല്ല
+        ("ethiyo", "എത്തിയോ"),           // എത്തി + ഓ: glide യ
+        ("paranjo", "പറഞ്ഞോ"),           // പറഞ്ഞു + ഓ
+        ("paranjennu", "പറഞ്ഞെന്ന്"),      // പറഞ്ഞു + എന്ന്
+        ("ammayodu", "അമ്മയോട്"),         // അമ്മ + ഓട്: typed glide y
+        ("makkalodu", "മക്കളോട്"),        // മക്കൾ + ഓട്: chillu ൾ → ള
+        ("ammakku", "അമ്മക്ക്"),           // അമ്മ + ക്ക്
+        // Rarer stems convert after a Malayalam word.
+        ("അവൻ poyirunno", "പോയിരുന്നോ"),  // പോയിരുന്നു + ഓ
+        ("കുട്ടി urangiyo", "ഉറങ്ങിയോ"),   // ഉറങ്ങി + ഓ
+        ("അവൻ chettanodu", "ചേട്ടനോട്"),  // ചേട്ടൻ + ഓട്
+        ("ഞാൻ kazhikkatte", "കഴിക്കട്ടെ"), // കഴിക്ക + ട്ടെ
+        ("ഞാൻ vaanganam", "വാങ്ങണം"),      // വാങ്ങ + ണം
+    ] {
+        assert_eq!(
+            middle(&engine, typed),
+            (want.to_string(), Kind::Manglish),
+            "{typed}: {:?}",
+            texts(&engine, typed)
+        );
+    }
+    // Without Malayalam context, a rarer stem's split waits in a side slot.
+    let s = texts(&engine, "poyirunno");
+    assert_eq!(s[0], "poyirunno");
+    assert!(s.contains(&"പോയിരുന്നോ".to_string()), "{s:?}");
+}
+
+#[test]
+fn suffix_splitting_leaves_english_and_whole_forms_alone() {
+    let engine = engine();
+    // English words ending in a suffix spelling (-o, -il, -ude, -anam …).
+    for word in [
+        "radio", "piano", "tomato", "studio", "pencil", "until", "attitude", "potato",
+    ] {
+        assert_eq!(
+            middle(&engine, word),
+            (word.to_string(), Kind::Verbatim),
+            "{word}: {:?}",
+            texts(&engine, word)
+        );
+    }
+    // Whole forms in the corpus keep their own spelling.
+    for (typed, want) in [
+        ("veettil", "വീട്ടിൽ"),
+        ("kandilla", "കണ്ടില്ല"),
+        ("varumo", "വരുമോ"),
+    ] {
+        assert_eq!(
+            middle(&engine, typed).0,
+            want,
+            "{typed}: {:?}",
+            texts(&engine, typed)
+        );
+    }
+    // A rare whole form (പഠിക്കണം) outranks a split of a common stem
+    // (പട്ടിക + ണം), and neither is frequent enough to convert.
+    let s = texts(&engine, "padikkanam");
+    assert_eq!(s[0], "padikkanam", "{s:?}");
+    let whole = s.iter().position(|t| t == "പഠിക്കണം");
+    let split = s.iter().position(|t| t == "പട്ടികണം");
+    assert!(
+        whole.is_some() && (split.is_none() || split > whole),
+        "{s:?}"
+    );
+    // After an English word, a split with a misspelled stem stays on the side.
+    let s = texts(&engine, "I kazhicho");
+    assert_eq!(s[0], "kazhicho", "{s:?}");
+    assert!(s.contains(&"കഴിച്ചോ".to_string()), "{s:?}");
+}
+
 /// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6).
 /// Run in release: `make bench`.
 #[test]
@@ -218,6 +303,8 @@ fn latency() {
         "veettil",
         "malayalam",
         "sukhamano",
+        "varunnundo",
+        "kazhichille",
         "enikku",
         "thank",
         "something",
