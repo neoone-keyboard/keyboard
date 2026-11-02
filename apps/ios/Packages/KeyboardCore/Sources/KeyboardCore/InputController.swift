@@ -19,6 +19,8 @@ public final class InputController {
         self.output = output
     }
 
+    /// - Parameter time: Monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
+    ///   Used only to detect a double tap on shift.
     public func handle(_ action: KeyAction, at time: TimeInterval) {
         switch action {
         case .character(let c):

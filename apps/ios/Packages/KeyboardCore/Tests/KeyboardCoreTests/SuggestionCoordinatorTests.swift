@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import KeyboardCore
 
@@ -12,6 +13,14 @@ struct ScriptedProvider: SuggestionProvider {
         case "fail": throw Failure()
         default: break
         }
+        return [contextBefore]
+    }
+}
+
+/// Blocks its thread in a synchronous call that ignores cancellation, like the Rust engine.
+actor BlockingProvider: SuggestionProvider {
+    func suggestions(contextBefore: String) async throws -> [String] {
+        usleep(200_000)
         return [contextBefore]
     }
 }
@@ -66,6 +75,51 @@ struct SuggestionCoordinatorTests {
         let coordinator = makeCoordinator()
         coordinator.isEnabled = false
         await coordinator.request(contextBefore: "wor").value
+        withExtendedLifetime(coordinator) {}
+        #expect(recorder.updates == [[]])
+    }
+
+    @Test func timeoutFiresEvenWhenProviderBlocksItsThread() async {
+        let coordinator = SuggestionCoordinator(provider: BlockingProvider(), timeout: .milliseconds(20)) { [recorder] in
+            recorder.updates.append($0)
+        }
+        let clock = ContinuousClock()
+        let start = clock.now
+        await coordinator.request(contextBefore: "x").value
+        let elapsed = clock.now - start
+        withExtendedLifetime(coordinator) {}
+        print("blocking-provider timeout elapsed: \(elapsed)")
+        #expect(recorder.updates == [[]])
+        #expect(elapsed < .milliseconds(100))
+    }
+
+    @Test func onlyTheLastOfBackToBackRequestsIsDelivered() async {
+        let coordinator = makeCoordinator()
+        _ = coordinator.request(contextBefore: "slow")
+        _ = coordinator.request(contextBefore: "slow")
+        _ = coordinator.request(contextBefore: "slow")
+        _ = coordinator.request(contextBefore: "slow")
+        let last = coordinator.request(contextBefore: "last")
+        await last.value
+        try? await Task.sleep(for: .milliseconds(200))
+        withExtendedLifetime(coordinator) {}
+        #expect(recorder.updates == [["last"]])
+    }
+
+    @Test func disablingDropsInFlightResult() async {
+        let coordinator = makeCoordinator()
+        let task = coordinator.request(contextBefore: "slow")
+        coordinator.isEnabled = false
+        await task.value
+        withExtendedLifetime(coordinator) {}
+        #expect(recorder.updates == [[]])
+    }
+
+    @Test func clearDropsInFlightResult() async {
+        let coordinator = makeCoordinator()
+        let task = coordinator.request(contextBefore: "slow")
+        coordinator.clear()
+        await task.value
         withExtendedLifetime(coordinator) {}
         #expect(recorder.updates == [[]])
     }

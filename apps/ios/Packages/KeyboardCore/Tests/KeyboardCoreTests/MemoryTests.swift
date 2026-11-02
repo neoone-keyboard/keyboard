@@ -11,3 +11,7 @@ import KeyboardCore
     #expect(budget.pressure(footprintBytes: 80) == .shed)
     #expect(budget.pressure(footprintBytes: 150) == .shed)
 }
+
+@Test func keyboardExtensionBudgetIsFortyMegabytes() {
+    #expect(MemoryBudget.keyboardExtension.limitBytes == 41_943_040)
+}

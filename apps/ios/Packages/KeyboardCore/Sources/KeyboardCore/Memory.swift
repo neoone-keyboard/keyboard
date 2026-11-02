@@ -26,6 +26,9 @@ public struct MemoryBudget: Sendable {
     public let limitBytes: UInt64
     public let shedFraction: Double
 
+    /// Conservative limit for the keyboard extension, which iOS kills at roughly 48 MB.
+    public static let keyboardExtension = MemoryBudget(limitBytes: 40 * 1024 * 1024)
+
     public init(limitBytes: UInt64, shedFraction: Double = 0.8) {
         self.limitBytes = limitBytes
         self.shedFraction = shedFraction
