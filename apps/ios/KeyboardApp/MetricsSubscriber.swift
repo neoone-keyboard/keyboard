@@ -27,8 +27,11 @@ final class MetricsSubscriber: NSObject, MXMetricManagerSubscriber, @unchecked S
     }
 
     private func save(_ json: Data, kind: String) {
-        let directory = Self.reportsDirectory
+        var directory = Self.reportsDirectory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? directory.setResourceValues(values)
         let name = "\(kind)-\(Int(Date().timeIntervalSince1970))-\(UUID().uuidString.prefix(8)).json"
         try? json.write(to: directory.appending(path: name))
     }

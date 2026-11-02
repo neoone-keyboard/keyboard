@@ -27,6 +27,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app
+        TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - target: KeyboardExtension
   KeyboardExtension:
@@ -41,13 +42,15 @@ targets:
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
           NSExtensionAttributes:
-            IsASCIICapable: false
+            IsASCIICapable: true
             PrefersRightToLeft: false
             PrimaryLanguage: ml
             RequestsOpenAccess: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app.keyboard
+        TARGETED_DEVICE_FAMILY: "1"
+        APPLICATION_EXTENSION_API_ONLY: YES
     dependencies:
       - package: KeyboardCore
       - package: MLEngine

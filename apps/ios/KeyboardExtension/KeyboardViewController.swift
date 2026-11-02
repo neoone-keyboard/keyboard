@@ -12,13 +12,16 @@ final class KeyboardViewController: UIInputViewController {
         self.textDocumentProxy
     })
 
-    private lazy var suggestions = SuggestionCoordinator(provider: EngineSuggestionProvider()) {
+    private let provider = EngineSuggestionProvider()
+    private var lastRequestedContext: String?
+
+    private lazy var suggestions = SuggestionCoordinator(provider: provider) {
         [weak self] in self?.suggestionBar.show($0)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        keysView = KeysView(layout: .qwerty, showsNextKeyboard: needsInputModeSwitchKey) { [unowned self] button in
+        keysView = KeysView(layout: .qwerty) { [unowned self] button in
             button.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
         }
         keysView.onAction = { [unowned self] in didTap($0) }
@@ -43,8 +46,14 @@ final class KeyboardViewController: UIInputViewController {
         log.info("Keyboard loaded; footprint \(MemoryMonitor.footprintBytes(), privacy: .public) bytes")
     }
 
+    override func viewWillLayoutSubviews() {
+        keysView.nextKeyboardButton?.isHidden = !needsInputModeSwitchKey
+        super.viewWillLayoutSubviews()
+    }
+
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
+        checkMemoryBudget()
         requestSuggestions()
     }
 
@@ -55,21 +64,34 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func didTap(_ action: KeyAction) {
+        let shiftBefore = input.shift
         input.handle(action, at: ProcessInfo.processInfo.systemUptime)
-        keysView.refreshLabels(input.label(for:))
-        if budget.pressure(footprintBytes: MemoryMonitor.footprintBytes()) == .shed, suggestions.isEnabled {
-            log.warning("Over memory budget; prediction off")
-            shedPrediction()
+        if input.shift != shiftBefore {
+            keysView.refreshLabels(input.label(for:))
         }
+        checkMemoryBudget()
         requestSuggestions()
     }
 
+    private func checkMemoryBudget() {
+        guard suggestions.isEnabled else { return }
+        if budget.pressure(footprintBytes: MemoryMonitor.footprintBytes()) == .shed {
+            log.warning("Over memory budget; prediction off")
+            shedPrediction()
+        }
+    }
+
+    /// Permanent until the system recreates the extension: prediction is never re-enabled.
     private func shedPrediction() {
         suggestions.isEnabled = false
+        lastRequestedContext = nil
+        Task { [provider] in await provider.unload() }
     }
 
     private func requestSuggestions() {
         let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
+        guard context != lastRequestedContext else { return }
+        lastRequestedContext = context
         suggestions.request(contextBefore: context)
     }
 }

@@ -12,4 +12,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         self.engine = engine
         return try engine.suggest(contextBefore: contextBefore).map(\.text)
     }
+
+    /// Drops the engine so its memory is released; it is recreated on the next request.
+    func unload() { engine = nil }
 }

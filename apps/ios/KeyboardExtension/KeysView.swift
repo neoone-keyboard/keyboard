@@ -5,15 +5,16 @@ import KeyboardCore
 final class KeysView: UIStackView {
     var onAction: (@MainActor (KeyAction) -> Void)?
     private var buttons: [(action: KeyAction, button: UIButton)] = []
+    /// Always created; the view controller shows or hides it once the system has decided.
+    private(set) var nextKeyboardButton: UIButton?
 
-    init(layout: KeyboardLayout, showsNextKeyboard: Bool, configureNextKeyboard: (UIButton) -> Void) {
+    init(layout: KeyboardLayout, configureNextKeyboard: (UIButton) -> Void) {
         super.init(frame: .zero)
         axis = .vertical
         distribution = .fillEqually
         spacing = 8
         for row in layout.rows {
-            let keys = row.filter { showsNextKeyboard || $0.action != .nextKeyboard }
-            addArrangedSubview(makeRow(keys, configureNextKeyboard: configureNextKeyboard))
+            addArrangedSubview(makeRow(row, configureNextKeyboard: configureNextKeyboard))
         }
     }
 
@@ -34,6 +35,7 @@ final class KeysView: UIStackView {
             let button = makeButton(for: key.action)
             if key.action == .nextKeyboard {
                 configureNextKeyboard(button)
+                nextKeyboardButton = button
             } else {
                 button.addAction(UIAction { [weak self] _ in self?.onAction?(key.action) }, for: .touchUpInside)
             }
