@@ -17,6 +17,8 @@ const ENGLISH: &[(&str, u64)] = &[
     ("helped", 90_000), ("helping", 70_000), ("London", 400_000), ("don't", 900_000),
     ("enter", 120_000), ("entry", 100_000), ("Tom", 100_000), ("an", 4_000_000),
     ("ant", 20_000), ("any", 1_000_000), ("am", 900_000), ("have", 4_000_000),
+    ("could", 1_500_000), ("us", 900_000), ("US", 200_000), ("will", 2_000_000),
+    ("Will", 50_000),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -86,4 +88,57 @@ fn a_learned_name_stays() {
     engine.learn("Anu");
     assert_eq!(middle(&engine, "Anu"), ("Anu".into(), Kind::Verbatim));
     assert_eq!(middle(&engine, "anu").0, "anu");
+}
+
+fn texts(engine: &Engine, context: &str) -> Vec<String> {
+    let s = engine.suggest(context, Layout::Latin, true);
+    s.candidates.into_iter().map(|c| c.text).collect()
+}
+
+#[test]
+fn space_never_commits_an_unfinished_word() {
+    let engine = engine();
+    assert_eq!(middle(&engine, "cou"), ("cou".into(), Kind::Verbatim));
+    assert!(texts(&engine, "cou").contains(&"could".to_string()));
+    assert_eq!(middle(&engine, "ent"), ("ent".into(), Kind::Verbatim));
+    assert!(texts(&engine, "ent").contains(&"enter".to_string()));
+}
+
+#[test]
+fn curly_apostrophe_gets_suggestions() {
+    let engine = engine();
+    let s = engine.suggest("I don\u{2019}", Layout::Latin, true);
+    assert_eq!(
+        s.candidates[0].text, "don\u{2019}",
+        "the typed word is kept as typed"
+    );
+    assert!(texts(&engine, "I don\u{2019}").contains(&"don't".to_string()));
+    assert_eq!(
+        middle(&engine, "don\u{2019}t"),
+        ("don\u{2019}t".into(), Kind::Verbatim)
+    );
+}
+
+#[test]
+fn a_known_word_shows_no_other_case_of_itself() {
+    let engine = engine();
+    assert!(!texts(&engine, "us").contains(&"US".to_string()));
+    assert!(!texts(&engine, "will").contains(&"Will".to_string()));
+    assert_eq!(middle(&engine, "us"), ("us".into(), Kind::Verbatim));
+}
+
+#[test]
+fn a_case_variant_is_the_best_correction() {
+    assert_eq!(middle(&engine(), "tom"), ("Tom".into(), Kind::Correction));
+}
+
+#[test]
+fn sentence_starts_are_capitalised() {
+    let engine = engine();
+    assert_eq!(
+        middle(&engine, "It rains. teh"),
+        ("The".into(), Kind::Correction)
+    );
+    assert!(texts(&engine, "It rains. hel").contains(&"Help".to_string()));
+    assert_eq!(middle(&engine, "it rains teh").0, "the");
 }

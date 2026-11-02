@@ -6,19 +6,16 @@ use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
 use crate::fuzzy::{self, WeightedEdit};
-use crate::lexicon::{Lexicon, SEPARATOR};
+use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::malayalam;
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::text::{self, Script};
 use crate::user::UserStore;
 
-/// Most keys visited by one prefix scan.
-const SCAN_LIMIT: usize = 3_000;
-/// Most keys visited by one correction walk.
+/// Most keys visited by one correction walk. Prefix lookups need no limit
+/// here: `Lexicon::top_completions` and `subtree_count` are exact and bounded.
 const CORRECTION_LIMIT: usize = 4_000;
-/// Keys visited per vowel sign when ranking the vowel-sign strip.
-const SIGN_SCAN_LIMIT: usize = 300;
 /// Candidates returned: the middle slot plus two side slots.
 const SHOWN: usize = 3;
 
@@ -164,8 +161,14 @@ impl Engine {
                 ..Suggestions::default()
             };
         }
-        let mut suggestions = match (layout, text::script(typed)) {
-            (Layout::Latin, Script::Latin) => self.suggest_latin(typed, autocorrect),
+        // Classify and search the normal form (`don’` → `don'`); show the word as typed.
+        let typed_n = normalize(typed);
+        let mut suggestions = match (layout, text::script(&typed_n)) {
+            (Layout::Latin, Script::Latin) => {
+                let before = &context_before[..context_before.len() - typed.len()];
+                let sentence_start = text::previous_word(before).is_some_and(|(_, end)| end);
+                self.suggest_latin(typed, &typed_n, autocorrect, sentence_start)
+            }
             (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
             _ => vec![verbatim(typed, 0.0)],
         };
@@ -192,98 +195,165 @@ impl Engine {
     /// The count of an English word, matching case the way `apply_case` would show it.
     fn english_count(&self, word: &str) -> Option<u64> {
         let lex = self.sources.english.as_ref()?;
-        let mut found = None;
-        lex.scan_prefix(word.as_bytes(), SCAN_LIMIT, |key, count| {
-            if key.len() == word.len() && apply_case(word, &String::from_utf8_lossy(key)) == word {
-                found = Some(found.unwrap_or(0).max(count));
-            }
-        });
-        found
+        lex.case_variants(word.as_bytes())
+            .into_iter()
+            .filter(|(key, _)| apply_case(word, &String::from_utf8_lossy(key)) == word)
+            .map(|(_, count)| count)
+            .max()
     }
 
-    fn suggest_latin(&self, typed: &str, autocorrect: bool) -> Vec<Candidate> {
-        let learned = self.user().is_learned(typed);
+    /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
+    fn suggest_latin(
+        &self,
+        typed: &str,
+        typed_n: &str,
+        autocorrect: bool,
+        sentence_start: bool,
+    ) -> Vec<Candidate> {
+        let learned = self.user().is_learned(typed_n);
+        // How a stored word is shown: in the typed case, capitalised at a sentence start.
+        let show = |word: &str| {
+            let shown = apply_case(typed_n, word);
+            if sentence_start {
+                capitalize(&shown)
+            } else {
+                shown
+            }
+        };
         let mut known_score = None;
-        let mut others = Vec::new();
+        // Another case of the typed word (`tom` → `Tom`): the best correction there is.
+        let mut case_fix: Option<Candidate> = None;
+        let mut corrections = Vec::new();
+        let mut completions = Vec::new();
 
         if let Some(lex) = &self.sources.english {
+            let score_of = |count: u64| lex.log_prob(count) + rank::KNOWN_BONUS;
+            let variants = lex.case_variants(typed_n.as_bytes());
+            for (key, count) in &variants {
+                let Ok(word) = std::str::from_utf8(key) else {
+                    continue;
+                };
+                if apply_case(typed_n, word) == typed_n {
+                    let score = score_of(*count);
+                    known_score = Some(known_score.map_or(score, |s: f32| s.max(score)));
+                }
+            }
+            // Other cases of a word that is itself in the lexicon aren't offered (`us` hides `US`).
+            if known_score.is_none() {
+                for (key, count) in &variants {
+                    let Ok(word) = std::str::from_utf8(key) else {
+                        continue;
+                    };
+                    let candidate = Candidate {
+                        text: show(word),
+                        kind: Kind::Correction,
+                        score: score_of(*count),
+                    };
+                    if case_fix.as_ref().is_none_or(|c| candidate.score > c.score) {
+                        case_fix = Some(candidate);
+                    }
+                }
+            }
+
             // Short words get fewer edits: more would match half the lexicon.
-            let max_cost = match typed.len() {
+            let max_cost = match typed_n.len() {
                 1 => 0,
                 2 | 3 => fuzzy::EDIT,
                 4..=6 => fuzzy::EDIT + fuzzy::CHEAP_EDIT,
                 _ => 2 * fuzzy::EDIT,
             };
-            if let Some(automaton) = WeightedEdit::new(typed, max_cost) {
+            if let Some(automaton) = WeightedEdit::new(typed_n, max_cost) {
                 let probe = automaton.clone();
                 lex.search(automaton, CORRECTION_LIMIT, |key, count, state| {
-                    let Ok(word) = std::str::from_utf8(key) else {
+                    let cost = state.cost(&probe);
+                    // Cost 0 is a case variant, handled above.
+                    let (Ok(word), true) = (std::str::from_utf8(key), cost > 0) else {
                         return;
                     };
-                    let cost = state.cost(&probe);
-                    let shown = apply_case(typed, word);
-                    let score = lex.log_prob(count) + rank::KNOWN_BONUS
-                        - rank::EDIT_PENALTY * f32::from(cost);
-                    if cost == 0 && shown == typed {
-                        known_score = Some(known_score.map_or(score, |s: f32| s.max(score)));
-                    } else {
-                        others.push(Candidate {
-                            text: shown,
-                            kind: Kind::Correction,
-                            score,
+                    let candidate = Candidate {
+                        text: show(word),
+                        kind: Kind::Correction,
+                        score: score_of(count) - rank::EDIT_PENALTY * f32::from(cost),
+                    };
+                    // A correction that only extends the typed word (`hel` → `help`,
+                    // `don'` → `don't`) is a completion: it never takes the middle.
+                    if starts_with_ignoring_case(word, typed_n) {
+                        completions.push(Candidate {
+                            kind: Kind::Completion,
+                            ..candidate
                         });
+                    } else {
+                        corrections.push(candidate);
                     }
                 });
             }
-            if typed.len() >= 2 {
-                lex.scan_prefix(typed.as_bytes(), SCAN_LIMIT, |key, count| {
-                    if key.len() <= typed.len() {
-                        return;
-                    }
-                    let Ok(word) = std::str::from_utf8(key) else {
-                        return;
+            if typed_n.len() >= 2 {
+                for (key, count) in lex.top_completions(typed_n.as_bytes(), TOP_K) {
+                    let Ok(word) = std::str::from_utf8(&key) else {
+                        continue;
                     };
-                    let extra = (word.len() - typed.len()) as f32;
-                    let score = lex.log_prob(count)
-                        - rank::COMPLETION_PENALTY
-                        - rank::COMPLETION_PER_CHAR * extra;
-                    others.push(Candidate {
-                        text: apply_case(typed, word),
+                    if word.len() <= typed_n.len() {
+                        continue;
+                    }
+                    let extra = (word.len() - typed_n.len()) as f32;
+                    completions.push(Candidate {
+                        text: show(word),
                         kind: Kind::Completion,
-                        score,
+                        score: lex.log_prob(count)
+                            - rank::COMPLETION_PENALTY
+                            - rank::COMPLETION_PER_CHAR * extra,
                     });
-                });
+                }
             }
         }
-        for word in self.user().completions(typed, 2) {
-            let extra = word.len().saturating_sub(typed.len()) as f32;
-            let score = rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra;
-            others.push(Candidate {
-                text: apply_case(typed, &word),
+        for word in self.user().completions(typed_n, 2) {
+            let extra = word.len().saturating_sub(typed_n.len()) as f32;
+            completions.push(Candidate {
+                text: show(&word),
                 kind: Kind::Completion,
-                score,
+                score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
 
-        // A real word (or a learned one) is never replaced: autocorrect stays conservative.
-        let may_replace = autocorrect && !learned && known_score.is_none();
-        arrange(
-            verbatim(typed, known_score.unwrap_or(rank::UNKNOWN)),
-            others,
-            may_replace,
-        )
+        let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
+        // A real word (or a learned one) is never replaced, and only a
+        // correction may replace: space never commits an unfinished word.
+        let replacement = if autocorrect && !learned && known_score.is_none() {
+            let best_completion = completions
+                .iter()
+                .map(|c| c.score)
+                .fold(f32::NEG_INFINITY, f32::max);
+            match &case_fix {
+                Some(fix) => Some(fix.clone()),
+                None => corrections
+                    .iter()
+                    .max_by(|a, b| a.score.total_cmp(&b.score))
+                    // A typed prefix more likely to be finished than mistyped stays as typed.
+                    .filter(|best| best.score > best_completion)
+                    .cloned(),
+            }
+            .filter(|best| {
+                best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
+            })
+        } else {
+            None
+        };
+        let mut others = corrections;
+        others.extend(completions);
+        others.extend(case_fix);
+        arrange(typed_c, typed_n, others, replacement)
     }
 
     fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
         let typed_n = normalize(typed);
         let mut others = Vec::new();
         if let Some(lex) = &self.sources.malayalam {
-            lex.scan_prefix(typed_n.as_bytes(), SCAN_LIMIT, |key, count| {
+            for (key, count) in lex.top_completions(typed_n.as_bytes(), TOP_K) {
                 if key.len() <= typed_n.len() {
-                    return;
+                    continue;
                 }
-                let Ok(word) = std::str::from_utf8(key) else {
-                    return;
+                let Ok(word) = std::str::from_utf8(&key) else {
+                    continue;
                 };
                 let extra = (word.chars().count() - typed_n.chars().count()) as f32;
                 let score = lex.log_prob(count)
@@ -294,7 +364,7 @@ impl Engine {
                     kind: Kind::Completion,
                     score,
                 });
-            });
+            }
         }
         for word in self.user().completions(&typed_n, 2) {
             let score = rank::LEARNED_COMPLETION;
@@ -305,7 +375,7 @@ impl Engine {
             });
         }
         // Native Malayalam is never replaced: the typed word always stays in the middle.
-        arrange(verbatim(typed, 0.0), others, false)
+        arrange(verbatim(typed, 0.0), &typed_n, others, None)
     }
 
     fn next_words(&self, context_before: &str) -> Vec<Candidate> {
@@ -318,9 +388,9 @@ impl Engine {
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let mut found: Vec<Candidate> = Vec::new();
-        lex.scan_prefix(&key, SCAN_LIMIT, |k, count| {
+        for (k, count) in lex.top_completions(&key, TOP_K) {
             let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
-                return;
+                continue;
             };
             let text = if sentence_end {
                 capitalize(next)
@@ -332,7 +402,7 @@ impl Engine {
                 kind: Kind::NextWord,
                 score: count as f32,
             });
-        });
+        }
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
         found
@@ -352,19 +422,14 @@ impl Engine {
         let mut totals: Vec<(char, u64)> = STRIP_SIGNS
             .iter()
             .map(|&sign| {
-                let mut total = 0u64;
                 let mut probe = prefix.clone();
                 probe.push(sign);
-                lex.scan_prefix(probe.as_bytes(), SIGN_SCAN_LIMIT, |_, count| {
-                    total = total.saturating_add(count)
-                });
+                let mut total = lex.subtree_count(probe.as_bytes());
                 if sign == '\u{0D57}' {
                     // NFC writes െ + ൗ as ൌ (U+0D4C); both spell "au".
                     probe.pop();
                     probe.push('\u{0D4C}');
-                    lex.scan_prefix(probe.as_bytes(), SIGN_SCAN_LIMIT, |_, count| {
-                        total = total.saturating_add(count)
-                    });
+                    total = total.saturating_add(lex.subtree_count(probe.as_bytes()));
                 }
                 (sign, total)
             })
@@ -373,6 +438,11 @@ impl Engine {
         totals.sort_by_key(|&(_, total)| std::cmp::Reverse(total));
         totals.into_iter().map(|(sign, _)| sign).collect()
     }
+}
+
+fn starts_with_ignoring_case(word: &str, prefix: &str) -> bool {
+    word.len() >= prefix.len()
+        && word.as_bytes()[..prefix.len()].eq_ignore_ascii_case(prefix.as_bytes())
 }
 
 fn verbatim(typed: &str, score: f32) -> Candidate {
@@ -390,19 +460,23 @@ fn sort_and_dedup(candidates: &mut Vec<Candidate>) {
     candidates.retain(|c| seen.insert(c.text.clone()));
 }
 
-/// Puts the best candidate in the middle if replacing is allowed and it beats
-/// the typed word by the margin and the floor; the typed word is then second.
-fn arrange(typed: Candidate, mut others: Vec<Candidate>, may_replace: bool) -> Vec<Candidate> {
-    others.retain(|c| c.text != typed.text);
-    sort_and_dedup(&mut others);
-    let replace = may_replace
-        && others.first().is_some_and(|best| {
-            best.score >= typed.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
-        });
+/// Puts `replacement` (chosen by the caller, already checked against the
+/// margin and floor) in the middle with the typed word second; otherwise the
+/// typed word is in the middle. The best of the rest fill the side slots.
+/// Nothing equal to the typed word, as typed or normalised, is repeated.
+fn arrange(
+    typed: Candidate,
+    typed_n: &str,
+    mut others: Vec<Candidate>,
+    replacement: Option<Candidate>,
+) -> Vec<Candidate> {
+    others.retain(|c| c.text != typed.text && c.text != typed_n);
     let mut out = Vec::with_capacity(SHOWN);
-    if replace {
-        out.push(others.remove(0));
+    if let Some(best) = replacement.filter(|r| r.text != typed.text && r.text != typed_n) {
+        others.retain(|c| c.text != best.text);
+        out.push(best);
     }
+    sort_and_dedup(&mut others);
     out.push(typed);
     out.extend(others.into_iter().take(SHOWN));
     out
