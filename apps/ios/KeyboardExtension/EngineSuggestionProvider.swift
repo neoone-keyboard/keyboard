@@ -62,8 +62,14 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
+    /// Must work even when the engine is shed or failed to open: an engine with
+    /// no lexicons opens only the learned-word store, which is cheap.
     func forgetLearned() {
-        try? loadedEngine().forgetLearned()
+        if let engine {
+            try? engine.forgetLearned()
+        } else {
+            try? Engine(config: EngineConfig(userDir: config.userDir)).forgetLearned()
+        }
     }
 
     /// Drops the engine so its memory is released, and keeps it unloaded.
