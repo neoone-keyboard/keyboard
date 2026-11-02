@@ -1,0 +1,53 @@
+name: MLKeyboard
+options:
+  bundleIdPrefix: com.example.mlkeyboard
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # Set your Apple team ID here (or with DEVELOPMENT_TEAM=... on the command line) for device builds.
+    DEVELOPMENT_TEAM: ""
+packages:
+  KeyboardCore:
+    path: Packages/KeyboardCore
+  MLEngine:
+    path: Packages/MLEngine
+targets:
+  KeyboardApp:
+    type: application
+    platform: iOS
+    sources: [KeyboardApp]
+    scheme: {}
+    info:
+      path: KeyboardApp/Info.plist
+      properties:
+        CFBundleDisplayName: Malayalam Keyboard
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app
+    dependencies:
+      - target: KeyboardExtension
+  KeyboardExtension:
+    type: app-extension
+    platform: iOS
+    sources: [KeyboardExtension]
+    info:
+      path: KeyboardExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Malayalam Keyboard
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: ml
+            RequestsOpenAccess: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.mlkeyboard.app.keyboard
+    dependencies:
+      - package: KeyboardCore
+      - package: MLEngine

@@ -1,0 +1,35 @@
+import SwiftUI
+
+@main
+struct KeyboardApp: App {
+    init() {
+        MetricsSubscriber.shared.start()
+    }
+
+    var body: some Scene {
+        WindowGroup { ContentView() }
+    }
+}
+
+struct ContentView: View {
+    @State private var testText = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Turn on the keyboard") {
+                    Text("Settings → General → Keyboard → Keyboards → Add New Keyboard → Malayalam Keyboard")
+                    Text("No Full Access needed. Nothing you type leaves your phone.")
+                        .foregroundStyle(.secondary)
+                }
+                Section("Try it") {
+                    TextField("Type here", text: $testText, axis: .vertical)
+                }
+                Section("Stability") {
+                    LabeledContent("Saved MetricKit reports", value: "\(MetricsSubscriber.reportCount())")
+                }
+            }
+            .navigationTitle("Malayalam Keyboard")
+        }
+    }
+}
