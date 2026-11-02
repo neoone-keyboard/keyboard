@@ -1,6 +1,7 @@
 //! One normal form for every word the engine stores or looks up: NFC with
 //! atomic chillu letters. `lexbuild` and the runtime both call `normalize`,
-//! so the two can never disagree about how a word is spelled.
+//! so the two can never disagree about how a word is spelled. The curly
+//! apostrophe (iOS smart punctuation, most corpus text) folds to `'`.
 
 use unicode_normalization::UnicodeNormalization;
 
@@ -20,9 +21,10 @@ fn chillu(consonant: char) -> Option<char> {
     }
 }
 
-/// NFC, then every consonant + virama + ZWJ sequence that has an atomic chillu becomes that chillu.
+/// NFC, then every consonant + virama + ZWJ sequence that has an atomic chillu becomes that chillu,
+/// and `’` becomes `'`.
 pub fn normalize(text: &str) -> String {
-    let nfc: Vec<char> = text.nfc().collect();
+    let nfc: Vec<char> = text.nfc().map(|c| if c == '\u{2019}' { '\'' } else { c }).collect();
     let mut out = String::with_capacity(text.len());
     let mut i = 0;
     while i < nfc.len() {
@@ -68,6 +70,11 @@ mod tests {
     fn latin_is_untouched_except_nfc() {
         assert_eq!(normalize("Hello"), "Hello");
         assert_eq!(normalize("cafe\u{301}"), "caf\u{e9}");
+    }
+
+    #[test]
+    fn curly_apostrophe_folds_to_straight() {
+        assert_eq!(normalize("don\u{2019}t"), "don't");
     }
 
     proptest! {
