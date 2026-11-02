@@ -120,24 +120,48 @@ pub fn lookup(lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     }
     shortlist.sort_by(|a, b| b.0.total_cmp(&a.0));
     shortlist.truncate(SHORTLIST);
+    shortlist
+        .into_iter()
+        .map(|(_, mut m)| {
+            (m.spelled, m.distance) = fit(typed, &m.word, m.missing > 0);
+            m
+        })
+        .collect()
+}
+
+/// Malayalam words whose skeleton is exactly `skeleton`, most frequent first,
+/// with their counts. One bounded lookup.
+pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str) -> Vec<(String, u64)> {
+    if skeleton.is_empty() {
+        return Vec::new();
+    }
+    let mut prefix = skeleton.as_bytes().to_vec();
+    prefix.push(SEPARATOR);
+    lexicon
+        .top_completions(&prefix, TOP_K)
+        .into_iter()
+        .filter_map(|(key, count)| Some((unpack(&key[prefix.len()..])?, count)))
+        .collect()
+}
+
+/// How closely the typed letters match a Malayalam word: whether they spell
+/// it out (`Match::spelled`), and otherwise the edit distance to its
+/// romanisation (`Match::distance`), to its closest prefix when `prefix` is set.
+pub fn fit(typed: &str, word: &str, prefix: bool) -> (bool, usize) {
     let typed_lower: Vec<u8> = typed
         .bytes()
         .filter(u8::is_ascii_alphabetic)
         .map(|b| b.to_ascii_lowercase())
         .collect();
-    shortlist
-        .into_iter()
-        .map(|(_, mut m)| {
-            let roman = romanize(&m.word);
-            m.spelled = m.missing == 0 && relaxed(&typed_lower) == relaxed(roman.as_bytes());
-            m.distance = if m.spelled {
-                0
-            } else {
-                prefix_distance(&typed_lower, roman.as_bytes(), m.missing > 0)
-            };
-            m
-        })
-        .collect()
+    let roman = romanize(word);
+    if !prefix && relaxed(&typed_lower) == relaxed(roman.as_bytes()) {
+        (true, 0)
+    } else {
+        (
+            false,
+            prefix_distance(&typed_lower, roman.as_bytes(), prefix),
+        )
+    }
 }
 
 /// Lowercase letters with vowel length and t/d collapsed (aa → a,

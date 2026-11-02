@@ -9,6 +9,7 @@ pub mod manglish;
 pub mod normalize;
 pub mod rank;
 pub mod romanize;
+pub mod suffix;
 pub mod text;
 pub mod translit;
 pub mod user;
