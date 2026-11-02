@@ -38,6 +38,8 @@ public final class InputController {
             shift = shift.tapped(sinceLastTap: interval)
         case .nextKeyboard:
             break // The host view controller switches keyboards.
+        case .page, .toggleLanguage:
+            break // Task 7
         }
     }
 
@@ -49,6 +51,7 @@ public final class InputController {
         case .shift: shift == .locked ? "⇪" : "⇧"
         case .returnKey: "return"
         case .nextKeyboard: "🌐"
+        case .page, .toggleLanguage: ""
         }
     }
 }
