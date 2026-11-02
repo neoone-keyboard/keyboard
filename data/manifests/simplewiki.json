@@ -1,0 +1,27 @@
+{
+  "id": "simplewiki",
+  "name": "Simple English Wikipedia",
+  "homepage": "https://simple.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "https://simple.wikipedia.org/w/api.php?action=query&meta=siteinfo&siprop=rightsinfo (\"Creative Commons Attribution-Share Alike 4.0\") and the Wikimedia Terms of Use §7. The local policy page Wikipedia:Copyrights is out of date and still talks about the GFDL; older text is dual-licensed CC BY-SA and GFDL, and we take it under CC BY-SA.",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "Text of Simple English Wikipedia articles by Wikipedia contributors.",
+  "verdict": "use",
+  "verdict_reason": "Same terms as English Wikipedia, which we already use, and plainer, shorter sentences that are closer to what people type.",
+  "used_for": "M3b English LM text.",
+  "retrieved": "2026-11-03",
+  "status": "audited, not fetched",
+  "notes": "The 2026-11 dump is 360,149,050 bytes, over the 50 MB limit for this audit.",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [],
+  "candidate_files": [
+    {
+      "url": "https://dumps.wikimedia.org/simplewiki/20261101/simplewiki-20261101-pages-articles.xml.bz2",
+      "path": "simplewiki-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}

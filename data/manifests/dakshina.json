@@ -1,0 +1,22 @@
+{
+  "id": "dakshina",
+  "name": "Dakshina dataset v1.0 (Google Research), Malayalam",
+  "homepage": "https://github.com/google-research-datasets/dakshina",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "https://github.com/google-research-datasets/dakshina/blob/master/README.md#license (\"The dataset is licensed under CC BY-SA 4.0\"). The repo has no LICENSE file.",
+  "attribution": "Dakshina dataset by Google Research (Roark et al., 2020, LREC), CC BY-SA 4.0. Native-script text from Wikipedia; romanisations by Google's annotators.",
+  "verdict": "use",
+  "verdict_reason": "Share-alike, same position as Wikipedia (see the licence audit). Human romanisations are exactly what the rule probabilities need. Train split for training and for fitting the rule probabilities; dev and test splits held out for eval.",
+  "used_for": "Only ml/lexicons/*.tsv (word, romanisation, count) and ml/romanized/*. The native_script_wikipedia text duplicates mlwiki and isn't used.",
+  "retrieved": "2026-11-03",
+  "status": "audited, not fetched",
+  "notes": "The tar holds all 12 languages and is 2,008,340,480 bytes (Content-Length, 2026-11-03), over the 50 MB limit for this audit. Add a checksum when it is first fetched.",
+  "files": [],
+  "candidate_files": [
+    {
+      "url": "https://storage.googleapis.com/gresearch/dakshina/dakshina_dataset_v1.0.tar",
+      "path": "dakshina_dataset_v1.0.tar"
+    }
+  ]
+}

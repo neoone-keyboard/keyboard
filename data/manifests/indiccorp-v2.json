@@ -1,0 +1,26 @@
+{
+  "id": "indiccorp-v2",
+  "name": "IndicCorp v2 (AI4Bharat), Malayalam and English",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/IndicCorpV2",
+  "licence": "CC0 1.0 claimed for the dataset (\"All the datasets created as part of this work will be released under a CC-0 license\"); the underlying text is crawled news articles whose copyright stays with the publishers.",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/IndicCorpV2 (README, License); https://github.com/AI4Bharat/IndicBERT#license; paper arXiv:2212.05409 (Ethics Statement; news websites as primary sources).",
+  "attribution": "IndicCorp v2 by AI4Bharat (Doddapaneni et al., 2023).",
+  "verdict": "eval only",
+  "verdict_reason": "AI4Bharat can waive only its own rights in the compilation; the news text belongs to the publishers, so it can't go into weights we ship. A small held-out sample is useful to measure the LM on non-Wikipedia Malayalam and English.",
+  "used_for": "M3b only: a few thousand held-out sentences per language for LM evaluation. Never trained on, never shipped.",
+  "retrieved": "2026-11-03",
+  "status": "audited, not fetched",
+  "notes": "ml.txt and en.txt are multi-GB files, over the 50 MB limit for this audit. IndicCorp v1 (CC BY-NC-SA 4.0) is rejected.",
+  "files": [],
+  "candidate_files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/IndicCorpV2/resolve/main/data/ml.txt",
+      "path": "ml.txt"
+    },
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/IndicCorpV2/resolve/main/data/en.txt",
+      "path": "en.txt"
+    }
+  ]
+}

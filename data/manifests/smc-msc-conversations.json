@@ -1,0 +1,20 @@
+{
+  "id": "smc-msc-conversations",
+  "name": "SMC Malayalam Speech Corpus prompt sentences: conversations",
+  "homepage": "https://gitlab.com/smc/msc",
+  "licence": "CC BY-SA 4.0 (LICENSE file; the README says CC BY-SA 3.0)",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "https://gitlab.com/smc/msc/-/blob/f95990846eff9910cff7e7f2ac45e320836324e3/LICENSE and README.md",
+  "attribution": "Conversation sentences from the Malayalam Speech Corpus by Swathanthra Malayalam Computing, CC BY-SA 4.0.",
+  "verdict": "eval only",
+  "verdict_reason": "203 everyday spoken-style Malayalam sentences written for the project. Too small to matter for training, and the only openly licensed conversational Malayalam found, so it is worth more as a held-out set.",
+  "used_for": "Held-out conversational Malayalam for LM evaluation and as a seed for chat-golden.",
+  "retrieved": "2026-11-03",
+  "files": [
+    {
+      "url": "https://gitlab.com/smc/msc/-/raw/f95990846eff9910cff7e7f2ac45e320836324e3/text/conversations.txt",
+      "sha256": "95ee141aac6c1fe28c98e00e51f1688e26616b7588ab7d413f98925717ac4808",
+      "path": "conversations.txt"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "aksharantar",
+  "name": "Aksharantar (AI4Bharat), Malayalam",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "Mixed: CC BY (version not stated) for manually collected data; CC0 1.0 for mined data and existing sources, as the dataset card states. Rows from Dakshina inherit CC BY-SA 4.0 whatever the card says.",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/blob/main/README.md (Licensing Information); paper arXiv:2205.03018 §1: \"the Aksharantar benchmark and all data we created manually are available under the CC-BY license, whereas all the mined data is available under the CC0 license.\"",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "Mined (IndicCorp, Samanantar), Wikidata and AI4Bharat's manual rows (AK-NEI, AK-NEF, AK-Uni, AK-Freq) are CC0 or CC BY. Drop rows whose source is 'Dakshina Dataset' or 'Existing sources': the Dakshina rows are CC BY-SA 4.0 (AI4Bharat can't relicense them as CC0, so take them from the Dakshina release itself), and for Malayalam 'Existing sources' also covers 3,201 BrahmiNet pairs mined from the ILCI corpus, whose licence wasn't found.",
+  "used_for": "Malayalam train split (about 4.1M pairs before filtering) for transliterator training; the test split (6,911 pairs, manual, CC BY) held out for eval. Dedupe against the Dakshina dev/test words.",
+  "retrieved": "2026-11-03",
+  "status": "audited, not fetched",
+  "notes": "mal.zip is 130,628,425 bytes, over the 50 MB limit for this audit. Check the 'source' column values when it is fetched; the card's licence tag is just 'cc'. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own. IndicCorp-mined pairs are English loanwords and their Malayalam spellings, not chat romanisations.",
+  "files": [],
+  "candidate_files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/mal.zip",
+      "path": "mal.zip"
+    }
+  ]
+}

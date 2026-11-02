@@ -1,0 +1,25 @@
+{
+  "id": "enwikinews",
+  "name": "English Wikinews",
+  "homepage": "https://en.wikinews.org/",
+  "licence": "CC BY 4.0 (articles after 2024-12-16); CC BY 2.5 (2005-09-25 to 2024-12-16); public domain before 2005-09-25",
+  "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+  "licence_source": "https://en.wikinews.org/wiki/Wikinews:Copyright",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "News articles from English Wikinews by Wikinews contributors, CC BY 2.5 and CC BY 4.0. \"This work may be attributed to 'Wikinews'.\"",
+  "verdict": "use",
+  "verdict_reason": "Attribution only, with no share-alike, so it raises none of the CC BY-SA questions. It is modern prose, and Wikinews forbids importing copyrighted or Wikipedia text.",
+  "used_for": "M3b English LM text (main namespace articles).",
+  "retrieved": "2026-11-03",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/enwikinews/20261101/enwikinews-20261101-pages-articles.xml.bz2",
+      "sha1": "ce2fe5bdec3ef6b11fdd065b434b4283a695c40c",
+      "path": "enwikinews-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}
