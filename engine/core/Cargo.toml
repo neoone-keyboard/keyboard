@@ -1,0 +1,8 @@
+[package]
+name = "mlengine-core"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "mlengine_core"
