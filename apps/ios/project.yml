@@ -33,7 +33,13 @@ targets:
   KeyboardExtension:
     type: app-extension
     platform: iOS
-    sources: [KeyboardExtension]
+    sources:
+      - path: KeyboardExtension
+        excludes: ["Lexicon"]
+      # A folder reference: the .fst files land in the bundle under Lexicon/.
+      - path: KeyboardExtension/Lexicon
+        type: folder
+        buildPhase: resources
     info:
       path: KeyboardExtension/Info.plist
       properties:

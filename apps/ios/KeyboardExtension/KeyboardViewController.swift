@@ -13,17 +13,22 @@ final class KeyboardViewController: UIInputViewController {
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
 
-    private let provider = EngineSuggestionProvider()
-    private var lastRequestedContext: String?
+    private let provider = EngineSuggestionProvider.bundled()
+    private var lastRequest: SuggestionRequest?
     private var latest = SuggestionResult.empty
+    /// The text before the cursor right after this keyboard's last edit. When
+    /// `textDidChange` sees anything else, the host or the user changed it.
+    private var ownContext: String?
 
     private lazy var input = InputController(output: ProxyTextOutput { [unowned self] in
         self.textDocumentProxy
     })
 
     private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] result in
-        self?.latest = result
-        self?.refreshTopBar()
+        guard let self else { return }
+        latest = result
+        input.updateSuggestions(result)
+        refreshTopBar()
     }
 
     /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
@@ -41,10 +46,14 @@ final class KeyboardViewController: UIInputViewController {
             input.handle(.character(sign), at: ProcessInfo.processInfo.systemUptime)
             afterInput(pageBefore: page, shiftBefore: shift)
         }
-        topBar.onSuggestion = { [unowned self] suggestion in
+        topBar.onSuggestion = { [unowned self] slot in
             let page = input.page, shift = input.shift
-            input.commitSuggestion(suggestion)
+            input.commitSuggestion(slot)
             afterInput(pageBefore: page, shiftBefore: shift)
+        }
+        // Learning runs on the provider's actor; the main thread never waits for it.
+        input.onLearningEvent = { [provider] event in
+            Task { await provider.handle(event) }
         }
 
         settingsPanel.onChange = { [unowned self] changed in
@@ -88,7 +97,16 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         settings = KeyboardSettings.load(from: .standard)
         hideSettings()
+        noteExternalChange()
         applySettings()
+    }
+
+    /// The keys are showing: open the lexicons now, off the main thread, so the
+    /// first word typed already has suggestions.
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard suggestions.isEnabled else { return }
+        Task { [provider] in await provider.warmUp() }
     }
 
     override func viewWillLayoutSubviews() {
@@ -101,12 +119,15 @@ final class KeyboardViewController: UIInputViewController {
 
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
+        if textDocumentProxy.documentContextBeforeInput != ownContext { noteExternalChange() }
+        updateAutocorrect()
         let shiftBefore = input.shift
         input.applyAutoCapitalization(autoCapitalization)
         if input.shift != shiftBefore { keyboardView.refreshLabels() }
         checkMemoryBudget()
         requestSuggestions()
         refreshTopBar()
+        ownContext = textDocumentProxy.documentContextBeforeInput
     }
 
     override func didReceiveMemoryWarning() {
@@ -150,6 +171,28 @@ final class KeyboardViewController: UIInputViewController {
         checkMemoryBudget()
         requestSuggestions()
         refreshTopBar()
+        ownContext = textDocumentProxy.documentContextBeforeInput
+    }
+
+    /// The cursor moved or the host changed the text: no undo, and no stale
+    /// result may replace a word or stay in the bar.
+    private func noteExternalChange() {
+        input.textDidChangeExternally()
+        latest = .empty
+        lastRequest = nil
+        ownContext = nil
+    }
+
+    /// Autocorrect needs the user's setting, a host field that allows it, and a
+    /// field that isn't for URLs, email addresses or web searches.
+    private func updateAutocorrect() {
+        let proxy = textDocumentProxy
+        let fieldAllows: Bool
+        switch proxy.keyboardType ?? .default {
+        case .URL, .emailAddress, .webSearch: fieldAllows = false
+        default: fieldAllows = proxy.autocorrectionType != .no
+        }
+        input.autocorrectEnabled = settings.autocorrect && fieldAllows
     }
 
     private var autoCapitalization: AutoCapitalization {
@@ -185,6 +228,9 @@ final class KeyboardViewController: UIInputViewController {
         input.numberRow = settings.numberRow
         keyboardView.playsClicks = settings.keyClicks
         heightConstraint?.constant = settings.numberRow ? 320 : 270
+        updateAutocorrect()
+        lastRequest = nil // autocorrect may have changed: ask again
+        requestSuggestions()
         reloadKeys()
         refreshTopBar()
     }
@@ -195,19 +241,24 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Malayalam: vowel signs when the text ends in a consonant. English: suggestions.
-    /// If the Rust call fails the strip simply doesn't appear; typing is unaffected.
+    /// After a Malayalam consonant: the best completion and the vowel signs,
+    /// likeliest first. Otherwise the three suggestion slots. If a Rust call
+    /// fails the strip shows signs in aksharamala order; typing is unaffected.
     private func refreshTopBar() {
         if input.language == .malayalam {
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
             if let base = try? malayalamVowelSignBase(contextBefore: context) {
-                topBar.showVowelSigns(base: base, signs: Malayalam.stripSigns)
-            } else {
-                topBar.showSuggestions([])
+                // Only a result for this exact word may reorder the strip.
+                let current = latest.typed == input.currentWord ? latest : .empty
+                topBar.showVowelSigns(
+                    base: base,
+                    signs: Malayalam.orderedStripSigns(preferred: current.vowelSigns),
+                    completion: current.candidates.first { $0.kind == .completion }
+                )
+                return
             }
-            return
         }
-        topBar.showSuggestions(latest.candidates.map(\.text))
+        topBar.showSuggestions(SuggestionBar(latest))
     }
 
     // MARK: Prediction and memory
@@ -223,16 +274,20 @@ final class KeyboardViewController: UIInputViewController {
     /// Permanent until the system recreates the extension: prediction is never re-enabled.
     private func shedPrediction() {
         suggestions.isEnabled = false
-        lastRequestedContext = nil
+        lastRequest = nil
         Task { [provider] in await provider.unload() }
     }
 
-    /// English only: Malayalam shows the vowel-sign strip, not word suggestions.
     private func requestSuggestions() {
-        guard input.language == .english else { return }
-        let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
-        guard context != lastRequestedContext else { return }
-        lastRequestedContext = context
-        suggestions.request(SuggestionRequest(contextBefore: context, language: .english, autocorrect: true))
+        let request = SuggestionRequest(
+            contextBefore: String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64)),
+            language: input.language,
+            autocorrect: input.autocorrectEnabled
+        )
+        guard request != lastRequest else { return }
+        // A result for the other language must not stay in the bar.
+        if request.language != lastRequest?.language { latest = .empty }
+        lastRequest = request
+        suggestions.request(request)
     }
 }
