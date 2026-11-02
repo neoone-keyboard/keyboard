@@ -271,15 +271,20 @@ impl NextWords {
             // A pair never spans punctuation: "i.e." is not "i" followed by "e".
             for phrase in line.split(is_phrase_break) {
                 let mut previous: Option<u32> = None;
+                let mut before: Option<&str> = None; // the word before `previous`
+                let mut last: Option<&str> = None;
                 for word in words(phrase) {
                     let id = self.ids.get(&lookup_key(word)).copied();
                     if let (Some(p), Some(next)) = (previous, id)
                         && (p as usize) < self.previous_allowed
+                        && !last.is_some_and(|l| is_roman_one(l, before))
                     {
                         *self.pairs.entry((p, next)).or_default() += 1;
                         self.prune_if_large();
                     }
                     previous = id;
+                    before = last;
+                    last = Some(word);
                 }
             }
         })
@@ -303,6 +308,15 @@ impl NextWords {
         }
         entries
     }
+}
+
+/// Whether `word` is the Roman numeral one rather than the pronoun: a lowercase
+/// "i" ("part i"), or "I" after a capitalised word ("World War I", "Elizabeth I").
+/// Wikipedia has so many that "I" was otherwise followed by "of". This also
+/// drops some real pronouns ("If I"), which only costs a few counts.
+fn is_roman_one(word: &str, before: Option<&str>) -> bool {
+    word == "i"
+        || (word == "I" && before.is_some_and(|b| b.starts_with(|c: char| c.is_uppercase())))
 }
 
 fn is_phrase_break(c: char) -> bool {
@@ -566,6 +580,32 @@ mod tests {
         next.add_corpus(&data[..], None).unwrap();
         let keys: Vec<_> = next.entries(3).into_iter().map(|(k, _)| k).collect();
         assert!(keys.contains(&b"cat\0bird".to_vec()));
+    }
+
+    #[test]
+    fn roman_numeral_i_is_not_the_pronoun() {
+        // "World War I of", "Elizabeth I and", "part i of": not what follows "I".
+        let vocab = vocab_of(&[
+            "I",
+            "War",
+            "Elizabeth",
+            "part",
+            "of",
+            "and",
+            "am",
+            "If",
+            "then",
+        ]);
+        let text = "War I of\nElizabeth I and\npart i of\nI am\nthen I am\nIf I am";
+        let mut next = NextWords::new(&vocab, &Config::default());
+        next.add_corpus(text.as_bytes(), None).unwrap();
+        let mut i_entries: Vec<_> = next
+            .entries(5)
+            .into_iter()
+            .filter(|(k, _)| k.starts_with(b"i\0"))
+            .collect();
+        i_entries.sort();
+        assert_eq!(i_entries, [(b"i\0am".to_vec(), 2)]);
     }
 
     #[test]
