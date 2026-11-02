@@ -167,11 +167,13 @@ struct AutocorrectTests {
         #expect(output.text == "എന്റ ")
     }
 
-    @Test func aPageChangeDropsTheOldResult() {
+    @Test func aPageChangeKeepsTheResultTheBarShows() {
         output.text = "teh"
         input.updateSuggestions(corrected("teh", to: "the"))
         input.handle(.page(.symbols), at: 0)
-        #expect(input.suggestions == .empty)
+        #expect(input.suggestions == corrected("teh", to: "the"))
+        input.handle(.character(","), at: 0)
+        #expect(output.text == "the,")
     }
 
     @Test func completionsNeverReplaceOnSpace() {

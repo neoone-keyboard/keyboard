@@ -51,6 +51,16 @@ public struct SuggestionResult: Equatable, Sendable {
     public static let empty = SuggestionResult(typed: "", candidates: [])
 
     public var middle: Suggestion? { candidates.first }
+
+    /// Whether this result was made for `word`, the word now before the cursor.
+    /// Smart punctuation's ’ and a typed ' count as the same.
+    public func isFor(word: String) -> Bool {
+        Self.straight(typed) == Self.straight(word)
+    }
+
+    private static func straight(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{2019}", with: "'")
+    }
 }
 
 /// One slot of the bar. A quoted slot shows the typed word in quotes, so one tap keeps it.

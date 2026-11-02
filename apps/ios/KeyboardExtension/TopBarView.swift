@@ -17,6 +17,11 @@ final class TopBarView: UIView {
     private var theme: KeyboardTheme?
     /// What is showing now, so unchanged content isn't rebuilt on every keystroke.
     private var shownContent: [String] = []
+    /// The consonant the vowel strip is drawn on; nil while suggestions show.
+    private var stripBase: String?
+
+    /// Whether the vowel strip is showing (rather than the suggestion slots).
+    var showsVowelSigns: Bool { stripBase != nil }
 
     /// Width of one vowel-sign button. Wide enough to tap without zooming;
     /// the last one is cut off at the edge, which shows the row scrolls.
@@ -89,6 +94,7 @@ final class TopBarView: UIView {
         let content = ["suggestions"] + bar.slots.map { slot in slot.map { "\($0.title)|\($0.quoted)" } ?? "" }
         guard content != shownContent else { return }
         shownContent = content
+        stripBase = nil
         vowelRow.isHidden = true
         suggestionStack.isHidden = false
         replaceItems(in: suggestionStack, with: bar.slots.enumerated().map { index, slot in
@@ -129,8 +135,10 @@ final class TopBarView: UIView {
             button.addAction(UIAction { [weak self] _ in self?.onVowelSign?(sign) }, for: .touchUpInside)
             return button
         })
-        // A new consonant starts the row from കാ again.
-        vowelScroll.setContentOffset(.zero, animated: false)
+        // A new consonant starts the row from the beginning again; a reorder for
+        // the same consonant leaves it where the user scrolled it.
+        if base != stripBase { vowelScroll.setContentOffset(.zero, animated: false) }
+        stripBase = base
     }
 
     private func replaceItems(in stack: UIStackView, with views: [UIView]) {

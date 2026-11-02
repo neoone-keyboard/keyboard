@@ -110,7 +110,8 @@ public final class InputController {
         case .nextKeyboard:
             break // The host view controller switches keyboards.
         case .page(let target):
-            suggestions = .empty
+            // The text is unchanged, so the result still describes the word:
+            // `teh`, 123, `,` gives `the,`, as the bar showed.
             page = target == .letters ? alphabetPage : target
         case .toggleLanguage:
             suggestions = .empty
