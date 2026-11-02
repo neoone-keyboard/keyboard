@@ -60,7 +60,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        settings = KeyboardSettings.sharedDefaults.map(KeyboardSettings.load(from:)) ?? KeyboardSettings()
+        settings = KeyboardSettings.load(from: .standard)
         applySettings()
     }
 
@@ -106,6 +106,8 @@ final class KeyboardViewController: UIInputViewController {
             input.deleteWordBackward()
         case .showAlternates, .highlightAlternate:
             return // Handled inside KeyboardView.
+        case .openSettings:
+            return
         }
         afterInput(pageBefore: pageBefore, shiftBefore: shiftBefore)
     }

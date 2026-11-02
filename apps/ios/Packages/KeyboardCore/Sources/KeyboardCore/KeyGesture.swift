@@ -9,6 +9,8 @@ public enum GestureEvent: Equatable, Sendable {
     case commitAlternate(String)
     case moveCursor(Int)
     case deleteWord
+    /// Long-press on the language key: show the in-keyboard settings.
+    case openSettings
 }
 
 public struct GestureTiming: Sendable {
@@ -24,13 +26,14 @@ public struct GestureTiming: Sendable {
 }
 
 /// Interprets one finger on one key: tap, long-press alternates, spacebar cursor
-/// drag, backspace repeat and swipe-left-to-delete-word. Pure logic: the view feeds
+/// drag, backspace repeat, swipe-left-to-delete-word and long-press-language for settings. Pure logic: the view feeds
 /// it touches and timer ticks (monotonic seconds) and acts on the returned events.
 public struct KeyGesture: Sendable {
     public let key: Key
 
     /// `swipeCancelled`: a backspace swipe slid back, so releasing does nothing.
-    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled }
+    /// `settingsOpened`: the language key was held, so releasing doesn't toggle.
+    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled, settingsOpened }
 
     private let start: CGPoint
     private let startTime: TimeInterval
@@ -70,6 +73,10 @@ public struct KeyGesture: Sendable {
                 nextRepeat = time + timing.repeatInterval
                 return [.tap(.backspace)]
             }
+            if key.action == .toggleLanguage, time - startTime >= timing.longPress {
+                mode = .settingsOpened
+                return [.openSettings]
+            }
             if !key.alternates.isEmpty, time - startTime >= timing.longPress {
                 mode = .alternates
                 alternatesOriginX = start.x - alternateWidth / 2
@@ -81,7 +88,7 @@ public struct KeyGesture: Sendable {
             guard time >= nextRepeat else { return [] }
             nextRepeat = time + timing.repeatInterval
             return [.tap(.backspace)]
-        case .alternates, .cursor, .deleteSwipe, .swipeCancelled:
+        case .alternates, .cursor, .deleteSwipe, .swipeCancelled, .settingsOpened:
             return []
         }
     }
@@ -109,7 +116,7 @@ public struct KeyGesture: Sendable {
         case .deleteSwipe, .swipeCancelled:
             mode = point.x - start.x <= -timing.deleteWordSwipe ? .deleteSwipe : .swipeCancelled
             return []
-        case .repeating:
+        case .repeating, .settingsOpened:
             return []
         }
     }
@@ -119,7 +126,7 @@ public struct KeyGesture: Sendable {
         case .pressing: [.tap(key.action)]
         case .alternates: [.commitAlternate(key.alternates[highlighted])]
         case .deleteSwipe: [.deleteWord]
-        case .cursor, .repeating, .swipeCancelled: []
+        case .cursor, .repeating, .swipeCancelled, .settingsOpened: []
         }
     }
 

@@ -8,22 +8,15 @@ public enum AccentChoice: String, CaseIterable, Sendable {
     case saffron, teal, indigo, rose
 }
 
-/// Settings chosen in the containing app and read by the keyboard. They live in
-/// the shared App Group, which the keyboard can read without Full Access.
+/// Settings chosen in the keyboard's own settings panel. The keyboard keeps them in
+/// its own container (`UserDefaults.standard`), so no Full Access or App Group is needed.
 public struct KeyboardSettings: Equatable, Sendable {
-    public static let appGroup = "group.me.jishnu.keyboard"
-
     public var theme: ThemeChoice = .system
     public var accent: AccentChoice = .saffron
     public var numberRow = false
     public var keyClicks = false
 
     public init() {}
-
-    /// The shared store, or nil when the App Group isn't available (e.g. a misconfigured build).
-    public static var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: appGroup)
-    }
 
     public static func load(from defaults: UserDefaults) -> KeyboardSettings {
         var settings = KeyboardSettings()

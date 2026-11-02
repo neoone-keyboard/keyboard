@@ -111,3 +111,18 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     _ = g.moved(to: CGPoint(x: 55, y: 10))
     #expect(g.ended() == [.deleteWord])
 }
+
+@Test func languageKeyTapTogglesLanguage() {
+    var g = gesture(Key(.toggleLanguage))
+    #expect(g.tick(at: 0.1) == [])
+    #expect(g.ended() == [.tap(.toggleLanguage)])
+}
+
+@Test func languageKeyLongPressOpensSettingsOnceAndDoesNotToggle() {
+    var g = gesture(Key(.toggleLanguage))
+    #expect(g.tick(at: 0.34) == [])
+    #expect(g.tick(at: 0.35) == [.openSettings])
+    #expect(g.tick(at: 1.0) == [])
+    #expect(g.moved(to: CGPoint(x: 140, y: 10)) == [])
+    #expect(g.ended() == [])
+}
