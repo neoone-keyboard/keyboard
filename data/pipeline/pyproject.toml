@@ -1,0 +1,13 @@
+[project]
+name = "lexicon-pipeline"
+version = "0.1.0"
+description = "Fetches and extracts the corpora the keyboard's lexicons are built from"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

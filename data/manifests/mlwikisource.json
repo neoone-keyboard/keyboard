@@ -1,0 +1,18 @@
+{
+  "id": "mlwikisource",
+  "name": "Malayalam Wikisource",
+  "homepage": "https://ml.wikisource.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
+  "used_for": "Malayalam word frequencies (whole 2026-10-01 dump).",
+  "retrieved": "2026-11-02",
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/mlwikisource/20261001/mlwikisource-20261001-pages-articles.xml.bz2",
+      "sha1": "f31bcf568f90388e59e2cf36448d145cdfe2fcb2",
+      "path": "mlwikisource-20261001-pages-articles.xml.bz2"
+    }
+  ]
+}

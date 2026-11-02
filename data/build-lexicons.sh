@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Rebuilds the lexicon bundle in apps/ios/KeyboardExtension/Lexicon/ from the
+# sources in data/manifests/: fetch, extract plain text, run lexbuild.
+# Extracted text is cached in data/raw/text/; delete it to re-extract.
+set -euo pipefail
+export PATH="$HOME/.cargo/bin:$PATH"
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RAW="$ROOT/data/raw"
+TEXT="$RAW/text"
+PIPELINE="$ROOT/data/pipeline"
+OUT="$ROOT/apps/ios/KeyboardExtension/Lexicon"
+ENGLISH_WORDS=500000000
+
+py() { uv run --quiet --project "$PIPELINE" python -I "$@"; }
+
+"$ROOT/data/fetch.sh"
+mkdir -p "$TEXT"
+
+# Each step writes to a .tmp file first, so an interrupted run is redone, not trusted.
+if [ ! -s "$TEXT/en.txt" ]; then
+  py "$PIPELINE/extract_wiki.py" "$RAW"/enwiki/*.bz2 --max-words "$ENGLISH_WORDS" --out "$TEXT/en.txt.tmp"
+  mv "$TEXT/en.txt.tmp" "$TEXT/en.txt"
+fi
+if [ ! -s "$TEXT/ml.txt" ]; then
+  py "$PIPELINE/extract_wiki.py" "$RAW"/mlwiki/*.bz2 "$RAW"/mlwikisource/*.bz2 --out "$TEXT/ml.txt.tmp"
+  mv "$TEXT/ml.txt.tmp" "$TEXT/ml.txt"
+fi
+if [ ! -s "$TEXT/scowl.txt" ]; then
+  py "$PIPELINE/scowl_words.py" "$RAW/scowl/scowl-2020.12.07.tar.gz" --out "$TEXT/scowl.txt.tmp"
+  mv "$TEXT/scowl.txt.tmp" "$TEXT/scowl.txt"
+fi
+
+smc=()
+for f in "$RAW"/smc-words/*.txt; do smc+=(--smc "$f"); done
+
+(cd "$ROOT/engine" && cargo build --release -p lexbuild)
+rm -rf "$RAW/bundle"
+"$ROOT/engine/target/release/lexbuild" \
+  --english "$TEXT/en.txt" --malayalam "$TEXT/ml.txt" --scowl "$TEXT/scowl.txt" "${smc[@]}" \
+  --out "$RAW/bundle"
+
+mkdir -p "$OUT"
+rm -f "$OUT"/*.fst
+mv "$RAW"/bundle/*.fst "$OUT/"
+mv "$RAW/bundle/stats.txt" "$ROOT/data/lexicon-stats.txt"
+echo "Lexicons written to $OUT; stats in data/lexicon-stats.txt"

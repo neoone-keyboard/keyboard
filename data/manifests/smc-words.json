@@ -1,0 +1,122 @@
+{
+  "id": "smc-words",
+  "name": "SMC Malayalam word lists",
+  "homepage": "https://gitlab.com/smc/corpus",
+  "licence": "CC BY-SA 3.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "attribution": "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project.",
+  "used_for": "Extra Malayalam words (names, places, lemmas) kept even when rare in Wikipedia. Only words/*.txt at commit d1e6431; the text/ corpus is excluded because its news and web-crawl files don't state their own licences, and mlwiki-all-unique-words duplicates Malayalam Wikipedia.",
+  "retrieved": "2026-11-02",
+  "files": [
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/abbreviations.txt",
+      "sha256": "b965cfd627de5d4880850dc1cfdf6ecb5b8c7cea71541e353fc61be9dedf2628",
+      "path": "abbreviations.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/adjectives.txt",
+      "sha256": "44f200e6dce6641be8ec64553771f4de56c562eab121045b9a062dbaa90ebb09",
+      "path": "adjectives.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/adverbs.txt",
+      "sha256": "378863b1d75bb79d6e4be57ba8087f8ebc47285b9d608c254d9532aac6d5f340",
+      "path": "adverbs.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/affirmatives.txt",
+      "sha256": "d2070f383528aabe231521c483dc8ccdd64949aec17b3cb06bd3861aa57d6f88",
+      "path": "affirmatives.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/conjunctions.txt",
+      "sha256": "72e02223251fb2a1007c869c7b415d30b714724b0bfb90df44d8cb8b9f7787b0",
+      "path": "conjunctions.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/demonstratives.txt",
+      "sha256": "49410ab2de710c11576d9d8deee2d4e18e52479437c2a65e940ed46b4c536c4a",
+      "path": "demonstratives.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/english-borrowed.txt",
+      "sha256": "ace3beebb5c880a977e0c55049cd3aee12ea9656f9df7abef19ea207592c2930",
+      "path": "english-borrowed.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/interjections.txt",
+      "sha256": "8bbd036d56e8ab1f994312352a2127687dbbb323f75950f30331a235e96d53e6",
+      "path": "interjections.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/languages.txt",
+      "sha256": "8e08b2f5bccaa8320ad44282f4eb2f4f5b132ce00bd8ef34d5718445c2449ca3",
+      "path": "languages.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/negations.txt",
+      "sha256": "372700184a66507dd42719001856cf202447427820dc32ee69967e6613f814b0",
+      "path": "negations.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/nouns-sanskrit.txt",
+      "sha256": "94185ea248086354c9bb7249d5cf7e1461a623d4441438d56640cf97e8f5e196",
+      "path": "nouns-sanskrit.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/nouns.txt",
+      "sha256": "b73f6f82a94aa32d435b9f9230470e08be44a164403eaa65d44fbd7fd8692653",
+      "path": "nouns.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/person-names.txt",
+      "sha256": "e14b8b85409aaa59f5f093a36c9bae70929ffdcf62a924bbbcc9920f93356277",
+      "path": "person-names.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/places.txt",
+      "sha256": "21d020ce30615e9ed32ab129f7d53c818cc9468e660765365c4797d0ba233c9a",
+      "path": "places.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/postpositions.txt",
+      "sha256": "7d1a4b22ee693a9e9c33ca082087f9fc51532a3e51449f98baacb4067d859de8",
+      "path": "postpositions.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/pronouns.txt",
+      "sha256": "7e24046b9f74238ec3a26189efd382fb34d701f9a91b2380920e174996ef8abd",
+      "path": "pronouns.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/proper-nouns.txt",
+      "sha256": "5ceb8422b2f1c1a58db6012311b4ff75fded0445be41b4d713f26cc5e2b2b459",
+      "path": "proper-nouns.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/quantifiers.txt",
+      "sha256": "c570ea2fd711096cb9b13f0d285f3eb9d067537d8038fc07440b60ada9e21dbc",
+      "path": "quantifiers.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/questions.txt",
+      "sha256": "96f729e1e08c83471bb512922c96cfdb051a20eb1d036baf328603c1a8bb7d45",
+      "path": "questions.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/software-names.txt",
+      "sha256": "85a4bae097428ae3abb36e41b1cc02c9dcdd510903b5fde32a351471149563d4",
+      "path": "software-names.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/times.txt",
+      "sha256": "dc590098e8fe3c8f21adfc7008dbfebdb1f0e32b64b9584dc12dba2b8e852032",
+      "path": "times.txt"
+    },
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/words/verbs.txt",
+      "sha256": "f5f5a37fa21972cee7352f8a49fb46a3abe1097e195a56170711ff584af83c45",
+      "path": "verbs.txt"
+    }
+  ]
+}

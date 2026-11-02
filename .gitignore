@@ -6,3 +6,7 @@ apps/ios/MLKeyboard.xcodeproj/
 apps/ios/Packages/*/.build/
 apps/ios/Packages/MLEngine/MLEngineFFI.xcframework/
 apps/ios/Packages/MLEngine/Sources/MLEngine/mlengine_ffi.swift
+data/raw/
+data/pipeline/.venv/
+__pycache__/
+.pytest_cache/
