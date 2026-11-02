@@ -1,10 +1,15 @@
 //! Golden checks and the latency gate on the real, committed lexicon bundle.
 //! `make lexicons` rebuilds it. Set MLENGINE_BUNDLE to test another directory.
+//!
+//! The transliterator rows also need the trained model, `training/build/translit.mlkbnn`,
+//! which isn't committed; they are skipped without it.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use mlengine_core::{Engine, Kind, Layout, Paths};
+use mlengine_core::lexicon::Lexicon;
+use mlengine_core::nn::{Translit, Transliteration};
+use mlengine_core::{Engine, Kind, Layout, Paths, rank, suffix};
 
 fn bundle_dir() -> PathBuf {
     std::env::var_os("MLENGINE_BUNDLE")
@@ -355,5 +360,109 @@ fn latency() {
         "p99 {:?} on {:?}",
         p99.0,
         p99.1
+    );
+}
+
+fn trained_translit() -> Option<Translit> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/translit.mlkbnn");
+    if !path.exists() {
+        println!(
+            "skipping: {} is missing (export it with mlkb.translit.export)",
+            path.display()
+        );
+        return None;
+    }
+    Some(Translit::open(&path).unwrap())
+}
+
+fn bundle_lexicon(name: &str) -> Lexicon {
+    Lexicon::open(&bundle_dir().join(name)).unwrap()
+}
+
+/// The constrained beam's spellings of `typed`, with its suffix splits allowed.
+fn transliterations(
+    t: &Translit,
+    ml: &Lexicon,
+    manglish: &Lexicon,
+    typed: &str,
+) -> Vec<Transliteration> {
+    let splits: Vec<String> = suffix::splits(manglish, typed, rank::MANGLISH_SPLIT_STEM_MIN)
+        .into_iter()
+        .map(|s| s.word)
+        .collect();
+    t.candidates_with_splits(typed, ml, &splits, 4)
+}
+
+#[test]
+fn translit_spells_lexicon_words_and_splits() {
+    let Some(t) = trained_translit() else { return };
+    let (ml, manglish) = (bundle_lexicon("ml.fst"), bundle_lexicon("manglish.fst"));
+    for (typed, want) in [
+        ("enthu", "എന്തു"),
+        // Known model gap: നന്ദി is out of reach. After നന്, ദ is the model's 23rd token
+        // (log prob -7.4), far outside the 8 expanded per step; നന്നി is in ml.fst too.
+        ("nanni", "നന്നി"),
+        ("jishnu", "ജിഷ്ണു"), // a name, but in ml.fst
+        ("sukhamano", "സുഖമാണോ"), // split: സുഖം + ആണോ
+        ("kollamo", "കൊള്ളാമോ"), // split: കൊള്ളാം + ഓ
+    ] {
+        let got = transliterations(&t, &ml, &manglish, typed);
+        assert!(
+            got.iter().any(|c| c.in_lexicon && c.text == want),
+            "{typed}: {got:?}"
+        );
+        assert!(got.iter().filter(|c| c.in_lexicon).count() <= 4);
+        assert!(got.iter().filter(|c| !c.in_lexicon).count() <= 1);
+    }
+    let long = "a".repeat(24);
+    let _ = t.candidates(&long, &ml, 4);
+    assert!(t.candidates(&format!("{long}a"), &ml, 4).is_empty());
+}
+
+#[test]
+fn translit_free_beam_spells_words_off_the_lexicon() {
+    let Some(t) = trained_translit() else { return };
+    // ജിഷ്ണു is in ml.fst, so take it out: a lexicon of everything but names.
+    let ml = Lexicon::from_bytes(
+        mlengine_core::lexicon::build([("എന്തു".as_bytes().to_vec(), 1)]).unwrap(),
+    )
+    .unwrap();
+    let got = t.candidates("jishnu", &ml, 4);
+    let free: Vec<_> = got.iter().filter(|c| !c.in_lexicon).collect();
+    assert_eq!(free.len(), 1, "{got:?}");
+    assert_eq!(free[0].text, "ജിഷ്ണു", "{got:?}");
+}
+
+/// Prints each word's spellings and the per-word p50/p99. Run in release:
+/// `cargo test --release -p mlengine-core --test bundle -- --ignored --nocapture translit_latency`.
+#[test]
+#[ignore = "timing: run in release"]
+fn translit_latency() {
+    let Some(t) = trained_translit() else { return };
+    let (ml, manglish) = (bundle_lexicon("ml.fst"), bundle_lexicon("manglish.fst"));
+    let words = [
+        "enthu", "nanni", "jishnu", "sukhamano", "kollamo", "ente", "njan", "veettil", "amma",
+        "kerala", "malayalam", "varunnundo", "kazhichille", "enikku", "thiruvananthapuram",
+        "pinne", "sheri", "evide", "ippol", "nale", "ammayodu", "paranjennu",
+    ];
+    for w in words {
+        println!("{w}: {:?}", transliterations(&t, &ml, &manglish, w));
+    }
+    let mut samples: Vec<(Duration, &str)> = Vec::new();
+    for _ in 0..10 {
+        for w in words {
+            let start = Instant::now();
+            let _ = transliterations(&t, &ml, &manglish, w);
+            samples.push((start.elapsed(), w));
+        }
+    }
+    samples.sort();
+    println!(
+        "translit over {} requests: p50 {:?}, p99 {:?}, max {:?}",
+        samples.len(),
+        samples[samples.len() / 2].0,
+        samples[samples.len() * 99 / 100],
+        samples[samples.len() - 1]
     );
 }
