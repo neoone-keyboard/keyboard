@@ -23,7 +23,11 @@ if [ ! -s "$TEXT/en.txt" ]; then
   mv "$TEXT/en.txt.tmp" "$TEXT/en.txt"
 fi
 if [ ! -s "$TEXT/ml.txt" ]; then
-  py "$PIPELINE/extract_wiki.py" "$RAW"/mlwiki/*.bz2 "$RAW"/mlwikisource/*.bz2 --out "$TEXT/ml.txt.tmp"
+  py "$PIPELINE/extract_wiki.py" "$RAW"/mlwiki/*.bz2 --out "$TEXT/ml.txt.tmp"
+  # Wikisource proofread text is in the Page namespace (key 104), not the main one.
+  py "$PIPELINE/extract_wiki.py" "$RAW"/mlwikisource/*.bz2 --extra-namespaces 104,Page,താൾ --out "$TEXT/mlws.txt.tmp"
+  cat "$TEXT/mlws.txt.tmp" >> "$TEXT/ml.txt.tmp"
+  rm "$TEXT/mlws.txt.tmp"
   mv "$TEXT/ml.txt.tmp" "$TEXT/ml.txt"
 fi
 if [ ! -s "$TEXT/scowl.txt" ]; then

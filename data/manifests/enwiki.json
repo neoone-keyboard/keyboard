@@ -8,6 +8,10 @@
   "attribution": "Text of English Wikipedia articles by Wikipedia contributors.",
   "used_for": "English word frequencies and next-word pairs: the first 6 of 27 article files of the 2026-10-01 dump, capped at 500 million words.",
   "retrieved": "2026-11-02",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
   "files": [
     {
       "url": "https://dumps.wikimedia.org/enwiki/20261001/enwiki-20261001-pages-articles1.xml-p1p41242.bz2",

@@ -8,6 +8,10 @@
   "attribution": "Text of Malayalam Wikipedia articles by Wikipedia contributors.",
   "used_for": "Malayalam word frequencies, Manglish lookup and next-word pairs (whole 2026-10-01 dump).",
   "retrieved": "2026-11-02",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
   "files": [
     {
       "url": "https://dumps.wikimedia.org/mlwiki/20261001/mlwiki-20261001-pages-articles.xml.bz2",

@@ -5,11 +5,18 @@ Runs on the Mac only; the app never touches the network."""
 import argparse
 import hashlib
 import json
+import http.client
 import sys
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 CHUNK = 1 << 20
+TIMEOUT = 60  # seconds per socket read
+RETRIES = 3
+BACKOFF = 2.0  # seconds; doubles each retry
 
 
 def digest(path: Path, algorithm: str) -> str:
@@ -32,25 +39,76 @@ def verified(path: Path, entry: dict) -> bool:
     return path.exists() and digest(path, algorithm) == want
 
 
-def download(url: str, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_suffix(path.suffix + ".part")
-    request = urllib.request.Request(url, headers={"User-Agent": "ios-keyboard-lexicon-pipeline/1.0"})
-    with urllib.request.urlopen(request) as response, open(partial, "wb") as out:
-        while chunk := response.read(CHUNK):
-            out.write(chunk)
-    partial.replace(path)
+class DownloadError(Exception):
+    pass
 
 
-def fetch(manifest: dict, raw: Path) -> list[Path]:
+def _attempt(url: str, partial: Path, timeout: float) -> None:
+    """One request. Resumes from `partial` with a Range request when it exists."""
+    offset = partial.stat().st_size if partial.exists() else 0
+    headers = {"User-Agent": "ios-keyboard-lexicon-pipeline/1.0"}
+    if offset:
+        headers["Range"] = f"bytes={offset}-"
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as response:
+        resumed = offset > 0 and response.status == 206  # a 200 means the server ignored Range
+        with open(partial, "ab" if resumed else "wb") as out:
+            while chunk := response.read(CHUNK):
+                out.write(chunk)
+
+
+def download(
+    url: str, partial: Path, entry: dict, *, timeout: float = TIMEOUT, retries: int = RETRIES, backoff: float = BACKOFF
+) -> None:
+    """Downloads into `partial`, retrying with backoff and resuming where it stopped."""
+    partial.parent.mkdir(parents=True, exist_ok=True)
+    problem = "no attempt made"
+    for attempt in range(retries + 1):
+        try:
+            _attempt(url, partial, timeout)
+            return
+        except urllib.error.HTTPError as e:
+            problem = f"HTTP {e.code} {e.reason}"
+            if e.code == 416:  # nothing left to send: complete, or a stale partial
+                if verified(partial, entry):
+                    return
+                partial.unlink(missing_ok=True)
+            elif e.code < 500 and e.code not in (408, 429):
+                raise DownloadError(problem) from None
+        except (OSError, http.client.HTTPException) as e:  # URLError, timeouts, dropped connections
+            problem = str(getattr(e, "reason", None) or e)
+        if attempt < retries:
+            time.sleep(backoff * 2**attempt)
+    raise DownloadError(f"{problem} (gave up after {retries + 1} attempts)")
+
+
+def candidate_urls(url: str, mirrors: list[str]) -> list[str]:
+    """The primary URL, then the same path on each mirror base URL, in order."""
+    path = urllib.parse.urlsplit(url).path.lstrip("/")
+    return [url] + [mirror.rstrip("/") + "/" + path for mirror in mirrors]
+
+
+def fetch(
+    manifest: dict, raw: Path, *, timeout: float = TIMEOUT, retries: int = RETRIES, backoff: float = BACKOFF
+) -> list[Path]:
     paths = []
     for entry in manifest["files"]:
         path = raw / manifest["id"] / entry["path"]
         if not verified(path, entry):
-            print(f"downloading {entry['url']}", file=sys.stderr)
-            download(entry["url"], path)
-            if not verified(path, entry):
-                raise SystemExit(f"checksum mismatch for {path}: the source changed; update the manifest")
+            partial = path.with_name(path.name + ".part")
+            failures = []
+            for url in candidate_urls(entry["url"], manifest.get("mirrors", [])):
+                print(f"downloading {url}", file=sys.stderr)
+                try:
+                    download(url, partial, entry, timeout=timeout, retries=retries, backoff=backoff)
+                    break
+                except DownloadError as e:
+                    failures.append(f"{url}: {e}")
+            else:
+                raise SystemExit(f"could not download {path.name}:\n  " + "\n  ".join(failures))
+            if not verified(partial, entry):
+                partial.unlink(missing_ok=True)
+                raise SystemExit(f"checksum mismatch for {path.name}: the source changed; update the manifest")
+            partial.replace(path)
         paths.append(path)
     return paths
 

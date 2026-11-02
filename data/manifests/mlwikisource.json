@@ -8,6 +8,10 @@
   "attribution": "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
   "used_for": "Malayalam word frequencies (whole 2026-10-01 dump).",
   "retrieved": "2026-11-02",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
   "files": [
     {
       "url": "https://dumps.wikimedia.org/mlwikisource/20261001/mlwikisource-20261001-pages-articles.xml.bz2",
