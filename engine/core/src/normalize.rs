@@ -22,9 +22,12 @@ fn chillu(consonant: char) -> Option<char> {
 }
 
 /// NFC, then every consonant + virama + ZWJ sequence that has an atomic chillu becomes that chillu,
-/// and `’` becomes `'`.
+/// a ZWJ or ZWNJ is dropped unless it follows a virama inside a word, and `’` becomes `'`.
 pub fn normalize(text: &str) -> String {
-    let nfc: Vec<char> = text.nfc().map(|c| if c == '\u{2019}' { '\'' } else { c }).collect();
+    let nfc: Vec<char> = text
+        .nfc()
+        .map(|c| if c == '\u{2019}' { '\'' } else { c })
+        .collect();
     let mut out = String::with_capacity(text.len());
     let mut i = 0;
     while i < nfc.len() {
@@ -37,10 +40,24 @@ pub fn normalize(text: &str) -> String {
             i += 3;
             continue;
         }
+        if is_joiner(c)
+            && !(out.ends_with(VIRAMA) && nfc.get(i + 1).is_some_and(|&n| is_malayalam(n)))
+        {
+            i += 1; // only virama + joiner + letter changes how a word is drawn
+            continue;
+        }
         out.push(c);
         i += 1;
     }
     out
+}
+
+fn is_joiner(c: char) -> bool {
+    matches!(c, '\u{200C}' | ZWJ)
+}
+
+fn is_malayalam(c: char) -> bool {
+    ('\u{0D00}'..='\u{0D7F}').contains(&c)
 }
 
 #[cfg(test)]
@@ -70,6 +87,32 @@ mod tests {
     fn latin_is_untouched_except_nfc() {
         assert_eq!(normalize("Hello"), "Hello");
         assert_eq!(normalize("cafe\u{301}"), "caf\u{e9}");
+    }
+
+    #[test]
+    fn joiners_at_word_edges_are_dropped() {
+        // Wikipedia writes "ആണ്‌" with a trailing ZWNJ; it must count as "ആണ്".
+        assert_eq!(normalize("ആണ്\u{200C}"), "ആണ്");
+        assert_eq!(normalize("ആണ്\u{200C} ഒരു"), "ആണ് ഒരു");
+        assert_eq!(normalize("\u{200C}തന്നെ"), "തന്നെ");
+        assert_eq!(normalize("x \u{200D}കെ."), "x കെ.");
+        assert_eq!(normalize("ഴ്\u{200D}"), "ഴ്");
+        assert_eq!(normalize("\u{200C}\u{200D}"), "");
+    }
+
+    #[test]
+    fn joiners_inside_a_word_are_kept() {
+        assert_eq!(normalize("ഛത്തീസ്\u{200C}ഗഡ്"), "ഛത്തീസ്\u{200C}ഗഡ്");
+        assert_eq!(normalize("ഗ്\u{200D}ക"), "ഗ്\u{200D}ക");
+        assert_eq!(normalize("ക്\u{200C}\u{200C}ക"), "ക്\u{200C}ക");
+    }
+
+    #[test]
+    fn joiners_that_change_nothing_are_dropped() {
+        // Before a vowel sign, or after an atomic chillu, a joiner is invisible.
+        assert_eq!(normalize("ഷ്ട്യ\u{200D}ാ"), "ഷ്ട്യാ");
+        assert_eq!(normalize("റെയിൽ\u{200C}വേ"), "റെയിൽവേ");
+        assert_eq!(normalize("ക\u{200C}ക"), "കക");
     }
 
     #[test]

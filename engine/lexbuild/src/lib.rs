@@ -405,6 +405,15 @@ mod tests {
     }
 
     #[test]
+    fn counting_ignores_joiners_at_word_edges() {
+        // Malayalam Wikipedia often ends a word in virama + ZWNJ ("ആണ്‌").
+        let m = counts("ആണ്\u{200C} ആണ് \u{200C}തന്നെ തന്നെ", Script::Malayalam);
+        assert_eq!(m.get("ആണ്"), Some(&2));
+        assert_eq!(m.get("തന്നെ"), Some(&2));
+        assert_eq!(m.len(), 2);
+    }
+
+    #[test]
     fn english_merges_case_and_picks_one_spelling() {
         let c = counts(
             "the the The London London london I i i Hello Hello hello Zork zork zork",
