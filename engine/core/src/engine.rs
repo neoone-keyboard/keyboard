@@ -270,10 +270,17 @@ impl Engine {
                     let (Ok(word), true) = (std::str::from_utf8(key), cost > 0) else {
                         return;
                     };
+                    // Only leaving out apostrophes (`dont` → `don't`) costs nothing:
+                    // it is the commonest slip, and no letter is wrong.
+                    let penalty = if only_apostrophes_missing(word, typed_n) {
+                        0.0
+                    } else {
+                        rank::EDIT_PENALTY * f32::from(cost)
+                    };
                     let candidate = Candidate {
                         text: show(word),
                         kind: Kind::Correction,
-                        score: score_of(count) - rank::EDIT_PENALTY * f32::from(cost),
+                        score: score_of(count) - penalty,
                     };
                     // A correction that only extends the typed word (`hel` → `help`,
                     // `don'` → `don't`) is a completion: it never takes the middle.
@@ -440,6 +447,15 @@ impl Engine {
     }
 }
 
+/// Whether `word` is `typed` with apostrophes put back, ignoring case.
+fn only_apostrophes_missing(word: &str, typed: &str) -> bool {
+    let letters = word.bytes().filter(|&b| b != b'\'');
+    word.contains('\'')
+        && letters
+            .map(|b| b.to_ascii_lowercase())
+            .eq(typed.bytes().map(|b| b.to_ascii_lowercase()))
+}
+
 fn starts_with_ignoring_case(word: &str, prefix: &str) -> bool {
     word.len() >= prefix.len()
         && word.as_bytes()[..prefix.len()].eq_ignore_ascii_case(prefix.as_bytes())
@@ -549,6 +565,22 @@ mod tests {
         let s = engine().suggest("hello", Layout::Latin, true);
         assert_eq!(s.candidates[0].text, "hello");
         assert_eq!(s.candidates[0].kind, Kind::Verbatim);
+    }
+
+    #[test]
+    fn a_missing_apostrophe_beats_a_commoner_word_two_slips_away() {
+        // On Wikipedia "song" is five times as common as "don't", and d→s, t→g
+        // are neighbouring keys; leaving out the apostrophe is still the likelier slip.
+        let sources = Sources {
+            english: lex(&[("song", 5000), ("don't", 1000), ("the", 100_000)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        let s = engine.suggest("dont", Layout::Latin, true);
+        assert_eq!(s.candidates[0].text, "don't");
+        assert_eq!(s.candidates[0].kind, Kind::Correction);
+        let s = engine.suggest("Dont", Layout::Latin, true);
+        assert_eq!(s.candidates[0].text, "Don't");
     }
 
     #[test]
