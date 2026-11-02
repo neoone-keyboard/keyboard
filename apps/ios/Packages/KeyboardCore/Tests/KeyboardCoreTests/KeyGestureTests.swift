@@ -88,3 +88,18 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     #expect(g.moved(to: CGPoint(x: 50, y: 10)) == [])
     #expect(g.ended() == [.deleteWord])
 }
+
+@Test func backspaceSwipeCancelledByMovingBack() {
+    var g = gesture(Key(.backspace))
+    #expect(g.moved(to: CGPoint(x: 50, y: 10)) == [])
+    #expect(g.moved(to: CGPoint(x: 90, y: 10)) == [])
+    #expect(g.ended() == [])
+}
+
+@Test func cancelledBackspaceSwipeCanBeRearmed() {
+    var g = gesture(Key(.backspace))
+    _ = g.moved(to: CGPoint(x: 50, y: 10))
+    _ = g.moved(to: CGPoint(x: 90, y: 10))
+    _ = g.moved(to: CGPoint(x: 55, y: 10))
+    #expect(g.ended() == [.deleteWord])
+}

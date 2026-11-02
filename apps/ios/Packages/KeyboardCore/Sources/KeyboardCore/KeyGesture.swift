@@ -29,7 +29,8 @@ public struct GestureTiming: Sendable {
 public struct KeyGesture: Sendable {
     public let key: Key
 
-    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe }
+    /// `swipeCancelled`: a backspace swipe slid back, so releasing does nothing.
+    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled }
 
     private let start: CGPoint
     private let startTime: TimeInterval
@@ -73,7 +74,7 @@ public struct KeyGesture: Sendable {
             guard time >= nextRepeat else { return [] }
             nextRepeat = time + timing.repeatInterval
             return [.tap(.backspace)]
-        case .alternates, .cursor, .deleteSwipe:
+        case .alternates, .cursor, .deleteSwipe, .swipeCancelled:
             return []
         }
     }
@@ -98,7 +99,10 @@ public struct KeyGesture: Sendable {
             guard index != highlighted else { return [] }
             highlighted = index
             return [.highlightAlternate(index)]
-        case .repeating, .deleteSwipe:
+        case .deleteSwipe, .swipeCancelled:
+            mode = point.x - start.x <= -timing.deleteWordSwipe ? .deleteSwipe : .swipeCancelled
+            return []
+        case .repeating:
             return []
         }
     }
@@ -108,7 +112,7 @@ public struct KeyGesture: Sendable {
         case .pressing: [.tap(key.action)]
         case .alternates: [.commitAlternate(key.alternates[highlighted])]
         case .deleteSwipe: [.deleteWord]
-        case .cursor, .repeating: []
+        case .cursor, .repeating, .swipeCancelled: []
         }
     }
 
