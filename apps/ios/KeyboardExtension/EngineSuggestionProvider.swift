@@ -12,9 +12,11 @@ actor EngineSuggestionProvider: SuggestionProvider {
     private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "engine")
     private let config: EngineConfig
     private var engine: Engine?
-    /// Set when memory ran short or the engine failed to open: it stays
-    /// unloaded until iOS recreates the extension.
+    /// Set while memory is short: the engine stays unloaded until `resume`.
     private var shed = false
+    /// When opening last failed; it is tried again after `retryDelay`.
+    private var failedAt: ContinuousClock.Instant?
+    private static let retryDelay: Duration = .seconds(30)
 
     init(config: EngineConfig) {
         self.config = config
@@ -80,10 +82,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
-    /// Drops the engine so its memory is released, and keeps it unloaded.
+    /// Drops the engine so its memory is released, and keeps it unloaded until `resume`.
     func unload() {
         engine = nil
         shed = true
+    }
+
+    /// Memory has recovered: the engine opens again on the next request.
+    func resume() {
+        shed = false
     }
 
     private struct Shed: Error {}
@@ -91,16 +98,18 @@ actor EngineSuggestionProvider: SuggestionProvider {
     private func loadedEngine() throws -> Engine {
         if let engine { return engine }
         if shed { throw Shed() }
+        if let failedAt, ContinuousClock.now - failedAt < Self.retryDelay { throw Shed() }
         do {
             let start = ContinuousClock.now
             let created = try Engine(config: config)
             engine = created
+            failedAt = nil
             log.info("Engine open in \(ContinuousClock.now - start, privacy: .public); sources \((try? created.loadedSources()) ?? [], privacy: .public); config en=\(self.config.english != nil) ml=\(self.config.malayalam != nil)")
             return created
         } catch {
             log.error("Engine failed to open: \(String(describing: error), privacy: .public)")
-            // Don't re-read every lexicon on each keystroke: prediction stays off.
-            shed = true
+            // Don't re-read every lexicon on each keystroke: wait before trying again.
+            failedAt = .now
             throw error
         }
     }

@@ -38,3 +38,51 @@ public struct MemoryBudget: Sendable {
         Double(footprintBytes) >= Double(limitBytes) * shedFraction ? .shed : .normal
     }
 }
+
+/// Turns prediction off when memory runs short and back on once it has
+/// recovered. iOS sends keyboards memory warnings whenever the host app is
+/// under pressure, so turning off for good would leave the bar empty for hours.
+public struct PredictionGate: Sendable {
+    public enum Change: Equatable, Sendable { case on, off }
+
+    public let budget: MemoryBudget
+    public private(set) var isOn = true
+    /// Uptime in seconds of the last warning or overrun.
+    private var offSince: Double = 0
+
+    /// Seconds prediction stays off after the last warning or overrun.
+    public static let cooldown: Double = 10
+    /// Back on only well under the shedding point, so it doesn't flap.
+    public static let resumeFraction = 0.6
+
+    public init(budget: MemoryBudget) {
+        self.budget = budget
+    }
+
+    /// Call on each keystroke; returns a change when prediction should switch.
+    public mutating func update(footprintBytes: UInt64, now: Double) -> Change? {
+        if isOn {
+            guard budget.pressure(footprintBytes: footprintBytes) == .shed else { return nil }
+            return turnOff(now: now)
+        }
+        guard now - offSince >= Self.cooldown,
+              Double(footprintBytes) < Double(budget.limitBytes) * Self.resumeFraction
+        else { return nil }
+        isOn = true
+        return .on
+    }
+
+    public mutating func memoryWarning(now: Double) -> Change? {
+        if !isOn {
+            offSince = now
+            return nil
+        }
+        return turnOff(now: now)
+    }
+
+    private mutating func turnOff(now: Double) -> Change {
+        isOn = false
+        offSince = now
+        return .off
+    }
+}

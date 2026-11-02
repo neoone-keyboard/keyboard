@@ -5,7 +5,7 @@ import MLEngine
 
 final class KeyboardViewController: UIInputViewController {
     private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "keyboard")
-    private let budget = MemoryBudget.keyboardExtension
+    private var gate = PredictionGate(budget: .keyboardExtension)
     private let topBar = TopBarView()
     private let keyboardView = KeyboardView()
     private let settingsPanel = SettingsPanelView()
@@ -145,8 +145,10 @@ final class KeyboardViewController: UIInputViewController {
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        log.warning("Memory warning; prediction off")
-        shedPrediction()
+        if gate.memoryWarning(now: ProcessInfo.processInfo.systemUptime) == .off {
+            log.warning("Memory warning (\(MemoryMonitor.footprintBytes(), privacy: .public) bytes); prediction off for now")
+            shedPrediction()
+        }
     }
 
     // MARK: Input
@@ -293,14 +295,28 @@ final class KeyboardViewController: UIInputViewController {
     // MARK: Prediction and memory
 
     private func checkMemoryBudget() {
-        guard suggestions.isEnabled else { return }
-        if budget.pressure(footprintBytes: MemoryMonitor.footprintBytes()) == .shed {
-            log.warning("Over memory budget (\(MemoryMonitor.footprintBytes(), privacy: .public) bytes); prediction off")
+        let footprint = MemoryMonitor.footprintBytes()
+        switch gate.update(footprintBytes: footprint, now: ProcessInfo.processInfo.systemUptime) {
+        case .off:
+            log.warning("Over memory budget (\(footprint, privacy: .public) bytes); prediction off for now")
             shedPrediction()
+        case .on:
+            log.info("Memory recovered (\(footprint, privacy: .public) bytes); prediction back on")
+            // Enabled only once the provider has resumed, so the first request isn't refused.
+            Task { [weak self, provider] in
+                await provider.resume()
+                guard let self, gate.isOn else { return }
+                suggestions.isEnabled = true
+                lastRequest = nil // ask again for the word being typed
+                requestSuggestions()
+                refreshTopBar()
+            }
+        case nil:
+            break
         }
     }
 
-    /// Permanent until the system recreates the extension: prediction is never re-enabled.
+    /// Until the gate turns prediction back on.
     private func shedPrediction() {
         suggestions.isEnabled = false
         lastRequest = nil
