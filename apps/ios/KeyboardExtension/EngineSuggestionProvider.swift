@@ -29,6 +29,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         return EngineSuggestionProvider(config: EngineConfig(
             english: lexicon("en"),
             malayalam: lexicon("ml"),
+            manglish: lexicon("manglish"),
             nextWords: lexicon("next"),
             userDir: userDir
         ))

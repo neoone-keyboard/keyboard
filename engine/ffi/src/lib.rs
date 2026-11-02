@@ -56,6 +56,8 @@ pub struct EngineConfig {
     #[uniffi(default = None)]
     pub malayalam: Option<String>,
     #[uniffi(default = None)]
+    pub manglish: Option<String>,
+    #[uniffi(default = None)]
     pub next_words: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
@@ -67,6 +69,7 @@ impl From<&EngineConfig> for mlengine_core::Paths {
         Self {
             english: path(&c.english),
             malayalam: path(&c.malayalam),
+            manglish: path(&c.manglish),
             next_words: path(&c.next_words),
             user_dir: path(&c.user_dir),
         }

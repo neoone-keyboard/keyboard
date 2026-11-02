@@ -21,6 +21,17 @@ pub const MARGIN: f32 = 2.0;
 /// a rare word is a guess, not a correction.
 pub const MIN_REPLACE: f32 = -13.0;
 
+/// Manglish: bonus when the typed skeleton is the word's whole skeleton.
+pub const MANGLISH_EXACT_BONUS: f32 = 1.5;
+/// Manglish: penalty per skeleton letter the word has beyond what was typed.
+pub const MANGLISH_MISSING_PER_CHAR: f32 = 0.4;
+/// Manglish: penalty per edit between the typed letters and the word's romanisation.
+pub const MANGLISH_DISTANCE: f32 = 0.8;
+/// Manglish bias from the previous word: after Malayalam, after English, at the start.
+pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
+pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;
+pub const CONTEXT_AT_START: f32 = -1.0;
+
 /// Makes a suggestion follow the case of what was typed: `Hel` → `Hello`,
 /// `HEL` → `HELLO`. Words stored with capitals (London, I, NASA) keep them.
 pub fn apply_case(typed: &str, candidate: &str) -> String {

@@ -18,20 +18,21 @@ fn builds_a_bundle_the_engine_can_use() {
         .status()
         .unwrap();
     assert!(status.success());
-    for name in ["en.fst", "ml.fst", "next.fst", "stats.txt"] {
+    for name in ["en.fst", "ml.fst", "manglish.fst", "next.fst", "stats.txt"] {
         assert!(out.path().join(name).exists(), "{name} missing");
     }
 
     let paths = Paths {
         english: Some(out.path().join("en.fst")),
         malayalam: Some(out.path().join("ml.fst")),
+        manglish: Some(out.path().join("manglish.fst")),
         next_words: Some(out.path().join("next.fst")),
         user_dir: None,
     };
     let engine = Engine::open(&paths);
     assert_eq!(
         engine.loaded_sources(),
-        ["english", "malayalam", "next_words"]
+        ["english", "malayalam", "manglish", "next_words"]
     );
 
     let first = |context: &str, layout| {
@@ -42,6 +43,7 @@ fn builds_a_bundle_the_engine_can_use() {
     assert_eq!(first("teh", Layout::Latin), "the");
     assert_eq!(first("londn", Layout::Latin), "London");
     assert_eq!(first("I ", Layout::Latin), "am");
+    assert_eq!(first("ende", Layout::Latin), "എന്റെ");
     let ml = engine.suggest("എന്", Layout::Malayalam, true);
     assert_eq!(ml.candidates[1].text, "എന്റെ");
     let names = engine.suggest("കൊ", Layout::Malayalam, true);

@@ -1,5 +1,5 @@
 //! Turns the text before the cursor into ranked suggestions. Each source
-//! (English, Malayalam, next words) is optional: a missing or corrupt file
+//! (English, Malayalam, Manglish, next words) is optional: a missing or corrupt file
 //! only disables that source. Every walk over a lexicon is bounded.
 
 use std::path::PathBuf;
@@ -8,9 +8,11 @@ use std::sync::{Mutex, MutexGuard};
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::malayalam;
+use crate::manglish;
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::text::{self, Script};
+use crate::translit::transliterate;
 use crate::user::UserStore;
 
 /// Most keys visited by one correction walk. Prefix lookups need no limit
@@ -65,6 +67,7 @@ pub struct Suggestions {
 pub struct Sources {
     pub english: Option<Lexicon>,
     pub malayalam: Option<Lexicon>,
+    pub manglish: Option<Lexicon>,
     pub next_words: Option<Lexicon>,
 }
 
@@ -73,6 +76,7 @@ pub struct Sources {
 pub struct Paths {
     pub english: Option<PathBuf>,
     pub malayalam: Option<PathBuf>,
+    pub manglish: Option<PathBuf>,
     pub next_words: Option<PathBuf>,
     /// Directory for learned words; None keeps them in memory only.
     pub user_dir: Option<PathBuf>,
@@ -84,6 +88,7 @@ impl Sources {
         Self {
             english: open(&paths.english),
             malayalam: open(&paths.malayalam),
+            manglish: open(&paths.manglish),
             next_words: open(&paths.next_words),
         }
     }
@@ -96,6 +101,9 @@ impl Sources {
         }
         if self.malayalam.is_some() {
             names.push("malayalam");
+        }
+        if self.manglish.is_some() {
+            names.push("manglish");
         }
         if self.next_words.is_some() {
             names.push("next_words");
@@ -166,8 +174,10 @@ impl Engine {
         let mut suggestions = match (layout, text::script(&typed_n)) {
             (Layout::Latin, Script::Latin) => {
                 let before = &context_before[..context_before.len() - typed.len()];
-                let sentence_start = text::previous_word(before).is_some_and(|(_, end)| end);
-                self.suggest_latin(typed, &typed_n, autocorrect, sentence_start)
+                let previous = text::previous_word(before);
+                let sentence_start = previous.is_some_and(|(_, end)| end);
+                let bias = self.manglish_bias(previous.map(|(word, _)| word));
+                self.suggest_latin(typed, &typed_n, autocorrect, sentence_start, bias)
             }
             (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
             _ => vec![verbatim(typed, 0.0)],
@@ -202,13 +212,28 @@ impl Engine {
             .max()
     }
 
+    /// How much the previous word's language favours Manglish over English.
+    fn manglish_bias(&self, previous: Option<&str>) -> f32 {
+        let Some(word) = previous else {
+            return rank::CONTEXT_AT_START;
+        };
+        let word = normalize(word);
+        match text::script(&word) {
+            Script::Malayalam => rank::CONTEXT_AFTER_MALAYALAM,
+            Script::Latin if self.english_count(&word).is_some() => rank::CONTEXT_AFTER_ENGLISH,
+            _ => 0.0,
+        }
+    }
+
     /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
+    /// `manglish_bias` comes from the previous word's language (`manglish_bias`).
     fn suggest_latin(
         &self,
         typed: &str,
         typed_n: &str,
         autocorrect: bool,
         sentence_start: bool,
+        manglish_bias: f32,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -322,6 +347,9 @@ impl Engine {
             });
         }
 
+        let manglish = self.manglish(typed_n, manglish_bias);
+        completions.extend(manglish.completions);
+
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
@@ -330,13 +358,23 @@ impl Engine {
                 .iter()
                 .map(|c| c.score)
                 .fold(f32::NEG_INFINITY, f32::max);
-            match &case_fix {
+            let english = match &case_fix {
                 Some(fix) => Some(fix.clone()),
                 None => corrections
                     .iter()
                     .max_by(|a, b| a.score.total_cmp(&b.score))
                     .cloned(),
-            }
+            };
+            // A Malayalam word with exactly the typed skeleton competes as a correction.
+            let malayalam = manglish
+                .exact
+                .iter()
+                .max_by(|a, b| a.score.total_cmp(&b.score))
+                .cloned();
+            [english, malayalam]
+                .into_iter()
+                .flatten()
+                .max_by(|a, b| a.score.total_cmp(&b.score))
             // A typed prefix more likely to be finished than mistyped stays as typed.
             .filter(|best| best.score > best_completion)
             .filter(|best| {
@@ -348,7 +386,55 @@ impl Engine {
         let mut others = corrections;
         others.extend(completions);
         others.extend(case_fix);
+        others.extend(manglish.exact);
+        others.extend(manglish.side);
         arrange(typed_c, typed_n, others, replacement)
+    }
+
+    /// Malayalam candidates for a Latin word, scored to compete with English.
+    fn manglish(&self, typed_n: &str, bias: f32) -> ManglishCandidates {
+        let mut found = ManglishCandidates::default();
+        let Some(lex) = &self.sources.manglish else {
+            return found;
+        };
+        // One letter matches half the lexicon; an apostrophe is English.
+        if typed_n.len() < 2 || typed_n.contains('\'') {
+            return found;
+        }
+        for m in manglish::lookup(lex, typed_n) {
+            let fit = if m.missing == 0 {
+                rank::MANGLISH_EXACT_BONUS
+            } else {
+                -rank::MANGLISH_MISSING_PER_CHAR * m.missing as f32
+            };
+            // Without the fit bonus: it ranks a word against English, but
+            // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
+            let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
+            let candidate = Candidate {
+                text: m.word,
+                kind: Kind::Manglish,
+                score: unfitted + fit,
+            };
+            if m.missing > 0 {
+                found.completions.push(candidate);
+            } else if unfitted >= rank::MIN_REPLACE {
+                found.exact.push(candidate);
+            } else {
+                found.side.push(candidate);
+            }
+        }
+        // Names and rare words: the rule-based spelling, as a side-slot guess.
+        if found.exact.is_empty()
+            && found.side.is_empty()
+            && let Some(text) = transliterate(typed_n)
+        {
+            found.side.push(Candidate {
+                text,
+                kind: Kind::Manglish,
+                score: rank::UNKNOWN,
+            });
+        }
+        found
     }
 
     fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
@@ -447,6 +533,18 @@ impl Engine {
     }
 }
 
+/// Manglish candidates for one typed word, by the role each may play.
+#[derive(Default)]
+struct ManglishCandidates {
+    /// Same skeleton as typed and common enough: may take the middle, like a correction.
+    exact: Vec<Candidate>,
+    /// Longer words: completions, side slots only.
+    completions: Vec<Candidate>,
+    /// Side slots only, and they don't stop a correction: rare words with the
+    /// typed skeleton, or else the transliteration (names, words not in the list).
+    side: Vec<Candidate>,
+}
+
 /// Whether `word` is `typed` with apostrophes put back, ignoring case.
 fn only_apostrophes_missing(word: &str, typed: &str) -> bool {
     let letters = word.bytes().filter(|&b| b != b'\'');
@@ -529,6 +627,7 @@ mod tests {
                 ("കിളി", 5),
                 ("കീ", 1),
             ]),
+            manglish: None,
             next_words: lex(&[
                 ("i\0am", 30),
                 ("i\0have", 20),

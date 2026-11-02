@@ -9,6 +9,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use mlengine_core::lexicon::{SEPARATOR, build};
+use mlengine_core::manglish;
 use mlengine_core::normalize::normalize;
 use mlengine_core::text::{Script, script, words};
 
@@ -384,7 +385,7 @@ pub struct Stats {
     pub report: String,
 }
 
-/// Writes `en.fst`, `ml.fst` and `next.fst` into `out`, plus `stats.txt`.
+/// Writes `en.fst`, `ml.fst`, `manglish.fst` and `next.fst` into `out`, plus `stats.txt`.
 pub fn write_bundle(
     out: &Path,
     english: &[(String, u64)],
@@ -393,9 +394,12 @@ pub fn write_bundle(
 ) -> io::Result<Stats> {
     fs::create_dir_all(out)?;
     let mut report = String::new();
-    let files: [(&str, Entries, usize); 3] = [
+    let manglish = manglish::entries(malayalam);
+    let manglish_len = manglish.len();
+    let files: [(&str, Entries, usize); 4] = [
         ("en.fst", to_entries(english), english.len()),
         ("ml.fst", to_entries(malayalam), malayalam.len()),
+        ("manglish.fst", manglish, manglish_len),
         ("next.fst", next.to_vec(), next.len()),
     ];
     for (name, entries, n) in files {
@@ -710,7 +714,7 @@ mod tests {
             next.add_corpus("the cat the dog the cat".as_bytes(), None)
                 .unwrap();
             write_bundle(dir.path(), &en, &[], &next.entries(3)).unwrap();
-            ["en.fst", "ml.fst", "next.fst"].map(|n| fs::read(dir.path().join(n)).unwrap())
+            ["en.fst", "ml.fst", "manglish.fst", "next.fst"].map(|n| fs::read(dir.path().join(n)).unwrap())
         };
         assert_eq!(build_once(), build_once());
     }

@@ -25,6 +25,8 @@ fn engine() -> Engine {
     Engine::open(&Paths {
         english: Some(dir.join("en.fst")),
         malayalam: Some(dir.join("ml.fst")),
+        // Absent until the bundle is rebuilt with Manglish: the source is then just off.
+        manglish: Some(dir.join("manglish.fst")),
         next_words: Some(dir.join("next.fst")),
         user_dir: None,
     })
@@ -37,10 +39,11 @@ fn middle(engine: &Engine, context: &str) -> (String, Kind) {
 
 #[test]
 fn every_bundle_file_loads() {
-    assert_eq!(
-        engine().loaded_sources(),
-        ["english", "malayalam", "next_words"]
-    );
+    let mut want = vec!["english", "malayalam", "next_words"];
+    if bundle_dir().join("manglish.fst").exists() {
+        want.insert(2, "manglish");
+    }
+    assert_eq!(engine().loaded_sources(), want);
 }
 
 #[test]

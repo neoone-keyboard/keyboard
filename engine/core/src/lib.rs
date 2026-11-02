@@ -5,6 +5,7 @@ pub mod fuzzy;
 pub mod keys;
 pub mod lexicon;
 pub mod malayalam;
+pub mod manglish;
 pub mod normalize;
 pub mod rank;
 pub mod romanize;
