@@ -46,7 +46,18 @@ CHILLUS = {"ണ": "ൺ", "ന": "ൻ", "ര": "ർ", "ല": "ൽ", "ള": "ൾ",
 
 
 def normalize(text: str) -> str:
-    """The engine's normal form: NFC, atomic chillus, joiners only after a virama inside a word."""
+    """The engine's normal form: NFC, atomic chillus, joiners only after a virama inside a word.
+
+    Like the engine, the pass repeats until nothing changes: a dropped joiner can leave text
+    that one more pass would change (vowel sign halves to compose, an old-style chillu).
+    """
+    out = _pass(text)
+    while (nxt := _pass(out)) != out:
+        out = nxt
+    return out
+
+
+def _pass(text: str) -> str:
     nfc = unicodedata.normalize("NFC", text).replace("’", "'")
     out: list[str] = []
     i = 0

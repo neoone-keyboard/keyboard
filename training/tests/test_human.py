@@ -17,6 +17,8 @@ def test_normalize_matches_the_engine():
     assert human.normalize("ക‍ട") == "കട"  # a joiner not after a virama is dropped
     assert human.normalize("ക്‌ട") == "ക്‌ട"  # kept after a virama
     assert human.normalize("ൊ") == "ൊ" and human.normalize("ൊ") == "ൊ"  # NFC
+    assert human.normalize("\u0d46\u200c\u0d3e") == "\u0d4a"  # halves meet once the ZWNJ goes
+    assert human.normalize("\u0d28\u0d4d\u200c\u200d\u0d15") == "\u0d7b\u0d15"  # leaves an old chillu
 
 
 def test_clean_keeps_only_plain_latin_and_malayalam():
