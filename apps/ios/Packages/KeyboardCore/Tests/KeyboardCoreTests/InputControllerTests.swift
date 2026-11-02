@@ -63,6 +63,15 @@ struct InputControllerTests {
         #expect(input.label(for: .shift) == "⇪")
     }
 
+    @Test func combiningMarkLabelsSitOnADottedCircle() {
+        type(.toggleLanguage)
+        #expect(input.label(for: .character("\u{0D3F}")) == "\u{25CC}\u{0D3F}")
+        #expect(input.label(for: .character("\u{0D4D}")) == "\u{25CC}\u{0D4D}")
+        #expect(input.label(for: .character("\u{0D02}")) == "\u{25CC}\u{0D02}")
+        #expect(input.label(for: .character("ക")) == "ക")
+        #expect(input.label(for: .character("കി")) == "കി")
+    }
+
     // MARK: Pages and language
 
     @Test func symbolsPageReturnsToLettersAfterSpace() {

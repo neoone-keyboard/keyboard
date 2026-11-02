@@ -120,7 +120,7 @@ public final class InputController {
 
     public func label(for action: KeyAction) -> String {
         switch action {
-        case .character(let c): showsUppercase ? c.uppercased() : c
+        case .character(let c): Self.isLoneMark(c) ? "\u{25CC}" + c : showsUppercase ? c.uppercased() : c
         case .space: language == .english ? "English" : "മലയാളം"
         case .backspace: "⌫"
         case .shift:
@@ -138,6 +138,16 @@ public final class InputController {
         case .page(.malayalamMore): "ശഷ"
         case .page(.malayalamVowels): "അആ"
         case .toggleLanguage: language == .english ? "മ" : "EN"
+        }
+    }
+
+    /// A single combining mark (e.g. a vowel sign) is drawn on a dotted circle, as is conventional.
+    private static func isLoneMark(_ text: String) -> Bool {
+        let scalars = text.unicodeScalars
+        guard scalars.count == 1, let scalar = scalars.first else { return false }
+        switch scalar.properties.generalCategory {
+        case .nonspacingMark, .spacingMark: return true
+        default: return false
         }
     }
 

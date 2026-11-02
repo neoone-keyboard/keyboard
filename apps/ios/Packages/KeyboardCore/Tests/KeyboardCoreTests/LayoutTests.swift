@@ -80,3 +80,14 @@ private func actions(_ layout: KeyboardLayout) -> [KeyAction] {
         #expect((0x0D3E...0x0D57).contains(sign.unicodeScalars.first!.value))
     }
 }
+
+@Test func vowelsPageHasEveryVowelSign() {
+    let layout = KeyboardLayout.forPage(.malayalamVowels)
+    let typed = characters(layout)
+    for sign in Malayalam.vowelSigns {
+        #expect(typed.contains(sign), "missing U+\(String(sign.unicodeScalars.first!.value, radix: 16))")
+    }
+    #expect(layout.rows.map(\.count) == [10, 10, 9, 7])
+    #expect(layout.rows[2].last == Key(.backspace, width: 1.5))
+    #expect(actions(layout).contains(.page(.letters)))
+}

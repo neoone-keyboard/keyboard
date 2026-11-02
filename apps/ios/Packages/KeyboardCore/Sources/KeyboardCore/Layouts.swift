@@ -73,8 +73,8 @@ extension KeyboardLayout {
 
     private static let malayalamVowelRows: [[Key]] = [
         keys(["അ", "ആ", "ഇ", "ഈ", "ഉ", "ഊ", "ഋ", "എ", "ഏ", "ഐ"]),
-        keys(["ഒ", "ഓ", "ഔ", "ം", "ഃ"]),
-        keys([".", ",", "?", "!", "'"]) + [Key(.backspace, width: 1.5)],
+        keys(["ഒ", "ഓ", "ഔ", "ം", "ഃ"] + Malayalam.vowelSigns.prefix(5)), // ാ ി ീ ു ൂ
+        keys(Array(Malayalam.vowelSigns.dropFirst(5))) + [Key(.backspace, width: 1.5)], // ൃ െ േ ൈ ൊ ോ ൗ ്
     ]
 
     private static func malayalamBottomRow(_ page: KeyboardPage) -> [Key] {
