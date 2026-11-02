@@ -251,6 +251,19 @@ impl ModelFile {
             },
         })
     }
+
+    /// The whole file.
+    pub(crate) fn bytes(&self) -> &[u8] {
+        self.0.bytes.as_ref()
+    }
+
+    /// Where the int8 values of matrix `name` sit in `bytes()`.
+    pub(crate) fn int8_range(&self, name: &str) -> Option<Range<usize>> {
+        match &self.0.tensors.get(name)?.data {
+            Data::I8 { values, .. } => Some(values.clone()),
+            Data::F32(_) => None,
+        }
+    }
 }
 
 /// 64-bit FNV-1a.

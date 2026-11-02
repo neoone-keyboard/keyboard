@@ -96,3 +96,18 @@ def test_fnv1a_matches_the_rust_reader():
     # Same reference values as `fnv1a_matches_the_reference_values` in engine/core/src/nn/file.rs.
     assert export.fnv1a(b"") == 0xCBF29CE484222325
     assert export.fnv1a(b"a") == 0xAF63DC4C8601EC8C
+
+
+def test_committed_fixture_matches_the_generator():
+    # engine/core/tests/fixtures/translit-tiny.mlkbnn must come from make_fixture.tiny_model;
+    # regenerate both fixture files with `python -m mlkb.translit.make_fixture` otherwise.
+    from mlkb.translit.make_fixture import FIXTURES, TINY, tiny_model
+
+    config, tensors = export.read(FIXTURES / "translit-tiny.mlkbnn")
+    assert config["d"] == TINY.d and config["enc_layers"] == TINY.enc_layers
+    for name, value in tiny_model().state_dict().items():
+        want = value.numpy()
+        tol = np.abs(want).max(axis=1, keepdims=True) / 254 + 1e-6 if want.ndim == 2 else 0
+        assert (np.abs(tensors[name] - want) <= tol).all(), name
+    ref = json.loads((FIXTURES / "translit-tiny-reference.json").read_text())
+    assert [c["latin"] for c in ref["cases"]] == [latin for latin, _ in export.REFERENCE_CASES[:4]]

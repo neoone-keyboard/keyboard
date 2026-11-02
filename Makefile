@@ -54,9 +54,12 @@ eval:
 lexicons:
 	./data/build-lexicons.sh
 
-# Suggestion latency on the real bundle, release build: p99 must stay under 8 ms.
+# Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
+# int8 transformer's encode + 10 steps x beam 4 (a random full-size model, and
+# training/build/translit.mlkbnn when it exists).
 bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
+	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
