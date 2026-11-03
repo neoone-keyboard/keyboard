@@ -74,10 +74,13 @@ models:
 
 # Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model and the
-# bundled one). The suggest gate runs the bundled transliterator, as the keyboard does.
+# bundled one). The suggest gate runs the bundled transliterator, as the keyboard does. Then
+# the LM (training/build/lm.mlkbnn, skipped when missing): commit p99 must stay under 1 ms,
+# and the sliding context cache must predict within 2% of fresh windows.
 bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
 	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
+	cd engine && $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
