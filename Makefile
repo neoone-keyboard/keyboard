@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: all tools engine project build device test test-engine test-data test-swift lexicons bench
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons models bench eval spike-assets
 
 all: build
 
@@ -32,7 +32,7 @@ device: tools project $(XCFRAMEWORK)
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
 
-test: test-engine test-data test-swift
+test: test-engine test-data test-training test-swift eval
 
 test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
@@ -41,14 +41,54 @@ test-engine:
 test-data:
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
+# The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
+# transliterator model tests, which need torch from the `train` group.
+test-training:
+	cd training && uv run --quiet --group train pytest -q
+
+# Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json,
+# with the bundled transliterator. Fails on a regression past the recorded baseline. Needs only
+# committed files (the lexicons, the model and the eval sets), not the training data.
+TRANSLIT_MODEL := apps/ios/KeyboardExtension/Models/translit.mlkbnn
+eval:
+	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL)
+
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
 	./data/build-lexicons.sh
 
-# Suggestion latency on the real bundle, release build: p99 must stay under 8 ms.
+# Rebuilds the bundled transliterator: training pairs (needs the Dakshina and Aksharantar
+# extracts in data/raw, see data/manifests), training (several hours; skipped when
+# training/build/translit.pt exists), int8 export, then the copy into the keyboard bundle.
+models:
+	@if [ ! -f training/build/translit.pt ]; then \
+	  cd training && uv run --group train python -m mlkb.data.pairs && \
+	  uv run --group train python -m mlkb.translit.train; \
+	fi
+	cd training && uv run --group train python -m mlkb.translit.export \
+	  --checkpoint build/translit.pt --out build/translit.mlkbnn --reference build/translit-reference.json
+	mkdir -p $(dir $(TRANSLIT_MODEL))
+	cp training/build/translit.mlkbnn $(TRANSLIT_MODEL)
+
+# Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
+# int8 transformer's encode + 10 steps x beam 4 (a random full-size model, and
+# training/build/translit.mlkbnn when it exists).
 bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
+	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
 	swift test --package-path apps/ios/Packages/MLEngine
+
+# Runtime spike (M3 design §5): a seeded random full-size transliterator as .mlkbnn and as an
+# int8 Core ML model, copied into the app (not the keyboard) for the debug "Runtime check"
+# screen. Git-ignored; run before `make device` for the spike. coremltools 9 has no native
+# libraries for Python 3.14, so this uses its own Python 3.13 environment.
+SPIKE_ASSETS := apps/ios/KeyboardApp/SpikeAssets
+spike-assets:
+	cd training && UV_PROJECT_ENVIRONMENT=build/spike-venv uv run --quiet --python 3.13 \
+	  --group spike --group train python -W ignore -m mlkb.translit.coreml_export --out-dir build/spike
+	rm -rf $(SPIKE_ASSETS) && mkdir -p $(SPIKE_ASSETS)
+	cp training/build/spike/translit-spike.mlkbnn $(SPIKE_ASSETS)/
+	cp -R training/build/spike/translit-spike.mlmodelc $(SPIKE_ASSETS)/

@@ -1,0 +1,20 @@
+{
+  "id": "codemix-ml-sentiment",
+  "name": "A Sentiment Analysis Dataset for Code-Mixed Malayalam-English (Chakravarthi et al., 2020)",
+  "homepage": "https://zenodo.org/records/4015234",
+  "licence": "CC BY 4.0 on the Zenodo record; the text is YouTube comments that the curators don't own",
+  "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+  "licence_source": "https://zenodo.org/records/4015234 (record licence field); no licence in https://github.com/bharathichezhiyan/DravidianCodeMix-Dataset",
+  "attribution": "Chakravarthi, Jose, Suryawanshi, Sherly and McCrae (2020), A Sentiment Analysis Dataset for Code-Mixed Malayalam-English, doi:10.5281/zenodo.4015234.",
+  "verdict": "eval only",
+  "verdict_reason": "Real romanised Manglish chat (6,739 comments), but the CC BY on the package can't license the commenters' text, and YouTube's terms add their own limits. Never train on it or ship it; it's fine as an internal held-out check of Manglish handling.",
+  "used_for": "Held-out Manglish sentences: source words for hand-labelled chat-golden rows, and LM perplexity on code-mixed text.",
+  "retrieved": "2026-11-03",
+  "files": [
+    {
+      "url": "https://zenodo.org/api/records/4015234/files/Malayalam_first_ready_for_sentiment.tsv/content",
+      "sha256": "84163dc392dcae5da142cd390bb99ea17b0955096c932b0fe802328c84dfa9fd",
+      "path": "Malayalam_first_ready_for_sentiment.tsv"
+    }
+  ]
+}

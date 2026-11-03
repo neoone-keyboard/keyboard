@@ -6,6 +6,7 @@ pub mod keys;
 pub mod lexicon;
 pub mod malayalam;
 pub mod manglish;
+pub mod nn;
 pub mod normalize;
 pub mod rank;
 pub mod romanize;

@@ -1,0 +1,22 @@
+{
+  "id": "smc-deshabhimani",
+  "name": "Deshabhimani news text from the SMC Malayalam corpus",
+  "homepage": "https://gitlab.com/smc/corpus/-/tree/master/text/deshabhimani",
+  "licence": "Unclear: the SMC README says CC BY 4.0; Deshabhimani's own terms of use say CC BY-SA 4.0 (\"India\", \"or later\") unless otherwise specified; the same site's footer says \"All Rights Reserved\".",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "https://gitlab.com/smc/corpus/-/blob/master/text/deshabhimani/README.md; https://www.deshabhimani.com/terms-of-use (read via the Wayback Machine 2024 snapshot; the live site is behind a Cloudflare challenge).",
+  "attribution": "News text from Deshabhimani (deshabhimani.com), January 2023 to April 2024, collected by Swathanthra Malayalam Computing.",
+  "verdict": "eval only",
+  "verdict_reason": "The publisher's terms do grant CC BY-SA, but they conflict with the footer, and news pages carry agency copy that 'unless otherwise specified' would exclude. Good as held-out modern Malayalam prose; upgrade to use only after confirming the terms with the live site or the publisher.",
+  "used_for": "M3b only: held-out sentences for LM evaluation.",
+  "retrieved": "2026-11-03",
+  "status": "audited, not fetched",
+  "notes": "news.txt is 114,524,376 bytes (GitLab API), over the 50 MB limit for this audit. Pin commit d1e6431d0b05147056d873a3998cdedc2c7d573c when fetching.",
+  "files": [],
+  "candidate_files": [
+    {
+      "url": "https://gitlab.com/smc/corpus/-/raw/d1e6431d0b05147056d873a3998cdedc2c7d573c/text/deshabhimani/news.txt",
+      "path": "news.txt"
+    }
+  ]
+}

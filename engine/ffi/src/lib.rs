@@ -59,6 +59,9 @@ pub struct EngineConfig {
     pub manglish: Option<String>,
     #[uniffi(default = None)]
     pub next_words: Option<String>,
+    /// The transliterator model (`.mlkbnn`); nil keeps Manglish on the lexicons alone.
+    #[uniffi(default = None)]
+    pub translit: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
 }
@@ -71,6 +74,7 @@ impl From<&EngineConfig> for mlengine_core::Paths {
             malayalam: path(&c.malayalam),
             manglish: path(&c.manglish),
             next_words: path(&c.next_words),
+            translit: path(&c.translit),
             user_dir: path(&c.user_dir),
         }
     }
@@ -158,6 +162,136 @@ pub fn malayalam_vowel_sign_base(context_before: String) -> Result<Option<String
     guarded(|| mlengine_core::malayalam::vowel_sign_base(&context_before).map(String::from))
 }
 
+/// Timings from `NnBenchmark::run`, for the runtime spike's debug screen.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct NnBench {
+    /// Mapping the file and resolving every tensor.
+    pub load_ms: f64,
+    /// Per word: one encode plus 10 decoder steps over 4 beams.
+    pub p50_us: u64,
+    pub p99_us: u64,
+    /// Per word: the encode alone.
+    pub encode_p50_us: u64,
+}
+
+/// A loaded `.mlkbnn` transliterator, timed the way a beam search would use it. Loading and
+/// running are separate calls so the app can read its memory footprint in between.
+#[derive(uniffi::Object)]
+pub struct NnBenchmark {
+    model: mlengine_core::nn::Transformer,
+    load_ms: f64,
+}
+
+#[uniffi::export]
+impl NnBenchmark {
+    /// Maps `path` and resolves the model's tensors.
+    #[uniffi::constructor]
+    pub fn new(path: String) -> Result<Arc<Self>, EngineError> {
+        guarded(|| {
+            let start = std::time::Instant::now();
+            let file = mlengine_core::nn::ModelFile::open(std::path::Path::new(&path))?;
+            let model = mlengine_core::nn::Transformer::new(&file)?;
+            Ok(Arc::new(Self {
+                model,
+                load_ms: start.elapsed().as_secs_f64() * 1e3,
+            }))
+        })?
+    }
+
+    /// Milliseconds the constructor took.
+    pub fn load_ms(&self) -> f64 {
+        self.load_ms
+    }
+
+    /// For each of `words` synthetic Latin words (4–12 letters): one encode, then 10 batched
+    /// decoder steps over 4 beams, forking the beams by clone after every step.
+    pub fn run(&self, words: u32) -> Result<NnBench, EngineError> {
+        guarded(|| {
+            let (mut total, mut encode) = bench_words(&self.model, words as usize);
+            total.sort_unstable();
+            encode.sort_unstable();
+            NnBench {
+                load_ms: self.load_ms,
+                p50_us: percentile_us(&total, 0.5),
+                p99_us: percentile_us(&total, 0.99),
+                encode_p50_us: percentile_us(&encode, 0.5),
+            }
+        })
+    }
+}
+
+/// Loads `path` and runs `NnBenchmark::run(words)` on it.
+#[uniffi::export]
+pub fn nn_benchmark(path: String, words: u32) -> Result<NnBench, EngineError> {
+    NnBenchmark::new(path)?.run(words)
+}
+
+impl From<mlengine_core::nn::NnError> for EngineError {
+    fn from(e: mlengine_core::nn::NnError) -> Self {
+        Self::Internal {
+            message: e.to_string(),
+        }
+    }
+}
+
+const BENCH_BEAMS: usize = 4;
+const BENCH_STEPS: usize = 10;
+
+/// (encode + steps, encode alone) per word.
+fn bench_words(
+    model: &mlengine_core::nn::Transformer,
+    words: usize,
+) -> (Vec<std::time::Duration>, Vec<std::time::Duration>) {
+    use mlengine_core::nn::DecoderState;
+    use std::time::Instant;
+    let vocab = model.config().tgt_vocab;
+    let argmax = |l: &[f32]| {
+        (3..vocab)
+            .max_by(|&a, &b| l[a].total_cmp(&l[b]))
+            .unwrap_or(3) as u32
+    };
+    // A 64-bit LCG: Latin tokens are bos = 1, eos = 2, a..z = 3..28.
+    let mut seed: u64 = 7;
+    let mut next = move || {
+        seed = seed
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        seed >> 33
+    };
+    let (mut total, mut encode) = (Vec::with_capacity(words), Vec::with_capacity(words));
+    for _ in 0..words {
+        let len = 4 + (next() % 9) as usize;
+        let mut src = vec![1];
+        src.extend((0..len).map(|_| 3 + (next() % 26) as u32));
+        src.push(2);
+
+        let start = Instant::now();
+        let enc = model.encode(&src);
+        encode.push(start.elapsed());
+        let mut dec = model.decoder(&enc);
+        let mut beams: Vec<DecoderState> = vec![dec.start(); BENCH_BEAMS];
+        let mut tokens = vec![1; BENCH_BEAMS];
+        for _ in 0..BENCH_STEPS {
+            let logits = dec.step_batch(&mut beams, &tokens);
+            for (b, token) in tokens.iter_mut().enumerate() {
+                *token = argmax(&logits[b * vocab..(b + 1) * vocab]);
+            }
+            beams = (0..BENCH_BEAMS)
+                .map(|b| beams[(b + 1) % BENCH_BEAMS].clone())
+                .collect();
+        }
+        total.push(start.elapsed());
+    }
+    (total, encode)
+}
+
+fn percentile_us(sorted: &[std::time::Duration], p: f64) -> u64 {
+    if sorted.is_empty() {
+        return 0;
+    }
+    sorted[((sorted.len() - 1) as f64 * p).round() as usize].as_micros() as u64
+}
+
 fn guarded<T>(f: impl FnOnce() -> T) -> Result<T, EngineError> {
     catch_unwind(AssertUnwindSafe(f)).map_err(|payload| {
         let message = payload
@@ -230,6 +364,23 @@ mod tests {
         engine.forget_learned().unwrap();
         drop(engine);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn nn_benchmark_times_the_tiny_fixture() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../core/tests/fixtures/translit-tiny.mlkbnn"
+        );
+        let bench = nn_benchmark(path.into(), 5).unwrap();
+        assert!(bench.load_ms >= 0.0);
+        assert!(bench.p50_us <= bench.p99_us);
+        assert!(bench.encode_p50_us <= bench.p99_us);
+    }
+
+    #[test]
+    fn nn_benchmark_reports_a_missing_model_as_an_error() {
+        assert!(nn_benchmark("/nonexistent/model.mlkbnn".into(), 1).is_err());
     }
 
     #[test]

@@ -17,7 +17,15 @@ targets:
   KeyboardApp:
     type: application
     platform: iOS
-    sources: [KeyboardApp]
+    sources:
+      - path: KeyboardApp
+        excludes: ["SpikeAssets"]
+      # Debug-only runtime spike models (`make spike-assets`; git-ignored). A folder reference,
+      # so the compiled .mlmodelc is copied as is.
+      - path: KeyboardApp/SpikeAssets
+        type: folder
+        buildPhase: resources
+        optional: true
     scheme: {}
     info:
       path: KeyboardApp/Info.plist
@@ -31,14 +39,20 @@ targets:
     dependencies:
       - target: KeyboardExtension
       - package: KeyboardCore
+      # For the debug-only runtime spike (RuntimeSpikeView).
+      - package: MLEngine
   KeyboardExtension:
     type: app-extension
     platform: iOS
     sources:
       - path: KeyboardExtension
-        excludes: ["Lexicon"]
+        excludes: ["Lexicon", "Models"]
       # A folder reference: the .fst files land in the bundle under Lexicon/.
       - path: KeyboardExtension/Lexicon
+        type: folder
+        buildPhase: resources
+      # The int8 transliterator (`make models`), in the bundle under Models/.
+      - path: KeyboardExtension/Models
         type: folder
         buildPhase: resources
     info:

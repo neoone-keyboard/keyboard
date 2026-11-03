@@ -63,6 +63,86 @@ pub const MANGLISH_SPLIT_PER_SUFFIX: f32 = 1.0;
 /// Stems rarer than this are not split from: a rare stem plus a suffix is
 /// more often nonsense than a word.
 pub const MANGLISH_SPLIT_STEM_MIN: f32 = -12.5;
+/// Manglish with the transliterator (`nn::Translit`, held to the lexicon and the
+/// suffix splits): each lexicon spelling it returns scores like a skeleton match
+/// (bias, fit bonus), its word's log probability (a split's: its stem's, as in
+/// `MANGLISH_SPLIT_PER_SUFFIX`) plus this times the model's score (log
+/// probability per generated token, eos included) in place of the
+/// `MANGLISH_DISTANCE` penalty: the model, not edit distance, judges how well
+/// the typed letters fit. A word the skeleton lookup also found keeps the
+/// better of the two scores.
+///
+/// Swept with the eval harness (Task 10) on chat_golden / translit-human /
+/// English no-harm; with the floor at −1.0, chat top-1 was 0.733 at 0.125–0.25,
+/// 0.730 at 0.5, 0.724 at 1–2, 0.718 at 4 and 0.714 at 6–8. A small weight
+/// wins: lexicon frequency should decide between spellings the model finds
+/// plausible (എന്തു over എന്ത്, as in the corpus), and the model's real gain
+/// is reach (തൃശ്ശൂർ, ശരി, മനസ്സിലായി) and dropping the distance penalty.
+/// Per-token score tuned better than the total log probability (0.724 at best).
+///
+/// Where English is likely, the model's spellings keep the `MANGLISH_DISTANCE`
+/// penalty as well: after an English word (`CONTEXT_AFTER_ENGLISH`), and for a
+/// typed word with a capital (a name in English text: `Anjali`, `to Wayanad`).
+/// There the model only widens what the skeleton lookup reaches; without this,
+/// English wrong-replacements rose from 0.0064 to 0.0075, and `I kazhicho`
+/// became കഴിച്ചോ. A sentence start the keyboard capitalised keeps the penalty too.
+pub const MANGLISH_MODEL_WEIGHT: f32 = 0.25;
+/// Model spellings scoring below this per token are dropped: the constrained
+/// beam fills its width with whatever lexicon words it can reach, and the
+/// tail is often junk (ജില്ല at −3.4 for `jishnu`). −0.5 cut good words
+/// (chat top-1 0.721); −1.25 and below let junk in (0.730).
+pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
+/// A model spelling scoring at least this per token is a confident reading:
+/// it may take the middle with its unfitted score (log probability, bias,
+/// model term) up to `MANGLISH_MODEL_CONFIDENT_RELIEF` below `MIN_REPLACE`.
+/// `MIN_REPLACE` keeps a rare word from replacing on a guess; a model this
+/// sure of a lexicon word is the evidence the floor asks for. Not where the
+/// model keeps `MANGLISH_DISTANCE` (after an English word, or a capital), and
+/// never for a typed English word, so English stays as typed.
+///
+/// User-reported on device: `avishyam` and `avshyam` mean ആവിശ്യം, log
+/// probability −12.53, so −13.5 at `CONTEXT_AT_START`: just under the floor,
+/// though the model reads them at −0.08 and −0.24 per token.
+/// Swept with the eval harness on the 315 old chat_golden rows / translit-human
+/// (relief 1.5): −0.15 gave 0.768 / 0.534, −0.3 0.775 / 0.557, −0.5
+/// 0.781 / 0.567, −0.75 0.775 / 0.572, −1.0 (the floor) 0.775 / 0.570; before,
+/// 0.733 / 0.322. English wrong-replacements stayed at 0.0064 throughout. The
+/// human set's single words sit at the sentence start, where the floor bit hardest.
+pub const MANGLISH_MODEL_CONFIDENT: f32 = -0.5;
+/// At most `MANGLISH_EXACT_BONUS`, so a candidate let in by the relief still
+/// clears `MIN_REPLACE` once the fit bonus is added (the final check in
+/// `suggest_latin`). 1.0 helped less (chat 0.765, human 0.497 at −0.5).
+pub const MANGLISH_MODEL_CONFIDENT_RELIEF: f32 = 1.5;
+const _: () = assert!(MANGLISH_MODEL_CONFIDENT_RELIEF <= MANGLISH_EXACT_BONUS);
+/// A rare spelling with one medial vowel sign more than a word at least this
+/// much more probable is a loose spelling of it: loose typing puts a vowel
+/// between consonants (`malayalam::vowel_sign_drops`; a final sign is
+/// inflection, വന്നോ against വന്ന). The common word is offered
+/// (`Engine::add_standard_neighbour`): `avishyam` reads as ആവിശ്യം (−12.53) but
+/// means ആവശ്യം (−9.44), which the model never reaches from `avishyam`, and
+/// from `avshyam` only past `MODEL_WIDTH`. A big gap only: words a vowel apart
+/// are often different words (കിളി, കളി). At 2.0, കപ്പൽ pushed the wanted
+/// കാപ്പിൽ out of `kaappil`'s bar. Swapping a sign as well as dropping it, at
+/// 1.0, put ലൂസി beside ലിസി and കുട്ടി beside കാട്ടി. At 2.5, medial drops
+/// only, no old eval row changes.
+pub const MANGLISH_NEIGHBOUR_GAIN: f32 = 2.5;
+/// Where the rare form would take the middle, the neighbour takes it instead,
+/// scoring this much above the rare form, which keeps a side slot. It inherits
+/// the rare form's evidence (score, `spelled`): a far commoner word one vowel
+/// away is likelier the intended spelling than the rare one. User follow-up on
+/// device: ആവിശ്യം was a typo; `avishyam` and `avshyam` mean ആവശ്യം. With
+/// final signs dropped too, promotion cost chat top-1 0.781 → 0.765 (വന്നോ →
+/// വന്ന, കണ്ടോ → കണ്ട, മിക്കി → മിക്ക); medial only, nothing changed.
+pub const MANGLISH_NEIGHBOUR_PROMOTION: f32 = 0.01;
+/// Otherwise (the rare form is only a side slot) the neighbour scores this
+/// much below it: side slot only, but ahead of the long completions and junk
+/// that fill them.
+pub const MANGLISH_NEIGHBOUR_PENALTY: f32 = 1.0;
+/// Score of the model's free spelling (off the lexicon), which replaces the
+/// rule-based one: side slot only, and only when no Malayalam word was found.
+/// It is often a near-duplicate of a lexicon word (കൊല്ലമൊ beside കൊല്ലമോ)
+/// and may outscore it, so it never competes for the middle.
+pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// Manglish bias from the previous word: after Malayalam, after English, at the start.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;

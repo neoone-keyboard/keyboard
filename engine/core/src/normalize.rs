@@ -23,7 +23,23 @@ fn chillu(consonant: char) -> Option<char> {
 
 /// NFC, then every consonant + virama + ZWJ sequence that has an atomic chillu becomes that chillu,
 /// a ZWJ or ZWNJ is dropped unless it follows a virama inside a word, and `’` becomes `'`.
+///
+/// Dropping a joiner can leave text that one more pass would change: `െ` + ZWNJ + `ാ` becomes
+/// `ൊ`, which NFC composes to `ൊ`, and `ന്` + ZWNJ + ZWJ + `ക` becomes `ന്` + ZWJ + `ക`, an old
+/// chillu. So the pass repeats until nothing changes. Each pass that changes anything removes at
+/// least one character, so this ends, and the second pass is the only one ordinary text needs.
 pub fn normalize(text: &str) -> String {
+    let mut out = pass(text);
+    loop {
+        let next = pass(&out);
+        if next == out {
+            return out;
+        }
+        out = next;
+    }
+}
+
+fn pass(text: &str) -> String {
     let nfc: Vec<char> = text
         .nfc()
         .map(|c| if c == '\u{2019}' { '\'' } else { c })
@@ -113,6 +129,15 @@ mod tests {
         assert_eq!(normalize("ഷ്ട്യ\u{200D}ാ"), "ഷ്ട്യാ");
         assert_eq!(normalize("റെയിൽ\u{200C}വേ"), "റെയിൽവേ");
         assert_eq!(normalize("ക\u{200C}ക"), "കക");
+    }
+
+    #[test]
+    fn text_left_by_a_dropped_joiner_is_normalised_too() {
+        // Found by normalize_is_idempotent: the vowel sign halves meet once the ZWNJ goes.
+        assert_eq!(normalize("\u{0D46}\u{200C}\u{0D3E}"), "\u{0D4A}");
+        assert_eq!(normalize("ക\u{0D46}\u{200C}\u{0D3E}"), "ക\u{0D4A}");
+        // The stray ZWNJ goes and leaves an old-style chillu (virama + ZWJ).
+        assert_eq!(normalize("ന\u{0D4D}\u{200C}\u{200D}ക"), "ൻക");
     }
 
     #[test]

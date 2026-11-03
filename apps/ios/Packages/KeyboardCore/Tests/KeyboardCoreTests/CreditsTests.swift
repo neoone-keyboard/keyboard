@@ -11,14 +11,22 @@ private let repoRoot = URL(fileURLWithPath: #filePath)
 private struct Manifest: Decodable {
     let id: String
     let licence: String
+    let verdict: String?
+    let status: String?
+
+    /// Only data that reaches the app needs a credit. A manifest with a
+    /// `status` ("audited, not fetched", "fetched, not used yet") isn't in
+    /// anything shipped yet, and eval-only data never is.
+    var isShipped: Bool { verdict != "eval only" && status == nil }
 }
 
-@Test func everyManifestIsCreditedWithItsLicence() throws {
+@Test func everyShippedManifestIsCreditedWithItsLicence() throws {
     let dir = repoRoot.appending(path: "data/manifests")
     let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
         .filter { $0.pathExtension == "json" }
     #expect(!files.isEmpty, "no manifests in \(dir.path)")
     let manifests = try files.map { try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: $0)) }
+        .filter(\.isShipped)
     for manifest in manifests {
         let credit = Credits.dataSources.first { $0.id == manifest.id }
         #expect(credit?.licence == manifest.licence, "\(manifest.id) is not credited with \(manifest.licence)")

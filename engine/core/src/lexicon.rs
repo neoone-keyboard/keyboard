@@ -226,6 +226,30 @@ impl Lexicon {
         total
     }
 
+    /// Whether some word starts with exactly the bytes `prefix` (no case folding, unlike
+    /// `subtree_count`): a walk down the FST, `prefix.len()` transitions and no scan, so it is
+    /// cheap enough to ask at every beam-search step. True for an empty prefix unless there are
+    /// no words.
+    pub fn has_prefix(&self, prefix: &[u8]) -> bool {
+        let Some(&first) = prefix.first() else {
+            return self.map.len() > usize::from(self.map.contains_key(TOTAL_KEY));
+        };
+        if first < FIRST_WORD_BYTE {
+            return false;
+        }
+        // Every node is on the path to some key, so reaching the end of `prefix` means a key
+        // starts with it; that key starts with `first`, so it is a word.
+        let fst = self.map.as_fst();
+        let mut node = fst.root();
+        for &b in prefix {
+            match node.find_input(b) {
+                Some(i) => node = fst.node(node.transition(i).addr),
+                None => return false,
+            }
+        }
+        true
+    }
+
     fn precomputed_count(&self, lower: &[u8]) -> Option<u64> {
         if lower.len() > MAX_PRECOMPUTED_PREFIX {
             return None;
@@ -271,6 +295,14 @@ impl Lexicon {
     /// (`lon` finds `London`), at most `limit` of them in key order.
     pub fn scan_prefix(&self, prefix: &[u8], limit: usize, mut visit: impl FnMut(&[u8], u64)) {
         self.search(CaseFoldPrefix::new(prefix), limit, |key, value, _| {
+            visit(key, value)
+        });
+    }
+
+    /// Every word with its count, in key order; reserved keys are skipped.
+    /// Unbounded, so it is for offline tools (the eval harness), never typing.
+    pub fn words(&self, mut visit: impl FnMut(&[u8], u64)) {
+        self.search(fst::automaton::AlwaysMatch, usize::MAX, |key, value, _| {
             visit(key, value)
         });
     }
@@ -768,6 +800,36 @@ mod tests {
         });
         assert_eq!(seen, 801);
         assert_eq!(lex.get(&count_key(b"a")), None);
+    }
+
+    #[test]
+    fn words_visits_every_word_and_no_reserved_key() {
+        let mut many: Vec<(Vec<u8>, u64)> = (0..800)
+            .map(|i| (format!("a{i}").into_bytes(), i + 1))
+            .collect();
+        many.push(("ഒരു".as_bytes().to_vec(), 9000));
+        let lex = Lexicon::from_bytes(build(many.clone()).unwrap()).unwrap();
+        assert!(lex.is_precomputed(b"a"), "reserved entries exist to be skipped");
+        let mut seen = Vec::new();
+        lex.words(|k, v| seen.push((k.to_vec(), v)));
+        many.sort();
+        assert_eq!(seen, many, "every word once, in key order, nothing reserved");
+    }
+
+    #[test]
+    fn has_prefix_is_exact_and_never_sees_reserved_keys() {
+        let lex = lexicon(&[("എന്തു", 5), ("എന്ത്", 3), ("cat", 1)]);
+        assert!(lex.has_prefix("എ".as_bytes()));
+        assert!(lex.has_prefix("എന്ത".as_bytes()));
+        assert!(lex.has_prefix("എന്തു".as_bytes()), "a whole word is its own prefix");
+        assert!(!lex.has_prefix("എന്തുക".as_bytes()));
+        assert!(!lex.has_prefix("ന".as_bytes()));
+        assert!(lex.has_prefix(b"ca"));
+        assert!(!lex.has_prefix(b"CA"), "no case folding");
+        assert!(!lex.has_prefix(b"\x00"), "the total key is reserved");
+        assert!(!lex.has_prefix(&[COUNT_PREFIX]));
+        assert!(lex.has_prefix(b""));
+        assert!(!lexicon(&[]).has_prefix(b""), "only the total key");
     }
 
     #[test]

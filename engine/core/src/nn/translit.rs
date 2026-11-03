@@ -1,0 +1,428 @@
+//! Latin → Malayalam spellings from the transformer, by beam search held to the lexicon.
+//!
+//! The constrained beam keeps a hypothesis only while its Malayalam text is a prefix of some
+//! `ml.fst` word (`Lexicon::has_prefix`) or of a suffix split of the typed word, and finishes
+//! one only on a whole word or split. Splits come in from the caller as finished Malayalam
+//! words (`suffix::splits` reads the typed Latin, never the beam's text, so they are the same
+//! at every step): "could become a split form" is then a byte-prefix test against a handful of
+//! strings, with no suffix tables walked per step.
+//!
+//! Beside it runs a free beam of one: the best hypothesis that has left the lexicon, so a name
+//! or a new word still gets the model's own spelling.
+//!
+//! Scoring follows `training/mlkb/translit/decode.py::beam`: hypotheses are ranked by log
+//! probability per generated token, eos included, and a step's candidates fill the beam in that
+//! order, finished ones counting toward its width.
+
+use std::path::Path;
+
+use super::vocab::{self, BOS, EOS, PAD};
+use super::{DecoderState, ModelFile, NnError, Transformer};
+use crate::lexicon::Lexicon;
+
+/// Longest typed word transliterated, in letters.
+pub const MAX_LETTERS: usize = 24;
+/// Most decoder steps per word (eos included).
+pub const MAX_STEPS: usize = 24;
+/// Most results per word: the constrained beam's width is capped one below it, for the free one.
+pub const MAX_CANDIDATES: usize = 15;
+/// Tokens expanded per hypothesis per step.
+const EXPAND: usize = 8;
+
+/// One spelling of the typed word.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Transliteration {
+    pub text: String,
+    /// The model's log probability of the spelling, eos included.
+    pub log_prob: f32,
+    /// `log_prob` per generated token (the characters and eos): what results are ranked by.
+    pub score: f32,
+    /// A lexicon word or split; false for the free beam's spelling.
+    pub in_lexicon: bool,
+}
+
+/// The transliterator model, ready to search.
+#[derive(Debug)]
+pub struct Translit {
+    model: Transformer,
+}
+
+impl Translit {
+    /// Opens a `.mlkbnn` transliterator.
+    pub fn open(path: &Path) -> Result<Self, NnError> {
+        Self::new(Transformer::new(&ModelFile::open(path)?)?)
+    }
+
+    /// Checks that `model` uses the vocabularies in `vocab`.
+    pub fn new(model: Transformer) -> Result<Self, NnError> {
+        let c = model.config();
+        if c.src_vocab != vocab::LATIN_SIZE || c.tgt_vocab != vocab::MALAYALAM_SIZE {
+            return Err(NnError::Shape(format!(
+                "vocabularies {} → {}, want {} → {}",
+                c.src_vocab,
+                c.tgt_vocab,
+                vocab::LATIN_SIZE,
+                vocab::MALAYALAM_SIZE
+            )));
+        }
+        Ok(Self { model })
+    }
+
+    /// `candidates_with_splits` with no splits.
+    pub fn candidates(&self, latin: &str, lexicon: &Lexicon, width: usize) -> Vec<Transliteration> {
+        self.candidates_with_splits(latin, lexicon, &[], width)
+    }
+
+    /// Up to `width` (at most `MAX_CANDIDATES - 1`) spellings of `latin` that are `lexicon`
+    /// words or among `splits`, plus at most one free-beam spelling that is neither; best
+    /// `score` first. Nothing unless `latin` is 1–`MAX_LETTERS` letters `a`–`z`.
+    pub fn candidates_with_splits(
+        &self,
+        latin: &str,
+        lexicon: &Lexicon,
+        splits: &[String],
+        width: usize,
+    ) -> Vec<Transliteration> {
+        let max_len = self.model.config().max_len;
+        if latin.is_empty() || latin.len() > MAX_LETTERS || latin.len() + 2 > max_len {
+            return Vec::new();
+        }
+        let Some(src) = vocab::encode_latin(latin) else {
+            return Vec::new();
+        };
+        let width = width.min(MAX_CANDIDATES - 1);
+        let allowed = Allowed { lexicon, splits };
+        let encoded = self.model.encode(&src);
+        let mut decoder = self.model.decoder(&encoded);
+        // `states[i]` is `live[i]`'s decoder history.
+        let mut states = vec![decoder.start()];
+        let mut live = vec![Hyp {
+            next: BOS,
+            text: String::new(),
+            log_prob: 0.0,
+            constrained: width > 0,
+        }];
+        let mut known: Vec<Transliteration> = Vec::new();
+        let mut free: Option<Transliteration> = None;
+        let mut expansions: Vec<Expansion> = Vec::new();
+        let mut buf = String::new();
+        // A beam holds `max_len` tokens, bos included, and each step feeds one.
+        for step in 0..MAX_STEPS.min(max_len) {
+            let open = |h: &Hyp| {
+                if h.constrained {
+                    known.len() < width
+                } else {
+                    free.is_none()
+                }
+            };
+            let mut keep = live.iter().map(open);
+            states.retain(|_| keep.next().unwrap());
+            live.retain(open);
+            if live.is_empty() {
+                break;
+            }
+            let tokens: Vec<u32> = live.iter().map(|h| h.next).collect();
+            let logits = decoder.step_batch(&mut states, &tokens);
+
+            expansions.clear();
+            let rows = logits.chunks_exact(vocab::MALAYALAM_SIZE);
+            for (parent, (h, row)) in live.iter().zip(rows).enumerate() {
+                let lse = log_sum_exp(row);
+                for token in top_tokens(row) {
+                    let valid = h.constrained
+                        && if token == EOS {
+                            allowed.accepts(&h.text)
+                        } else {
+                            buf.clear();
+                            buf.push_str(&h.text);
+                            buf.extend(vocab::malayalam_char(token));
+                            allowed.is_prefix(&buf)
+                        };
+                    expansions.push(Expansion {
+                        parent,
+                        token,
+                        log_prob: h.log_prob + row[token as usize] - lse,
+                        valid,
+                    });
+                }
+            }
+            // Every expansion has generated `step + 1` tokens, so ranking by total log
+            // probability is ranking by `score`.
+            expansions.sort_by(|a, b| b.log_prob.total_cmp(&a.log_prob));
+            let generated = (step + 1) as f32;
+            let finish = |h: &Hyp, e: &Expansion, in_lexicon: bool| Transliteration {
+                text: h.text.clone(),
+                log_prob: e.log_prob,
+                score: e.log_prob / generated,
+                in_lexicon,
+            };
+
+            let mut chosen: Vec<(&Expansion, bool)> = Vec::new();
+            if known.len() < width {
+                let mut kept = 0;
+                for e in expansions.iter().filter(|e| e.valid) {
+                    if e.token == EOS {
+                        known.push(finish(&live[e.parent], e, true));
+                    } else {
+                        chosen.push((e, true));
+                        kept += 1;
+                    }
+                    if kept + known.len() >= width {
+                        break;
+                    }
+                }
+                chosen.truncate(width.saturating_sub(known.len()));
+            }
+            if free.is_none() {
+                // The best hypothesis off the lexicon; ending on nothing doesn't count.
+                let best = expansions
+                    .iter()
+                    .filter(|e| !e.valid)
+                    .find(|e| e.token != EOS || !live[e.parent].text.is_empty());
+                match best {
+                    Some(e) if e.token == EOS => free = Some(finish(&live[e.parent], e, false)),
+                    Some(e) => chosen.push((e, false)),
+                    None => {}
+                }
+            }
+
+            // Fork the parents: each child but a parent's last takes a copy of its state.
+            let mut uses = vec![0usize; live.len()];
+            for (e, _) in &chosen {
+                uses[e.parent] += 1;
+            }
+            let mut parents: Vec<Option<DecoderState>> = states.drain(..).map(Some).collect();
+            let mut next = Vec::with_capacity(chosen.len());
+            for (e, constrained) in chosen {
+                uses[e.parent] -= 1;
+                let state = if uses[e.parent] == 0 {
+                    parents[e.parent].take()
+                } else {
+                    parents[e.parent].clone()
+                };
+                states.push(state.expect("a parent's state moves to its last child"));
+                let mut text = live[e.parent].text.clone();
+                text.extend(vocab::malayalam_char(e.token));
+                next.push(Hyp {
+                    next: e.token,
+                    text,
+                    log_prob: e.log_prob,
+                    constrained,
+                });
+            }
+            live = next;
+        }
+        // Hypotheses still open at the step limit never finished: they are dropped.
+        known.extend(free);
+        known.sort_by(|a, b| b.score.total_cmp(&a.score));
+        known
+    }
+}
+
+/// What the constrained beam may spell: lexicon words and the typed word's splits.
+struct Allowed<'a> {
+    lexicon: &'a Lexicon,
+    splits: &'a [String],
+}
+
+impl Allowed<'_> {
+    fn accepts(&self, text: &str) -> bool {
+        !text.is_empty()
+            && (self.lexicon.get(text.as_bytes()).is_some()
+                || self.splits.iter().any(|s| s == text))
+    }
+
+    fn is_prefix(&self, text: &str) -> bool {
+        self.lexicon.has_prefix(text.as_bytes()) || self.splits.iter().any(|s| s.starts_with(text))
+    }
+}
+
+/// One open hypothesis. Its decoder state has consumed every token but `next`, which is fed
+/// at the next step (bos, for the first).
+struct Hyp {
+    next: u32,
+    /// The characters generated so far, `next` included.
+    text: String,
+    log_prob: f32,
+    /// In the constrained beam; false for the free beam's hypothesis.
+    constrained: bool,
+}
+
+/// A hypothesis extended by one token.
+struct Expansion {
+    parent: usize,
+    token: u32,
+    log_prob: f32,
+    /// Still a lexicon prefix (or, for eos, a whole word), from a constrained parent.
+    valid: bool,
+}
+
+fn log_sum_exp(row: &[f32]) -> f32 {
+    let max = row.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    max + row.iter().map(|l| (l - max).exp()).sum::<f32>().ln()
+}
+
+/// The `EXPAND` most likely tokens of `row`, best first, leaving out pad and bos.
+fn top_tokens(row: &[f32]) -> Vec<u32> {
+    let mut top: Vec<u32> = Vec::with_capacity(EXPAND + 1);
+    for t in (0..row.len() as u32).filter(|&t| t != PAD && t != BOS) {
+        let at = top.partition_point(|&u| row[u as usize] >= row[t as usize]);
+        if at < EXPAND {
+            top.insert(at, t);
+            top.truncate(EXPAND);
+        }
+    }
+    top
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexicon::build;
+
+    fn tiny() -> Translit {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/translit-tiny.mlkbnn"
+        );
+        Translit::open(Path::new(path)).unwrap()
+    }
+
+    fn lexicon(words: &[&str]) -> Lexicon {
+        Lexicon::from_bytes(build(words.iter().map(|w| (w.as_bytes().to_vec(), 1))).unwrap())
+            .unwrap()
+    }
+
+    /// The model's log probability of `text` then eos, by teacher forcing.
+    fn forced_log_prob(t: &Translit, latin: &str, text: &str) -> f32 {
+        let enc = t.model.encode(&vocab::encode_latin(latin).unwrap());
+        let mut dec = t.model.decoder(&enc);
+        let mut state = dec.start();
+        let mut prev = BOS;
+        let mut total = 0.0;
+        for next in text
+            .chars()
+            .map(|c| vocab::malayalam_token(c).unwrap())
+            .chain([EOS])
+        {
+            let logits = dec.step(&mut state, prev);
+            total += log_softmax_at(logits, next);
+            prev = next;
+        }
+        total
+    }
+
+    fn log_softmax_at(logits: &[f32], i: u32) -> f32 {
+        let max = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        let sum: f32 = logits.iter().map(|l| (l - max).exp()).sum();
+        logits[i as usize] - max - sum.ln()
+    }
+
+    /// Words the tiny fixture's random weights can spell for `ab`: each ends where eos is among
+    /// a hypothesis's top tokens. Most branches never end, the free beam's included, so
+    /// `tests/bundle.rs` checks the free beam on the trained model.
+    const AB_WORDS: &[&str] = &[
+        "ഛഛ\u{d53}",
+        "ഛഛഘ",
+        "ഛഛ൮",
+        "ഛഛഛ\u{d53}",
+        "ഛഛഛഘ",
+        "ഛഛഓ\u{d53}",
+        "ഛഛഘഅ",
+        "ഛൔഛ\u{d53}",
+    ];
+
+    fn check_scores(t: &Translit, latin: &str, got: &[Transliteration]) {
+        for c in got {
+            let want = forced_log_prob(t, latin, &c.text);
+            assert!((c.log_prob - want).abs() < 1e-3, "{c:?}: forced {want}");
+            let tokens = c.text.chars().count() + 1;
+            assert!((c.score - c.log_prob / tokens as f32).abs() < 1e-6, "{c:?}");
+        }
+        assert!(got.windows(2).all(|w| w[0].score >= w[1].score), "{got:?}");
+    }
+
+    #[test]
+    fn at_most_width_lexicon_words_and_one_free_spelling() {
+        let t = tiny();
+        let lex = lexicon(AB_WORDS);
+        let got = t.candidates("ab", &lex, 4);
+        let (known, free): (Vec<_>, Vec<_>) = got.iter().partition(|c| c.in_lexicon);
+        assert_eq!(known.len(), 4, "{got:?}");
+        assert!(
+            known.iter().all(|c| lex.get(c.text.as_bytes()).is_some()),
+            "{got:?}"
+        );
+        assert!(free.len() <= 1, "{got:?}");
+        assert!(
+            free.iter().all(|c| lex.get(c.text.as_bytes()).is_none()),
+            "{got:?}"
+        );
+        check_scores(&t, "ab", &got);
+
+        let wide = t.candidates("ab", &lex, 100);
+        assert!(wide.iter().filter(|c| c.in_lexicon).count() > 4, "{wide:?}");
+        assert!(wide.len() <= MAX_CANDIDATES);
+        assert!(t.candidates("ab", &lex, 0).iter().all(|c| !c.in_lexicon));
+    }
+
+    #[test]
+    fn branches_off_the_lexicon_are_pruned_except_in_the_free_beam() {
+        let t = tiny();
+        // One word: every other branch leaves the lexicon at some step, though the model
+        // likes several of them better (ഛഛ\u{d53} and ഛഛഘ above).
+        let lex = lexicon(&["ഛഛ൮"]);
+        let got = t.candidates("ab", &lex, 4);
+        let known: Vec<&str> = got
+            .iter()
+            .filter(|c| c.in_lexicon)
+            .map(|c| c.text.as_str())
+            .collect();
+        assert_eq!(known, ["ഛഛ൮"], "{got:?}");
+        assert!(got.len() <= 2, "{got:?}");
+        check_scores(&t, "ab", &got);
+
+        // Words the model never starts with: nothing but (at most) the free spelling.
+        let far = lexicon(&["അമ്മ", "കേരളം"]);
+        let got = t.candidates("ab", &far, 4);
+        assert!(
+            got.len() <= 1 && got.iter().all(|c| !c.in_lexicon),
+            "{got:?}"
+        );
+    }
+
+    #[test]
+    fn splits_count_as_lexicon_words() {
+        let t = tiny();
+        let empty = lexicon(&[]);
+        let splits = vec!["ഛഛഘ".to_string()];
+        let got = t.candidates_with_splits("ab", &empty, &splits, 4);
+        let known: Vec<&str> = got
+            .iter()
+            .filter(|c| c.in_lexicon)
+            .map(|c| c.text.as_str())
+            .collect();
+        assert_eq!(known, ["ഛഛഘ"], "{got:?}");
+        check_scores(&t, "ab", &got);
+    }
+
+    #[test]
+    fn only_short_lowercase_latin_words() {
+        let t = tiny();
+        let lex = lexicon(AB_WORDS);
+        for bad in [
+            "",
+            "Kerala",
+            "ker ala",
+            "kerala1",
+            "കേരളം",
+            "abcdefghijklmnopqrstuvwxy", // 25 letters
+        ] {
+            assert!(t.candidates(bad, &lex, 4).is_empty(), "{bad}");
+        }
+        // The fixture's 16 positions hold 14 letters with bos and eos; longer words are skipped
+        // rather than overflowing the encoder.
+        assert!(t.candidates("abcdefghijklmno", &lex, 4).is_empty());
+        let _ = t.candidates("abcdefghijklmn", &lex, 4);
+    }
+}

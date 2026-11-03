@@ -43,6 +43,7 @@ fn engine() -> Engine {
         ),
         manglish: lexicon(manglish::entries(&ml)),
         next_words: None,
+        translit: None,
     };
     Engine::new(sources, UserStore::in_memory())
 }

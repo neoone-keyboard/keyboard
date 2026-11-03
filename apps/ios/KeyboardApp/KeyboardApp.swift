@@ -4,6 +4,9 @@ import SwiftUI
 struct KeyboardApp: App {
     init() {
         MetricsSubscriber.shared.start()
+        #if DEBUG
+        RuntimeCheck.runFromLaunchArguments()
+        #endif
     }
 
     var body: some Scene {

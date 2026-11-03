@@ -1,0 +1,15 @@
+[package]
+name = "mlengine-py"
+description = "Python bindings to the engine, for the evaluation harness only. Never shipped."
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "mlengine"
+crate-type = ["cdylib"]
+
+[dependencies]
+mlengine-core = { path = "../core" }
+pyo3 = { version = "0.30", features = ["extension-module", "abi3-py312"] }
