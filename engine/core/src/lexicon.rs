@@ -158,6 +158,12 @@ impl Lexicon {
         self.map.len()
     }
 
+    /// FNV-1a of the file's bytes, little-endian: what a language model built against this
+    /// lexicon records (`nn::Tables::fingerprint`). Reads the whole file; call it once.
+    pub fn fingerprint(&self) -> [u8; 8] {
+        crate::nn::file::fnv1a(self.map.as_fst().as_bytes()).to_le_bytes()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
@@ -539,6 +545,13 @@ mod tests {
     fn lexicon(words: &[(&str, u64)]) -> Lexicon {
         let bytes = build(words.iter().map(|(w, c)| (w.as_bytes().to_vec(), *c))).unwrap();
         Lexicon::from_bytes(bytes).unwrap()
+    }
+
+    #[test]
+    fn fingerprint_is_the_fnv1a_of_the_file() {
+        let bytes = build([(b"the".to_vec(), 60)]).unwrap();
+        let want = crate::nn::file::fnv1a(&bytes).to_le_bytes();
+        assert_eq!(Lexicon::from_bytes(bytes).unwrap().fingerprint(), want);
     }
 
     #[test]

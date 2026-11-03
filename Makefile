@@ -49,11 +49,14 @@ test-training:
 	cd training && uv run --quiet --group train pytest -q
 
 # Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json,
-# with the bundled transliterator. Fails on a regression past the recorded baseline. Needs only
-# committed files (the lexicons, the model and the eval sets), not the training data.
+# with the bundled transliterator, and the bundled LM once it is there. Fails on a regression
+# past the recorded baseline. Needs only committed files (the lexicons, the models and the eval
+# sets), not the training data.
 TRANSLIT_MODEL := apps/ios/KeyboardExtension/Models/translit.mlkbnn
+LM_MODEL := apps/ios/KeyboardExtension/Models/lm.mlkbnn
 eval:
-	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL)
+	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
+	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
@@ -74,10 +77,13 @@ models:
 
 # Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model and the
-# bundled one). The suggest gate runs the bundled transliterator, as the keyboard does.
+# bundled one). The suggest gate runs the bundled transliterator, as the keyboard does. Then
+# the LM (training/build/lm.mlkbnn, skipped when missing): commit p99 must stay under 1 ms,
+# and the sliding context cache must predict within 2% of fresh windows.
 bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
 	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
+	cd engine && $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore

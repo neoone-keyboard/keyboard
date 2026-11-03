@@ -207,17 +207,19 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     /// The keys are showing: open the lexicons now, off the main thread, so the
-    /// first word typed already has suggestions.
+    /// first word typed already has suggestions, and give the LM the text already there.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         // The field's keyboard type (UIKeyboardType raw value: 4 number pad, 5 phone pad, 8 decimal pad,
         // 11 ASCII number pad), to see which numeric fields iOS hands to this keyboard.
         log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); field type \(textDocumentProxy.keyboardType?.rawValue ?? -1); footprint \(Diagnostics.footprint())")
         guard suggestions.isEnabled else { return }
+        // Read on the main thread, before the hop to the provider.
+        let contextBefore = textDocumentProxy.documentContextBeforeInput ?? ""
         // The provider is shared: an earlier session may have shed it for memory.
         Task { [weak self, provider] in
             await provider.resume()
-            await provider.warmUp()
+            await provider.warmUp(contextBefore: contextBefore)
             self?.refreshLearnedAddresses()
         }
     }

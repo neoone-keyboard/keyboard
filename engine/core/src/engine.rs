@@ -4,13 +4,15 @@
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
+use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, lm_words};
 use crate::malayalam;
 use crate::manglish;
-use crate::nn::{Deadline, Search, Translit};
+use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
@@ -81,6 +83,39 @@ pub struct Sources {
     /// The neural transliterator (`nn::Translit`). Without it, Manglish ranking is M2's:
     /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
     pub translit: Option<Translit>,
+    /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
+    /// ranking is M3a's: the previous word sets the Manglish bias, `next.fst` the next words.
+    pub lm: Option<Lm>,
+}
+
+/// When each optional stage of a suggest must stop (design §4), measured from the start of the
+/// suggest by `elapsed`; None lets the stage run to the end. The keyboard passes one; the eval
+/// and tests pass none and run every stage to the end, so their results don't depend on the
+/// machine.
+pub struct Timing<'a> {
+    pub elapsed: &'a dyn Fn() -> Duration,
+    /// The transliterator (M3a's `model_deadline_ms`).
+    pub translit: Option<Duration>,
+    /// Context prefill while a word is being typed.
+    pub lm_prefill: Option<Duration>,
+    /// Everything the LM does after a space.
+    pub lm_after_space: Option<Duration>,
+    /// Tier-1 rows while a word is being typed (Task 15).
+    pub lm_deadline: Option<Duration>,
+}
+
+impl<'a> Timing<'a> {
+    /// The keyboard's cutoffs, as `EngineSuggestionProvider` sets them: transliterator 8 ms,
+    /// prefill 3 ms while typing and 10 ms after a space, tier-1 rows 11 ms.
+    pub fn keyboard(elapsed: &'a dyn Fn() -> Duration) -> Self {
+        Self {
+            elapsed,
+            translit: Some(Duration::from_millis(8)),
+            lm_prefill: Some(Duration::from_millis(3)),
+            lm_after_space: Some(Duration::from_millis(10)),
+            lm_deadline: Some(Duration::from_millis(11)),
+        }
+    }
 }
 
 /// File paths handed over by the platform. Any of them may be missing.
@@ -92,6 +127,8 @@ pub struct Paths {
     pub next_words: Option<PathBuf>,
     /// The transliterator model (`.mlkbnn`).
     pub translit: Option<PathBuf>,
+    /// The language model (`.mlkbnn`).
+    pub lm: Option<PathBuf>,
     /// Directory for learned words; None keeps them in memory only.
     pub user_dir: Option<PathBuf>,
 }
@@ -99,16 +136,35 @@ pub struct Paths {
 impl Sources {
     pub fn open(paths: &Paths) -> Self {
         let open = |p: &Option<PathBuf>| p.as_deref().and_then(|p| Lexicon::open(p).ok());
+        let (english, malayalam) = (open(&paths.english), open(&paths.malayalam));
+        let lm = paths
+            .lm
+            .as_deref()
+            .and_then(|p| Lm::open(p).ok())
+            .filter(|lm| Self::lm_fits(lm, english.as_ref(), malayalam.as_ref()));
         Self {
-            english: open(&paths.english),
-            malayalam: open(&paths.malayalam),
+            english,
+            malayalam,
             manglish: open(&paths.manglish),
             next_words: open(&paths.next_words),
             translit: paths
                 .translit
                 .as_deref()
                 .and_then(|p| Translit::open(p).ok()),
+            lm,
         }
+    }
+
+    /// Whether `lm`'s tables were built from exactly these lexicons (design §3): its
+    /// first-token tables describe them, so with any others it is not loaded.
+    fn lm_fits(lm: &Lm, english: Option<&Lexicon>, malayalam: Option<&Lexicon>) -> bool {
+        let (Some(en), Some(ml)) = (english, malayalam) else {
+            return false;
+        };
+        let mut want = [0u8; 16];
+        want[..8].copy_from_slice(&en.fingerprint());
+        want[8..].copy_from_slice(&ml.fingerprint());
+        lm.tables().fingerprint == want
     }
 
     /// Names of the sources that loaded, for diagnostics.
@@ -129,6 +185,9 @@ impl Sources {
         if self.translit.is_some() {
             names.push("translit");
         }
+        if self.lm.is_some() {
+            names.push("lm");
+        }
         names
     }
 }
@@ -137,6 +196,9 @@ impl Sources {
 pub struct Engine {
     sources: Sources,
     user: Mutex<UserStore>,
+    /// The LM's context, kept in step with the text by each suggest (`LmContext::sync`).
+    lm_context: Mutex<LmContext>,
+    lm_weights: LmWeights,
 }
 
 impl Engine {
@@ -152,7 +214,14 @@ impl Engine {
         Self {
             sources,
             user: Mutex::new(user),
+            lm_context: Mutex::new(LmContext::default()),
+            lm_weights: LmWeights::default(),
         }
+    }
+
+    /// Weights other than `rank`'s for the LM terms: for the eval harness's sweeps only.
+    pub fn set_lm_weights(&mut self, weights: LmWeights) {
+        self.lm_weights = weights;
     }
 
     pub fn loaded_sources(&self) -> Vec<&'static str> {
@@ -162,6 +231,13 @@ impl Engine {
     /// A poisoned lock still holds usable data; never panic over it.
     fn user(&self) -> MutexGuard<'_, UserStore> {
         self.user
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// As `user`.
+    fn lm_context(&self) -> MutexGuard<'_, LmContext> {
+        self.lm_context
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -191,7 +267,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, 0.0, None)
+                .suggest_latin(word, word, true, false, false, 0.0, None, None)
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -267,10 +343,110 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
     ) -> Suggestions {
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &|_| true)
+    }
+
+    /// `suggest`, with each optional stage held to its cutoff in `timing` (design §4). The
+    /// transliterator's deadline is built from it as `suggest_until` takes it. Until the LM's
+    /// context has caught up, the suggest is M3a's, and the next one resumes the prefill.
+    pub fn suggest_timed(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        timing: Option<&Timing<'_>>,
+    ) -> Suggestions {
+        let Some(t) = timing else {
+            return self.suggest_until(context_before, layout, autocorrect, None);
+        };
+        let budget = t.translit.unwrap_or_default();
+        let left = || budget.saturating_sub((t.elapsed)());
+        let deadline = t.translit.map(|budget| Deadline {
+            budget,
+            left: &left,
+        });
+        let more = |after_space: bool| {
+            let cutoff = if after_space {
+                t.lm_after_space
+            } else {
+                t.lm_prefill
+            };
+            cutoff.is_none_or(|c| (t.elapsed)() < c)
+        };
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &more)
+    }
+
+    /// Fills the LM's context for the text before the cursor ahead of typing (when the
+    /// keyboard appears), for at most `budget`; what is left is resumed by the next suggest.
+    pub fn prepare(&self, context_before: &str, budget: Option<Duration>) {
+        let Some(lm) = &self.sources.lm else {
+            return;
+        };
+        let start = Instant::now();
+        let (typed, _) = self.current_word(context_before);
+        let before = &context_before[..context_before.len() - typed.len()];
+        let more = || budget.is_none_or(|b| start.elapsed() < b);
+        self.lm_context().sync(lm, &lm_words(before), &more);
+    }
+
+    /// Whether the LM is loaded and its context caught up with the last text it was given:
+    /// for tests and diagnostics.
+    pub fn lm_ready(&self) -> bool {
+        self.sources.lm.is_some() && self.lm_context().is_ready()
+    }
+
+    /// Syncs the LM's context, while `more(after_space)` allows, then suggests with it if it
+    /// caught up.
+    fn suggest_lm(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        deadline: Option<Deadline<'_>>,
+        more: &dyn Fn(bool) -> bool,
+    ) -> Suggestions {
+        let Some(lm) = &self.sources.lm else {
+            return self.suggest_with(context_before, layout, autocorrect, deadline, None);
+        };
+        let (typed, _) = self.current_word(context_before);
+        let before = &context_before[..context_before.len() - typed.len()];
+        let after_space = typed.is_empty();
+        let mut lm_ctx = self.lm_context();
+        let ready = lm_ctx.sync(lm, &lm_words(before), &|| more(after_space));
+        let view = ready.then(|| LmView {
+            lm,
+            ctx: &lm_ctx,
+            weights: self.lm_weights,
+        });
+        let scores = view.as_ref().map(|v| v as &dyn ContextScores);
+        self.suggest_with(context_before, layout, autocorrect, deadline, scores)
+    }
+
+    /// `suggest` with `scores` in place of the LM, for the engine's tests.
+    #[cfg(test)]
+    fn suggest_scored(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        scores: &dyn ContextScores,
+    ) -> Suggestions {
+        self.suggest_with(context_before, layout, autocorrect, None, Some(scores))
+    }
+
+    /// The suggestions, with the context's scores when the LM is ready (`scores`), else M3a's.
+    fn suggest_with(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        deadline: Option<Deadline<'_>>,
+        scores: Option<&dyn ContextScores>,
+    ) -> Suggestions {
         let (typed, address) = self.current_word(context_before);
         if typed.is_empty() {
             return Suggestions {
-                candidates: self.next_words(context_before),
+                candidates: self.next_words(context_before, scores),
                 ..Suggestions::default()
             };
         }
@@ -289,7 +465,10 @@ impl Engine {
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
-                let bias = self.manglish_bias(previous.map(|(word, _)| word));
+                let bias = match scores {
+                    Some(s) => s.manglish_bias(),
+                    None => self.manglish_bias(previous.map(|(word, _)| word)),
+                };
                 self.suggest_latin(
                     typed,
                     &typed_n,
@@ -298,9 +477,12 @@ impl Engine {
                     mid_sentence,
                     bias,
                     deadline,
+                    scores,
                 )
             }
-            (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
+            (_, Script::Malayalam) | (Layout::Malayalam, _) => {
+                self.suggest_malayalam(typed, scores)
+            }
             _ => vec![verbatim(typed, 0.0)],
         };
         suggestions.truncate(SHOWN);
@@ -375,7 +557,8 @@ impl Engine {
     /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
     /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
     /// before it didn't (neither at the very start of the text).
-    /// `manglish_bias` comes from the previous word's language (`manglish_bias`).
+    /// `manglish_bias` comes from the previous word's language (`manglish_bias`), or from
+    /// the LM. `scores`: the LM's in-context corrections (design §6), when it is ready.
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
@@ -386,6 +569,7 @@ impl Engine {
         mid_sentence: bool,
         manglish_bias: f32,
         deadline: Option<Deadline<'_>>,
+        scores: Option<&dyn ContextScores>,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -620,12 +804,38 @@ impl Engine {
             let user = self.user();
             corrections.retain(|(c, _)| !user.is_removed(&c.text));
         }
-        let case_fix = case_fix.filter(|c| !self.is_removed(c));
-        let contraction = contraction.filter(|c| !self.is_removed(c));
-        let dominant = dominant.filter(|c| !self.is_removed(c));
+        let mut case_fix = case_fix.filter(|c| !self.is_removed(c));
+        let mut contraction = contraction.filter(|c| !self.is_removed(c));
+        let mut dominant = dominant.filter(|c| !self.is_removed(c));
 
-        let manglish =
+        let mut manglish =
             manglish.unwrap_or_else(|| self.manglish(typed_n, manglish_bias, false, deadline));
+
+        // The LM's in-context correction (design §6), on every pool before any comparison.
+        // Floors were checked on scores without it; the final one below takes it back out.
+        let lm_term = |text: &str| scores.map_or(0.0, |s| s.weighted(text));
+        if scores.is_some() {
+            for (c, _) in &mut corrections {
+                c.score += lm_term(&c.text);
+            }
+            for (c, _) in &mut manglish.exact {
+                c.score += lm_term(&c.text);
+            }
+            for c in completions
+                .iter_mut()
+                .chain(&mut manglish.completions)
+                .chain(&mut manglish.side)
+            {
+                c.score += lm_term(&c.text);
+            }
+            for c in [&mut case_fix, &mut contraction, &mut dominant]
+                .into_iter()
+                .flatten()
+            {
+                c.score += lm_term(&c.text);
+            }
+            known_score = known_score.map(|s| s + lm_term(typed_n));
+        }
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
@@ -664,7 +874,8 @@ impl Engine {
                 .map(|c| c.score)
                 .fold(f32::NEG_INFINITY, f32::max);
             // All English words that start with the typed letters, as one candidate.
-            let prefix = self.english_prefix_log_prob(typed_n);
+            let prefix = self.english_prefix_log_prob(typed_n)
+                + scores.map_or(0.0, |s| s.prefix_delta(typed_n));
             // Typed letters that begin English words, four or more of them, are likelier
             // right so far than mistyped twice (`rank::PREFIX_KEEPS_LETTERS`).
             let keeps_prefix = typed_n.len() >= rank::PREFIX_KEEPS_LETTERS && prefix.is_finite();
@@ -744,7 +955,8 @@ impl Engine {
                 }
             }
             .filter(|best| {
-                best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
+                best.score >= typed_c.score + rank::MARGIN
+                    && best.score - lm_term(&best.text) >= rank::MIN_REPLACE
             })
             .or_else(|| {
                 // Kept as a prefix where no Malayalam word fits the letters: the best
@@ -1115,7 +1327,8 @@ impl Engine {
         arrange(verbatim(typed, 0.0), typed_n, others, None, Vec::new())
     }
 
-    fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
+    /// `scores`: as in `suggest_latin`, on the completions.
+    fn suggest_malayalam(&self, typed: &str, scores: Option<&dyn ContextScores>) -> Vec<Candidate> {
         let typed_n = normalize(typed);
         let mut others = Vec::new();
         if let Some(lex) = &self.sources.malayalam {
@@ -1129,7 +1342,8 @@ impl Engine {
                 let extra = (word.chars().count() - typed_n.chars().count()) as f32;
                 let score = lex.log_prob(count)
                     - rank::COMPLETION_PENALTY
-                    - rank::COMPLETION_PER_CHAR * extra;
+                    - rank::COMPLETION_PER_CHAR * extra
+                    + scores.map_or(0.0, |s| s.weighted(word));
                 others.push(Candidate {
                     text: word.to_string(),
                     kind: Kind::Completion,
@@ -1150,7 +1364,100 @@ impl Engine {
         arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
     }
 
-    fn next_words(&self, context_before: &str) -> Vec<Candidate> {
+    /// Next words after a space: the LM's when it is ready and offers any, else `next.fst`'s.
+    /// Neither at the very start of the text.
+    fn next_words(
+        &self,
+        context_before: &str,
+        scores: Option<&dyn ContextScores>,
+    ) -> Vec<Candidate> {
+        let previous = text::previous_word(context_before);
+        if let (Some(s), Some(_)) = (scores, previous) {
+            let found = self.lm_next_words(s, previous);
+            if !found.is_empty() {
+                return found;
+            }
+        }
+        self.bigram_next_words(context_before)
+    }
+
+    /// Next words from the LM (design §6): for each of its likeliest word-start pieces, the
+    /// lexicon words whose first token it is, scored `ln p(t | ctx) + lang(t) + ln P_lex(w | t)`
+    /// plus the weighted `next.fst` bigram where it has pairs for the previous word.
+    fn lm_next_words(
+        &self,
+        scores: &dyn ContextScores,
+        previous: Option<(&str, bool)>,
+    ) -> Vec<Candidate> {
+        let sentence_end = previous.is_some_and(|(_, end)| end);
+        let mut found = Vec::new();
+        for p in scores.next_pieces(rank::NEXT_PIECES) {
+            let lex = if p.latin {
+                &self.sources.english
+            } else {
+                &self.sources.malayalam
+            };
+            let Some(lex) = lex else { continue };
+            // The piece itself, in its stored case (`i` is I), and the commonest words it
+            // begins (ignoring case: `lon` begins London) whose first token it is.
+            let mut words: Vec<(String, u64)> = lex
+                .case_variants(p.text.as_bytes())
+                .into_iter()
+                .max_by_key(|(_, count)| *count)
+                .and_then(|(key, count)| Some((String::from_utf8(key).ok()?, count)))
+                .into_iter()
+                .collect();
+            for (key, count) in lex.top_completions(p.text.as_bytes(), TOP_K) {
+                let Ok(word) = String::from_utf8(key) else {
+                    continue;
+                };
+                if word.len() > p.text.len()
+                    && scores.first_piece(&word).as_deref() == Some(p.text.as_str())
+                {
+                    words.push((word, count));
+                }
+            }
+            for (word, count) in words {
+                let bigram = self.bigram_log_prob(previous.map(|(w, _)| w), &word);
+                let score = p.log_p + lex.log_prob(count) - p.first_log_mass
+                    + bigram.map_or(0.0, |b| self.lm_weights.next_bigram * b);
+                let text = if sentence_end {
+                    capitalize(&word)
+                } else {
+                    word
+                };
+                found.push(Candidate {
+                    text,
+                    kind: Kind::NextWord,
+                    score,
+                });
+            }
+        }
+        self.drop_removed(&mut found);
+        sort_and_dedup(&mut found);
+        found.truncate(SHOWN);
+        found
+    }
+
+    /// ln P(word | previous) from `next.fst`, or None when it has no pairs for `previous`.
+    /// `next.fst` keeps only each word's few commonest followers, so a word that isn't one
+    /// counts as the least of them (it is at most that common), not as never seen.
+    fn bigram_log_prob(&self, previous: Option<&str>, word: &str) -> Option<f32> {
+        let (lex, previous) = (self.sources.next_words.as_ref()?, previous?);
+        let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
+        key.push(SEPARATOR);
+        let followers = lex.top_completions(&key, TOP_K);
+        let mass: u64 = followers.iter().map(|(_, count)| count).sum();
+        let least = followers.iter().map(|(_, count)| *count).min()?;
+        let count = followers
+            .iter()
+            .find(|(k, _)| k[key.len()..].eq_ignore_ascii_case(word.as_bytes()))
+            .map_or(least, |(_, count)| *count);
+        Some((count as f64 / mass as f64).ln() as f32)
+    }
+
+    /// M3a's next words: `next.fst`'s commonest followers of the previous word.
+    fn bigram_next_words(&self, context_before: &str) -> Vec<Candidate> {
         let (Some(lex), Some((previous, sentence_end))) = (
             &self.sources.next_words,
             text::previous_word(context_before),
@@ -1379,6 +1686,7 @@ fn arrange(
 mod tests {
     use super::*;
     use crate::lexicon::build;
+    use crate::lm_context::NextPiece;
 
     fn lex(words: &[(&str, u64)]) -> Option<Lexicon> {
         Some(
@@ -1390,7 +1698,11 @@ mod tests {
     }
 
     fn engine() -> Engine {
-        let sources = Sources {
+        Engine::new(engine_sources(), UserStore::in_memory())
+    }
+
+    fn engine_sources() -> Sources {
+        Sources {
             english: lex(&[
                 ("the", 1000),
                 ("then", 50),
@@ -1408,18 +1720,327 @@ mod tests {
             ]),
             manglish: None,
             translit: None,
+            lm: None,
             next_words: lex(&[
                 ("i\0am", 30),
                 ("i\0have", 20),
                 ("i\0was", 10),
                 ("i\0will", 5),
             ]),
+        }
+    }
+
+    /// The tiny fixture LM (`tests/fixtures/lm-tiny.mlkbnn`). A `Sources` built in code skips
+    /// the fingerprint check that `Sources::open` makes.
+    fn tiny_lm() -> Option<Lm> {
+        Lm::open(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn"),
+        )
+        .ok()
+    }
+
+    fn engine_with_lm(lm: Lm) -> Engine {
+        let sources = Sources {
+            lm: Some(lm),
+            ..engine_sources()
         };
         Engine::new(sources, UserStore::in_memory())
     }
 
+    #[test]
+    fn an_expired_prefill_gives_the_m3a_bar_and_resumes_later() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        assert!(engine.loaded_sources().contains(&"lm"));
+        let late = || Duration::from_millis(100);
+        let timing = Timing::keyboard(&late); // every cutoff already passed
+        let expired = engine.suggest_timed("I ", Layout::Latin, true, Some(&timing));
+        assert!(!engine.lm_ready());
+        assert_eq!(
+            expired,
+            engine_without_lm().suggest("I ", Layout::Latin, true)
+        );
+        engine.suggest("I ", Layout::Latin, true);
+        assert!(engine.lm_ready());
+    }
+
+    #[test]
+    fn prefill_after_a_space_may_run_longer_than_mid_word() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        let five = || Duration::from_millis(5);
+        let timing = Timing::keyboard(&five); // past the 3 ms prefill, within the 10 ms
+        engine.suggest_timed("hello there wo", Layout::Latin, true, Some(&timing));
+        assert!(!engine.lm_ready());
+        engine.suggest_timed("hello there ", Layout::Latin, true, Some(&timing));
+        assert!(engine.lm_ready());
+    }
+
+    #[test]
+    fn prepare_fills_the_context_ahead_of_typing() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        engine.prepare("hello there ", None);
+        assert!(engine.lm_ready());
+        engine.prepare("and now something else ", Some(Duration::ZERO));
+        assert!(!engine.lm_ready(), "no time: nothing fed");
+        assert!(!engine_without_lm().lm_ready());
+    }
+
+    fn engine_without_lm() -> Engine {
+        engine()
+    }
+
     fn texts(s: &Suggestions) -> Vec<&str> {
         s.candidates.iter().map(|c| c.text.as_str()).collect()
+    }
+
+    /// Context scores fixed by the test, in place of a trained LM.
+    #[derive(Default)]
+    struct Fake {
+        bias: f32,
+        deltas: std::collections::HashMap<&'static str, f32>,
+        next: Vec<NextPiece>,
+        first: std::collections::HashMap<&'static str, &'static str>,
+    }
+
+    impl ContextScores for Fake {
+        fn manglish_bias(&self) -> f32 {
+            self.bias
+        }
+        fn weighted(&self, word: &str) -> f32 {
+            self.deltas
+                .get(word.to_lowercase().as_str())
+                .copied()
+                .unwrap_or(0.0)
+        }
+        fn prefix_delta(&self, _typed: &str) -> f32 {
+            0.0
+        }
+        fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
+            self.next.clone()
+        }
+        fn first_piece(&self, word: &str) -> Option<String> {
+            self.first.get(word).map(|s| s.to_string())
+        }
+    }
+
+    /// `engine()` with Manglish: a skeleton lexicon over its Malayalam words, and `pain`
+    /// beside `പണി` for the letters `pani`.
+    fn manglish_engine() -> Engine {
+        let malayalam: Vec<(String, u64)> = [
+            ("എന്റെ", 100),
+            ("എന്ത്", 80),
+            ("കാര്യം", 10),
+            ("കിളി", 5),
+            ("കീ", 1),
+            ("പണി", 60),
+        ]
+        .iter()
+        .map(|(w, c)| (w.to_string(), *c))
+        .collect();
+        let words: Vec<(&str, u64)> = malayalam.iter().map(|(w, c)| (w.as_str(), *c)).collect();
+        let sources = Sources {
+            english: lex(&[
+                ("the", 1000),
+                ("then", 50),
+                ("hello", 40),
+                ("help", 60),
+                ("London", 30),
+                ("I", 200),
+                ("feel", 300),
+                ("pain", 900),
+            ]),
+            malayalam: lex(&words),
+            manglish: Some(
+                Lexicon::from_bytes(build(manglish::entries(&malayalam)).unwrap()).unwrap(),
+            ),
+            ..Sources::default()
+        };
+        Engine::new(sources, UserStore::in_memory())
+    }
+
+    #[test]
+    fn the_lm_bias_replaces_the_previous_word_bias() {
+        let engine = manglish_engine();
+        // After an English word M3a's bias keeps `pani` English-leaning; the LM says Malayalam.
+        let m3a = engine.suggest("I feel pani", Layout::Latin, true);
+        let fake = Fake {
+            bias: rank::CONTEXT_AFTER_MALAYALAM,
+            ..Fake::default()
+        };
+        let lm = engine.suggest_scored("I feel pani", Layout::Latin, true, &fake);
+        assert_ne!(m3a.candidates[0].text, "പണി");
+        assert_eq!(lm.candidates[0].text, "പണി");
+    }
+
+    #[test]
+    fn context_lifts_the_meant_correction() {
+        let sources = Sources {
+            english: lex(&[("were", 5000), ("weird", 10), ("so", 9000)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        assert_eq!(
+            engine
+                .suggest("that's so wierd", Layout::Latin, true)
+                .candidates[0]
+                .text,
+            "were"
+        );
+        let fake = Fake {
+            deltas: [("weird", 3.0), ("were", -2.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine.suggest_scored("that's so wierd", Layout::Latin, true, &fake);
+        assert_eq!(s.candidates[0].text, "weird");
+    }
+
+    #[test]
+    fn the_lm_never_lowers_the_floor() {
+        // A correction below MIN_REPLACE stays out of the middle however much context likes it.
+        let sources = Sources {
+            english: lex(&[("the", 1_000_000_000), ("zyzzyva", 1)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        let fake = Fake {
+            deltas: [("zyzzyva", 2.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine.suggest_scored("zyzzyvx", Layout::Latin, true, &fake);
+        assert_eq!(s.candidates[0].kind, Kind::Verbatim);
+        assert!(texts(&s).contains(&"zyzzyva"), "still offered beside it");
+    }
+
+    #[test]
+    fn a_known_word_is_never_replaced_whatever_the_context() {
+        let fake = Fake {
+            deltas: [("then", 4.0), ("the", -4.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine().suggest_scored("the", Layout::Latin, true, &fake);
+        assert_eq!(
+            (s.candidates[0].text.as_str(), s.candidates[0].kind),
+            ("the", Kind::Verbatim)
+        );
+    }
+
+    #[test]
+    fn malayalam_completions_follow_context() {
+        let fake = Fake {
+            deltas: [("എന്ത്", 3.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine().suggest_scored("എന്", Layout::Malayalam, true, &fake);
+        assert_eq!(texts(&s), ["എന്", "എന്ത്", "എന്റെ"]);
+    }
+
+    fn piece(text: &str, latin: bool, log_p: f32, first_log_mass: f32) -> NextPiece {
+        NextPiece {
+            text: text.into(),
+            latin,
+            log_p,
+            first_log_mass,
+        }
+    }
+
+    #[test]
+    fn next_words_come_from_the_lm_in_the_sentence_script() {
+        let fake = Fake {
+            next: vec![
+                piece("have", true, -1.0, -6.0),
+                piece("വീട്", false, -0.5, -5.0),
+                piece("xq", true, -0.1, -9.0),
+            ],
+            first: [("have", "have")].into(),
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("have", 400), ("the", 1000)]),
+                malayalam: lex(&[("വീട്", 50), ("വീട്ടിൽ", 30)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        let s = engine.suggest_scored("I ", Layout::Latin, true, &fake);
+        // "xq" is no English word: skipped. വീട്ടിൽ's first piece isn't വീട് in the fake: skipped.
+        assert_eq!(texts(&s), ["വീട്", "have"]);
+        assert!(s.candidates.iter().all(|c| c.kind == Kind::NextWord));
+    }
+
+    #[test]
+    fn removed_words_and_sentence_starts_apply_to_lm_next_words() {
+        let fake = Fake {
+            next: vec![
+                piece("it", true, -1.0, -5.0),
+                piece("the", true, -1.5, -3.0),
+            ],
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("it", 500), ("the", 1000)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        assert_eq!(
+            texts(&engine.suggest_scored("Rain. ", Layout::Latin, true, &fake)),
+            ["It", "The"]
+        );
+        engine.remove_word("it");
+        assert_eq!(
+            texts(&engine.suggest_scored("Rain. ", Layout::Latin, true, &fake)),
+            ["The"]
+        );
+    }
+
+    #[test]
+    fn lm_next_words_keep_the_stored_case_and_lean_on_the_bigram() {
+        let fake = Fake {
+            next: vec![
+                piece("i", true, -1.0, -5.0),
+                piece("we", true, -0.8, -5.0),
+                piece("they", true, -0.79, -5.0),
+            ],
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("I", 500), ("we", 500), ("they", 500)]),
+                next_words: lex(&[("so\0i", 90), ("so\0we", 10)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        // The LM prefers "we" by 0.2; the bigram, 9:1 for "I", turns it at weight 0.25.
+        // "they" isn't among the followers `next.fst` keeps: it counts as the least of them.
+        assert_eq!(
+            texts(&engine.suggest_scored("so ", Layout::Latin, true, &fake)),
+            ["I", "they", "we"]
+        );
+    }
+
+    #[test]
+    fn next_fst_fills_in_when_the_lm_offers_nothing() {
+        let s = engine().suggest_scored("I ", Layout::Latin, true, &Fake::default());
+        assert_eq!(texts(&s), ["am", "have", "was"]);
+        assert_eq!(
+            engine().suggest_scored("", Layout::Latin, true, &Fake::default()),
+            Suggestions::default()
+        );
+    }
+
+    #[test]
+    fn without_an_lm_nothing_changes() {
+        let engine = engine();
+        assert!(!engine.loaded_sources().contains(&"lm"));
+        assert_eq!(
+            texts(&engine.suggest("I ", Layout::Latin, true)),
+            ["am", "have", "was"]
+        );
     }
 
     #[test]

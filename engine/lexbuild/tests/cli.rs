@@ -28,6 +28,7 @@ fn builds_a_bundle_the_engine_can_use() {
         manglish: Some(out.path().join("manglish.fst")),
         next_words: Some(out.path().join("next.fst")),
         translit: None,
+        lm: None,
         user_dir: None,
     };
     let engine = Engine::open(&paths);

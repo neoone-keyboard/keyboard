@@ -20,6 +20,7 @@ fn open(model: bool) -> Engine {
         malayalam: Some(dir.join("ml.fst")),
         manglish: Some(dir.join("manglish.fst")),
         next_words: Some(dir.join("next.fst")),
+        lm: None,
         translit: model.then(|| root().join("apps/ios/KeyboardExtension/Models/translit.mlkbnn")),
         user_dir: None,
     })

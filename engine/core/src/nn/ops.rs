@@ -315,6 +315,56 @@ mod neon {
     }
 }
 
+/// Multi-head attention of one query `q` (`d`) over `t` rows of `kv`, where row `j`'s key is
+/// `kv[j*stride + k_off ..][..d]` and its value `kv[j*stride + v_off ..][..d]`. Writes `d`
+/// values to `out`. `scores` needs `t` entries.
+#[allow(clippy::too_many_arguments)]
+pub fn attend(
+    q: &[f32],
+    kv: &[f32],
+    (k_off, v_off, stride): (usize, usize, usize),
+    t: usize,
+    heads: usize,
+    scores: &mut [f32],
+    out: &mut [f32],
+) {
+    let d = q.len();
+    let dh = d / heads;
+    let scale = 1.0 / (dh as f32).sqrt();
+    let scores = &mut scores[..t];
+    out.fill(0.0);
+    for h in 0..heads {
+        let cols = h * dh..(h + 1) * dh;
+        let qh = &q[cols.clone()];
+        for (j, s) in scores.iter_mut().enumerate() {
+            let k = &kv[j * stride + k_off + cols.start..][..dh];
+            *s = dot(qh, k) * scale;
+        }
+        softmax(scores);
+        let oh = &mut out[cols.clone()];
+        for (j, &p) in scores.iter().enumerate() {
+            let v = &kv[j * stride + v_off + cols.start..][..dh];
+            for (o, &vv) in oh.iter_mut().zip(v) {
+                *o += p * vv;
+            }
+        }
+    }
+}
+
+/// Rotary position embedding ("rotate half", as `training/mlkb/lm/model.py::rope`) on every
+/// head of `x`, in place. `inv_freq[i] = theta^(-2i/dh)` for `i < dh/2`; each head is `dh` wide.
+pub fn rope(x: &mut [f32], pos: usize, inv_freq: &[f32]) {
+    let half = inv_freq.len();
+    for (i, &f) in inv_freq.iter().enumerate() {
+        let (sin, cos) = (pos as f32 * f).sin_cos();
+        for head in x.chunks_exact_mut(2 * half) {
+            let (a, b) = (head[i], head[i + half]);
+            head[i] = a * cos - b * sin;
+            head[i + half] = a * sin + b * cos;
+        }
+    }
+}
+
 /// `out = (x - mean) / sqrt(var + eps) * weight + bias`, as `nn.LayerNorm` over one vector.
 pub fn layer_norm(x: &[f32], weight: &[f32], bias: &[f32], out: &mut [f32]) {
     let n = x.len() as f32;
@@ -527,5 +577,22 @@ mod tests {
         assert_eq!(x, [0.0, 0.0, 2.5]);
         add_assign(&mut x, &[1.0, 1.0, 1.0]);
         assert_eq!(x, [1.0, 1.0, 3.5]);
+    }
+
+    #[test]
+    fn rope_turns_pairs_and_keeps_scores_relative() {
+        let inv: Vec<f32> = (0..2)
+            .map(|i| 10000f32.powf(-2.0 * i as f32 / 4.0))
+            .collect();
+        let mut x = [1.0, 0.0, 0.0, 1.0];
+        rope(&mut x, 0, &inv);
+        assert_eq!(x, [1.0, 0.0, 0.0, 1.0], "position 0 is the identity");
+        let score = |m: usize, n: usize| {
+            let (mut q, mut k) = ([0.3, -1.2, 0.7, 0.5], [1.1, 0.4, -0.2, 0.9]);
+            rope(&mut q, m, &inv);
+            rope(&mut k, n, &inv);
+            dot(&q, &k)
+        };
+        assert!((score(5, 2) - score(105, 102)).abs() < 1e-4);
     }
 }

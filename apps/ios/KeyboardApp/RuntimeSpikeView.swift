@@ -86,15 +86,23 @@ enum RuntimeCheck {
 }
 
 /// The keyboard's full suggest, timed per keystroke on the phone: the extension's bundled
-/// lexicons and model, words typed letter by letter after "I said ". Each word runs typed
-/// back to back (the CPU stays busy, as in a benchmark) and with a pause between keys (as when
-/// typing, so each suggest starts from an idle CPU), then paused with the keyboard's model
-/// deadline, marking keys whose bar it changed. Launch the app with `-suggestCheck`;
-/// the result is Documents/suggest-check.txt.
+/// lexicons and models (the LM too, when bundled), words typed letter by letter after
+/// "I said ", then the space after each (next words). Each word runs typed back to back (the
+/// CPU stays busy, as in a benchmark) and with a pause between keys (as when typing, so each
+/// suggest starts from an idle CPU), then paused with the keyboard's deadlines, marking keys
+/// whose bar they changed. Launch the app with `-suggestCheck`; the result is
+/// Documents/suggest-check.txt.
 enum SuggestCheck {
     static let words = ["preferenc", "apostrophe", "definitely", "enthu", "sukhamano", "avishyam"]
-    /// As the keyboard's `EngineSuggestionProvider.modelDeadlineMs`.
+    /// As the keyboard's `EngineSuggestionProvider.modelDeadlineMs` and its LM cutoffs.
     static let deadlineMs: UInt32 = 8
+    static let lmPrefillMs: UInt32 = 3
+    static let lmAfterSpaceMs: UInt32 = 10
+    static let lmDeadlineMs: UInt32 = 11
+    /// What is typed for `word`: each prefix, then the word and a space.
+    static func contexts(_ word: String) -> [String] {
+        (1...word.count).map { "I said " + word.prefix($0) } + ["I said \(word) "]
+    }
     static var output: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("suggest-check.txt")
@@ -117,8 +125,12 @@ enum SuggestCheck {
                 manglish: file("Lexicon", "manglish.fst"),
                 nextWords: file("Lexicon", "next.fst"),
                 translit: file("Models", "translit.mlkbnn"),
+                lm: file("Models", "lm.mlkbnn"),
                 userDir: nil,
-                modelDeadlineMs: deadline
+                modelDeadlineMs: deadline,
+                lmPrefillMs: deadline == nil ? nil : lmPrefillMs,
+                lmAfterSpaceMs: deadline == nil ? nil : lmAfterSpaceMs,
+                lmDeadlineMs: deadline == nil ? nil : lmDeadlineMs
             )
         }
         guard let unbounded = try? Engine(config: config(nil)),
@@ -134,15 +146,14 @@ enum SuggestCheck {
         }
         var full: [String: [String]] = [:]
         for word in words {  // warm the page cache; the bar without a deadline
-            for end in 1...word.count {
-                let context = "I said " + word.prefix(end)
+            for context in contexts(word) {
                 full[context] = bar(unbounded, context)
                 _ = bar(bounded, context)
             }
         }
         let phases: [(String, Double, Engine)] = [
             ("back to back, no deadline", 0, unbounded),
-            ("150 ms between keys, model deadline \(deadlineMs) ms (* bar differs)", 0.15, bounded),
+            ("150 ms between keys, model deadline \(deadlineMs) ms, LM cutoffs (* bar differs)", 0.15, bounded),
             ("150 ms between keys, no deadline", 0.15, unbounded),
         ]
         for (label, pause, engine) in phases {
@@ -151,8 +162,7 @@ enum SuggestCheck {
             text += "\n\(label)\n"
             for word in words {
                 var line = word
-                for end in 1...word.count {
-                    let context = "I said " + word.prefix(end)
+                for context in contexts(word) {
                     if pause > 0 { Thread.sleep(forTimeInterval: pause) }
                     let start = ContinuousClock.now
                     let shown = bar(engine, context)
@@ -160,7 +170,7 @@ enum SuggestCheck {
                     all.append(ms)
                     line += String(format: " %.1f", ms) + (shown == full[context] ? "" : "*")
                     if shown != full[context] {
-                        differs.append("\(word.prefix(end)): \(shown) for \(full[context] ?? [])")
+                        differs.append("\(context.dropFirst(7)): \(shown) for \(full[context] ?? [])")
                     }
                 }
                 text += line + "\n"

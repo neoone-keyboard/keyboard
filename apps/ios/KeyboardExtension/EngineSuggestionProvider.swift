@@ -36,9 +36,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
     static let shared = bundled()
 
-    /// Lexicons and the transliterator model from the extension bundle; learned words in the
-    /// extension's own container. A file missing from the bundle is passed as nil, which
-    /// disables only that source (without the model, Manglish uses the lexicons alone).
+    /// Lexicons, the transliterator and the language model from the extension bundle; learned
+    /// words in the extension's own container. A file missing from the bundle is passed as nil,
+    /// which disables only that source (without the transliterator, Manglish uses the lexicons
+    /// alone; without the LM, ranking is M3a's).
     static func bundled() -> EngineSuggestionProvider {
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
@@ -54,8 +55,13 @@ actor EngineSuggestionProvider: SuggestionProvider {
             manglish: lexicon("manglish"),
             nextWords: lexicon("next"),
             translit: model("translit"),
+            lm: model("lm"),
             userDir: userDir,
-            modelDeadlineMs: modelDeadlineMs
+            modelDeadlineMs: modelDeadlineMs,
+            lmPrefillMs: lmPrefillMs,
+            lmAfterSpaceMs: lmAfterSpaceMs,
+            lmDeadlineMs: lmDeadlineMs,
+            lmPrepareMs: lmPrepareMs
         ))
     }
 
@@ -66,6 +72,16 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// 4 ms suggest took 20–25 ms, past the coordinator's 15 ms, and the bar went empty. With
     /// 8 ms, the slowest still end by about 11 ms.
     static let modelDeadlineMs: UInt32 = 8
+
+    /// LM cutoffs, in milliseconds from the start of a suggest (design §4). Prefill while typing
+    /// stops at 3 ms, so the transliterator keeps most of its 8 ms. After a space nothing else
+    /// runs, so the LM may use 10 ms. Tier-1 rows stop at 11 ms, near where M3a's slowest
+    /// suggests already end, under the coordinator's 15 ms.
+    static let lmPrefillMs: UInt32 = 3
+    static let lmAfterSpaceMs: UInt32 = 10
+    static let lmDeadlineMs: UInt32 = 11
+    /// When the keyboard appears, before any key: the context is filled for up to 6 ms.
+    static let lmPrepareMs: UInt32 = 6
 
     func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult {
         try Task.checkCancellation()
@@ -87,9 +103,11 @@ actor EngineSuggestionProvider: SuggestionProvider {
         )
     }
 
-    /// Opens the lexicons ahead of the first request, once the keys are showing.
-    func warmUp() {
-        _ = try? loadedEngine()
+    /// Opens the lexicons ahead of the first request, once the keys are showing, and fills the
+    /// LM's context with the text already in the field (`lmPrepareMs`).
+    func warmUp(contextBefore: String) {
+        guard let engine = try? loadedEngine() else { return }
+        try? engine.prepare(contextBefore: contextBefore)
     }
 
     /// Best effort: a failure only means the word isn't learned.
@@ -165,7 +183,8 @@ actor EngineSuggestionProvider: SuggestionProvider {
     func status() -> String {
         if engine != nil {
             let model = loadedSources.contains("translit") ? "yes" : "no"
-            return "engine open; sources \(loadedSources.joined(separator: ",")); model loaded \(model)"
+            let lm = loadedSources.contains("lm") ? "yes" : "no"
+            return "engine open; sources \(loadedSources.joined(separator: ",")); model loaded \(model); lm loaded \(lm)"
         }
         if shed { return "engine unloaded (memory)" }
         if failedAt != nil { return "engine failed to open (retrying)" }
@@ -204,7 +223,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             failedAt = nil
             refusalLogged = nil
             loadedSources = (try? created.loadedSources()) ?? []
-            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil); footprint \(Diagnostics.footprint())")
+            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil) lm=\(config.lm != nil); footprint \(Diagnostics.footprint())")
             return created
         } catch {
             log.error("Engine failed to open: \(String(describing: error)); footprint \(Diagnostics.footprint())")

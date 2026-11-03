@@ -5,6 +5,7 @@ pub mod engine;
 pub mod fuzzy;
 pub mod keys;
 pub mod lexicon;
+pub mod lm_context;
 pub mod malayalam;
 pub mod manglish;
 pub mod nn;
@@ -16,4 +17,4 @@ pub mod text;
 pub mod translit;
 pub mod user;
 
-pub use engine::{Candidate, Engine, Kind, Layout, Paths, Sources, Suggestions};
+pub use engine::{Candidate, Engine, Kind, Layout, Paths, Sources, Suggestions, Timing};

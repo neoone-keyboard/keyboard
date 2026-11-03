@@ -14,31 +14,9 @@
 //! The decoder runs one token per call with a per-beam cache of self-attention keys and values;
 //! the cross-attention keys and values are computed once per encoded word.
 
-use std::ops::Range;
-
-use super::file::{Config, KIND_TRANSLIT, ModelFile, NnError, TensorRef};
-use super::ops::{QMatrix, QuantBuf, add_assign, dot, layer_norm, matmul_i8, relu, softmax};
-
-/// An int8 matrix resolved from the file: its scales (copied) and where its values are.
-#[derive(Debug)]
-struct Mat {
-    scales: Vec<f32>,
-    values: Range<usize>,
-    rows: usize,
-    cols: usize,
-}
-
-#[derive(Debug)]
-struct Linear {
-    weight: Mat,
-    bias: Vec<f32>,
-}
-
-#[derive(Debug)]
-struct Norm {
-    weight: Vec<f32>,
-    bias: Vec<f32>,
-}
+use super::file::{Config, KIND_TRANSLIT, ModelFile, NnError};
+use super::ops::{QMatrix, QuantBuf, add_assign, attend, matmul_i8, relu};
+use super::weights::{Linear, Loader, Mat, Norm, norm_rows};
 
 #[derive(Debug)]
 struct Attention {
@@ -71,61 +49,7 @@ struct DecoderLayer {
     norm3: Norm,
 }
 
-/// Resolves tensors by name, checking dtype and shape.
-struct Loader<'a>(&'a ModelFile);
-
 impl Loader<'_> {
-    fn mat(&self, name: &str, rows: usize, cols: usize) -> Result<Mat, NnError> {
-        match self.0.tensor(name) {
-            Some(TensorRef::I8 {
-                scales,
-                rows: r,
-                cols: c,
-                ..
-            }) if (r, c) == (rows, cols) => Ok(Mat {
-                scales: scales.to_vec(),
-                values: self.0.int8_range(name).expect("int8 tensor has a range"),
-                rows,
-                cols,
-            }),
-            Some(t) => Err(NnError::Shape(format!(
-                "{name}: expected int8 [{rows}, {cols}], found {:?} {}",
-                t.dims(),
-                match t {
-                    TensorRef::F32 { .. } => "f32",
-                    TensorRef::I8 { .. } => "int8",
-                    TensorRef::Bytes(_) => "bytes",
-                }
-            ))),
-            None => Err(NnError::Missing(name.into())),
-        }
-    }
-
-    fn vector(&self, name: &str, len: usize) -> Result<Vec<f32>, NnError> {
-        match self.0.tensor(name) {
-            Some(TensorRef::F32 { dims, values }) if dims == [len] => Ok(values.to_vec()),
-            Some(t) => Err(NnError::Shape(format!(
-                "{name}: expected f32 [{len}], found {:?}",
-                t.dims()
-            ))),
-            None => Err(NnError::Missing(name.into())),
-        }
-    }
-
-    fn linear(&self, prefix: &str, rows: usize, cols: usize) -> Result<Linear, NnError> {
-        Ok(Linear {
-            weight: self.mat(&format!("{prefix}.weight"), rows, cols)?,
-            bias: self.vector(&format!("{prefix}.bias"), rows)?,
-        })
-    }
-
-    fn norm(&self, prefix: &str, d: usize) -> Result<Norm, NnError> {
-        Ok(Norm {
-            weight: self.vector(&format!("{prefix}.weight"), d)?,
-            bias: self.vector(&format!("{prefix}.bias"), d)?,
-        })
-    }
-
     fn attention(&self, prefix: &str, d: usize) -> Result<Attention, NnError> {
         Ok(Attention {
             in_proj: Linear {
@@ -274,42 +198,6 @@ impl Scratch {
     }
 }
 
-/// Multi-head attention of one query `q` (`d`) over `t` rows of `kv`, where row `j`'s key is
-/// `kv[j*stride + k_off ..][..d]` and its value `kv[j*stride + v_off ..][..d]`. Writes `d`
-/// values to `out`. `scores` needs `t` entries.
-#[allow(clippy::too_many_arguments)]
-fn attend(
-    q: &[f32],
-    kv: &[f32],
-    (k_off, v_off, stride): (usize, usize, usize),
-    t: usize,
-    heads: usize,
-    scores: &mut [f32],
-    out: &mut [f32],
-) {
-    let d = q.len();
-    let dh = d / heads;
-    let scale = 1.0 / (dh as f32).sqrt();
-    let scores = &mut scores[..t];
-    out.fill(0.0);
-    for h in 0..heads {
-        let cols = h * dh..(h + 1) * dh;
-        let qh = &q[cols.clone()];
-        for (j, s) in scores.iter_mut().enumerate() {
-            let k = &kv[j * stride + k_off + cols.start..][..dh];
-            *s = dot(qh, k) * scale;
-        }
-        softmax(scores);
-        let oh = &mut out[cols.clone()];
-        for (j, &p) in scores.iter().enumerate() {
-            let v = &kv[j * stride + v_off + cols.start..][..dh];
-            for (o, &vv) in oh.iter_mut().zip(v) {
-                *o += p * vv;
-            }
-        }
-    }
-}
-
 impl Transformer {
     /// Resolves every tensor of `file` once, checking each shape against the header.
     pub fn new(file: &ModelFile) -> Result<Self, NnError> {
@@ -371,12 +259,7 @@ impl Transformer {
     }
 
     fn q<'a>(&'a self, m: &'a Mat) -> QMatrix<'a> {
-        QMatrix {
-            data: &self.file.bytes()[m.values.clone()],
-            scales: &m.scales,
-            rows: m.rows,
-            cols: m.cols,
-        }
+        m.q(&self.file)
     }
 
     /// `out = linear(x)` for `n` rows.
@@ -485,13 +368,6 @@ impl Transformer {
             encoded,
             scratch: Scratch::new(&self.config, 1),
         }
-    }
-}
-
-/// `nn.LayerNorm` on each `d`-long row of `x`.
-fn norm_rows(norm: &Norm, x: &[f32], out: &mut [f32], d: usize) {
-    for (xr, or) in x.chunks_exact(d).zip(out.chunks_exact_mut(d)) {
-        layer_norm(xr, &norm.weight, &norm.bias, or);
     }
 }
 

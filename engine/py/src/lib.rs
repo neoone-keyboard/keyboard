@@ -6,26 +6,29 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 use mlengine_core::lexicon::Lexicon;
+use mlengine_core::lm_context::LmWeights;
 use mlengine_core::nn::tokenizer::BOS;
 use mlengine_core::{Engine as Core, Kind, Layout, Paths};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-/// The engine over the given lexicon files and transliterator model (`translit`, a
-/// `.mlkbnn`); a missing or unreadable file is left out, exactly as on the device.
-#[pyclass(frozen)]
+/// The engine over the given lexicon files, transliterator model (`translit`, a `.mlkbnn`)
+/// and language model (`lm`); a missing or unreadable file is left out, and an LM built
+/// against other lexicons is not loaded, exactly as on the device.
+#[pyclass]
 struct Engine(Core);
 
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None))]
+    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None))]
     fn new(
         english: Option<PathBuf>,
         malayalam: Option<PathBuf>,
         manglish: Option<PathBuf>,
         next_words: Option<PathBuf>,
         translit: Option<PathBuf>,
+        lm: Option<PathBuf>,
     ) -> Self {
         Engine(Core::open(&Paths {
             english,
@@ -33,6 +36,7 @@ impl Engine {
             manglish,
             next_words,
             translit,
+            lm,
             user_dir: None,
         }))
     }
@@ -63,6 +67,32 @@ impl Engine {
     /// Names of the sources that loaded, e.g. ["english", "malayalam"].
     fn loaded_sources(&self) -> Vec<&'static str> {
         self.0.loaded_sources()
+    }
+
+    /// Sets the LM weights for sweeps (`mlengine_core::lm_context::LmWeights`); a field left
+    /// out keeps `rank`'s value.
+    #[pyo3(signature = (en=None, ml=None, clip=None, lang_weight=None, lang_offset=None, next_bigram=None, tier1_gap=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn set_lm_weights(
+        &mut self,
+        en: Option<f32>,
+        ml: Option<f32>,
+        clip: Option<f32>,
+        lang_weight: Option<f32>,
+        lang_offset: Option<f32>,
+        next_bigram: Option<f32>,
+        tier1_gap: Option<f32>,
+    ) {
+        let d = LmWeights::default();
+        self.0.set_lm_weights(LmWeights {
+            en: en.unwrap_or(d.en),
+            ml: ml.unwrap_or(d.ml),
+            clip: clip.unwrap_or(d.clip),
+            lang_weight: lang_weight.unwrap_or(d.lang_weight),
+            lang_offset: lang_offset.unwrap_or(d.lang_offset),
+            next_bigram: next_bigram.unwrap_or(d.next_bigram),
+            tier1_gap: tier1_gap.unwrap_or(d.tier1_gap),
+        });
     }
 }
 

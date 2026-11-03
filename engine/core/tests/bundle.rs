@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::nn::{Deadline, Translit, Transliteration};
-use mlengine_core::{Engine, Kind, Layout, Paths, rank, suffix};
+use mlengine_core::{Engine, Kind, Layout, Paths, Timing, rank, suffix};
 
 fn bundle_dir() -> PathBuf {
     std::env::var_os("MLENGINE_BUNDLE")
@@ -25,20 +25,47 @@ fn engine() -> Engine {
 }
 
 fn open_engine(translit: Option<PathBuf>) -> Engine {
+    Engine::open(&bundle_paths(translit, None))
+}
+
+fn bundle_paths(translit: Option<PathBuf>, lm: Option<PathBuf>) -> Paths {
     let dir = bundle_dir();
     assert!(
         dir.join("en.fst").exists(),
         "no lexicon bundle in {}: run `make lexicons`",
         dir.display()
     );
-    Engine::open(&Paths {
+    Paths {
         english: Some(dir.join("en.fst")),
         malayalam: Some(dir.join("ml.fst")),
         manglish: Some(dir.join("manglish.fst")),
         next_words: Some(dir.join("next.fst")),
         translit,
+        lm,
         user_dir: None,
-    })
+    }
+}
+
+/// The LM: MLENGINE_LM, else the bundled one, else the training output.
+fn lm_path() -> Option<PathBuf> {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let path = std::env::var_os("MLENGINE_LM")
+        .map(PathBuf::from)
+        .into_iter()
+        .chain([
+            root.join("apps/ios/KeyboardExtension/Models/lm.mlkbnn"),
+            root.join("training/build/lm.mlkbnn"),
+        ])
+        .find(|p| p.exists());
+    if path.is_none() {
+        println!("skipping the LM: no lm.mlkbnn (`make models` builds it)");
+    }
+    path
+}
+
+/// Both models when they exist; None (the row is skipped) without the LM.
+fn lm_engine() -> Option<Engine> {
+    Some(Engine::open(&bundle_paths(model_path(), Some(lm_path()?))))
 }
 
 /// The keyboard's bundled model (MLENGINE_TRANSLIT to test another export).
@@ -608,6 +635,72 @@ fn translit_model_leaves_english_as_typed() {
     }
 }
 
+#[test]
+fn lm_loads_only_with_the_lexicons_it_was_built_for() {
+    let Some(engine) = lm_engine() else { return };
+    assert!(engine.loaded_sources().contains(&"lm"));
+    let other = Engine::open(&Paths {
+        english: None,
+        ..bundle_paths(None, lm_path())
+    });
+    assert!(!other.loaded_sources().contains(&"lm"));
+    let swapped = bundle_paths(None, lm_path());
+    let other = Engine::open(&Paths {
+        english: swapped.malayalam.clone(),
+        malayalam: swapped.english.clone(),
+        ..swapped
+    });
+    assert!(!other.loaded_sources().contains(&"lm"));
+}
+
+/// The typos M3a gets wrong (design §1), in sentences: context picks the meant word. Without
+/// context (`english-typos.tsv`) they are only printed. `tounge` is the fifth: `tongue` is
+/// past the correction search's edits, and the LM only re-ranks what it finds, so it is
+/// only printed too (it now stays as typed rather than becoming `young`).
+#[test]
+fn context_fixes_the_typos_frequency_gets_wrong() {
+    let Some(engine) = lm_engine() else { return };
+    println!(
+        "\"I bit my tounge\": {:?}",
+        middle(&engine, "I bit my tounge").0
+    );
+    let mut wrong = Vec::new();
+    for (context, want) in [
+        ("I can't remeber", "remember"),
+        ("that's so wierd", "weird"),
+        ("what a nice suprise", "surprise"),
+        ("can I have a peice", "piece"),
+    ] {
+        let (got, _) = middle(&engine, context);
+        let typed = context.rsplit(' ').next().unwrap();
+        println!(
+            "{context:?}: {got:?}; alone {:?}",
+            middle(&engine, typed).0
+        );
+        if got != want {
+            wrong.push(format!("{context:?} → {got:?}, want {want:?}"));
+        }
+    }
+    assert!(wrong.is_empty(), "{wrong:#?}");
+}
+
+/// Next words follow the sentence's language: Malayalam after Manglish, English after English.
+#[test]
+fn lm_next_words_follow_the_sentence() {
+    let Some(engine) = lm_engine() else { return };
+    let malayalam = |w: &String| w.chars().any(|c| ('\u{0D00}'..='\u{0D7F}').contains(&c));
+    let ente = texts(&engine, "ente ");
+    println!("\"ente \": {ente:?}");
+    assert!(ente.iter().any(malayalam), "{ente:?}");
+    assert!(ente.iter().all(malayalam), "{ente:?}");
+    let english = texts(&engine, "I want to ");
+    println!("\"I want to \": {english:?}");
+    assert!(!english.is_empty() && !english.iter().any(malayalam), "{english:?}");
+    for context in ["njan ippo ", "see you ", "എന്റെ ", "how are "] {
+        println!("{context:?}: {:?}", texts(&engine, context));
+    }
+}
+
 /// Out of time before the model starts, a suggest is the lexicon-only engine's; with time to
 /// spare, it is the unbounded one's.
 #[test]
@@ -646,14 +739,33 @@ fn the_model_deadline_falls_back_to_the_lexicons() {
     }
 }
 
-/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included.
+/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included,
+/// and the LM too when it is built (after-space and mid-word requests printed apart).
 /// Run in release: `make bench`.
 #[test]
 #[ignore = "timing: run with `make bench` (release build)"]
 fn latency() {
     // With the transliterator: that is what the keyboard runs.
     let engine = model_engine().expect("the latency gate needs the bundled transliterator");
-    println!("sources: {:?}", engine.loaded_sources());
+    let inputs = latency_inputs();
+    time_suggests("without the LM", &engine, &inputs);
+    let Some(engine) = lm_engine() else {
+        println!("no lm.mlkbnn: the LM latency is skipped");
+        return;
+    };
+    time_suggests("with the LM", &engine, &inputs);
+    // As the keyboard runs it: with its cutoffs, the LM stops early on a slow request.
+    let keyboard = |context: &str, layout| {
+        let start = Instant::now();
+        let elapsed = || start.elapsed();
+        let _ = engine.suggest_timed(context, layout, true, Some(&Timing::keyboard(&elapsed)));
+    };
+    time_with("with the LM, keyboard cutoffs", &engine, &inputs, &keyboard);
+}
+
+/// Words typed letter by letter after "I said ", each then followed by a space, and Malayalam
+/// words letter by letter.
+fn latency_inputs() -> Vec<(String, Layout)> {
     let words = [
         "the",
         "because",
@@ -697,35 +809,64 @@ fn latency() {
             inputs.push((chars[..end].iter().collect(), Layout::Malayalam));
         }
     }
-    for (context, layout) in &inputs {
-        let _ = engine.suggest(context, *layout, true); // warm the page cache
+    inputs
+}
+
+/// Times every input with `suggest` and no cutoffs.
+fn time_suggests(label: &str, engine: &Engine, inputs: &[(String, Layout)]) {
+    time_with(label, engine, inputs, &|context, layout| {
+        let _ = engine.suggest(context, layout, true);
+    });
+}
+
+/// Times every input 20 times in order (so the LM context moves as when typing), prints p50
+/// and p99 overall, after a space and mid-word, and checks the overall p99.
+fn time_with(
+    label: &str,
+    engine: &Engine,
+    inputs: &[(String, Layout)],
+    suggest: &dyn Fn(&str, Layout),
+) {
+    println!("{label}: sources {:?}", engine.loaded_sources());
+    for (context, layout) in inputs {
+        suggest(context, *layout); // warm the page cache
     }
     let mut samples: Vec<(Duration, &str)> = Vec::new();
     for _ in 0..20 {
-        for (context, layout) in &inputs {
+        for (context, layout) in inputs {
             let start = Instant::now();
-            let _ = engine.suggest(context, *layout, true);
+            suggest(context, *layout);
             samples.push((start.elapsed(), context.as_str()));
         }
     }
+    let after_space: Vec<_> = samples.iter().filter(|s| s.1.ends_with(' ')).copied().collect();
+    let mid_word: Vec<_> = samples.iter().filter(|s| !s.1.ends_with(' ')).copied().collect();
+    report(&format!("{label}, after a space"), after_space);
+    report(&format!("{label}, mid-word"), mid_word);
+    let p99 = report(&format!("{label}, all"), samples);
+    assert!(
+        p99.0 < Duration::from_millis(8),
+        "{label}: p99 {:?} on {:?}",
+        p99.0,
+        p99.1
+    );
+}
+
+/// Prints p50, p99 and the slowest request; returns the p99 one.
+fn report<'a>(label: &str, mut samples: Vec<(Duration, &'a str)>) -> (Duration, &'a str) {
     samples.sort();
     let p50 = samples[samples.len() / 2].0;
     let p99 = samples[samples.len() * 99 / 100];
     let worst = samples[samples.len() - 1];
     println!(
-        "suggest latency over {} requests: p50 {p50:?}, p99 {:?} ({:?}), max {:?} ({:?})",
+        "{label}: {} requests, p50 {p50:?}, p99 {:?} ({:?}), max {:?} ({:?})",
         samples.len(),
         p99.0,
         p99.1,
         worst.0,
         worst.1
     );
-    assert!(
-        p99.0 < Duration::from_millis(8),
-        "p99 {:?} on {:?}",
-        p99.0,
-        p99.1
-    );
+    p99
 }
 
 fn trained_translit() -> Option<Translit> {
