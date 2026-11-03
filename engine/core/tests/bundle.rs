@@ -107,6 +107,96 @@ fn english_golden() {
     }
 }
 
+/// User reports from the phone, against SwiftKey. A contraction typed without its
+/// apostrophe becomes the contraction (`rank::CONTRACTION_LOOKALIKES`), long words are
+/// completed or corrected (`rank::LONG_WORD`, `rank::COMPLETION_DOMINANT`), and four
+/// letters that begin words are not corrected two slips away (`rank::PREFIX_KEEPS_LETTERS`).
+#[test]
+fn english_user_reports() {
+    for engine in engines() {
+        for (context, want) in [
+            ("whats", "what's"),
+            ("so whats", "what's"),
+            ("dont", "don't"),
+            ("cant", "can't"),
+            ("im", "I'm"),
+            ("I think im", "I'm"),
+            ("ive", "I've"),
+            ("youre", "you're"),
+            ("theyre", "they're"),
+            ("isnt", "isn't"),
+            ("didnt", "didn't"),
+            ("thats", "that's"),
+            ("doesnt", "doesn't"),
+            ("apostrap", "apostrophe"),
+            ("the apostrap", "apostrophe"),
+            ("preferenc", "preference"),
+            ("definately", "definitely"),
+            ("prefarance", "preference"),
+            ("preferance", "preference"),
+            ("recieve", "receive"),
+            ("becuase", "because"),
+            ("tommorow", "tomorrow"),
+        ] {
+            assert_eq!(
+                middle(&engine, context),
+                (want.to_string(), Kind::Correction),
+                "{context}: {:?}",
+                texts(&engine, context)
+            );
+        }
+        // Real words stay, with the contraction beside them where there is one.
+        for (context, side) in [
+            ("its", Some("it's")),
+            ("I think its", Some("it's")),
+            ("lets", Some("let's")),
+            ("were", Some("we're")),
+            ("we were", Some("we're")),
+            ("ill", Some("I'll")),
+            ("id", Some("I'd")),
+            ("well", Some("we'll")),
+            ("shell", Some("she'll")),
+            ("hell", Some("he'll")),
+            ("wont", Some("won't")),
+            ("the apos", None),
+        ] {
+            let word = context.rsplit(' ').next().unwrap();
+            let bar = texts(&engine, context);
+            assert_eq!(
+                middle(&engine, context),
+                (word.to_string(), Kind::Verbatim),
+                "{bar:?}"
+            );
+            if let Some(side) = side {
+                assert_eq!(bar[1], side, "{context}: {bar:?}");
+            }
+        }
+    }
+}
+
+/// Manglish words are not completed or corrected into English by the long-word search.
+#[test]
+fn manglish_words_are_not_made_english() {
+    for engine in engines() {
+        for (typed, want) in [
+            ("ente", "എന്റെ"),
+            ("nanni", "നന്ദി"),
+            ("sukhamano", "സുഖമാണോ"),
+            ("avishyam", "ആവശ്യം"),
+        ] {
+            let bar = texts(&engine, typed);
+            assert_ne!(
+                middle(&engine, typed).1,
+                Kind::Correction,
+                "{typed}: {bar:?}"
+            );
+            if engine.loaded_sources().contains(&"translit") {
+                assert_eq!(bar[0], want, "{typed}: {bar:?}");
+            }
+        }
+    }
+}
+
 /// Indian English in English sentences (`data/eval/english-sentences.txt`): words from
 /// `data/indian-english.txt`, and capitals typed on purpose (`Capitals` in engine.rs).
 /// Each was autocorrected before (Vishu → Fish, biryani → Britain, PNR → ONE).
@@ -133,8 +223,14 @@ fn indian_english_stays_as_typed() {
             );
         }
         // Lowercase, the same places and festivals are still Manglish.
-        for (typed, want) in [("onam", "ഓണം"), ("vishu", "വിഷു"), ("munnar", "മൂന്നാർ")] {
-            assert_eq!(middle(&engine, typed).0, want, "{typed}: {:?}", texts(&engine, typed));
+        for (typed, want) in [("onam", "ഓണം"), ("vishu", "വിഷു"), ("munnar", "മൂന്നാർ")]
+        {
+            assert_eq!(
+                middle(&engine, typed).0,
+                want,
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
         }
     }
 }

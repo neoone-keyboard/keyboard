@@ -309,10 +309,19 @@ impl Engine {
         let mut known_score = None;
         // Another case of the typed word (`tom` → `Tom`): the best correction there is.
         let mut case_fix: Option<Candidate> = None;
-        let mut corrections = Vec::new();
+        // Corrections, each with its edit cost (`fuzzy` half-edits).
+        let mut corrections: Vec<(Candidate, u8)> = Vec::new();
+        // The best word that is the typed letters with apostrophes put back
+        // (`rank::CONTRACTION_LOOKALIKES`).
+        let mut contraction: Option<Candidate> = None;
+        // A long typed word's best near match plus up to `fuzzy::MAX_TAIL` letters, and
+        // that word if it dominates its matched letters (`rank::COMPLETION_DOMINANT`).
+        let mut near_completion: Option<NearCompletion> = None;
+        let mut dominant: Option<Candidate> = None;
         // Corrections to a name: the lexicon stores them capitalised (London, Kochi).
         let mut names: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut completions = Vec::new();
+        let mut manglish: Option<ManglishCandidates> = None;
 
         if let Some(lex) = &self.sources.english {
             let score_of = |count: u64| lex.log_prob(count) + rank::KNOWN_BONUS;
@@ -343,6 +352,12 @@ impl Engine {
                 }
             }
 
+            let found = self.manglish(typed_n, manglish_bias, known_score.is_some(), deadline);
+            // Letters that spell a Malayalam word are not a mistyped English one: the
+            // long-word search's extra reach (`rank::LONG_WORD`) is not used for them.
+            let long = typed_n.len() >= rank::LONG_WORD && found.exact.is_empty();
+            manglish = Some(found);
+
             // Short words get fewer edits: more would match half the lexicon.
             let max_cost = match typed_n.len() {
                 1 => 0,
@@ -350,17 +365,59 @@ impl Engine {
                 4..=6 => fuzzy::EDIT + fuzzy::CHEAP_EDIT,
                 _ => 2 * fuzzy::EDIT,
             };
-            if let Some(automaton) = WeightedEdit::new(typed_n, max_cost) {
+            let automaton = WeightedEdit::new(typed_n, max_cost).map(|a| {
+                if long {
+                    a.with_cheap_vowels().with_tail()
+                } else {
+                    a
+                }
+            });
+            if let Some(automaton) = automaton {
                 let probe = automaton.clone();
                 lex.search(automaton, CORRECTION_LIMIT, |key, count, state| {
-                    let cost = state.cost(&probe);
-                    // Cost 0 is a case variant, handled above.
-                    let (Ok(word), true) = (std::str::from_utf8(key), cost > 0) else {
+                    let Ok(word) = std::str::from_utf8(key) else {
                         return;
                     };
+                    // A long word read as a near match plus a few letters (`apostrap` →
+                    // apostrophe, `preferenc` → preference): a candidate for the middle
+                    // when it dominates (`rank::COMPLETION_DOMINANT`).
+                    if let Some((cost, extra)) = state
+                        .tail(&probe)
+                        .filter(|&(cost, _)| cost <= rank::NEAR_COMPLETION_COST)
+                    {
+                        let middle = score_of(count) - rank::EDIT_PENALTY * f32::from(cost);
+                        if near_completion
+                            .as_ref()
+                            .is_none_or(|n| middle > n.candidate.score)
+                        {
+                            near_completion = Some(NearCompletion {
+                                candidate: Candidate {
+                                    text: show(word),
+                                    kind: Kind::Correction,
+                                    score: middle,
+                                },
+                                matched: key[..key.len() - extra].to_vec(),
+                                count,
+                            });
+                        }
+                        completions.push(Candidate {
+                            text: show(word),
+                            kind: Kind::Completion,
+                            score: lex.log_prob(count)
+                                - rank::EDIT_PENALTY * f32::from(cost)
+                                - rank::COMPLETION_PENALTY
+                                - rank::COMPLETION_PER_CHAR * extra as f32,
+                        });
+                    }
+                    let cost = state.cost(&probe);
+                    // Cost 0 is a case variant, handled above.
+                    if cost == 0 || cost > max_cost {
+                        return;
+                    }
                     // Only leaving out apostrophes (`dont` → `don't`) costs nothing:
                     // it is the commonest slip, and no letter is wrong.
-                    let penalty = if only_apostrophes_missing(word, typed_n) {
+                    let apostrophes_only = only_apostrophes_missing(word, typed_n);
+                    let penalty = if apostrophes_only {
                         0.0
                     } else {
                         rank::EDIT_PENALTY * f32::from(cost)
@@ -370,6 +427,13 @@ impl Engine {
                         kind: Kind::Correction,
                         score: score_of(count) - penalty,
                     };
+                    if apostrophes_only
+                        && contraction
+                            .as_ref()
+                            .is_none_or(|c: &Candidate| candidate.score > c.score)
+                    {
+                        contraction = Some(candidate.clone());
+                    }
                     // A correction that only extends the typed word (`hel` → `help`,
                     // `don'` → `don't`) is a completion: it never takes the middle.
                     if starts_with_ignoring_case(word, typed_n) {
@@ -381,10 +445,20 @@ impl Engine {
                         if word.starts_with(|c: char| c.is_ascii_uppercase()) {
                             names.insert(candidate.text.clone());
                         }
-                        corrections.push(candidate);
+                        corrections.push((candidate, cost));
                     }
                 });
             }
+            // The best near completion takes part only if its matched letters are no word
+            // themselves (`recieve` is receive, not received) and it holds most of what
+            // they begin; otherwise the typed letters are just a prefix.
+            dominant = near_completion
+                .filter(|n| lex.case_variants(&n.matched).is_empty())
+                .filter(|n| {
+                    let mass = lex.subtree_count(&n.matched);
+                    n.count as f64 >= rank::COMPLETION_DOMINANT * mass as f64
+                })
+                .map(|n| n.candidate);
             if typed_n.len() >= 2 {
                 for (key, count) in lex.top_completions(typed_n.as_bytes(), TOP_K) {
                     let Ok(word) = std::str::from_utf8(&key) else {
@@ -413,33 +487,75 @@ impl Engine {
             });
         }
 
-        let manglish = self.manglish(typed_n, manglish_bias, known_score.is_some(), deadline);
-        completions.extend(manglish.completions);
-        // Set when the best English and Malayalam replacements are too close to call.
-        let mut ambiguous: Vec<Candidate> = Vec::new();
+        let manglish =
+            manglish.unwrap_or_else(|| self.manglish(typed_n, manglish_bias, false, deadline));
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
         let capitals = Capitals::of(typed_n, mid_sentence);
-        let replacement = if autocorrect && !learned && known_score.is_none() && !capitals.acronym {
+        let may_replace = autocorrect && !learned && !capitals.acronym;
+        // Candidates that take the first side slots whatever their scores.
+        let mut first_sides: Vec<Candidate> = Vec::new();
+        let english_completions: Vec<Candidate> = {
+            let mut found: Vec<Candidate> = completions
+                .iter()
+                .filter(|c| c.kind == Kind::Completion)
+                .cloned()
+                .collect();
+            sort_and_dedup(&mut found);
+            found
+        };
+        completions.extend(manglish.completions);
+        let replacement = if known_score.is_some() {
+            // A typed word in the lexicon is replaced only by its contraction, and only
+            // when that is likelier and the word is not a real one spelled the same
+            // (`rank::CONTRACTION_LOOKALIKES`); otherwise the contraction is offered.
+            let lookalike =
+                rank::CONTRACTION_LOOKALIKES.contains(&typed_n.to_ascii_lowercase().as_str());
+            match contraction {
+                Some(c) if may_replace && !lookalike && c.score > typed_c.score => Some(c),
+                Some(c) => {
+                    first_sides.push(c);
+                    None
+                }
+                None => None,
+            }
+        } else if may_replace {
             let best_completion = completions
                 .iter()
                 .map(|c| c.score)
                 .fold(f32::NEG_INFINITY, f32::max);
             // All English words that start with the typed letters, as one candidate.
             let prefix = self.english_prefix_log_prob(typed_n);
-            let english = match &case_fix {
-                Some(fix) => Some(fix.clone()),
-                None => corrections
-                    .iter()
-                    .filter(|c| {
-                        !capitals.deliberate
-                            || (names.contains(&c.text) && same_first_letter(&c.text, typed_n))
-                    })
-                    .max_by(|a, b| a.score.total_cmp(&b.score))
-                    .cloned(),
+            // Typed letters that begin English words, four or more of them, are likelier
+            // right so far than mistyped twice (`rank::PREFIX_KEEPS_LETTERS`).
+            let keeps_prefix = typed_n.len() >= rank::PREFIX_KEEPS_LETTERS && prefix.is_finite();
+            let best_correction = corrections
+                .iter()
+                .filter(|(c, _)| {
+                    !capitals.deliberate
+                        || (names.contains(&c.text) && same_first_letter(&c.text, typed_n))
+                })
+                .max_by(|a, b| a.0.score.total_cmp(&b.0.score))
+                .cloned();
+            // The English candidate, with its edit cost for the prefix checks, or None to
+            // skip them: a contraction (no letter is wrong) or a dominant completion (it
+            // is the likely prefix).
+            let english = match (&case_fix, &contraction) {
+                (Some(fix), _) => Some((fix.clone(), Some(0))),
+                (None, Some(c)) => Some((c.clone(), None)),
+                (None, None) => best_correction.map(|(c, cost)| (c, Some(cost))),
             };
+            let english = match (english, dominant) {
+                (Some(e), Some(d)) => Some(if d.score > e.0.score { (d, None) } else { e }),
+                (e, d) => e.or(d.map(|d| (d, None))),
+            };
+            // A correction of two slips or more to typed letters that begin words.
+            let held_back = keeps_prefix
+                && english
+                    .as_ref()
+                    .is_some_and(|(_, cost)| cost.is_some_and(|c| c > fuzzy::CHEAP_EDIT));
             // A Malayalam word with exactly the typed skeleton competes as a
             // correction; one the typed letters spell out counts for more
             // against English, unless an English word comes before it.
@@ -460,15 +576,24 @@ impl Engine {
                 .filter(|_| !(capitals.deliberate && manglish_bias <= rank::CONTEXT_AFTER_ENGLISH));
             match (english, malayalam) {
                 // Too close to call: keep what was typed and offer both.
-                (Some(e), Some((m, m_score))) if (e.score - m_score).abs() < rank::AMBIGUOUS => {
-                    ambiguous = vec![e, m];
+                (Some((e, _)), Some((m, m_score)))
+                    if (e.score - m_score).abs() < rank::AMBIGUOUS =>
+                {
+                    first_sides = vec![e, m];
                     None
                 }
                 (english, malayalam) => {
                     // A typed prefix more likely to be finished than mistyped stays as typed.
-                    let english = english.filter(|e| {
-                        e.score > best_completion && e.score > prefix + rank::PREFIX_VS_CORRECTION
-                    });
+                    let english = english
+                        .filter(|(e, cost)| match cost {
+                            None => true,
+                            Some(_) => {
+                                e.score > best_completion
+                                    && e.score > prefix + rank::PREFIX_VS_CORRECTION
+                                    && !held_back
+                            }
+                        })
+                        .map(|(e, _)| e);
                     let malayalam = malayalam.filter(|(c, against_english)| {
                         *against_english > best_completion
                             && c.score > prefix + rank::PREFIX_VS_MANGLISH
@@ -484,15 +609,23 @@ impl Engine {
             .filter(|best| {
                 best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
             })
+            .or_else(|| {
+                // Kept as a prefix where no Malayalam word fits the letters: the best
+                // word they begin takes a side slot (Malayalam alternatives keep theirs).
+                if held_back && manglish.exact.is_empty() {
+                    first_sides.extend(english_completions.first().cloned());
+                }
+                None
+            })
         } else {
             None
         };
-        let mut others = corrections;
+        let mut others: Vec<Candidate> = corrections.into_iter().map(|(c, _)| c).collect();
         others.extend(completions);
         others.extend(case_fix);
         others.extend(manglish.exact.into_iter().map(|(c, _)| c));
         others.extend(manglish.side);
-        arrange(typed_c, typed_n, others, replacement, ambiguous)
+        arrange(typed_c, typed_n, others, replacement, first_sides)
     }
 
     /// Log-probability of all English words that start with `typed` and are
@@ -937,6 +1070,14 @@ struct ManglishCandidates {
     /// Side slots only, and they don't stop a correction: rare words with the
     /// typed skeleton, or else the transliteration (names, words not in the list).
     side: Vec<Candidate>,
+}
+
+/// A long typed word read as a near match of a key's first letters (`matched`) plus a
+/// few more (`fuzzy::WeightedEdit::with_tail`), scored for the middle.
+struct NearCompletion {
+    candidate: Candidate,
+    matched: Vec<u8>,
+    count: u64,
 }
 
 impl ManglishCandidates {
