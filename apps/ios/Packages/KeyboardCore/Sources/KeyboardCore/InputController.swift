@@ -59,13 +59,27 @@ public final class InputController {
     /// A word the user restored with backspace; it is never replaced again.
     private var keptWord: String?
 
+    /// A full stop after a word that whitespace has not yet followed (`holdFullStop`).
+    private var heldStop: HeldStop?
+
     private struct Replacement {
         let typed: String
         let replacement: String
+        /// Typed after the word and put back with it by undo: the `.` of `teh.` + space.
+        var kept = ""
         let separator: String
     }
 
-    /// Typed straight after a word, these commit the middle suggestion first.
+    /// The word before a full stop, with what ending it at whitespace does: put in
+    /// `replacement`, or report the word when `reports`.
+    private struct HeldStop {
+        let word: String
+        let replacement: String?
+        let reports: Bool
+    }
+
+    /// Typed straight after a word, these commit the middle suggestion first. A full stop
+    /// waits for the next key: only whitespace after it ends the word (`googel.com`).
     private static let committingPunctuation: Set<String> = [".", ",", "?", "!"]
     private var shiftIsAutomatic = false
     /// Set when the user taps shift: auto-capitalisation leaves shift alone until
@@ -85,7 +99,11 @@ public final class InputController {
     public func handle(_ action: KeyAction, at time: TimeInterval) {
         let undoable = lastReplacement
         lastReplacement = nil
+        let stop = heldStop
+        heldStop = nil
         switch action {
+        case .character(".") where !continuesAddress(with: "."):
+            holdFullStop()
         case .character(let c) where Self.committingPunctuation.contains(c) && !continuesAddress(with: c):
             if !commitMiddle(separator: c) {
                 noteCommittedWord()
@@ -94,20 +112,23 @@ public final class InputController {
         case .character(let c):
             type(c)
         case .space:
-            if !commitMiddle(separator: " ") {
+            if !end(stop, with: " "), !commitMiddle(separator: " ") {
                 noteCommittedWord()
                 output.insertText(" ")
             }
             if page == .symbols || page == .moreSymbols { page = alphabetPage }
         case .returnKey:
-            noteCommittedWord()
-            output.insertText("\n")
+            if !end(stop, with: "\n") {
+                noteCommittedWord()
+                output.insertText("\n")
+            }
         case .backspace:
             if let undoable, undo(undoable) { break }
             output.deleteBackward()
         case .shift:
             let interval = lastShiftTap.map { time - $0 }
             lastShiftTap = time
+            heldStop = stop // Nothing was typed after the full stop yet.
             shift = shift.tapped(sinceLastTap: interval)
             shiftIsAutomatic = false
             manualShiftPending = true
@@ -117,6 +138,7 @@ public final class InputController {
         case .page(let target):
             // The text is unchanged, so the result still describes the word:
             // `teh`, 123, `,` gives `the,`, as the bar showed.
+            heldStop = stop
             page = target == .letters ? alphabetPage : target
         case .toggleLanguage:
             suggestions = .empty
@@ -131,6 +153,7 @@ public final class InputController {
     /// Types a long-press alternate; follows shift like a normal letter.
     public func insertAlternate(_ text: String) {
         lastReplacement = nil
+        heldStop = nil
         type(text)
     }
 
@@ -166,6 +189,7 @@ public final class InputController {
 
     private func forgetPendingState() {
         lastReplacement = nil
+        heldStop = nil
         suggestions = .empty
     }
 
@@ -188,6 +212,7 @@ public final class InputController {
 
     private func insert(suggestion text: String, reportsCommit: Bool) {
         lastReplacement = nil
+        heldStop = nil
         suggestions = .empty
         let context = output.contextBefore ?? ""
         let word = self.word(endingAt: context)
@@ -261,11 +286,26 @@ public final class InputController {
         language == .english ? .letters : .malayalam
     }
 
-    /// English only: replaces the typed word with the middle suggestion, then
-    /// types `separator`. Native Malayalam is never replaced.
+    /// Replaces the typed word with the middle suggestion (`correction`), then types `separator`.
     private func commitMiddle(separator: String) -> Bool {
-        guard autocorrectEnabled, language == .english else { return false }
         let context = output.contextBefore ?? ""
+        guard let (word, replacement) = correction(endingAt: context) else { return false }
+        delete(word, from: context)
+        output.insertText(replacement + separator)
+        lastReplacement = Replacement(typed: word, replacement: replacement, separator: separator)
+        suggestions = .empty
+        if separator != " " {
+            // Punctuation moves shift on like any typed character; space doesn't.
+            shift = shift.afterCharacter
+            if shift == .off { shiftIsAutomatic = false }
+        }
+        return true
+    }
+
+    /// The word at the end of `context` and the middle suggestion autocorrect puts in for
+    /// it, if any. English only: native Malayalam is never replaced.
+    private func correction(endingAt context: String) -> (String, String)? {
+        guard autocorrectEnabled, language == .english else { return nil }
         let word = String(self.word(endingAt: context))
         guard !word.isEmpty,
               Self.straight(suggestions.typed) == Self.straight(word),
@@ -276,15 +316,36 @@ public final class InputController {
               let middle = suggestions.middle,
               middle.kind == .correction || middle.kind == .manglish,
               middle.text != word
-        else { return false }
-        delete(word, from: context)
-        output.insertText(middle.text + separator)
-        lastReplacement = Replacement(typed: word, replacement: middle.text, separator: separator)
-        suggestions = .empty
-        if separator != " " {
-            // Punctuation moves shift on like any typed character; space doesn't.
-            shift = shift.afterCharacter
-            if shift == .off { shiftIsAutomatic = false }
+        else { return nil }
+        return (word, middle.text)
+    }
+
+    /// A full stop after a word ends it only if whitespace comes next: a letter makes one
+    /// word of both (`googel.com`, `e.g`). So it is typed as it is, and what ending the
+    /// word does (a replacement, or the report) waits for `end(_:with:)`.
+    private func holdFullStop() {
+        let context = output.contextBefore ?? ""
+        let word = currentWord
+        if !word.isEmpty {
+            heldStop = HeldStop(word: word, replacement: correction(endingAt: context)?.1, reports: committableWord() != nil)
+        }
+        type(".")
+    }
+
+    /// Whitespace straight after a held full stop: the word before it ends there, so it
+    /// is replaced (`teh.` → `the. `, undone like any replacement) or reported. False
+    /// when nothing is held or the text no longer ends in it.
+    private func end(_ stop: HeldStop?, with separator: String) -> Bool {
+        let context = output.contextBefore ?? ""
+        guard let stop, context.hasSuffix(stop.word + ".") else { return false }
+        if let replacement = stop.replacement {
+            delete(stop.word + ".", from: context)
+            output.insertText(replacement + "." + separator)
+            lastReplacement = Replacement(typed: stop.word, replacement: replacement, kept: ".", separator: separator)
+            suggestions = .empty
+        } else {
+            if stop.reports { report(.committed(stop.word)) }
+            output.insertText(separator)
         }
         return true
     }
@@ -305,30 +366,19 @@ public final class InputController {
     }
 
     /// An email or handle (it has an `@`), a URL (`http://`, `https://`, `www.`) or a
-    /// domain (`example.com`, `example.com/blog`) with a letter or digit: one word up to the
-    /// whitespace before it, never corrected. Matches the engine's `text::is_address`.
+    /// dotted word (`isDotted`) with a letter or digit: one word up to the whitespace
+    /// before it, never corrected. Matches the engine's `text::is_address`.
     private static func isAddress(_ token: Substring) -> Bool {
         guard token.contains(where: { $0.isLetter || $0.isNumber }) else { return false }
         let lower = token.lowercased()
         return token.contains("@") || ["http://", "https://", "www."].contains { lower.hasPrefix($0) }
-            || isDomain(lower)
+            || isDotted(token)
     }
 
-    /// The engine's `text::DOMAIN_ENDINGS`: no English words (`end.it` is a missed space).
-    private static let domainEndings: Set<Substring> = [
-        "com", "net", "org", "edu", "gov", "mil", "int", "io", "dev", "app", "ai", "co", "uk", "in",
-        "me", "ca", "de", "fr", "jp", "au", "nz", "sg", "ae", "ly", "gg", "tv", "info", "biz", "xyz",
-        "tech", "site", "online", "store", "blog",
-    ]
-
-    /// `example.com`, `gov.in`, `example.com/blog` (lowercased): labels of ASCII letters, digits
-    /// and hyphens joined by dots, ending in `domainEndings`, then an optional `/path`.
-    private static func isDomain(_ lower: String) -> Bool {
-        let host = lower.split(separator: "/", omittingEmptySubsequences: false).first ?? ""
-        let labels = host.split(separator: ".", omittingEmptySubsequences: false)
-        guard labels.count >= 2, let ending = labels.last else { return false }
-        return domainEndings.contains(ending)
-            && labels.allSatisfy { !$0.isEmpty && $0.allSatisfy { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" } }
+    /// `a.b.c`, `e.g.`, `googel.com`: a full stop with more typed after it than punctuation,
+    /// brackets and quotes. Matches the engine's `text::is_dotted`.
+    private static func isDotted(_ token: Substring) -> Bool {
+        token.reversed().drop { ".,;:?!)]}>\"'\u{201D}\u{2019}".contains($0) }.contains(".")
     }
 
     /// The text after the last whitespace in `context`, less opening brackets and quotes.
@@ -363,10 +413,10 @@ public final class InputController {
     /// Backspace straight after a replacement puts back what was typed and learns it.
     private func undo(_ replacement: Replacement) -> Bool {
         let context = output.contextBefore ?? ""
-        let committed = replacement.replacement + replacement.separator
+        let committed = replacement.replacement + replacement.kept + replacement.separator
         guard context.hasSuffix(committed) else { return false }
         delete(committed, from: context)
-        output.insertText(replacement.typed)
+        output.insertText(replacement.typed + replacement.kept)
         keptWord = replacement.typed
         suggestions = .empty
         report(.learn(replacement.typed))
@@ -378,12 +428,17 @@ public final class InputController {
     /// arrived, a typo (`thnaks` in a search field) would be learned. An address
     /// is never corrected, so it is reported anyway (an email field has no autocorrect).
     private func noteCommittedWord() {
+        if let word = committableWord() { report(.committed(word)) }
+    }
+
+    /// The word before the cursor, if `noteCommittedWord` would report it.
+    private func committableWord() -> String? {
         let word = currentWord
         guard !word.isEmpty,
               address(endingAt: output.contextBefore ?? "") != nil
                 || (autocorrectEnabled && suggestions.isFor(word: word))
-        else { return }
-        report(.committed(word))
+        else { return nil }
+        return word
     }
 
     private func type(_ text: String) {

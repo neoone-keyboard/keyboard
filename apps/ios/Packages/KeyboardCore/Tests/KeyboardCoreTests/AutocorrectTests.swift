@@ -57,8 +57,8 @@ struct AutocorrectTests {
     @Test func punctuationCommitsTheMiddleThenTypesItself() {
         output.text = "teh"
         input.updateSuggestions(corrected("teh", to: "the"))
-        input.handle(.character("."), at: 0)
-        #expect(output.text == "the.")
+        input.handle(.character("?"), at: 0)
+        #expect(output.text == "the?")
     }
 
     @Test func punctuationWithoutASuggestionJustTypes() {

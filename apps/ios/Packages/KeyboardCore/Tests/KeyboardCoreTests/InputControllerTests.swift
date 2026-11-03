@@ -280,8 +280,12 @@ struct InputControllerTests {
             ("see example.com/blog", "example.com/blog"),
             ("Google.COM", "Google.COM"),
             ("x.com", "x.com"),
-            ("end.it", "it"),
+            ("end.it", "end.it"),
+            ("so a.b.c", "a.b.c"),
+            ("googel.c", "googel.c"),
+            ("(e.g", "e.g"),
             ("hello.", ""),
+            ("(hello.)", ""),
             ("me @", ""),
         ] {
             output.text = text
@@ -382,14 +386,15 @@ struct InputControllerTests {
 
     @Test func otherLettersStillEndAtPunctuation() {
         input.learnedAddresses = ["sam.2024@example.com"]
-        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("end.it", "it")] {
+        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("neon. x", "x")] {
             output.text = text
             #expect(input.currentWord == word, "\(text)")
         }
         output.text = "hello"
         input.updateSuggestions(SuggestionResult(typed: "hello", candidates: [Suggestion("help", kind: .correction)]))
         typeText(".")
-        #expect(output.text == "help.")
+        input.handle(.space, at: 0)
+        #expect(output.text == "help. ")
     }
 
     @Test func noCapitalAfterAFullStopInsideAnAddress() {
@@ -398,5 +403,130 @@ struct InputControllerTests {
         #expect(input.shift == .off)
         typeText("c")
         #expect(output.text == "Mail priya@example.c")
+    }
+
+    // MARK: Full stops
+
+    func corrected(_ typed: String, to replacement: String) -> SuggestionResult {
+        SuggestionResult(typed: typed, candidates: [Suggestion(replacement, kind: .correction), Suggestion(typed, kind: .verbatim)])
+    }
+
+    @Test func aFullStopCorrectsTheWordBeforeItOnlyAtTheSpace() {
+        let reported = events {
+            output.text = "I said teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            typeText(".")
+            #expect(output.text == "I said teh.")
+            input.updateSuggestions(SuggestionResult(typed: "", candidates: [Suggestion("It", kind: .nextWord)]))
+            input.handle(.space, at: 0)
+            #expect(output.text == "I said the. ")
+        }
+        #expect(reported.isEmpty)
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .once)
+    }
+
+    @Test func returnAfterAFullStopCorrectsToo() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        typeText(".")
+        input.handle(.returnKey, at: 0)
+        #expect(output.text == "the.\n")
+    }
+
+    @Test func shiftBetweenTheFullStopAndTheSpaceKeepsTheCorrection() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        typeText(".")
+        input.handle(.shift, at: 0)
+        input.handle(.space, at: 0.1)
+        #expect(output.text == "the. ")
+    }
+
+    @Test func backspaceUndoesACorrectionMadeAtTheSpace() {
+        let reported = events {
+            output.text = "teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            typeText(".")
+            input.handle(.space, at: 0)
+            input.handle(.backspace, at: 0.1)
+            #expect(output.text == "teh.")
+            input.handle(.space, at: 0.2)
+            #expect(output.text == "teh. ")
+        }
+        #expect(reported == [.learn("teh")])
+    }
+
+    @Test func lettersAfterAFullStopMakeOneWordThatIsNotCorrected() {
+        let reported = events {
+            output.text = "go to googel"
+            input.updateSuggestions(corrected("googel", to: "google"))
+            for c in [".", "c", "o", "m"] {
+                typeText(c)
+                input.updateSuggestions(corrected(input.currentWord, to: "google"))
+            }
+            #expect(output.text == "go to googel.com")
+            #expect(input.currentWord == "googel.com")
+            input.handle(.space, at: 0)
+            #expect(output.text == "go to googel.com ")
+        }
+        #expect(reported == [.committed("googel.com")])
+    }
+
+    @Test func aLetterAfterAFullStopDropsTheCorrection() {
+        output.text = "teh"
+        input.updateSuggestions(corrected("teh", to: "the"))
+        typeText(".x")
+        #expect(output.text == "teh.x")
+        #expect(input.currentWord == "teh.x")
+        #expect(SuggestionResult(typed: "teh.x", candidates: []).isFor(word: input.currentWord))
+    }
+
+    @Test func aWordKeptAtAFullStopIsReportedAtTheSpace() {
+        let reported = events {
+            output.text = "hello"
+            input.updateSuggestions(verbatim("hello"))
+            typeText(".")
+            #expect(output.text == "hello.")
+            input.handle(.space, at: 0)
+        }
+        #expect(output.text == "hello. ")
+        #expect(reported == [.committed("hello")])
+    }
+
+    @Test func aWordFollowedByAFullStopAndALetterIsNotReportedAlone() {
+        let reported = events {
+            output.text = "hello"
+            input.updateSuggestions(verbatim("hello"))
+            typeText(".x")
+        }
+        #expect(reported.isEmpty)
+    }
+
+    @Test func movingTheCursorOrAnOutsideChangeDropsTheCorrection() {
+        for drop in [{ input.moveCursor(by: 0) }, { input.textDidChangeExternally() }] {
+            output.text = "teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            typeText(".")
+            drop()
+            input.handle(.space, at: 0)
+            #expect(output.text == "teh. ")
+        }
+    }
+
+    @Test func otherPunctuationStillCorrectsAtOnce() {
+        for mark in [",", "?", "!"] {
+            output.text = "teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            typeText(mark)
+            #expect(output.text == "the" + mark)
+        }
+    }
+
+    @Test func aDottedWordIsOneWord() {
+        output.text = "so a.b.c"
+        #expect(input.currentWord == "a.b.c")
+        output.text = "so a.b"
+        #expect(SuggestionResult(typed: "a.b", candidates: []).isFor(word: input.currentWord))
     }
 }
