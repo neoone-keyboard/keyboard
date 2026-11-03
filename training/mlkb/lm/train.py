@@ -219,7 +219,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--vocab", type=Path, default=Path("build/lm/pieces.tsv"))
     p.add_argument("--out", type=Path, default=Path("build/lm.pt"))
     p.add_argument("--log", type=Path, default=None, help="default: <out stem>.log next to --out")
-    p.add_argument("--steps", type=int, default=90_000)
+    p.add_argument("--steps", type=int, default=120_000,
+                   help="cosine schedule length and step cap; 120k steps see about 1.1B tokens (design §5)")
     p.add_argument("--batch", type=int, default=256)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--warmup", type=int, default=2000)
