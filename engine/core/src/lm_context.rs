@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use crate::nn::lm::MAX_POSITION;
-use crate::nn::tokenizer::{BOS, flag, lm_normalize};
+use crate::nn::tokenizer::{BOS, WORD_START, flag, lm_normalize};
 use crate::nn::{Cache, Lm, LmScratch};
 use crate::rank;
 
@@ -260,6 +260,35 @@ pub struct LmView<'a> {
     pub weights: LmWeights,
 }
 
+impl LmView<'_> {
+    /// The clamped tier-0 correction for `word` and whether it is Latin, or None when its
+    /// first piece isn't a Latin or Malayalam word start, or the lexicon has no word starting
+    /// with it (design §6).
+    pub fn delta(&self, word: &str) -> Option<(f32, bool)> {
+        let tok = self.lm.tokenizer();
+        let &t = tok.word(word).first()?;
+        let (f, t) = (tok.flags(t), t as usize);
+        if f & flag::WORD_START == 0 {
+            return None;
+        }
+        let (tab, next, lang) = (self.lm.tables(), self.ctx.next()[t], self.ctx.lang());
+        let (raw, latin) = if f & flag::MALAYALAM != 0 {
+            (next - lang.log_script - tab.first_ml[t], false)
+        } else if f & flag::LATIN != 0 {
+            // A piece never seen in English text has p_en = 0: the correction is then the
+            // clip, not -inf.
+            (
+                next + tab.p_en[t].max(1e-6).ln() - lang.log_en - tab.first_en[t],
+                true,
+            )
+        } else {
+            return None;
+        };
+        raw.is_finite()
+            .then(|| (raw.clamp(-self.weights.clip, self.weights.clip), latin))
+    }
+}
+
 impl ContextScores for LmView<'_> {
     fn manglish_bias(&self) -> f32 {
         let l = self.ctx.lang();
@@ -267,12 +296,32 @@ impl ContextScores for LmView<'_> {
             .clamp(rank::CONTEXT_AFTER_ENGLISH, rank::CONTEXT_AFTER_MALAYALAM)
     }
 
-    fn weighted(&self, _word: &str) -> f32 {
-        0.0
+    fn weighted(&self, word: &str) -> f32 {
+        match self.delta(word) {
+            Some((d, true)) => self.weights.en * d,
+            Some((d, false)) => self.weights.ml * d,
+            None => 0.0,
+        }
     }
 
-    fn prefix_delta(&self, _typed: &str) -> f32 {
-        0.0
+    fn prefix_delta(&self, typed: &str) -> f32 {
+        let (tok, tab) = (self.lm.tokenizer(), self.lm.tables());
+        let (next, lang) = (self.ctx.next(), self.ctx.lang());
+        let prefix = format!("{WORD_START}{}", lm_normalize(typed));
+        let (mut lm_mass, mut lex_mass) = (0f64, 0f64);
+        for t in tok.starting_with(&prefix) {
+            if tok.flags(t) & flag::LATIN == 0 {
+                continue;
+            }
+            let t = t as usize;
+            lm_mass += f64::from(next[t].exp()) * f64::from(tab.p_en[t]);
+            lex_mass += f64::from(tab.first_en[t].exp());
+        }
+        if lm_mass <= 0.0 || lex_mass <= 0.0 {
+            return 0.0;
+        }
+        let raw = lm_mass.ln() as f32 - lang.log_en - lex_mass.ln() as f32;
+        self.weights.en * raw.clamp(-self.weights.clip, self.weights.clip)
     }
 
     fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
@@ -403,6 +452,28 @@ mod tests {
         let mut fresh = LmContext::default();
         fresh.sync(&lm, &words, &|| true);
         assert_eq!(ctx.next(), fresh.next());
+    }
+
+    #[test]
+    fn delta_is_zero_for_a_piece_the_context_says_nothing_about() {
+        // With next[t] equal to the lexicon's first-token share (scaled to the language),
+        // the correction is 0.
+        let (lm, mut ctx) = (lm(), LmContext::default());
+        sync(&mut ctx, &lm, "i am ");
+        let view = LmView {
+            lm: &lm,
+            ctx: &ctx,
+            weights: LmWeights::default(),
+        };
+        let t = lm.tokenizer().word("the")[0] as usize;
+        let want = ctx.next()[t] + lm.tables().p_en[t].max(1e-6).ln()
+            - ctx.lang().log_en
+            - lm.tables().first_en[t];
+        let (got, latin) = view.delta("the").unwrap();
+        assert!(latin);
+        assert!((got - want.clamp(-rank::LM_CLIP, rank::LM_CLIP)).abs() < 1e-6);
+        assert_eq!(view.weighted("the"), rank::LM_WEIGHT_EN * got);
+        assert_eq!(view.delta("..."), None, "punctuation says nothing about a word");
     }
 
     #[test]

@@ -236,7 +236,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, 0.0, None)
+                .suggest_latin(word, word, true, false, false, 0.0, None, None)
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -383,9 +383,12 @@ impl Engine {
                     mid_sentence,
                     bias,
                     deadline,
+                    scores,
                 )
             }
-            (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
+            (_, Script::Malayalam) | (Layout::Malayalam, _) => {
+                self.suggest_malayalam(typed, scores)
+            }
             _ => vec![verbatim(typed, 0.0)],
         };
         suggestions.truncate(SHOWN);
@@ -460,7 +463,8 @@ impl Engine {
     /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
     /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
     /// before it didn't (neither at the very start of the text).
-    /// `manglish_bias` comes from the previous word's language (`manglish_bias`).
+    /// `manglish_bias` comes from the previous word's language (`manglish_bias`), or from
+    /// the LM. `scores`: the LM's in-context corrections (design §6), when it is ready.
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
@@ -471,6 +475,7 @@ impl Engine {
         mid_sentence: bool,
         manglish_bias: f32,
         deadline: Option<Deadline<'_>>,
+        scores: Option<&dyn ContextScores>,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -705,12 +710,38 @@ impl Engine {
             let user = self.user();
             corrections.retain(|(c, _)| !user.is_removed(&c.text));
         }
-        let case_fix = case_fix.filter(|c| !self.is_removed(c));
-        let contraction = contraction.filter(|c| !self.is_removed(c));
-        let dominant = dominant.filter(|c| !self.is_removed(c));
+        let mut case_fix = case_fix.filter(|c| !self.is_removed(c));
+        let mut contraction = contraction.filter(|c| !self.is_removed(c));
+        let mut dominant = dominant.filter(|c| !self.is_removed(c));
 
-        let manglish =
+        let mut manglish =
             manglish.unwrap_or_else(|| self.manglish(typed_n, manglish_bias, false, deadline));
+
+        // The LM's in-context correction (design §6), on every pool before any comparison.
+        // Floors were checked on scores without it; the final one below takes it back out.
+        let lm_term = |text: &str| scores.map_or(0.0, |s| s.weighted(text));
+        if scores.is_some() {
+            for (c, _) in &mut corrections {
+                c.score += lm_term(&c.text);
+            }
+            for (c, _) in &mut manglish.exact {
+                c.score += lm_term(&c.text);
+            }
+            for c in completions
+                .iter_mut()
+                .chain(&mut manglish.completions)
+                .chain(&mut manglish.side)
+            {
+                c.score += lm_term(&c.text);
+            }
+            for c in [&mut case_fix, &mut contraction, &mut dominant]
+                .into_iter()
+                .flatten()
+            {
+                c.score += lm_term(&c.text);
+            }
+            known_score = known_score.map(|s| s + lm_term(typed_n));
+        }
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
@@ -749,7 +780,8 @@ impl Engine {
                 .map(|c| c.score)
                 .fold(f32::NEG_INFINITY, f32::max);
             // All English words that start with the typed letters, as one candidate.
-            let prefix = self.english_prefix_log_prob(typed_n);
+            let prefix = self.english_prefix_log_prob(typed_n)
+                + scores.map_or(0.0, |s| s.prefix_delta(typed_n));
             // Typed letters that begin English words, four or more of them, are likelier
             // right so far than mistyped twice (`rank::PREFIX_KEEPS_LETTERS`).
             let keeps_prefix = typed_n.len() >= rank::PREFIX_KEEPS_LETTERS && prefix.is_finite();
@@ -829,7 +861,8 @@ impl Engine {
                 }
             }
             .filter(|best| {
-                best.score >= typed_c.score + rank::MARGIN && best.score >= rank::MIN_REPLACE
+                best.score >= typed_c.score + rank::MARGIN
+                    && best.score - lm_term(&best.text) >= rank::MIN_REPLACE
             })
             .or_else(|| {
                 // Kept as a prefix where no Malayalam word fits the letters: the best
@@ -1200,7 +1233,8 @@ impl Engine {
         arrange(verbatim(typed, 0.0), typed_n, others, None, Vec::new())
     }
 
-    fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
+    /// `scores`: as in `suggest_latin`, on the completions.
+    fn suggest_malayalam(&self, typed: &str, scores: Option<&dyn ContextScores>) -> Vec<Candidate> {
         let typed_n = normalize(typed);
         let mut others = Vec::new();
         if let Some(lex) = &self.sources.malayalam {
@@ -1214,7 +1248,8 @@ impl Engine {
                 let extra = (word.chars().count() - typed_n.chars().count()) as f32;
                 let score = lex.log_prob(count)
                     - rank::COMPLETION_PENALTY
-                    - rank::COMPLETION_PER_CHAR * extra;
+                    - rank::COMPLETION_PER_CHAR * extra
+                    + scores.map_or(0.0, |s| s.weighted(word));
                 others.push(Candidate {
                     text: word.to_string(),
                     kind: Kind::Completion,
@@ -1586,6 +1621,68 @@ mod tests {
         let lm = engine.suggest_scored("I feel pani", Layout::Latin, true, &fake);
         assert_ne!(m3a.candidates[0].text, "പണി");
         assert_eq!(lm.candidates[0].text, "പണി");
+    }
+
+    #[test]
+    fn context_lifts_the_meant_correction() {
+        let sources = Sources {
+            english: lex(&[("were", 5000), ("weird", 10), ("so", 9000)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        assert_eq!(
+            engine
+                .suggest("that's so wierd", Layout::Latin, true)
+                .candidates[0]
+                .text,
+            "were"
+        );
+        let fake = Fake {
+            deltas: [("weird", 3.0), ("were", -2.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine.suggest_scored("that's so wierd", Layout::Latin, true, &fake);
+        assert_eq!(s.candidates[0].text, "weird");
+    }
+
+    #[test]
+    fn the_lm_never_lowers_the_floor() {
+        // A correction below MIN_REPLACE stays out of the middle however much context likes it.
+        let sources = Sources {
+            english: lex(&[("the", 1_000_000_000), ("zyzzyva", 1)]),
+            ..Sources::default()
+        };
+        let engine = Engine::new(sources, UserStore::in_memory());
+        let fake = Fake {
+            deltas: [("zyzzyva", 2.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine.suggest_scored("zyzzyvx", Layout::Latin, true, &fake);
+        assert_eq!(s.candidates[0].kind, Kind::Verbatim);
+        assert!(texts(&s).contains(&"zyzzyva"), "still offered beside it");
+    }
+
+    #[test]
+    fn a_known_word_is_never_replaced_whatever_the_context() {
+        let fake = Fake {
+            deltas: [("then", 4.0), ("the", -4.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine().suggest_scored("the", Layout::Latin, true, &fake);
+        assert_eq!(
+            (s.candidates[0].text.as_str(), s.candidates[0].kind),
+            ("the", Kind::Verbatim)
+        );
+    }
+
+    #[test]
+    fn malayalam_completions_follow_context() {
+        let fake = Fake {
+            deltas: [("എന്ത്", 3.0)].into(),
+            ..Fake::default()
+        };
+        let s = engine().suggest_scored("എന്", Layout::Malayalam, true, &fake);
+        assert_eq!(texts(&s), ["എന്", "എന്ത്", "എന്റെ"]);
     }
 
     #[test]

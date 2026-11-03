@@ -653,6 +653,37 @@ fn lm_loads_only_with_the_lexicons_it_was_built_for() {
     assert!(!other.loaded_sources().contains(&"lm"));
 }
 
+/// The typos M3a gets wrong (design §1), in sentences: context picks the meant word. Without
+/// context (`english-typos.tsv`) they are only printed. `tounge` is the fifth: `tongue` is
+/// past the correction search's edits, and the LM only re-ranks what it finds, so it is
+/// only printed too (it now stays as typed rather than becoming `young`).
+#[test]
+fn context_fixes_the_typos_frequency_gets_wrong() {
+    let Some(engine) = lm_engine() else { return };
+    println!(
+        "\"I bit my tounge\": {:?}",
+        middle(&engine, "I bit my tounge").0
+    );
+    let mut wrong = Vec::new();
+    for (context, want) in [
+        ("I can't remeber", "remember"),
+        ("that's so wierd", "weird"),
+        ("what a nice suprise", "surprise"),
+        ("can I have a peice", "piece"),
+    ] {
+        let (got, _) = middle(&engine, context);
+        let typed = context.rsplit(' ').next().unwrap();
+        println!(
+            "{context:?}: {got:?}; alone {:?}",
+            middle(&engine, typed).0
+        );
+        if got != want {
+            wrong.push(format!("{context:?} → {got:?}, want {want:?}"));
+        }
+    }
+    assert!(wrong.is_empty(), "{wrong:#?}");
+}
+
 /// Out of time before the model starts, a suggest is the lexicon-only engine's; with time to
 /// spare, it is the unbounded one's.
 #[test]
