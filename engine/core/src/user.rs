@@ -3,8 +3,11 @@
 //! auto-replaced. Words the user removed from the bar are kept too, so they
 //! are never suggested again until learned anew. I/O failures never stop typing: the store keeps working in
 //! memory and simply doesn't persist.
+//!
+//! Log lines: `L` learned, `S` seen (typed once), `R` removed from the bar, `F` one
+//! word forgotten (not blocked), `U` a removed word restored (not learned).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -30,8 +33,9 @@ struct Entry {
 pub struct UserStore {
     path: Option<PathBuf>,
     entries: HashMap<String, Entry>,
-    /// Keys (`key`) of words removed from the bar: never suggested until learned again.
-    removed: HashSet<String>,
+    /// Keys (`key`) of words removed from the bar, with the clock when removed: never
+    /// suggested until learned again.
+    removed: HashMap<String, u64>,
     clock: u64,
     log_lines: usize,
     /// The log ended mid-line and could not be truncated; the next append starts a fresh line.
@@ -78,6 +82,8 @@ impl UserStore {
                 Some(("L", word)) if acceptable(word) => store.apply_learn(word),
                 Some(("S", word)) if acceptable(word) => store.apply_seen(word),
                 Some(("R", word)) if acceptable(word) => store.apply_remove(word),
+                Some(("F", word)) if acceptable(word) => store.apply_forget(word),
+                Some(("U", word)) if acceptable(word) => store.apply_restore(word),
                 _ => {}
             }
         }
@@ -102,7 +108,7 @@ impl UserStore {
 
     /// Whether the user removed this word from the bar (ASCII case-insensitive).
     pub fn is_removed(&self, word: &str) -> bool {
-        self.removed.contains(&key(word))
+        self.removed.contains_key(&key(word))
     }
 
     /// Forgets a word and keeps it from being suggested again, until it is learned.
@@ -112,6 +118,25 @@ impl UserStore {
         }
         self.apply_remove(word);
         self.append("R", word);
+    }
+
+    /// Forgets one word (learned or seen once) without blocking it: typed again, it is
+    /// learned again. Writes nothing for a word the store doesn't hold.
+    pub fn forget(&mut self, word: &str) {
+        if !acceptable(word) || !self.entries.contains_key(&key(word)) {
+            return;
+        }
+        self.apply_forget(word);
+        self.append("F", word);
+    }
+
+    /// Un-removes a word, so it may be suggested again. It is not learned by this.
+    pub fn restore(&mut self, word: &str) {
+        if !acceptable(word) || !self.is_removed(word) {
+            return;
+        }
+        self.apply_restore(word);
+        self.append("U", word);
     }
 
     /// Learns a word at once (the user undid an autocorrect, or tapped what they typed);
@@ -160,6 +185,21 @@ impl UserStore {
             .map(|e| e.display.as_str())
     }
 
+    /// Every learned word, as shown, most recently used first.
+    pub fn learned_words(&self) -> Vec<String> {
+        let mut found: Vec<&Entry> = self.entries.values().filter(|e| e.learned).collect();
+        found.sort_by_key(|e| std::cmp::Reverse(e.last_used));
+        found.into_iter().map(|e| e.display.clone()).collect()
+    }
+
+    /// Every word removed from the bar, most recently removed first. As keyed: ASCII
+    /// letters lowercased.
+    pub fn removed_words(&self) -> Vec<String> {
+        let mut found: Vec<(&String, &u64)> = self.removed.iter().collect();
+        found.sort_by_key(|&(_, &at)| std::cmp::Reverse(at));
+        found.into_iter().map(|(k, _)| k.clone()).collect()
+    }
+
     pub fn forget_all(&mut self) {
         self.entries.clear();
         self.removed.clear();
@@ -174,9 +214,18 @@ impl UserStore {
     }
 
     fn apply_remove(&mut self, word: &str) {
+        self.clock += 1;
         let k = key(word);
         self.entries.remove(&k);
-        self.removed.insert(k);
+        self.removed.insert(k, self.clock);
+    }
+
+    fn apply_forget(&mut self, word: &str) {
+        self.entries.remove(&key(word));
+    }
+
+    fn apply_restore(&mut self, word: &str) {
+        self.removed.remove(&key(word));
     }
 
     fn apply_learn(&mut self, word: &str) {
@@ -253,8 +302,12 @@ impl UserStore {
         entries.sort_by_key(|e| e.last_used);
         let mut text = String::new();
         let mut lines = 0;
-        // A removed word has no entry (and a learned one is not removed), so order is free.
-        for k in &self.removed {
+        // A removed word has no entry (and a learned one is not removed), so the two need
+        // not interleave; removals keep their own order for `removed_words`. Forgotten and
+        // restored words are simply absent, so no `F` or `U` line is written.
+        let mut removed: Vec<(&String, &u64)> = self.removed.iter().collect();
+        removed.sort_by_key(|&(_, &at)| at);
+        for (k, _) in removed {
             text.push_str(&format!("R\t{k}\n"));
             lines += 1;
         }
@@ -556,6 +609,140 @@ mod tests {
         store.remove("two words");
         assert!(!store.is_removed(""));
         assert!(!store.is_removed("two words"));
+    }
+
+    #[test]
+    fn learned_words_are_listed_most_recently_used_first() {
+        let mut store = UserStore::in_memory();
+        store.learn("Thom");
+        store.learn("Anu");
+        store.note_typed("once");
+        store.learn("Kochi");
+        store.remove("Kochi");
+        store.learn("thom"); // used again; shown as first learned
+        assert_eq!(store.learned_words(), ["Thom", "Anu"]);
+    }
+
+    #[test]
+    fn removed_words_are_listed_most_recently_removed_first_across_reopen_and_compaction() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.remove("hello");
+            store.remove("Thom");
+            store.remove("കിളി");
+            assert_eq!(store.removed_words(), ["കിളി", "thom", "hello"]);
+        }
+        let mut store = UserStore::open(dir.path());
+        assert_eq!(store.removed_words(), ["കിളി", "thom", "hello"]);
+        for _ in 0..(CAPACITY * 4 + 10) {
+            store.learn("Anu");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.lines().count() < 100, "log was compacted");
+        assert_eq!(
+            UserStore::open(dir.path()).removed_words(),
+            ["കിളി", "thom", "hello"]
+        );
+    }
+
+    #[test]
+    fn forgetting_one_word_does_not_block_it() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.learn("Thom");
+            store.learn("Anu");
+            store.forget("thom");
+            assert!(!store.is_learned("Thom"));
+            assert!(!store.is_removed("Thom"), "forgotten, not removed");
+            assert!(store.is_learned("Anu"));
+            assert_eq!(store.learned_words(), ["Anu"]);
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.ends_with("F\tthom\n"));
+        let mut store = UserStore::open(dir.path());
+        assert!(!store.is_learned("Thom"), "the log replays the forget");
+        assert!(!store.is_removed("Thom"));
+        assert!(store.is_learned("Anu"));
+        store.note_typed("Thom");
+        assert!(!store.is_learned("Thom"), "counting starts again");
+        store.note_typed("Thom");
+        assert!(store.is_learned("Thom"));
+    }
+
+    #[test]
+    fn a_word_learned_after_being_forgotten_replays_as_learned() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.learn("Thom");
+            store.forget("Thom");
+            store.learn("Thom");
+        }
+        assert!(UserStore::open(dir.path()).is_learned("Thom"));
+    }
+
+    #[test]
+    fn forgetting_an_unknown_word_writes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        store.learn("Thom");
+        store.forget("Anu");
+        store.forget("");
+        store.forget("two words");
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert_eq!(text, "L\tThom\n");
+    }
+
+    #[test]
+    fn restoring_a_removed_word_unblocks_it_without_learning_it() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.learn("Thom");
+            store.remove("Thom");
+            store.remove("hello");
+            store.restore("thom");
+            assert!(!store.is_removed("Thom"));
+            assert!(!store.is_learned("Thom"), "restored, not learned");
+            assert_eq!(store.removed_words(), ["hello"]);
+            store.restore("never-removed");
+            store.restore("");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(
+            text.ends_with("U\tthom\n"),
+            "nothing written for a word not removed"
+        );
+        let store = UserStore::open(dir.path());
+        assert!(!store.is_removed("Thom"), "the log replays the restore");
+        assert!(store.is_removed("hello"));
+        assert!(!store.is_learned("Thom"));
+    }
+
+    #[test]
+    fn forgets_and_restores_survive_compaction() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        store.learn("Thom");
+        store.learn("Kochi");
+        store.remove("hello");
+        store.remove("world");
+        store.forget("Thom");
+        store.restore("hello");
+        for _ in 0..(CAPACITY * 4 + 10) {
+            store.learn("Anu");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.lines().count() < 100, "log was compacted");
+        assert!(
+            !text.contains("F\t") && !text.contains("U\t"),
+            "compaction writes only state"
+        );
+        let reopened = UserStore::open(dir.path());
+        assert_eq!(reopened.learned_words(), ["Anu", "Kochi"]);
+        assert_eq!(reopened.removed_words(), ["world"]);
     }
 
     #[test]

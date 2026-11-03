@@ -220,6 +220,26 @@ impl Engine {
         self.user().remove(&normalize(word));
     }
 
+    /// Every learned word, as shown, most recently used first (the "Your words" screen).
+    pub fn learned_words(&self) -> Vec<String> {
+        self.user().learned_words()
+    }
+
+    /// The words removed from the bar, most recently removed first, ASCII lowercased.
+    pub fn removed_words(&self) -> Vec<String> {
+        self.user().removed_words()
+    }
+
+    /// Forgets one learned word without blocking it: suggested again only once learned anew.
+    pub fn forget_word(&self, word: &str) {
+        self.user().forget(&normalize(word));
+    }
+
+    /// Un-removes a word removed from the bar; it is not learned by this.
+    pub fn restore_word(&self, word: &str) {
+        self.user().restore(&normalize(word));
+    }
+
     /// Takes out words the user removed from the bar. Pools are filtered before the
     /// middle is chosen, so a removed word never replaces one and the next best fills its
     /// slot. Never given the typed word itself.
@@ -1588,6 +1608,24 @@ mod tests {
             texts(&engine.suggest("എന്റെ", Layout::Malayalam, true))[0],
             "എന്റെ"
         );
+    }
+
+    #[test]
+    fn your_words_lists_forgets_one_and_restores_one() {
+        let engine = engine();
+        engine.learn("Thomasina");
+        engine.learn("Jishnu");
+        assert_eq!(engine.learned_words(), ["Jishnu", "Thomasina"]);
+        engine.forget_word("Thomasina");
+        assert_eq!(engine.learned_words(), ["Jishnu"]);
+        assert!(!texts(&engine.suggest("thoma", Layout::Latin, true)).contains(&"Thomasina"));
+        assert!(engine.removed_words().is_empty(), "forgotten, not removed");
+
+        engine.remove_word("am");
+        assert_eq!(engine.removed_words(), ["am"]);
+        engine.restore_word("am");
+        assert!(engine.removed_words().is_empty());
+        assert!(texts(&engine.suggest("I ", Layout::Latin, true)).contains(&"am"));
     }
 
     #[test]

@@ -169,6 +169,26 @@ impl Engine {
         guarded(|| self.inner.remove_word(&word))
     }
 
+    /// Every learned word, as shown, most recently used first: for the "Your words" screen.
+    pub fn learned_words(&self) -> Result<Vec<String>, EngineError> {
+        guarded(|| self.inner.learned_words())
+    }
+
+    /// The words removed from the bar, most recently removed first (ASCII lowercased).
+    pub fn removed_words(&self) -> Result<Vec<String>, EngineError> {
+        guarded(|| self.inner.removed_words())
+    }
+
+    /// Forgets one learned word without blocking it, unlike `remove_word`.
+    pub fn forget_word(&self, word: String) -> Result<(), EngineError> {
+        guarded(|| self.inner.forget_word(&word))
+    }
+
+    /// Un-removes a word removed from the bar; it is not learned by this.
+    pub fn restore_word(&self, word: String) -> Result<(), EngineError> {
+        guarded(|| self.inner.restore_word(&word))
+    }
+
     /// The learned emails and URLs: the keyboard treats letters that begin one as one word.
     pub fn learned_addresses(&self) -> Result<Vec<String>, EngineError> {
         guarded(|| self.inner.learned_addresses())
@@ -420,6 +440,41 @@ mod tests {
         drop(engine);
         let engine = Engine::new(config).unwrap();
         assert!(!texts(&engine).contains(&"Thomasina".to_string()), "the removal was kept");
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn your_words_cross_ffi_and_persist() {
+        let dir = std::env::temp_dir().join(format!(
+            "mlengine-ffi-your-words-test-{}",
+            std::process::id()
+        ));
+        let config = EngineConfig {
+            user_dir: Some(dir.to_string_lossy().into_owned()),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config.clone()).unwrap();
+        engine.learn("Thom".into()).unwrap();
+        engine.learn("Anu".into()).unwrap();
+        engine.remove_word("hello".into()).unwrap();
+        engine.remove_word("world".into()).unwrap();
+        assert_eq!(engine.learned_words().unwrap(), ["Anu", "Thom"]);
+        assert_eq!(engine.removed_words().unwrap(), ["world", "hello"]);
+        engine.forget_word("Thom".into()).unwrap();
+        engine.restore_word("hello".into()).unwrap();
+        drop(engine);
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(
+            engine.learned_words().unwrap(),
+            ["Anu"],
+            "the forget was kept"
+        );
+        assert_eq!(
+            engine.removed_words().unwrap(),
+            ["world"],
+            "the restore was kept"
+        );
         drop(engine);
         let _ = std::fs::remove_dir_all(dir);
     }
