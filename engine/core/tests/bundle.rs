@@ -684,6 +684,23 @@ fn context_fixes_the_typos_frequency_gets_wrong() {
     assert!(wrong.is_empty(), "{wrong:#?}");
 }
 
+/// Next words follow the sentence's language: Malayalam after Manglish, English after English.
+#[test]
+fn lm_next_words_follow_the_sentence() {
+    let Some(engine) = lm_engine() else { return };
+    let malayalam = |w: &String| w.chars().any(|c| ('\u{0D00}'..='\u{0D7F}').contains(&c));
+    let ente = texts(&engine, "ente ");
+    println!("\"ente \": {ente:?}");
+    assert!(ente.iter().any(malayalam), "{ente:?}");
+    assert!(ente.iter().all(malayalam), "{ente:?}");
+    let english = texts(&engine, "I want to ");
+    println!("\"I want to \": {english:?}");
+    assert!(!english.is_empty() && !english.iter().any(malayalam), "{english:?}");
+    for context in ["njan ippo ", "see you ", "എന്റെ ", "how are "] {
+        println!("{context:?}: {:?}", texts(&engine, context));
+    }
+}
+
 /// Out of time before the model starts, a suggest is the lexicon-only engine's; with time to
 /// spare, it is the unbounded one's.
 #[test]

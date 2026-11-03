@@ -352,7 +352,7 @@ impl Engine {
         let (typed, address) = self.current_word(context_before);
         if typed.is_empty() {
             return Suggestions {
-                candidates: self.next_words(context_before),
+                candidates: self.next_words(context_before, scores),
                 ..Suggestions::default()
             };
         }
@@ -1270,7 +1270,100 @@ impl Engine {
         arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
     }
 
-    fn next_words(&self, context_before: &str) -> Vec<Candidate> {
+    /// Next words after a space: the LM's when it is ready and offers any, else `next.fst`'s.
+    /// Neither at the very start of the text.
+    fn next_words(
+        &self,
+        context_before: &str,
+        scores: Option<&dyn ContextScores>,
+    ) -> Vec<Candidate> {
+        let previous = text::previous_word(context_before);
+        if let (Some(s), Some(_)) = (scores, previous) {
+            let found = self.lm_next_words(s, previous);
+            if !found.is_empty() {
+                return found;
+            }
+        }
+        self.bigram_next_words(context_before)
+    }
+
+    /// Next words from the LM (design §6): for each of its likeliest word-start pieces, the
+    /// lexicon words whose first token it is, scored `ln p(t | ctx) + lang(t) + ln P_lex(w | t)`
+    /// plus the weighted `next.fst` bigram where it has pairs for the previous word.
+    fn lm_next_words(
+        &self,
+        scores: &dyn ContextScores,
+        previous: Option<(&str, bool)>,
+    ) -> Vec<Candidate> {
+        let sentence_end = previous.is_some_and(|(_, end)| end);
+        let mut found = Vec::new();
+        for p in scores.next_pieces(rank::NEXT_PIECES) {
+            let lex = if p.latin {
+                &self.sources.english
+            } else {
+                &self.sources.malayalam
+            };
+            let Some(lex) = lex else { continue };
+            // The piece itself, in its stored case (`i` is I), and the commonest words it
+            // begins (ignoring case: `lon` begins London) whose first token it is.
+            let mut words: Vec<(String, u64)> = lex
+                .case_variants(p.text.as_bytes())
+                .into_iter()
+                .max_by_key(|(_, count)| *count)
+                .and_then(|(key, count)| Some((String::from_utf8(key).ok()?, count)))
+                .into_iter()
+                .collect();
+            for (key, count) in lex.top_completions(p.text.as_bytes(), TOP_K) {
+                let Ok(word) = String::from_utf8(key) else {
+                    continue;
+                };
+                if word.len() > p.text.len()
+                    && scores.first_piece(&word).as_deref() == Some(p.text.as_str())
+                {
+                    words.push((word, count));
+                }
+            }
+            for (word, count) in words {
+                let bigram = self.bigram_log_prob(previous.map(|(w, _)| w), &word);
+                let score = p.log_p + lex.log_prob(count) - p.first_log_mass
+                    + bigram.map_or(0.0, |b| self.lm_weights.next_bigram * b);
+                let text = if sentence_end {
+                    capitalize(&word)
+                } else {
+                    word
+                };
+                found.push(Candidate {
+                    text,
+                    kind: Kind::NextWord,
+                    score,
+                });
+            }
+        }
+        self.drop_removed(&mut found);
+        sort_and_dedup(&mut found);
+        found.truncate(SHOWN);
+        found
+    }
+
+    /// ln P(word | previous) from `next.fst`, or None when it has no pairs for `previous`.
+    /// `next.fst` keeps only each word's few commonest followers, so a word that isn't one
+    /// counts as the least of them (it is at most that common), not as never seen.
+    fn bigram_log_prob(&self, previous: Option<&str>, word: &str) -> Option<f32> {
+        let (lex, previous) = (self.sources.next_words.as_ref()?, previous?);
+        let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
+        key.push(SEPARATOR);
+        let followers = lex.top_completions(&key, TOP_K);
+        let mass: u64 = followers.iter().map(|(_, count)| count).sum();
+        let least = followers.iter().map(|(_, count)| *count).min()?;
+        let count = followers
+            .iter()
+            .find(|(k, _)| k[key.len()..].eq_ignore_ascii_case(word.as_bytes()))
+            .map_or(least, |(_, count)| *count);
+        Some((count as f64 / mass as f64).ln() as f32)
+    }
+
+    /// M3a's next words: `next.fst`'s commonest followers of the previous word.
+    fn bigram_next_words(&self, context_before: &str) -> Vec<Candidate> {
         let (Some(lex), Some((previous, sentence_end))) = (
             &self.sources.next_words,
             text::previous_word(context_before),
@@ -1683,6 +1776,103 @@ mod tests {
         };
         let s = engine().suggest_scored("എന്", Layout::Malayalam, true, &fake);
         assert_eq!(texts(&s), ["എന്", "എന്ത്", "എന്റെ"]);
+    }
+
+    fn piece(text: &str, latin: bool, log_p: f32, first_log_mass: f32) -> NextPiece {
+        NextPiece {
+            text: text.into(),
+            latin,
+            log_p,
+            first_log_mass,
+        }
+    }
+
+    #[test]
+    fn next_words_come_from_the_lm_in_the_sentence_script() {
+        let fake = Fake {
+            next: vec![
+                piece("have", true, -1.0, -6.0),
+                piece("വീട്", false, -0.5, -5.0),
+                piece("xq", true, -0.1, -9.0),
+            ],
+            first: [("have", "have")].into(),
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("have", 400), ("the", 1000)]),
+                malayalam: lex(&[("വീട്", 50), ("വീട്ടിൽ", 30)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        let s = engine.suggest_scored("I ", Layout::Latin, true, &fake);
+        // "xq" is no English word: skipped. വീട്ടിൽ's first piece isn't വീട് in the fake: skipped.
+        assert_eq!(texts(&s), ["വീട്", "have"]);
+        assert!(s.candidates.iter().all(|c| c.kind == Kind::NextWord));
+    }
+
+    #[test]
+    fn removed_words_and_sentence_starts_apply_to_lm_next_words() {
+        let fake = Fake {
+            next: vec![
+                piece("it", true, -1.0, -5.0),
+                piece("the", true, -1.5, -3.0),
+            ],
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("it", 500), ("the", 1000)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        assert_eq!(
+            texts(&engine.suggest_scored("Rain. ", Layout::Latin, true, &fake)),
+            ["It", "The"]
+        );
+        engine.remove_word("it");
+        assert_eq!(
+            texts(&engine.suggest_scored("Rain. ", Layout::Latin, true, &fake)),
+            ["The"]
+        );
+    }
+
+    #[test]
+    fn lm_next_words_keep_the_stored_case_and_lean_on_the_bigram() {
+        let fake = Fake {
+            next: vec![
+                piece("i", true, -1.0, -5.0),
+                piece("we", true, -0.8, -5.0),
+                piece("they", true, -0.79, -5.0),
+            ],
+            ..Fake::default()
+        };
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("I", 500), ("we", 500), ("they", 500)]),
+                next_words: lex(&[("so\0i", 90), ("so\0we", 10)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        // The LM prefers "we" by 0.2; the bigram, 9:1 for "I", turns it at weight 0.25.
+        // "they" isn't among the followers `next.fst` keeps: it counts as the least of them.
+        assert_eq!(
+            texts(&engine.suggest_scored("so ", Layout::Latin, true, &fake)),
+            ["I", "they", "we"]
+        );
+    }
+
+    #[test]
+    fn next_fst_fills_in_when_the_lm_offers_nothing() {
+        let s = engine().suggest_scored("I ", Layout::Latin, true, &Fake::default());
+        assert_eq!(texts(&s), ["am", "have", "was"]);
+        assert_eq!(
+            engine().suggest_scored("", Layout::Latin, true, &Fake::default()),
+            Suggestions::default()
+        );
     }
 
     #[test]

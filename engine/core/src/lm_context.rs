@@ -324,12 +324,57 @@ impl ContextScores for LmView<'_> {
         self.weights.en * raw.clamp(-self.weights.clip, self.weights.clip)
     }
 
-    fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
-        Vec::new()
+    fn next_pieces(&self, k: usize) -> Vec<NextPiece> {
+        let (tok, tab) = (self.lm.tokenizer(), self.lm.tables());
+        let (next, lang) = (self.ctx.next(), self.ctx.lang());
+        // Next words are in the sentence's language (design §1): the likelier of the two.
+        // Its split per piece (`p_en`) is too rough to mix them: after `ente`, a share of
+        // `▁a`'s mass, which Manglish words begin, would offer English "a".
+        let english = lang.log_en > lang.log_ml;
+        // Word starts in that language that begin some lexicon word: (id, log_p, latin).
+        let mut found: Vec<(usize, f32, bool)> = Vec::new();
+        for (t, &lp) in next.iter().enumerate() {
+            let f = tok.flags(t as u32);
+            if f & flag::WORD_START == 0 || english != (f & flag::LATIN != 0) {
+                continue;
+            }
+            let (log_p, first, latin) = if f & flag::MALAYALAM != 0 {
+                (lp + lang.log_ml - lang.log_script, tab.first_ml[t], false)
+            } else if f & flag::LATIN != 0 {
+                (lp + tab.p_en[t].ln(), tab.first_en[t], true)
+            } else {
+                continue;
+            };
+            if log_p.is_finite() && first.is_finite() {
+                found.push((t, log_p, latin));
+            }
+        }
+        let by_score = |a: &(usize, f32, bool), b: &(usize, f32, bool)| b.1.total_cmp(&a.1);
+        if found.len() > k {
+            found.select_nth_unstable_by(k, by_score);
+            found.truncate(k);
+        }
+        found.sort_by(by_score);
+        found
+            .into_iter()
+            .map(|(t, log_p, latin)| NextPiece {
+                text: tok.piece(t as u32)[WORD_START.len_utf8()..].to_string(),
+                latin,
+                log_p,
+                first_log_mass: if latin {
+                    tab.first_en[t]
+                } else {
+                    tab.first_ml[t]
+                },
+            })
+            .collect()
     }
 
-    fn first_piece(&self, _word: &str) -> Option<String> {
-        None
+    fn first_piece(&self, word: &str) -> Option<String> {
+        let tok = self.lm.tokenizer();
+        let &t = tok.word(word).first()?;
+        (tok.flags(t) & flag::WORD_START != 0)
+            .then(|| tok.piece(t)[WORD_START.len_utf8()..].to_string())
     }
 }
 
@@ -474,6 +519,23 @@ mod tests {
         assert!((got - want.clamp(-rank::LM_CLIP, rank::LM_CLIP)).abs() < 1e-6);
         assert_eq!(view.weighted("the"), rank::LM_WEIGHT_EN * got);
         assert_eq!(view.delta("..."), None, "punctuation says nothing about a word");
+    }
+
+    #[test]
+    fn next_pieces_are_word_starts_in_order() {
+        let (lm, mut ctx) = (lm(), LmContext::default());
+        sync(&mut ctx, &lm, "i am ");
+        let view = LmView {
+            lm: &lm,
+            ctx: &ctx,
+            weights: LmWeights::default(),
+        };
+        let pieces = view.next_pieces(5);
+        assert!(!pieces.is_empty() && pieces.len() <= 5);
+        assert!(pieces.windows(2).all(|w| w[0].log_p >= w[1].log_p));
+        assert!(pieces.iter().all(|p| p.first_log_mass.is_finite()));
+        let the = view.first_piece("the").unwrap();
+        assert!("the".starts_with(&the));
     }
 
     #[test]
