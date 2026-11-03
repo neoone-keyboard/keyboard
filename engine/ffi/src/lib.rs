@@ -156,6 +156,12 @@ pub fn engine_version() -> Result<String, EngineError> {
     guarded(|| env!("CARGO_PKG_VERSION").to_string())
 }
 
+/// The transliterator's int8 product kernel on this CPU, "sdot" or "scalar": for diagnostics.
+#[uniffi::export]
+pub fn nn_kernel() -> String {
+    mlengine_core::nn::ops::kernel().to_string()
+}
+
 /// The consonant a vowel sign would attach to, if the text ends in one.
 #[uniffi::export]
 pub fn malayalam_vowel_sign_base(context_before: String) -> Result<Option<String>, EngineError> {

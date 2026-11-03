@@ -83,16 +83,30 @@ impl Translit {
         splits: &[String],
         width: usize,
     ) -> Vec<Transliteration> {
+        self.candidates_traced(latin, lexicon, splits, width).0
+    }
+
+    /// `candidates_with_splits`, with a count of the work it did (for benches and tests).
+    pub fn candidates_traced(
+        &self,
+        latin: &str,
+        lexicon: &Lexicon,
+        splits: &[String],
+        width: usize,
+    ) -> (Vec<Transliteration>, BeamTrace) {
+        let mut trace = BeamTrace::default();
+        let t0 = std::time::Instant::now();
         let max_len = self.model.config().max_len;
         if latin.is_empty() || latin.len() > MAX_LETTERS || latin.len() + 2 > max_len {
-            return Vec::new();
+            return (Vec::new(), trace);
         }
         let Some(src) = vocab::encode_latin(latin) else {
-            return Vec::new();
+            return (Vec::new(), trace);
         };
         let width = width.min(MAX_CANDIDATES - 1);
         let allowed = Allowed { lexicon, splits };
         let encoded = self.model.encode(&src);
+        trace.encode = t0.elapsed();
         let mut decoder = self.model.decoder(&encoded);
         // `states[i]` is `live[i]`'s decoder history.
         let mut states = vec![decoder.start()];
@@ -122,7 +136,12 @@ impl Translit {
                 break;
             }
             let tokens: Vec<u32> = live.iter().map(|h| h.next).collect();
+            let ts = std::time::Instant::now();
             let logits = decoder.step_batch(&mut states, &tokens);
+            trace.decode += ts.elapsed();
+            trace.steps += 1;
+            trace.rows += live.len();
+            let tsearch = std::time::Instant::now();
 
             expansions.clear();
             let rows = logits.chunks_exact(vocab::MALAYALAM_SIZE);
@@ -136,6 +155,7 @@ impl Translit {
                             buf.clear();
                             buf.push_str(&h.text);
                             buf.extend(vocab::malayalam_char(token));
+                            trace.prefix_checks += 1;
                             allowed.is_prefix(&buf)
                         };
                     expansions.push(Expansion {
@@ -198,6 +218,7 @@ impl Translit {
                 let state = if uses[e.parent] == 0 {
                     parents[e.parent].take()
                 } else {
+                    trace.clones += 1;
                     parents[e.parent].clone()
                 };
                 states.push(state.expect("a parent's state moves to its last child"));
@@ -211,12 +232,32 @@ impl Translit {
                 });
             }
             live = next;
+            trace.search += tsearch.elapsed();
         }
+        trace.total = t0.elapsed();
         // Hypotheses still open at the step limit never finished: they are dropped.
         known.extend(free);
         known.sort_by(|a, b| b.score.total_cmp(&a.score));
-        known
+        (known, trace)
     }
+}
+
+/// What one beam search did: for benches and tests, never logged on the keyboard.
+#[derive(Debug, Clone, Default)]
+pub struct BeamTrace {
+    /// Decoder steps run.
+    pub steps: usize,
+    /// Hypotheses fed to the decoder, summed over the steps.
+    pub rows: usize,
+    /// `Allowed::is_prefix` calls.
+    pub prefix_checks: usize,
+    /// Decoder states copied to fork a hypothesis.
+    pub clones: usize,
+    pub encode: std::time::Duration,
+    pub decode: std::time::Duration,
+    /// Expansion, pruning and forking, after each step's decode.
+    pub search: std::time::Duration,
+    pub total: std::time::Duration,
 }
 
 /// What the constrained beam may spell: lexicon words and the typed word's splits.
