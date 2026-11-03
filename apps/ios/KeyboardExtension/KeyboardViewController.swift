@@ -17,6 +17,8 @@ final class KeyboardViewController: UIInputViewController {
     private let topBar = TopBarView()
     private let keyboardView = KeyboardView()
     private let settingsPanel = SettingsPanelView()
+    /// The top bar over the keys.
+    private let stack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
@@ -45,8 +47,16 @@ final class KeyboardViewController: UIInputViewController {
         refreshTopBar()
     }
 
-    deinit {
-        Diagnostics(category: "keyboard").info("Keyboard released; footprint \(Diagnostics.footprint())")
+    /// UIKit keeps every session's input view alive after its controller is released (iOS 26;
+    /// `heap` on the Simulator finds one per session, the default UIInputView as well as ours),
+    /// and with it whatever is still inside: the keys, the bar and the panel, about 1 MB a
+    /// session until the memory gate turned prediction off. Emptied, and without its height
+    /// constraint, what stays behind is about 50 KB a session (the app's `-keyboardCycles`).
+    isolated deinit {
+        stack.removeFromSuperview()
+        settingsPanel.removeFromSuperview()
+        heightConstraint?.isActive = false
+        log.info("Keyboard released; footprint \(Diagnostics.footprint())")
     }
 
     /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
@@ -114,7 +124,8 @@ final class KeyboardViewController: UIInputViewController {
             Task { await provider.forgetLearned() }
         }
 
-        let stack = UIStackView(arrangedSubviews: [topBar, keyboardView])
+        stack.addArrangedSubview(topBar)
+        stack.addArrangedSubview(keyboardView)
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false

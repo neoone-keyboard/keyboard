@@ -6,6 +6,7 @@ struct KeyboardApp: App {
         MetricsSubscriber.shared.start()
         #if DEBUG
         RuntimeCheck.runFromLaunchArguments()
+        KeyboardCycleCheck.runFromLaunchArguments()
         #endif
     }
 
