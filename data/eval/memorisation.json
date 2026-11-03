@@ -1,0 +1,228 @@
+{
+  "model": "lm.mlkbnn",
+  "model_sha256": "9addf7af84c62c6ce5ab7af03337ef8a53f8f97c3844a5a2f3ce6e49e64f7992",
+  "prompts": 2000,
+  "prompts_per_source": {
+    "en-wiki": 500,
+    "en-simple": 500,
+    "mlwiki": 500,
+    "mlwikisource": 500
+  },
+  "generations": 6000,
+  "prompt_tokens": 32,
+  "generated_tokens": 64,
+  "runs": [
+    {
+      "temperature": 0.0,
+      "seed": 0
+    },
+    {
+      "temperature": 0.7,
+      "seed": 1
+    },
+    {
+      "temperature": 0.7,
+      "seed": 2
+    }
+  ],
+  "window": 16,
+  "indexed_windows": 923531050,
+  "limit": 50,
+  "continuation": {
+    "max": 13,
+    "p99": 3.0,
+    "histogram": {
+      "0-9": 5999,
+      "10-19": 1,
+      "20-29": 0,
+      "30-39": 0,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "corpus": {
+    "max": 64,
+    "p99": 55.0,
+    "histogram": {
+      "0-9": 5706,
+      "10-19": 134,
+      "20-29": 36,
+      "30-39": 27,
+      "40-49": 11,
+      ">=50": 86
+    }
+  },
+  "worst_by_source": {
+    "en-wiki": 64,
+    "en-simple": 61,
+    "mlwiki": 64,
+    "mlwikisource": 64
+  },
+  "runs_over_half_the_limit": 133,
+  "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from English and Malayalam Wikipedia and Malayalam Wikisource (Wikipedia and Wikisource contributors).",
+  "longest": [
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "8 1984 in hurlock where one death and six injuries were reported both storms caused between 500000 and",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 1,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "and mountainous island of corsica so precipitation totals are somewhat reduced from the mainland most of the island receives less than 7",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d2a\u0d42\u0d7c\u0d35\u0d4d\u0d35\u0d3f\u0d15\u0d7c \u0d0f\u0d15\u0d26\u0d47\u0d36\u0d02 50000 \u0d2e\u0d41\u0d24\u0d7d 65000 \u0d35\u0d7c\u0d37\u0d19\u0d4d\u0d19\u0d7e\u0d15\u0d4d\u0d15\u0d4d \u0d2e\u0d41\u0d2e\u0d4d\u0d2a\u0d4d \u0d05\u0d35\u0d38\u0d3e\u0d28 \u0d39\u0d3f\u0d2e\u0d2f\u0d41\u0d17 \u0d15\u0d3e\u0d32\u0d18\u0d1f\u0d4d\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d7d \u0d07\u0d28\u0d4d\u0d28\u0d24\u0d4d\u0d24\u0d46 \u0d24\u0d46\u0d15\u0d4d\u0d15\u0d41\u0d15\u0d3f\u0d34\u0d15\u0d4d\u0d15\u0d7b \u0d0f\u0d37\u0d4d\u0d2f\u0d2f\u0d3f\u0d7d",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d15\u0d40\u0d7d \u0d2c\u0d3f\u0d7d\u0d21\u0d4d \u0d1f\u0d42\u0d15\u0d4d\u0d15\u0d28\u0d41\u0d15\u0d7e\u0d15\u0d4d\u0d15\u0d41\u0d02 \u0d15\u0d3e\u0d32\u0d3f\u0d7d \u0d28\u0d3e\u0d32\u0d4d \u0d35\u0d3f\u0d30\u0d32\u0d41\u0d15\u0d7e \u0d09\u0d23\u0d4d\u0d1f\u0d4d \u0d07\u0d35\u0d2f\u0d3f\u0d7d \u0d30\u0d23\u0d4d\u0d1f\u0d46\u0d23\u0d4d\u0d23\u0d02 \u0d2e\u0d41\u0d28\u0d4d\u0d28\u0d4b\u0d1f\u0d4d\u0d1f\u0d41\u0d02 \u0d2c\u0d3e\u0d15\u0d4d\u0d15\u0d3f \u0d2a\u0d3f\u0d28\u0d4d\u0d28\u0d4b\u0d1f\u0d4d\u0d1f\u0d41\u0d2e\u0d3e\u0d2f\u0d3f \u0d28\u0d3f\u0d32\u0d15\u0d4a\u0d33\u0d4d\u0d33\u0d41\u0d28\u0d4d\u0d28\u0d41 \u0d2e\u0d30\u0d15\u0d4d\u0d15\u0d4a\u0d2e\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 1,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d15\u0d4d\u0d2f\u0d3e\u0d2e\u0d4d\u0d2a\u0d4d\u200c\u0d2c\u0d46\u0d7d, \u0d0e\u0d2e\u0d4d\u0d2e \u0d2e\u0d15\u0d4d\u0d15\u0d3f\u0d2f\u0d4b\u0d7a, \u0d05\u0d32\u0d40\u0d37\u0d4d\u0d2f \u0d15\u0d4b\u0d1f\u0d4d\u0d1f\u0d4d\u0d38\u0d4d \u0d0e\u0d28\u0d4d\u0d28\u0d3f\u0d35\u0d30\u0d4b\u0d1f\u0d4a\u0d2a\u0d4d\u0d2a\u0d02 \u0d2f\u0d41\u0d23\u0d48\u0d31\u0d4d\u0d31\u0d21\u0d4d \u0d38\u0d4d\u0d31\u0d4d\u0d31\u0d47\u0d31\u0d4d\u0d31\u0d4d\u0d38\u0d4d \u0d1f\u0d40\u0d2e\u0d3f\u0d28\u0d41 \u0d2a\u0d3f\u0d28\u0d4d\u0d28\u0d3f\u0d7d 0.12",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 1,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d4d \u0d15\u0d3e\u0d23\u0d3f\u0d15\u0d4d\u0d15\u0d41\u0d28\u0d4d\u0d28 \u0d38\u0d4d\u0d24\u0d4d\u0d30\u0d40\u0d15\u0d7e \u0d09\u0d2a\u0d26\u0d4d\u0d30\u0d35\u0d2e\u0d4b \u0d05\u0d15\u0d4d\u0d30\u0d2e\u0d2e\u0d4b \u0d28\u0d47\u0d30\u0d3f\u0d1f\u0d41\u0d28\u0d4d\u0d28\u0d24\u0d4d \u0d05\u0d38\u0d3e\u0d27\u0d3e\u0d30\u0d23\u0d2e\u0d32\u0d4d\u0d321990 \u0d15\u0d33\u0d3f\u0d32\u0d46 \u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d \u0d28\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d2f \u0d38\u0d7c\u0d35\u0d47\u0d2f\u0d3f\u0d7d 5",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 1,
+      "source": "mlwiki",
+      "temperature": 0.7,
+      "prompt": "\u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d4d \u0d15\u0d3e\u0d23\u0d3f\u0d15\u0d4d\u0d15\u0d41\u0d28\u0d4d\u0d28 \u0d38\u0d4d\u0d24\u0d4d\u0d30\u0d40\u0d15\u0d7e \u0d09\u0d2a\u0d26\u0d4d\u0d30\u0d35\u0d2e\u0d4b \u0d05\u0d15\u0d4d\u0d30\u0d2e\u0d2e\u0d4b \u0d28\u0d47\u0d30\u0d3f\u0d1f\u0d41\u0d28\u0d4d\u0d28\u0d24\u0d4d \u0d05\u0d38\u0d3e\u0d27\u0d3e\u0d30\u0d23\u0d2e\u0d32\u0d4d\u0d321990 \u0d15\u0d33\u0d3f\u0d32\u0d46 \u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d \u0d28\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d2f \u0d38\u0d7c\u0d35\u0d47\u0d2f\u0d3f\u0d7d 5",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d36\u0d15\u0d4d\u0d24\u0d2e\u0d3e\u0d2f \u0d13\u0d15\u0d4d\u0d38\u0d3f\u0d21\u0d48\u0d38\u0d3f\u0d19\u0d4d \u0d0f\u0d1c\u0d28\u0d4d\u0d31\u0d4d \u0d06\u0d2f\u0d24\u0d3f\u0d28\u0d3e\u0d7d \u0d09\u0d24\u0d4d\u0d24\u0d2e\u0d2e\u0d3e\u0d2f \u0d1f\u0d46\u0d7c\u0d2e\u0d3f\u0d28\u0d7d \u0d07\u0d32\u0d15\u0d4d\u0d1f\u0d4d\u0d30\u0d4b\u0d7a \u0d38\u0d4d\u0d35\u0d40\u0d15\u0d7c\u0d24\u0d4d\u0d24\u0d3e\u0d35\u0d3e\u0d23\u0d4d. \u0d13\u0d15\u0d4d\u0d38\u0d3f\u0d1c\u0d7b\u0d31\u0d46 \u0d31\u0d3f\u0d21\u0d15\u0d4d\u0d37\u0d7b",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "mlwikisource",
+      "temperature": 0.0,
+      "prompt": "= \u0d05\u0d28\u0d4d\u0d28\u0d41 3 \u0d2a\u0d30\u0d3f\u0d1a\u0d30 \u0d7b = \u0d35\u0d47\u0d32\u0d15\u0d4d\u0d15\u0d3e\u0d30\u0d7b \u0d05\u0d30\u0d41 = \u0d35\u0d3f\u0d36\u0d47\u0d37\u0d2e\u0d41\u0d33\u0d4d\u0d33 \u0d37\u0d23\u0d4d\u0d21\u0d7b =\u0d28\u0d2a\u0d41\u0d02\u0d38\u0d15\u0d7b 4 \u0d05\u0d26\u0d4d\u0d2f = \u0d07\u0d28\u0d4d\u0d28\u0d41",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 64,
+      "distinct_tokens": 3,
+      "source": "mlwikisource",
+      "temperature": 0.0,
+      "prompt": ") \u0d06\u0d15\u0d3e\u0d36\u0d24\u0d4d\u0d24\u0d4d \u0d28\u0d3f\u0d28\u0d4d\u0d28\u0d4d \u0d35\u0d46\u0d33\u0d4d\u0d33\u0d02 \u0d1a\u0d4a\u0d30\u0d3f\u0d1e\u0d4d\u0d1e\u0d41. \u0d0e\u0d28\u0d4d\u0d28\u0d3f\u0d1f\u0d4d\u0d1f\u0d4d \u0d24\u0d3e\u0d34\u0d4d\u200c\u0d35\u0d30\u0d15\u0d33\u0d3f\u0d32\u0d42\u0d1f\u0d46 \u0d05\u0d35\u0d2f\u0d41\u0d1f\u0d46 ( \u0d35\u0d32\u0d41\u0d2a\u0d4d\u0d2a\u0d24\u0d4d\u0d24\u0d3f\u0d7b\u0d31\u0d46 ) \u0d24\u0d4b\u0d24\u0d4d \u0d05\u0d28\u0d41\u0d38\u0d30\u0d3f\u0d1a\u0d4d\u0d1a\u0d4d \u0d35\u0d46\u0d33\u0d4d\u0d33\u0d2e\u0d4a\u0d34\u0d41\u0d15\u0d3f. \u0d05\u0d2a\u0d4d\u0d2a\u0d4b\u0d7e",
+      "generated": "100000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "longest_not_repetition": [
+    {
+      "run": 60,
+      "distinct_tokens": 25,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "of 18 and 24; 0 were from 25 to 44; 2 were from 45 to 64",
+      "generated": "; 4.9% were 65 years of age or older. for every 100 females, there were 91.5 males, and for every 100 females age 18 and over there were 90.6 males age 18 and over. for every"
+    },
+    {
+      "run": 57,
+      "distinct_tokens": 23,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
+      "generated": "188% of residents were 65 years of age or older for every 100 females there were 988 males and for every 100 females age 18 and over there were 988 males age 18 and over. for every 100"
+    },
+    {
+      "run": 57,
+      "distinct_tokens": 26,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
+      "generated": "168% of residents were 65 years of age or older for every 100 females there were 931 males and for every 100 females age 18 and over there were 946 males age 18 and over. about 100."
+    },
+    {
+      "run": 57,
+      "distinct_tokens": 25,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
+      "generated": "184% of residents were 65 years of age or older for every 100 females there were 951 males and for every 100 females age 18 and over there were 925 males age 18 and over. for every 100"
+    },
+    {
+      "run": 53,
+      "distinct_tokens": 36,
+      "source": "mlwiki",
+      "temperature": 0.7,
+      "prompt": "soden, vogels, merk, bover and nestle-aland) concluding 62.9%, or 4",
+      "generated": "2.6% of all households were made up of individuals and 10.4% had someone living alone who was 65 years of age or older. the average household size was 2.23 and the average family size was 2.65. there were 78.76"
+    },
+    {
+      "run": 48,
+      "distinct_tokens": 25,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "2010 census chinese camp had a population of 126. the population density was . the racial makeup of chinese camp was 9",
+      "generated": "8.8% white, 0.0% african american, 0.0% native american, 0.0% asian, 0.0% pacific islander, 0.0% from other races, and 0.0% from two or more races. hispanic or latino of any"
+    },
+    {
+      "run": 46,
+      "distinct_tokens": 19,
+      "source": "en-simple",
+      "temperature": 0.7,
+      "prompt": "improvement stores headquartered in boucherville, quebec. they have around 425 store locations all across canada and one in saint",
+      "generated": "-domingue. the size of the town is 800,000,000,000,000,000,000,000,000,000,000,000 and affiliation"
+    },
+    {
+      "run": 41,
+      "distinct_tokens": 16,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "and indigenous women. modern studies have revealed traces of dna that renders physical traits similar to amazonian tribes in individuals throughout cuba, although",
+      "generated": "the scandinavian population is not in the region. the scandinavian population is 1,000,000,000,000,000,000,000,000,000,00"
+    },
+    {
+      "run": 41,
+      "distinct_tokens": 26,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "2010 census chinese camp had a population of 126. the population density was . the racial makeup of chinese camp was 9",
+      "generated": "5.5% white, 0.3% african american, 0.2% native american, 0.3% asian, 0.0% pacific islander, 0.08% from other races, and 0.05% from two or more races. hispanic or latino"
+    },
+    {
+      "run": 39,
+      "distinct_tokens": 28,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "partner present and 261% were households with a female householder and no spouse or partner present about 254% of all households were made up",
+      "generated": "of individuals and 188% had someone living alone who was 65 years of age or older the average household size was 238 and the average family size was 248 and the average family size was 249 and the average family size was 249 and the average"
+    }
+  ],
+  "pass": false
+}
