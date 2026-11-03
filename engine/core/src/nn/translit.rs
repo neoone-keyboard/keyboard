@@ -15,6 +15,7 @@
 //! order, finished ones counting toward its width.
 
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use super::vocab::{self, BOS, EOS, PAD};
 use super::{DecoderState, ModelFile, NnError, Transformer};
@@ -83,16 +84,47 @@ impl Translit {
         splits: &[String],
         width: usize,
     ) -> Vec<Transliteration> {
+        let search = Search {
+            width,
+            ..Search::default()
+        };
+        self.search(latin, lexicon, splits, &search).0
+    }
+
+    /// `candidates_with_splits` as `search` asks (without the free beam, or until a
+    /// deadline), with a count of the work it did.
+    pub fn search(
+        &self,
+        latin: &str,
+        lexicon: &Lexicon,
+        splits: &[String],
+        search: &Search<'_>,
+    ) -> (Vec<Transliteration>, BeamTrace) {
+        let mut trace = BeamTrace::default();
+        let t0 = Instant::now();
         let max_len = self.model.config().max_len;
         if latin.is_empty() || latin.len() > MAX_LETTERS || latin.len() + 2 > max_len {
-            return Vec::new();
+            return (Vec::new(), trace);
         }
         let Some(src) = vocab::encode_latin(latin) else {
-            return Vec::new();
+            return (Vec::new(), trace);
         };
-        let width = width.min(MAX_CANDIDATES - 1);
+        let width = search.width.min(MAX_CANDIDATES - 1);
+        if width == 0 && !search.free {
+            return (Vec::new(), trace);
+        }
+        // The encoder can't stop part way: it starts only with half the budget left.
+        if search
+            .deadline
+            .as_ref()
+            .is_some_and(|d| (d.left)() < d.budget / 2)
+        {
+            trace.expired = true;
+            return (Vec::new(), trace);
+        }
         let allowed = Allowed { lexicon, splits };
         let encoded = self.model.encode(&src);
+        trace.encode = t0.elapsed();
         let mut decoder = self.model.decoder(&encoded);
         // `states[i]` is `live[i]`'s decoder history.
         let mut states = vec![decoder.start()];
@@ -121,8 +153,22 @@ impl Translit {
             if live.is_empty() {
                 break;
             }
+            // Out of time: what has finished is the answer.
+            if search
+                .deadline
+                .as_ref()
+                .is_some_and(|d| (d.left)().is_zero())
+            {
+                trace.expired = true;
+                break;
+            }
             let tokens: Vec<u32> = live.iter().map(|h| h.next).collect();
+            let ts = Instant::now();
             let logits = decoder.step_batch(&mut states, &tokens);
+            trace.decode += ts.elapsed();
+            trace.steps += 1;
+            trace.rows += live.len();
+            let tsearch = Instant::now();
 
             expansions.clear();
             let rows = logits.chunks_exact(vocab::MALAYALAM_SIZE);
@@ -136,6 +182,7 @@ impl Translit {
                             buf.clear();
                             buf.push_str(&h.text);
                             buf.extend(vocab::malayalam_char(token));
+                            trace.prefix_checks += 1;
                             allowed.is_prefix(&buf)
                         };
                     expansions.push(Expansion {
@@ -173,7 +220,7 @@ impl Translit {
                 }
                 chosen.truncate(width.saturating_sub(known.len()));
             }
-            if free.is_none() {
+            if search.free && free.is_none() {
                 // The best hypothesis off the lexicon; ending on nothing doesn't count.
                 let best = expansions
                     .iter()
@@ -198,6 +245,7 @@ impl Translit {
                 let state = if uses[e.parent] == 0 {
                     parents[e.parent].take()
                 } else {
+                    trace.clones += 1;
                     parents[e.parent].clone()
                 };
                 states.push(state.expect("a parent's state moves to its last child"));
@@ -211,12 +259,65 @@ impl Translit {
                 });
             }
             live = next;
+            trace.search += tsearch.elapsed();
         }
-        // Hypotheses still open at the step limit never finished: they are dropped.
+        trace.total = t0.elapsed();
+        // Hypotheses still open at the step limit (or the deadline) never finished: they
+        // are dropped.
         known.extend(free);
         known.sort_by(|a, b| b.score.total_cmp(&a.score));
-        known
+        (known, trace)
     }
+}
+
+/// How `Translit::search` runs.
+pub struct Search<'a> {
+    /// Lexicon spellings wanted (at most `MAX_CANDIDATES - 1`).
+    pub width: usize,
+    /// Run the free beam of one beside the constrained one.
+    pub free: bool,
+    /// None: search to the end.
+    pub deadline: Option<Deadline<'a>>,
+}
+
+impl Default for Search<'_> {
+    fn default() -> Self {
+        Self {
+            width: 0,
+            free: true,
+            deadline: None,
+        }
+    }
+}
+
+/// A time limit on a search. The encoder runs only while at least half of `budget` is
+/// `left`; a decoder step only while some is. Once out of time the search returns the
+/// spellings that have finished. `left` is a clock in the keyboard, a script in tests.
+#[derive(Clone, Copy)]
+pub struct Deadline<'a> {
+    /// The whole allowance, of which `left` is what remains.
+    pub budget: Duration,
+    pub left: &'a dyn Fn() -> Duration,
+}
+
+/// What one beam search did: for benches and tests, never logged on the keyboard.
+#[derive(Debug, Clone, Default)]
+pub struct BeamTrace {
+    /// The search stopped (or never started) for its deadline.
+    pub expired: bool,
+    /// Decoder steps run.
+    pub steps: usize,
+    /// Hypotheses fed to the decoder, summed over the steps.
+    pub rows: usize,
+    /// `Allowed::is_prefix` calls.
+    pub prefix_checks: usize,
+    /// Decoder states copied to fork a hypothesis.
+    pub clones: usize,
+    pub encode: Duration,
+    pub decode: Duration,
+    /// Expansion, pruning and forking, after each step's decode.
+    pub search: Duration,
+    pub total: Duration,
 }
 
 /// What the constrained beam may spell: lexicon words and the typed word's splits.
@@ -389,6 +490,102 @@ mod tests {
             got.len() <= 1 && got.iter().all(|c| !c.in_lexicon),
             "{got:?}"
         );
+    }
+
+    /// A clock that has `budget` left for its first `calls` readings, then none.
+    fn clock(budget: Duration, calls: usize) -> impl Fn() -> Duration {
+        let read = std::cell::Cell::new(0);
+        move || {
+            read.set(read.get() + 1);
+            if read.get() <= calls {
+                budget
+            } else {
+                Duration::ZERO
+            }
+        }
+    }
+
+    #[test]
+    fn a_deadline_stops_the_search_with_what_has_finished() {
+        let t = tiny();
+        let lex = lexicon(AB_WORDS);
+        let budget = Duration::from_millis(10);
+        let search = |deadline| Search {
+            width: 4,
+            deadline,
+            ..Search::default()
+        };
+        let (all, unbounded) = t.search("ab", &lex, &[], &search(None));
+        assert!(!unbounded.expired && unbounded.steps > 3, "{unbounded:?}");
+
+        // Less than half the budget left: the encoder doesn't start.
+        let half_gone = || budget / 2 - Duration::from_nanos(1);
+        let (got, trace) = t.search(
+            "ab",
+            &lex,
+            &[],
+            &search(Some(Deadline {
+                budget,
+                left: &half_gone,
+            })),
+        );
+        assert!(
+            got.is_empty() && trace.expired && trace.steps == 0,
+            "{trace:?}"
+        );
+
+        // Time for the encoder and three steps: three steps run, and what finished in them is
+        // what the unbounded search found by then.
+        let left = clock(budget, 4);
+        let (got, trace) = t.search(
+            "ab",
+            &lex,
+            &[],
+            &search(Some(Deadline {
+                budget,
+                left: &left,
+            })),
+        );
+        assert!(trace.expired && trace.steps == 3, "{trace:?}");
+        assert!(got.len() < all.len(), "{got:?}");
+        assert!(
+            got.iter().all(|c| all.contains(c)),
+            "{got:?} not in {all:?}"
+        );
+        check_scores(&t, "ab", &got);
+
+        // A budget never used up changes nothing.
+        let plenty = || budget;
+        let (got, _) = t.search(
+            "ab",
+            &lex,
+            &[],
+            &search(Some(Deadline {
+                budget,
+                left: &plenty,
+            })),
+        );
+        assert_eq!(got, all);
+    }
+
+    #[test]
+    fn without_the_free_beam_the_lexicon_spellings_are_unchanged() {
+        let t = tiny();
+        let lex = lexicon(AB_WORDS);
+        let with = t.candidates("ab", &lex, 4);
+        let search = Search {
+            width: 4,
+            free: false,
+            ..Search::default()
+        };
+        let (without, _) = t.search("ab", &lex, &[], &search);
+        let known: Vec<_> = with.into_iter().filter(|c| c.in_lexicon).collect();
+        assert_eq!(without, known);
+        let none = Search {
+            free: false,
+            ..Search::default()
+        };
+        assert!(t.search("ab", &lex, &[], &none).0.is_empty());
     }
 
     #[test]

@@ -53,9 +53,16 @@ enum RuntimeCheck {
 
     /// `-runtimeCheckCPU` runs only Core ML on the CPU, 3 times, so its memory isn't mixed
     /// with the other runtimes'.
-    static func runFromLaunchArguments() {
+    @MainActor static func runFromLaunchArguments() {
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-runtimeCheckCPU") {
+        if arguments.contains("-suggestCheck") {
+            // Keeps running for a while if the app leaves the foreground.
+            let background = UIApplication.shared.beginBackgroundTask()
+            Thread.detachNewThread {
+                SuggestCheck.run()
+                DispatchQueue.main.async { UIApplication.shared.endBackgroundTask(background) }
+            }
+        } else if arguments.contains("-runtimeCheckCPU") {
             Task.detached(priority: .userInitiated) {
                 await runAll((1...3).map { (.coreML(.cpuOnly), $0) }) { _ in }
             }
@@ -75,6 +82,97 @@ enum RuntimeCheck {
         }
         text += "done\n"
         try? text.write(to: output, atomically: true, encoding: .utf8)
+    }
+}
+
+/// The keyboard's full suggest, timed per keystroke on the phone: the extension's bundled
+/// lexicons and model, words typed letter by letter after "I said ". Each word runs typed
+/// back to back (the CPU stays busy, as in a benchmark) and with a pause between keys (as when
+/// typing, so each suggest starts from an idle CPU), then paused with the keyboard's model
+/// deadline, marking keys whose bar it changed. Launch the app with `-suggestCheck`;
+/// the result is Documents/suggest-check.txt.
+enum SuggestCheck {
+    static let words = ["preferenc", "apostrophe", "definitely", "enthu", "sukhamano", "avishyam"]
+    /// As the keyboard's `EngineSuggestionProvider.modelDeadlineMs`.
+    static let deadlineMs: UInt32 = 8
+    static var output: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("suggest-check.txt")
+    }
+
+    static func run() {
+        var text = "suggest check, kernel \(nnKernel())\n"
+        let write = { try? text.write(to: output, atomically: true, encoding: .utf8) }
+        write()
+        guard let appex = Bundle.main.builtInPlugInsURL?.appendingPathComponent("KeyboardExtension.appex") else {
+            text += "no extension bundle\n"
+            write()
+            return
+        }
+        let file = { (dir: String, name: String) in appex.appendingPathComponent(dir).appendingPathComponent(name).path }
+        let config = { (deadline: UInt32?) in
+            EngineConfig(
+                english: file("Lexicon", "en.fst"),
+                malayalam: file("Lexicon", "ml.fst"),
+                manglish: file("Lexicon", "manglish.fst"),
+                nextWords: file("Lexicon", "next.fst"),
+                translit: file("Models", "translit.mlkbnn"),
+                userDir: nil,
+                modelDeadlineMs: deadline
+            )
+        }
+        guard let unbounded = try? Engine(config: config(nil)),
+              let bounded = try? Engine(config: config(deadlineMs))
+        else {
+            text += "engine failed to open\n"
+            write()
+            return
+        }
+        text += "sources \((try? unbounded.loadedSources()) ?? [])\n"
+        let bar = { (engine: Engine, context: String) in
+            ((try? engine.suggest(contextBefore: context, layout: .latin, autocorrect: true))?.candidates ?? []).map(\.text)
+        }
+        var full: [String: [String]] = [:]
+        for word in words {  // warm the page cache; the bar without a deadline
+            for end in 1...word.count {
+                let context = "I said " + word.prefix(end)
+                full[context] = bar(unbounded, context)
+                _ = bar(bounded, context)
+            }
+        }
+        let phases: [(String, Double, Engine)] = [
+            ("back to back, no deadline", 0, unbounded),
+            ("150 ms between keys, model deadline \(deadlineMs) ms (* bar differs)", 0.15, bounded),
+            ("150 ms between keys, no deadline", 0.15, unbounded),
+        ]
+        for (label, pause, engine) in phases {
+            var all: [Double] = []
+            var differs: [String] = []
+            text += "\n\(label)\n"
+            for word in words {
+                var line = word
+                for end in 1...word.count {
+                    let context = "I said " + word.prefix(end)
+                    if pause > 0 { Thread.sleep(forTimeInterval: pause) }
+                    let start = ContinuousClock.now
+                    let shown = bar(engine, context)
+                    let ms = (ContinuousClock.now - start).milliseconds
+                    all.append(ms)
+                    line += String(format: " %.1f", ms) + (shown == full[context] ? "" : "*")
+                    if shown != full[context] {
+                        differs.append("\(word.prefix(end)): \(shown) for \(full[context] ?? [])")
+                    }
+                }
+                text += line + "\n"
+            }
+            all.sort()
+            text += String(format: "p50 %.1f ms, p90 %.1f ms, max %.1f ms\n",
+                           all[all.count / 2], all[all.count * 9 / 10], all[all.count - 1])
+            text += differs.map { "* \($0)\n" }.joined()
+            write()
+        }
+        text += "done\n"
+        write()
     }
 }
 

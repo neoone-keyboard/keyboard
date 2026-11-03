@@ -182,6 +182,15 @@ fn int8(bytes: &[u8]) -> &[i8] {
     unsafe { std::slice::from_raw_parts(bytes.as_ptr().cast(), bytes.len()) }
 }
 
+/// The int8 product kernel this CPU runs, "sdot" or "scalar": for diagnostics.
+pub fn kernel() -> &'static str {
+    #[cfg(target_arch = "aarch64")]
+    if std::arch::is_aarch64_feature_detected!("dotprod") {
+        return "sdot";
+    }
+    "scalar"
+}
+
 /// `dots[v * rows + r]` = limb row `v` of `limbs` · weight row `r` of `w`, both `cols` wide.
 fn limb_dots(w: &[i8], cols: usize, limbs: &[i8], dots: &mut [i32]) {
     #[cfg(target_arch = "aarch64")]

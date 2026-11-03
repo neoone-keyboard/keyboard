@@ -10,7 +10,7 @@ use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::malayalam;
 use crate::manglish;
-use crate::nn::Translit;
+use crate::nn::{Deadline, Search, Translit};
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
@@ -24,7 +24,10 @@ const CORRECTION_LIMIT: usize = 4_000;
 /// Candidates returned: the middle slot plus two side slots.
 const SHOWN: usize = 3;
 /// Lexicon spellings asked of the transliterator per word. On an iPhone 15 Pro Max, encode
-/// plus 10 decoder steps at this width takes about 8 ms (p50), 9 ms (p99).
+/// plus 10 decoder steps at this width takes about 2.5 ms (p50) run back to back; a whole
+/// suggest that starts from an idle CPU, as when typing, runs 5–7× slower, hence the
+/// keyboard's deadline (`suggest_until`). Width 3 saved a quarter of the decoder rows but moved
+/// the eval both ways (chat 0.7950 → 0.7919 top-1, human 0.5665 → 0.5715).
 const MODEL_WIDTH: usize = 4;
 
 /// The vowel signs the strip offers, in aksharamala order (KeyboardCore's `Malayalam.stripSigns`).
@@ -182,7 +185,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, 0.0)
+                .suggest_latin(word, word, true, false, false, 0.0, None)
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -192,6 +195,20 @@ impl Engine {
     }
 
     pub fn suggest(&self, context_before: &str, layout: Layout, autocorrect: bool) -> Suggestions {
+        self.suggest_until(context_before, layout, autocorrect, None)
+    }
+
+    /// `suggest`, with the transliterator held to `deadline` (`nn::Deadline`): when time runs
+    /// out it stops and its finished spellings are used, so a slow CPU costs Manglish
+    /// spellings rather than the whole bar. The keyboard passes a clock started with the
+    /// request; the eval and tests pass none, so their results don't depend on the machine.
+    pub fn suggest_until(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        deadline: Option<Deadline<'_>>,
+    ) -> Suggestions {
         let typed = text::current_word(context_before);
         if typed.is_empty() {
             return Suggestions {
@@ -215,6 +232,7 @@ impl Engine {
                     sentence_start,
                     mid_sentence,
                     bias,
+                    deadline,
                 )
             }
             (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
@@ -267,6 +285,7 @@ impl Engine {
     /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
     /// before it didn't (neither at the very start of the text).
     /// `manglish_bias` comes from the previous word's language (`manglish_bias`).
+    #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
         typed: &str,
@@ -275,6 +294,7 @@ impl Engine {
         sentence_start: bool,
         mid_sentence: bool,
         manglish_bias: f32,
+        deadline: Option<Deadline<'_>>,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -393,7 +413,7 @@ impl Engine {
             });
         }
 
-        let manglish = self.manglish(typed_n, manglish_bias, known_score.is_some());
+        let manglish = self.manglish(typed_n, manglish_bias, known_score.is_some(), deadline);
         completions.extend(manglish.completions);
         // Set when the best English and Malayalam replacements are too close to call.
         let mut ambiguous: Vec<Candidate> = Vec::new();
@@ -495,7 +515,14 @@ impl Engine {
     /// Malayalam candidates for a Latin word, scored to compete with English.
     /// `english_word`: the typed word is in the English lexicon, so it isn't
     /// split into stem and suffix.
-    fn manglish(&self, typed_n: &str, bias: f32, english_word: bool) -> ManglishCandidates {
+    /// `deadline`: as in `suggest_until`.
+    fn manglish(
+        &self,
+        typed_n: &str,
+        bias: f32,
+        english_word: bool,
+        deadline: Option<Deadline<'_>>,
+    ) -> ManglishCandidates {
         let mut found = ManglishCandidates::default();
         let Some(lex) = &self.sources.manglish else {
             return found;
@@ -535,11 +562,14 @@ impl Engine {
             Self::add_splits(&splits, bias, &mut found);
         }
         // The model's spellings, held to the lexicon and the splits. Not for a word that is
-        // English: it would never be replaced, and the model is the costliest step.
+        // English: it would never be replaced, and the model is the costliest step. Its free
+        // spelling is only a fallback for when nothing else is found (below), and nothing is
+        // ever taken out of `found`: with a candidate already, the free beam isn't run.
         let free = if english_word {
             None
         } else {
-            self.add_model(typed_n, &splits, bias, &mut found)
+            let want_free = found.exact.is_empty() && found.side.is_empty();
+            self.add_model(typed_n, &splits, bias, want_free, deadline, &mut found)
         };
         // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
         // is a variant of it: offer the common one beside it.
@@ -726,12 +756,15 @@ impl Engine {
     /// lookup's romanisation-distance penalty, except where English is likely
     /// (see `rank::MANGLISH_MODEL_WEIGHT`). One the skeleton lookup or a split found too
     /// appears twice, and the better score wins (`arrange`, and the max over `exact`).
-    /// Nothing without the model or the Malayalam lexicon it is held to.
+    /// Nothing without the model or the Malayalam lexicon it is held to. `free`: run the
+    /// free beam too. `deadline`: as in `suggest_until`.
     fn add_model(
         &self,
         typed_n: &str,
         splits: &[ScoredSplit],
         bias: f32,
+        free: bool,
+        deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
     ) -> Option<String> {
         let (Some(model), Some(ml)) = (&self.sources.translit, &self.sources.malayalam) else {
@@ -741,8 +774,13 @@ impl Engine {
         let latin = typed_n.to_ascii_lowercase();
         let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
             || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
+        let search = Search {
+            width: MODEL_WIDTH,
+            free,
+            deadline,
+        };
         let mut free = None;
-        for t in model.candidates_with_splits(&latin, ml, &split_words, MODEL_WIDTH) {
+        for t in model.search(&latin, ml, &split_words, &search).0 {
             if !t.in_lexicon {
                 free = Some(t.text);
                 continue;
