@@ -8,6 +8,7 @@ final class SettingsPanelView: UIView {
     var onChange: (@MainActor (KeyboardSettings) -> Void)?
     var onDone: (@MainActor () -> Void)?
     var onForgetLearned: (@MainActor () -> Void)?
+    var onInsertDiagnostics: (@MainActor () -> Void)?
 
     private(set) var settings = KeyboardSettings()
     private var theme: KeyboardTheme?
@@ -24,6 +25,7 @@ final class SettingsPanelView: UIView {
     private let autocorrectLabel = UILabel()
     private let autocorrectSwitch = UISwitch()
     private let forgetButton = UIButton(type: .system)
+    private let diagnosticsButton = UIButton(type: .system)
     /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
     private var forgetArmed = false
     /// Puts the Forget row back to its first state a few seconds after a tap.
@@ -81,6 +83,10 @@ final class SettingsPanelView: UIView {
         forgetButton.titleLabel?.font = .systemFont(ofSize: 15)
         forgetButton.contentHorizontalAlignment = .leading
         forgetButton.addAction(UIAction { [weak self] _ in self?.forgetTapped() }, for: .touchUpInside)
+        diagnosticsButton.setTitle("Insert diagnostics", for: .normal)
+        diagnosticsButton.titleLabel?.font = .systemFont(ofSize: 15)
+        diagnosticsButton.contentHorizontalAlignment = .leading
+        diagnosticsButton.addAction(UIAction { [weak self] _ in self?.onInsertDiagnostics?() }, for: .touchUpInside)
         let numberRow = UIStackView(arrangedSubviews: [numberRowLabel, UIView(), numberRowSwitch])
         let clicksRow = UIStackView(arrangedSubviews: [clicksLabel, UIView(), clicksSwitch])
         let autocorrectRow = UIStackView(arrangedSubviews: [autocorrectLabel, UIView(), autocorrectSwitch])
@@ -95,6 +101,7 @@ final class SettingsPanelView: UIView {
 
         let stack = UIStackView(arrangedSubviews: [
             header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, forgetButton,
+            diagnosticsButton,
         ])
         stack.axis = .vertical
         stack.spacing = 6
@@ -125,6 +132,7 @@ final class SettingsPanelView: UIView {
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
             forgetButton.heightAnchor.constraint(equalToConstant: 36),
+            diagnosticsButton.heightAnchor.constraint(equalToConstant: 36),
         ])
     }
 
@@ -150,6 +158,7 @@ final class SettingsPanelView: UIView {
         }
         doneButton.tintColor = theme.keyText
         forgetButton.tintColor = theme.keyText
+        diagnosticsButton.tintColor = theme.keyText
         themeControl.backgroundColor = theme.specialKey
         themeControl.selectedSegmentTintColor = theme.key
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)

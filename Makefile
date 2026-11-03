@@ -4,6 +4,8 @@ DEVICE ?= <your-device-id>
 PROJECT := apps/ios/MLKeyboard.xcodeproj
 CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
+# Stamped into the keyboard extension for its diagnostics report.
+GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
 .PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons models bench eval spike-assets
@@ -24,11 +26,11 @@ project: | tools
 
 build: tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp \
-	  -destination 'platform=iOS Simulator,name=$(SIM)' CODE_SIGNING_ALLOWED=NO build -quiet
+	  -destination 'platform=iOS Simulator,name=$(SIM)' CODE_SIGNING_ALLOWED=NO ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 
 device: tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
-	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates build -quiet
+	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
 

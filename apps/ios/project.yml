@@ -59,6 +59,8 @@ targets:
       path: KeyboardExtension/Info.plist
       properties:
         CFBundleDisplayName: Malayalam Keyboard
+        # The commit `make` built from, for the diagnostics report (empty otherwise).
+        MLGitCommit: $(ML_GIT_COMMIT)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
