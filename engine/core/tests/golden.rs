@@ -18,7 +18,7 @@ const ENGLISH: &[(&str, u64)] = &[
     ("enter", 120_000), ("entry", 100_000), ("Tom", 100_000), ("an", 4_000_000),
     ("ant", 20_000), ("any", 1_000_000), ("am", 900_000), ("have", 4_000_000),
     ("could", 1_500_000), ("us", 900_000), ("US", 200_000), ("will", 2_000_000),
-    ("Will", 50_000), ("ENT", 3_000),
+    ("Will", 50_000), ("ENT", 3_000), ("fish", 200_000), ("one", 3_000_000),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -147,4 +147,28 @@ fn sentence_starts_are_capitalised() {
     );
     assert!(texts(&engine, "It rains. hel").contains(&"Help".to_string()));
     assert_eq!(middle(&engine, "it rains teh").0, "the");
+}
+
+#[test]
+fn capitals_typed_on_purpose_are_respected() {
+    let engine = engine();
+    // Lowercase, these are typos.
+    assert_eq!(middle(&engine, "home for vish").0, "fish");
+    assert_eq!(middle(&engine, "check the onr").0, "one");
+    // A capital mid-sentence is a name (`Vishu`), corrected only to a name with its
+    // first letter; all capitals is an abbreviation (`PNR`), never replaced.
+    assert_eq!(
+        middle(&engine, "home for Vish"),
+        ("Vish".into(), Kind::Verbatim)
+    );
+    assert!(texts(&engine, "home for Vish").contains(&"Fish".to_string()));
+    assert_eq!(
+        middle(&engine, "check the ONR"),
+        ("ONR".into(), Kind::Verbatim)
+    );
+    assert_eq!(middle(&engine, "ONR"), ("ONR".into(), Kind::Verbatim));
+    assert_eq!(middle(&engine, "we went to Lodnon").0, "London");
+    // The first word of a sentence is capitalised by the keyboard: no evidence.
+    assert_eq!(middle(&engine, "Teh").0, "The");
+    assert_eq!(middle(&engine, "It rains. Teh").0, "The");
 }

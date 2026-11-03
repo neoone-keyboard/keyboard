@@ -1,5 +1,6 @@
 //! Platform-free keyboard engine. Nothing in this crate may depend on iOS or Android APIs.
 
+pub mod chat_forms;
 pub mod engine;
 pub mod fuzzy;
 pub mod keys;

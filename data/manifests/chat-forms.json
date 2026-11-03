@@ -1,0 +1,12 @@
+{
+  "id": "chat-forms",
+  "name": "Malayalam chat spellings (hand-written)",
+  "licence": "Written for this project",
+  "verdict": "own work",
+  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; the app credits third-party sources only.",
+  "attribution": "A short table of irregular Manglish chat spellings (nanni for നന്ദി, nte for എന്റെ), written for this keyboard. No third-party data.",
+  "used_for": "Compiled into the engine: a typed chat spelling offers its Malayalam word (engine/core/src/chat_forms.rs).",
+  "local": "data/chat-forms.tsv",
+  "retrieved": "2026-11-03",
+  "files": []
+}

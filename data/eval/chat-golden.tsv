@@ -58,6 +58,7 @@
 	jishnu	ജിഷ്ണു
 	Jishnu	ജിഷ്ണു
 ഞാൻ	jishnu	ജിഷ്ണു
+# User-reported, 2026-11-03: nanni (നന്ദി) put the wrong word നണ്ണി in the middle.
 	nanni	നന്ദി
 	nandi	നന്ദി
 	poda	പോടാ
@@ -321,3 +322,10 @@ train	vaiki	വൈകി
 # User-reported on device, 2026-11-03: loose spellings of ആവശ്യം (ആവിശ്യം, also in the lexicon, goes beside it).
 	avshyam	ആവശ്യം
 	avishyam	ആവശ്യം
+# User-reported, 2026-11-03: nanni is നന്ദി (said and typed with nn); the row without context is above.
+ചേട്ടാ	nanni	നന്ദി
+# Chat forms in data/chat-forms.tsv (initial vowel dropped; pwoli for പൊളി).
+	nde	എന്റെ
+	nthu	എന്ത്
+	pwoli	പൊളി
+	pwolichu	പൊളിച്ചു

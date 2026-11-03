@@ -102,6 +102,38 @@ fn english_golden() {
     }
 }
 
+/// Indian English in English sentences (`data/eval/english-sentences.txt`): words from
+/// `data/indian-english.txt`, and capitals typed on purpose (`Capitals` in engine.rs).
+/// Each was autocorrected before (Vishu → Fish, biryani → Britain, PNR → ONE).
+#[test]
+fn indian_english_stays_as_typed() {
+    for engine in engines() {
+        for context in [
+            "Are you coming home for Vishu",
+            "My mother made chicken biryani",
+            "Can you check the PNR",
+            "We should plan a trip to Munnar",
+            "The weather in Ooty",
+            "Happy Onam",
+            "Eid",
+            "Add Rahul",
+            "Send me the OTP",
+        ] {
+            let word = context.rsplit(' ').next().unwrap();
+            assert_eq!(
+                middle(&engine, context),
+                (word.to_string(), Kind::Verbatim),
+                "{context}: {:?}",
+                texts(&engine, context)
+            );
+        }
+        // Lowercase, the same places and festivals are still Manglish.
+        for (typed, want) in [("onam", "ഓണം"), ("vishu", "വിഷു"), ("munnar", "മൂന്നാർ")] {
+            assert_eq!(middle(&engine, typed).0, want, "{typed}: {:?}", texts(&engine, typed));
+        }
+    }
+}
+
 #[test]
 fn malayalam_layout_golden() {
     for engine in engines() {
@@ -394,11 +426,7 @@ fn translit_model_forgives_loose_spellings() {
     assert_eq!(middle(&engine, "vanno").0, "വന്നോ");
 }
 
-/// Known misses, left for a later fix of chat forms; no ranking weight reaches them.
-/// - `nanni` → നന്ദി: neither source has it. The model can't spell it (after നന്, ദ is
-///   its 23rd token, log prob −7.4, outside the 8 expanded per step), and the skeleton
-///   lookup doesn't match it (ന്ദ romanises nd, not nn). The model's നന്നി (−14.2) and നണ്ണി are too
-///   rare to convert, so the middle stays M2's correction `bank`.
+/// Known misses; no ranking weight reaches them.
 /// - `kollamo` → കൊള്ളാമോ: both readings are splits with no corpus count, and both
 ///   sources prefer കൊല്ലമോ: the model (−0.150 per token against −0.390) and the stem
 ///   frequency (കൊല്ലം over കൊള്ളാം). കൊള്ളാമോ stays in a side slot.
@@ -410,13 +438,36 @@ fn translit_model_forgives_loose_spellings() {
 #[ignore = "known misses: model and stem frequency both prefer another spelling"]
 fn translit_model_known_misses() {
     let Some(engine) = model_engine() else { return };
-    for (typed, want) in [("nanni", "നന്ദി"), ("kollamo", "കൊള്ളാമോ")] {
-        assert_eq!(
-            middle(&engine, typed),
-            (want.to_string(), Kind::Manglish),
-            "{typed}: {:?}",
-            texts(&engine, typed)
-        );
+    assert_eq!(
+        middle(&engine, "kollamo"),
+        ("കൊള്ളാമോ".to_string(), Kind::Manglish),
+        "{:?}",
+        texts(&engine, "kollamo")
+    );
+}
+
+/// Chat spellings from `data/chat-forms.tsv`. `nanni` (നന്ദി as said; user-reported on
+/// device, 2026-11-03): neither source reaches it. The model can't spell it (after നന്, ദ
+/// is its 23rd token), and the skeleton lookup doesn't match it (ന്ദ romanises nd). Its
+/// confident runner-up നണ്ണി (−12.45, −0.44 per token) took the middle through
+/// `rank::MANGLISH_MODEL_CONFIDENT`; it stays beside നന്ദി now.
+#[test]
+fn chat_forms_convert() {
+    for engine in engines() {
+        for (typed, want) in [
+            ("nanni", "നന്ദി"),
+            ("ചേട്ടാ nanni", "നന്ദി"),
+            ("nte", "എന്റെ"),
+            ("ntha", "എന്താ"),
+            ("pwoli", "പൊളി"),
+        ] {
+            assert_eq!(
+                middle(&engine, typed),
+                (want.to_string(), Kind::Manglish),
+                "{typed}: {:?}",
+                texts(&engine, typed)
+            );
+        }
     }
 }
 
