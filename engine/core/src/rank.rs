@@ -226,23 +226,41 @@ pub const CONTEXT_AT_START: f32 = -1.0;
 pub const LM_WINDOW: usize = 32;
 /// Words before the cursor read for the LM context.
 pub const LM_WORDS: usize = 40;
-/// A tier-0 correction is clamped to ±this before its weight (design §6).
-pub const LM_CLIP: f32 = 4.0;
-/// Weight of the tier-0 correction for English candidates. Swept in Task 14.
+/// A tier-0 correction is clamped to ±this before its weight (design §6). Sweep (tune sets,
+/// objective = the mean of next-word top-3 and KS over the three sets, typos-in-context and
+/// language-choice top-1; `mlkb.eval.sweep`, at en = ml = 1): 0.4017 at 2, 0.4034 at 3, 0.4041
+/// at 4, 0.4042 at 6. A wide clip lets a strong context reach a word the lexicon finds rare.
+pub const LM_CLIP: f32 = 6.0;
+/// Weight of the tier-0 correction for English candidates. Sweep (objective as `LM_CLIP`):
+/// 0.3930 at 0, 0.3975 at 0.25, 0.4017 at 0.5, 0.4018 at 0.75, 0.4030 at 1, all from English
+/// keystroke savings (0.3231 → 0.3881); typos-in-context top-1 was best at 0.5 (0.8592 against
+/// 0.8451). Kept at 0.5: on the gate files 1 cost language_choice top-1 0.8614 → 0.8317 (with
+/// `LM_WEIGHT_ML` at 1; 0.8515, M3a's, with it at 0.5), because after Manglish words the LM's
+/// English estimate for a Latin piece also holds Manglish's mass (`p_en` is global), so a
+/// whole-weight English correction takes Manglish slots: `innu bhayankara pani` offered
+/// `pain` over പണി. The tune split's language-choice rows (0.9000 at every point) can't see it.
 pub const LM_WEIGHT_EN: f32 = 0.5;
-/// Weight of the tier-0 correction for Malayalam candidates. Swept in Task 14.
+/// Weight of the tier-0 correction for Malayalam candidates. Sweep (objective as `LM_CLIP`, en
+/// = 1): 0.4009 at 0, 0.4021 at 0.25, 0.4030 at 0.5, 0.4038 at 0.75, 0.4041 at 1. Kept at 0.5
+/// with `LM_WEIGHT_EN`: at 1, `ഇന്ന് ഭയങ്കര pani` gave പനി over പണി and `ഒരു vada` gave വദ
+/// over വട on the gate files (language_choice top-1 0.8317, M3a 0.8515).
 pub const LM_WEIGHT_ML: f32 = 0.5;
 /// `manglish_bias` from the LM: this × (ln P_ml − ln P_en) + `LANG_OFFSET`, clamped to the
 /// range of the old previous-word constants (`CONTEXT_AFTER_ENGLISH`..`CONTEXT_AFTER_MALAYALAM`).
+/// Sweep (objective as `LM_CLIP`, at en = ml = 0.5): 0.4010 at 0.5 (3 English wrong
+/// replacements, M3a 2: not eligible), 0.4017 at 1, 1.5 and 2; the smallest of those is kept.
 pub const LANG_WEIGHT: f32 = 1.0;
-/// See `LANG_WEIGHT`.
+/// See `LANG_WEIGHT`. Sweep: 0.3990 at −2 (chat_golden top-1 0.7981, past the tolerance), 0.4017
+/// at −1.5, −1 and −0.5, 0.4015 at 0 (3 English wrong replacements); the middle is kept.
 pub const LANG_OFFSET: f32 = CONTEXT_AT_START;
 /// Next words: word-start pieces read from the LM.
 pub const NEXT_PIECES: usize = 64;
-/// Next words: the weight of the `next.fst` bigram beside the LM.
-pub const NEXT_BIGRAM_WEIGHT: f32 = 0.25;
-/// Tier 1 runs when the two best middle candidates are within this after tier 0 (Task 15).
-pub const TIER1_GAP: f32 = 3.0;
+/// Next words: the score is ln((1 − this) × P_lm + this × P_bigram), the `next.fst` bigram's
+/// probability (a follower's count over the previous word's) mixed in. Sweep (objective as
+/// `LM_CLIP`): 0.3990 at 0, 0.4009 at 0.03, 0.4025 at 0.07, 0.4035 at 0.15, 0.4044 at 0.3,
+/// mostly Malayalam and Manglish top-3 (0.1059 → 0.1208, 0.1011 → 0.1172). At 0.5 next_ml
+/// gate top-3 fell below M3a's (6 hits of 436 against 7): the bigram's followers are few.
+pub const NEXT_BIGRAM_WEIGHT: f32 = 0.3;
 
 /// Makes a suggestion follow the case of what was typed: `Hel` → `Hello`,
 /// `HEL` → `HELLO`. Words stored with capitals (London, I, NASA) keep them.

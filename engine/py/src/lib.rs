@@ -72,8 +72,7 @@ impl Engine {
 
     /// Sets the LM weights for sweeps (`mlengine_core::lm_context::LmWeights`); a field left
     /// out keeps `rank`'s value.
-    #[pyo3(signature = (en=None, ml=None, clip=None, lang_weight=None, lang_offset=None, next_bigram=None, tier1_gap=None))]
-    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (en=None, ml=None, clip=None, lang_weight=None, lang_offset=None, next_bigram=None))]
     fn set_lm_weights(
         &mut self,
         en: Option<f32>,
@@ -82,7 +81,6 @@ impl Engine {
         lang_weight: Option<f32>,
         lang_offset: Option<f32>,
         next_bigram: Option<f32>,
-        tier1_gap: Option<f32>,
     ) {
         let d = LmWeights::default();
         self.0.set_lm_weights(LmWeights {
@@ -92,7 +90,6 @@ impl Engine {
             lang_weight: lang_weight.unwrap_or(d.lang_weight),
             lang_offset: lang_offset.unwrap_or(d.lang_offset),
             next_bigram: next_bigram.unwrap_or(d.next_bigram),
-            tier1_gap: tier1_gap.unwrap_or(d.tier1_gap),
         });
     }
 }

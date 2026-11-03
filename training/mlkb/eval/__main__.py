@@ -1,6 +1,7 @@
 """Runs the eval sets through the production engine on the real lexicon bundle.
 
-    uv run python -m mlkb.eval [--record] [--translit PATH] [--lm PATH] [--tune]
+    uv run python -m mlkb.eval [--record] [--translit PATH] [--lm PATH] [--tune] [--gate m3b]
+        [--weights F=V,…]
 
 Prints top-1/top-3 on `data/eval/chat-golden.tsv` (and on
 `data/eval/translit-human.tsv` when it exists), the English wrong-replacement
@@ -11,7 +12,9 @@ it, the run exits 1 when a metric is worse than the recorded baseline.
 Also: next-word top-1/top-3 and keystroke savings (`NEXT_SETS`, see `nextword.py`), and two
 sets scored like chat_golden (`CONTEXT_SETS`): English typos in context and language choice.
 `--tune` runs the `.tune` files of these sets instead (for weight sweeps): it prints, never
-records and exits 0.
+records and exits 0. `--gate m3b` also checks the M3b ship gates (`ship_gate`) against
+`data/eval/baselines-m3a.json`. `--weights` sets `LmWeights` fields (`en=0.5,clip=4`) in place
+of rank.rs's, to check a sweep point on the gate files; it can't be recorded.
 """
 
 import argparse
@@ -27,6 +30,8 @@ ROOT = Path(__file__).resolve().parents[3]
 LEX = ROOT / "apps/ios/KeyboardExtension/Lexicon"
 EVAL = ROOT / "data/eval"
 BASELINES = EVAL / "baselines.json"
+# The new metrics with the LM off, recorded before any model existed; never re-recorded.
+BASELINES_M3A = EVAL / "baselines-m3a.json"
 
 # How much worse than the baseline a metric may get before the run fails.
 ACCURACY_TOLERANCE = 0.005
@@ -72,6 +77,25 @@ def regressions(current: dict, baseline: dict) -> list[str]:
     now, base = current["english_wrong_rate"], baseline["english_wrong_rate"]
     if now > base + WRONG_RATE_TOLERANCE:
         found.append(f"english_wrong_rate: {now:.4f} > baseline {base:.4f}")
+    return found
+
+
+def ship_gate(current: dict, m3a: dict) -> list[str]:
+    """The M3b ship gates (design §9) that `current` fails against the M3a baseline: next-word
+    top-3 and KS above M3a's on every next-word set present, no more English wrong replacements,
+    and typos in context and language choice top-1 above M3a's."""
+    found = []
+    if current["english_wrong"] > m3a["english_wrong"]:
+        found.append(f"english_wrong: {current['english_wrong']} > M3a {m3a['english_wrong']}")
+    gated = [(name, ("top3", "ks")) for name in NEXT_SETS]
+    gated += [(name, ("top1",)) for name in CONTEXT_SETS]
+    for set_name, metrics in gated:
+        now, base = current.get(set_name), m3a.get(set_name)
+        if not now or not base:
+            continue
+        for metric in metrics:
+            if now[metric] <= base[metric]:
+                found.append(f"{set_name} {metric}: {now[metric]:.4f} not above M3a {base[metric]:.4f}")
     return found
 
 
@@ -129,9 +153,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--translit", metavar="PATH", help="transliterator model file")
     parser.add_argument("--lm", metavar="PATH", help="language model file")
     parser.add_argument("--tune", action="store_true", help="run the .tune files; never record or gate")
+    parser.add_argument("--gate", choices=["m3b"], help="also check the ship gates against baselines-m3a.json")
+    parser.add_argument("--weights", default="", metavar="F=V,…",
+                        help="override LmWeights fields (rank.rs defaults otherwise); never with --record")
     args = parser.parse_args(argv)
+    if args.weights and args.record:
+        parser.error("--record takes the rank.rs weights")
 
     engine = load_engine(args.translit, args.lm)
+    if args.weights:
+        engine.set_lm_weights(**{k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(","))})
     print(f"sources: {engine.loaded_sources()}")
     if args.lm and "lm" not in engine.loaded_sources():
         print(f"lm: {args.lm} did not load (missing, or built against other lexicons)")
@@ -168,7 +199,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REGRESSION {line}")
     if not found:
         print(f"no regressions against the {baseline['engine']} baseline")
-    return 1 if found else 0
+    failed = []
+    if args.gate == "m3b":
+        failed = ship_gate(current, json.loads(BASELINES_M3A.read_text(encoding="utf-8")))
+        for line in failed:
+            print(f"GATE {line}")
+        if not failed:
+            print("M3b ship gates pass")
+    return 1 if found or failed else 0
 
 
 if __name__ == "__main__":
