@@ -4,7 +4,8 @@
 
 Prints top-1/top-3 on `data/eval/chat-golden.tsv` (and on
 `data/eval/translit-human.tsv` when it exists), the English wrong-replacement
-rate, and every miss. `--record` writes `data/eval/baselines.json`; without
+rate, top-1/top-3 on the English typo set `data/eval/english-typos.tsv` (same
+`context<TAB>typed<TAB>intended` format), and every miss. `--record` writes `data/eval/baselines.json`; without
 it, the run exits 1 when a metric is worse than the recorded baseline.
 """
 
@@ -41,7 +42,7 @@ def load_engine(translit_model: str | None):
 def regressions(current: dict, baseline: dict) -> list[str]:
     """Every metric in `current` that is worse than `baseline` by more than its tolerance."""
     found = []
-    for set_name in ("chat_golden", "human"):
+    for set_name in ("chat_golden", "human", "english_typos"):
         now, base = current.get(set_name), baseline.get(set_name)
         if not now or not base:
             continue
@@ -94,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         "chat_golden": run_translit(engine, "chat_golden", EVAL / "chat-golden.tsv"),
         "human": run_translit(engine, "human", human) if human.exists() else None,
         "english_wrong_rate": run_english(engine, EVAL / "english-sentences.txt"),
+        "english_typos": run_translit(engine, "english_typos", EVAL / "english-typos.tsv"),
         "engine": "m3a" if args.translit else "m2",
     }
 

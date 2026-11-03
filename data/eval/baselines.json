@@ -5,10 +5,15 @@
     "n": 322
   },
   "human": {
-    "top1": 0.5665,
-    "top3": 0.7945,
+    "top1": 0.5675,
+    "top3": 0.795,
     "n": 2000
   },
   "english_wrong_rate": 0.0011,
+  "english_typos": {
+    "top1": 0.8324,
+    "top3": 0.9538,
+    "n": 173
+  },
   "engine": "m3a"
 }

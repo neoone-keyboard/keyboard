@@ -59,3 +59,14 @@ def test_regressions_respect_the_tolerances():
     assert regressions(same, base) == []
     worse = {**base, "chat_golden": {"top1": 0.49, "top3": 0.8, "n": 10}, "english_wrong_rate": 0.012}
     assert len(regressions(worse, base)) == 2
+
+
+def test_the_english_typo_set_is_gated_too():
+    from mlkb.eval.__main__ import regressions
+
+    base = {"chat_golden": None, "human": None, "english_typos": {"top1": 0.8, "top3": 0.9, "n": 10},
+            "english_wrong_rate": 0.01, "engine": "m3a"}
+    worse = {**base, "english_typos": {"top1": 0.79, "top3": 0.9, "n": 10}}
+    assert regressions(worse, base) == ["english_typos top1: 0.7900 < baseline 0.8000"]
+    # A baseline recorded before the set existed gates nothing.
+    assert regressions(worse, {**base, "english_typos": None}) == []

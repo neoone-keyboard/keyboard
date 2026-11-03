@@ -21,6 +21,64 @@ pub const MARGIN: f32 = 2.0;
 /// a rare word is a guess, not a correction.
 pub const MIN_REPLACE: f32 = -13.0;
 
+/// Contractions typed without the apostrophe. Leaving it out is the commonest slip and
+/// no letter is wrong, so a word that is the typed letters with apostrophes put back
+/// (`whats` → what's, `im` → I'm) is the English correction whenever one exists: it
+/// beats corrections that change letters (`thats` → that at −6.2 against that's at
+/// −8.7; `ive` → ice; `theyre` → there), and is not held back as a likely-unfinished
+/// prefix (`PREFIX_VS_CORRECTION`: `im` begins image, important …).
+///
+/// The bundle has many of these bare forms as words (`whats` −14.6, `cant` −12.0,
+/// `im` −9.6), counted from text that dropped the apostrophe, so a typed word in the
+/// lexicon is still replaced by its contraction when the contraction scores higher
+/// (`im` −9.6 against I'm −8.1: by 1.5, short of `MARGIN`), except for the words in
+/// `CONTRACTION_LOOKALIKES`. Measured on the bundle, the gap separates most real
+/// words: its −3.4, well −2.8, were −2.6, shell −4.2, hell −3.1, ill −1.4, id −0.4,
+/// against whats +5.0, cant +3.3, im +1.5. Not `lets` (+1.0) or `wont` (+3.3):
+/// their counts are inflated by stripped let's and won't, so frequency cannot tell
+/// them apart; they are listed. A lookalike that stays gets its contraction in the
+/// first side slot (`its` · it's).
+pub const CONTRACTION_LOOKALIKES: [&str; 11] = [
+    "its", "lets", "id", "ill", "well", "were", "wed", "shed", "shell", "hell", "wont",
+];
+
+/// Typed words this long get the long-word search (`fuzzy::WeightedEdit`): one vowel for
+/// another costs a cheap edit (`definately` → definitely, −13.3 → −11.7, now clear of
+/// `MIN_REPLACE`; `prefarance` → preference, −15.6 → −12.4), and a near match may run up
+/// to `fuzzy::MAX_TAIL` letters past the typed ones (`apostrap` → apostrophe), a
+/// candidate for the middle under `COMPLETION_DOMINANT`. Not where a Malayalam word fits
+/// the typed letters: Manglish spells vowels loosely, and with the long-word search there
+/// too chat top-1 fell 0.7950 → 0.7919, top-3 0.9161 → 0.9068 and human top-1
+/// 0.5665 → 0.5610 (`toorist` and `fitnass` tied with tourist and fitness). Measured on
+/// `data/eval/english-typos.tsv`: at 6, `belive` became believed, `adison` Arizona and
+/// `bariam` variant, and chat top-3 fell to 0.9130; 7 changed nothing but the wanted rows.
+pub const LONG_WORD: usize = 7;
+/// A long typed word that is in no lexicon takes the near completion into the middle
+/// when that word holds at least this share of the count of every word beginning with
+/// the letters it matched (`preferenc` → preference, not preferences), and those letters
+/// are no word themselves (`recieve` is receive, not received). It is scored as the word
+/// typed with the matched part's edits: the letters after are free, as the typing was
+/// right so far. So it competes with corrections and Malayalam as usual, and still needs
+/// `MARGIN` and `MIN_REPLACE`.
+pub const COMPLETION_DOMINANT: f64 = 0.5;
+/// Most edits (half-edits, `fuzzy::CHEAP_EDIT`) in the matched part of a near completion.
+/// At the long-word budget (two full edits), `eleedee` became elected and `sameraa` several.
+pub const NEAR_COMPLETION_COST: u8 = crate::fuzzy::EDIT;
+/// A typed word of at least this many letters that begins some English word is
+/// corrected only by a single cheap slip (`fuzzy::CHEAP_EDIT`), not two: `apos`
+/// (apostle, apostrophe) stays rather than becoming also (−7.2, a slip and a swap),
+/// and where no Malayalam word fits the letters the commonest word they begin takes
+/// the first side slot. Filling both side slots with completions, or doing it beside a
+/// Malayalam word, cost 11 top-3 rows (`choru`, `evide`, `ok sheri` lost their
+/// Malayalam). In this bundle apostle is commoner than apostrophe, so `apos` offers it.
+///
+/// `MIN_REPLACE` stays one floor for every length. A floor lowered 0.5 per letter
+/// past six, for English only, fixed `noticable`, `restaraunt` and `desicion` in the
+/// typo set but put English in the middle for ten Manglish words in the human set
+/// (`evideya` → evidence, `sibariann` → Siberian, `roonaldoo` → Ronald); 1.0 also made
+/// `definatly` defiantly. Lowered for Malayalam as well, it lost typo rows to loanwords.
+pub const PREFIX_KEEPS_LETTERS: usize = 4;
+
 /// The English words that start with the typed letters (`ent` → enter,
 /// entire, entry …) compete with any replacement as one candidate, scored by
 /// their summed log-probability plus a bonus. Space never commits an

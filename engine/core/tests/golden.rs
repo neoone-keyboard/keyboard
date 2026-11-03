@@ -19,6 +19,14 @@ const ENGLISH: &[(&str, u64)] = &[
     ("ant", 20_000), ("any", 1_000_000), ("am", 900_000), ("have", 4_000_000),
     ("could", 1_500_000), ("us", 900_000), ("US", 200_000), ("will", 2_000_000),
     ("Will", 50_000), ("ENT", 3_000), ("fish", 200_000), ("one", 3_000_000),
+    // Contractions, and bare forms counted from text that dropped the apostrophe.
+    ("what", 2_000_000), ("what's", 300_000), ("whats", 3_000), ("I'm", 1_000_000),
+    ("im", 200_000), ("it's", 2_000_000), ("its", 1_500_000), ("let's", 200_000),
+    ("lets", 150_000), ("well", 1_000_000), ("we'll", 100_000), ("he'll", 30_000),
+    ("they're", 300_000),
+    // Long words and their neighbours.
+    ("preference", 20_000), ("preferences", 8_000), ("definitely", 50_000),
+    ("also", 1_500_000), ("apostle", 5_000), ("apostrophe", 2_000), ("apostrophes", 500),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -75,6 +83,63 @@ fn real_words_are_left_alone() {
             "{word}"
         );
     }
+}
+
+/// A contraction typed without its apostrophe becomes the contraction, even where the
+/// bare form is in the lexicon (`whats`, `im`), and even against a commoner word one
+/// letter away (`theyre` → they're, not there). Real words spelled like one stay, with
+/// the contraction offered beside them (`rank::CONTRACTION_LOOKALIKES`).
+#[test]
+fn contractions_typed_without_the_apostrophe() {
+    let engine = engine();
+    for (typed, want) in [("whats", "what's"), ("im", "I'm"), ("theyre", "they're")] {
+        assert_eq!(
+            middle(&engine, typed),
+            (want.to_string(), Kind::Correction),
+            "{typed}: {:?}",
+            texts(&engine, typed)
+        );
+    }
+    for (typed, side) in [
+        ("its", "it's"),
+        ("lets", "let's"),
+        ("well", "we'll"),
+        ("hell", "he'll"),
+    ] {
+        let bar = texts(&engine, typed);
+        assert_eq!(bar[0], typed, "{typed}: {bar:?}");
+        assert_eq!(bar[1], side, "{typed}: {bar:?}");
+    }
+}
+
+/// Long words: a near match with a few letters to go takes the middle when it
+/// dominates (`rank::COMPLETION_DOMINANT`), and one vowel for another is a cheap slip.
+#[test]
+fn long_words_are_completed_and_corrected() {
+    let engine = engine();
+    for (typed, want) in [
+        ("preferenc", "preference"),
+        ("prefarance", "preference"),
+        ("definately", "definitely"),
+        ("apostrap", "apostrophe"),
+    ] {
+        assert_eq!(
+            middle(&engine, typed),
+            (want.to_string(), Kind::Correction),
+            "{typed}: {:?}",
+            texts(&engine, typed)
+        );
+    }
+}
+
+/// Four letters that begin words are not corrected two slips away (`apos` is not
+/// `also`); what they begin is offered instead.
+#[test]
+fn a_long_prefix_is_not_corrected_into_a_short_word() {
+    let engine = engine();
+    let bar = texts(&engine, "apos");
+    assert_eq!(bar[0], "apos", "{bar:?}");
+    assert_eq!(bar[1], "apostle", "{bar:?}");
 }
 
 #[test]

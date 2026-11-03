@@ -13,9 +13,14 @@ pub const MAX_LEN: usize = 24;
 /// Cost of one ordinary edit. `MAX_COST = 2 * EDIT` means "within two edits".
 pub const EDIT: u8 = 2;
 /// A substitution between neighbouring keys, two letters swapped, a missed
-/// apostrophe, or a doubled letter typed once or three times. (Swaps cost a
+/// apostrophe, a doubled letter typed once or three times, or (for long words,
+/// `WeightedEdit::with_cheap_vowels`) one vowel for another. (Swaps cost a
 /// full edit until Task 17: `pani` then ranked `land` above `pain`.)
 pub const CHEAP_EDIT: u8 = 1;
+
+/// Most letters a key may have after the part that matches the query, in tail mode
+/// (`WeightedEdit::with_tail`): `apostrap` reaches `apostrophe` as `apostrop` + `he`.
+pub const MAX_TAIL: usize = 2;
 
 const INF: u8 = u8::MAX;
 
@@ -25,6 +30,8 @@ pub struct WeightedEdit {
     len: usize,
     max_cost: u8,
     neighbours: [u32; 26],
+    cheap_vowels: bool,
+    tail: bool,
 }
 
 /// One DP row per byte read, plus the row before it for transpositions.
@@ -33,12 +40,28 @@ pub struct EditState {
     prev: [u8; MAX_LEN + 1],
     cur: [u8; MAX_LEN + 1],
     last: Option<u8>,
+    /// `ends[k]`: the cost of the whole query against the key read so far less its last
+    /// `k` bytes (`ends[0]` is `cost`).
+    ends: [u8; MAX_TAIL + 1],
 }
 
 impl EditState {
     /// The cost of matching the whole query against the key read so far.
     pub fn cost(&self, automaton: &WeightedEdit) -> u8 {
         self.cur[automaton.len]
+    }
+
+    /// In tail mode, the best reading of the key as a near match of the query followed by
+    /// 1 to `MAX_TAIL` more letters: (cost of the matched part, letters after it). Fewer
+    /// letters win a tie. None when no such reading is within the budget.
+    pub fn tail(&self, automaton: &WeightedEdit) -> Option<(u8, usize)> {
+        if !automaton.tail {
+            return None;
+        }
+        (1..=MAX_TAIL)
+            .map(|k| (self.ends[k], k))
+            .filter(|&(cost, _)| cost <= automaton.max_cost)
+            .min()
     }
 }
 
@@ -58,7 +81,22 @@ impl WeightedEdit {
             len: bytes.len(),
             max_cost,
             neighbours: adjacency_table(),
+            cheap_vowels: false,
+            tail: false,
         })
+    }
+
+    /// One vowel typed for another (`definately`, `prefarance`) costs `CHEAP_EDIT`.
+    pub fn with_cheap_vowels(mut self) -> Self {
+        self.cheap_vowels = true;
+        self
+    }
+
+    /// Also matches keys that run up to `MAX_TAIL` letters past a near match of the query
+    /// (`EditState::tail`).
+    pub fn with_tail(mut self) -> Self {
+        self.tail = true;
+        self
     }
 
     fn q(&self, i: usize) -> u8 {
@@ -91,8 +129,13 @@ impl WeightedEdit {
         let near = typed.is_ascii_lowercase()
             && key.is_ascii_lowercase()
             && self.neighbours[usize::from(typed - b'a')] & (1 << (key - b'a')) != 0;
-        if near { CHEAP_EDIT } else { EDIT }
+        let vowels = self.cheap_vowels && is_vowel(typed) && is_vowel(key);
+        if near || vowels { CHEAP_EDIT } else { EDIT }
     }
+}
+
+fn is_vowel(b: u8) -> bool {
+    matches!(b, b'a' | b'e' | b'i' | b'o' | b'u')
 }
 
 impl Automaton for WeightedEdit {
@@ -104,19 +147,23 @@ impl Automaton for WeightedEdit {
         for i in 1..=self.len {
             cur[i] = cur[i - 1].saturating_add(self.delete_cost(i));
         }
+        let mut ends = [INF; MAX_TAIL + 1];
+        ends[0] = cur[self.len];
         EditState {
             prev: [INF; MAX_LEN + 1],
             cur,
             last: None,
+            ends,
         }
     }
 
     fn is_match(&self, state: &EditState) -> bool {
-        state.cur[self.len] <= self.max_cost
+        state.cur[self.len] <= self.max_cost || state.tail(self).is_some()
     }
 
     fn can_match(&self, state: &EditState) -> bool {
         state.cur[..=self.len].iter().any(|&c| c <= self.max_cost)
+            || (self.tail && state.ends[..MAX_TAIL].iter().any(|&c| c <= self.max_cost))
     }
 
     fn accept(&self, state: &EditState, byte: u8) -> EditState {
@@ -133,10 +180,14 @@ impl Automaton for WeightedEdit {
             }
             next[i] = cost;
         }
+        let mut ends = [INF; MAX_TAIL + 1];
+        ends[0] = next[self.len];
+        ends[1..].copy_from_slice(&state.ends[..MAX_TAIL]);
         EditState {
             prev: state.cur,
             cur: next,
             last: Some(b),
+            ends,
         }
     }
 }
@@ -176,6 +227,54 @@ mod tests {
         assert_eq!(cost("helllo", "hello"), CHEAP_EDIT);
         assert_eq!(cost("helo", "hello"), CHEAP_EDIT);
         assert_eq!(cost("hllo", "hello"), EDIT);
+    }
+
+    #[test]
+    fn vowel_for_vowel_is_cheap_only_when_asked() {
+        let walk = |aut: &WeightedEdit, key: &str| {
+            key.bytes()
+                .fold(aut.start(), |s, b| aut.accept(&s, b))
+                .cost(aut)
+        };
+        let plain = WeightedEdit::new("definately", 8).unwrap();
+        assert_eq!(walk(&plain, "definitely"), EDIT);
+        assert_eq!(
+            walk(&plain.clone().with_cheap_vowels(), "definitely"),
+            CHEAP_EDIT
+        );
+        // Only vowel for vowel: a consonant for a vowel is still a full edit.
+        assert_eq!(walk(&plain.with_cheap_vowels(), "definitrly"), EDIT);
+    }
+
+    #[test]
+    fn tail_mode_reads_a_near_prefix_plus_letters() {
+        let aut = WeightedEdit::new("apostrap", 4)
+            .unwrap()
+            .with_cheap_vowels()
+            .with_tail();
+        let state = b"apostrophe"
+            .iter()
+            .fold(aut.start(), |s, &b| aut.accept(&s, b));
+        assert!(aut.is_match(&state));
+        assert_eq!(state.tail(&aut), Some((CHEAP_EDIT, 2)));
+        // Three letters past the match is too many.
+        let exact = WeightedEdit::new("apostrap", 1).unwrap().with_tail();
+        let state = b"apostrapxyz"
+            .iter()
+            .fold(exact.start(), |s, &b| exact.accept(&s, b));
+        assert_eq!(state.tail(&exact), None);
+        let state = b"apostrapxy"
+            .iter()
+            .fold(exact.start(), |s, &b| exact.accept(&s, b));
+        assert_eq!(state.tail(&exact), Some((0, 2)));
+        // Without tail mode the key is just too far away.
+        let plain = WeightedEdit::new("apostrap", 4)
+            .unwrap()
+            .with_cheap_vowels();
+        let state = b"apostrophe"
+            .iter()
+            .fold(plain.start(), |s, &b| plain.accept(&s, b));
+        assert!(!plain.is_match(&state));
     }
 
     #[test]
