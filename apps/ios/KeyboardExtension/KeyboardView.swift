@@ -126,7 +126,10 @@ final class KeyboardView: UIView {
             case .showAlternates(let options):
                 guard let id, var entry = activeTouches[id], let index = entry.index,
                       frames.indices.contains(index), let theme else { continue }
-                let x = popup.show(options, above: frames[index].rect, within: bounds, theme: theme)
+                // The key's own character (the full stop's popup holds it) sits right above it.
+                let own: String? = if case .character(let c) = frames[index].key.action { c } else { nil }
+                let anchor = options.firstIndex { $0 == own } ?? 0
+                let x = popup.show(options, anchor: anchor, above: frames[index].rect, within: bounds, theme: theme)
                 popupOwner = id
                 let highlight = entry.gesture.setAlternatesOrigin(x: x)
                 activeTouches[id] = entry

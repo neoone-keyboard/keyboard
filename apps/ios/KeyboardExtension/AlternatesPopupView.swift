@@ -17,9 +17,10 @@ final class AlternatesPopupView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// Shows `options` above `keyRect`, kept inside `bounds` horizontally.
-    /// Returns the x where the first option starts, for KeyGesture.setAlternatesOrigin.
-    func show(_ options: [String], above keyRect: CGRect, within bounds: CGRect, theme: KeyboardTheme) -> CGFloat {
+    /// Shows `options` above `keyRect`, kept inside `bounds` horizontally, with option
+    /// `anchor` straight above the key (lit). Returns the x where the first option starts,
+    /// for KeyGesture.setAlternatesOrigin.
+    func show(_ options: [String], anchor: Int = 0, above keyRect: CGRect, within bounds: CGRect, theme: KeyboardTheme) -> CGFloat {
         self.theme = theme
         labels.forEach { $0.removeFromSuperview() }
         labels = options.map { option in
@@ -33,7 +34,7 @@ final class AlternatesPopupView: UIView {
             return label
         }
         let width = keyRect.width * CGFloat(options.count)
-        let x = min(max(keyRect.minX, bounds.minX), bounds.maxX - width)
+        let x = min(max(keyRect.minX - CGFloat(anchor) * keyRect.width, bounds.minX), bounds.maxX - width)
         frame = CGRect(x: x, y: keyRect.minY - keyRect.height - 8, width: width, height: keyRect.height)
         for (index, label) in labels.enumerated() {
             label.frame = CGRect(x: CGFloat(index) * keyRect.width, y: 0, width: keyRect.width, height: keyRect.height)
@@ -41,7 +42,7 @@ final class AlternatesPopupView: UIView {
         }
         backgroundColor = theme.key
         layer.shadowColor = theme.shadow.cgColor
-        highlight(0)
+        highlight(anchor)
         isHidden = false
         return x
     }

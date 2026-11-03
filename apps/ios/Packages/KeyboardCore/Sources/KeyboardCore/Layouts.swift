@@ -52,7 +52,8 @@ extension KeyboardLayout {
             Key(.nextKeyboard),
             Key(.toggleLanguage),
             Key(.space, width: 4.5),
-            Key(.character("."), alternates: [".", ",", "?", "!", "'"]),
+            // As SwiftKey: the full stop shows right above the key, ? to its right, the rest left.
+            Key(.character("."), alternates: ["'", "!", ",", ".", "?"]),
             Key(.returnKey, width: 2),
         ]
     }

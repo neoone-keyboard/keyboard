@@ -127,12 +127,12 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     #expect(g.ended() == [])
 }
 
-private let period = Key(.character("."), alternates: [".", ",", "?", "!", "'"])
+private let period = Key(.character("."), alternates: ["'", "!", ",", ".", "?"])
 
 @Test func punctuationKeyShowsItsAlternatesSooner() {
     var g = gesture(period)
     #expect(g.tick(at: 0.05) == [])
-    #expect(g.tick(at: 0.11) == [.showAlternates([".", ",", "?", "!", "'"])])
+    #expect(g.tick(at: 0.11) == [.showAlternates(["'", "!", ",", ".", "?"])])
     // A letter held as long is still a tap.
     var letter = gesture(Key(.character("e"), alternates: ["3", "é"]))
     #expect(letter.tick(at: 0.11) == [])
@@ -141,7 +141,7 @@ private let period = Key(.character("."), alternates: [".", ",", "?", "!", "'"])
 @Test func heldPunctuationKeyStillTypesItselfUntilTheFingerSlides() {
     var g = gesture(period)
     _ = g.tick(at: 0.11)
-    // Pushed left to fit on screen: the finger is over "?", but "." stays picked.
+    // Pushed to fit on screen: the finger is over ",", but "." stays picked.
     #expect(g.setAlternatesOrigin(x: 45) == [])
     #expect(g.moved(to: CGPoint(x: 110, y: 10)) == [])
     #expect(g.ended() == [.commitAlternate(".")])
@@ -151,6 +151,6 @@ private let period = Key(.character("."), alternates: [".", ",", "?", "!", "'"])
     var g = gesture(period)
     _ = g.tick(at: 0.11)
     _ = g.setAlternatesOrigin(x: 45)
-    #expect(g.moved(to: CGPoint(x: 130, y: 10)) == [.highlightAlternate(2)])
+    #expect(g.moved(to: CGPoint(x: 170, y: 10)) == [.highlightAlternate(4)])
     #expect(g.ended() == [.commitAlternate("?")])
 }

@@ -65,8 +65,8 @@ public struct KeyGesture: Sendable {
     public mutating func setAlternatesOrigin(x: CGFloat) -> [GestureEvent] {
         alternatesOriginX = x
         guard mode == .alternates else { return [] }
-        // The popup starts with its first option lit.
-        if holdingOwn { return highlighted == 0 ? [] : [.highlightAlternate(highlighted)] }
+        // The popup lights the key's own character itself.
+        if holdingOwn { return [] }
         let index = alternateIndex(at: start.x)
         guard index != highlighted else { return [] }
         highlighted = index
