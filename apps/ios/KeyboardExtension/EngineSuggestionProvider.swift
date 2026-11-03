@@ -25,6 +25,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
         self.config = config
     }
 
+    deinit {
+        Diagnostics(category: "engine").info("Provider released; footprint \(Diagnostics.footprint())")
+    }
+
+    /// One per extension process. iOS keeps the process alive between keyboard sessions and
+    /// makes a new view controller for each; an engine per controller left each old one's
+    /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
+    static let shared = bundled()
+
     /// Lexicons and the transliterator model from the extension bundle; learned words in the
     /// extension's own container. A file missing from the bundle is passed as nil, which
     /// disables only that source (without the model, Manglish uses the lexicons alone).

@@ -137,6 +137,9 @@ fn english_user_reports() {
             ("recieve", "receive"),
             ("becuase", "because"),
             ("tommorow", "tomorrow"),
+            // One slip from whats, three from where (reported from the phone).
+            ("whsts", "what's"),
+            ("wgats", "what's"),
         ] {
             assert_eq!(
                 middle(&engine, context),

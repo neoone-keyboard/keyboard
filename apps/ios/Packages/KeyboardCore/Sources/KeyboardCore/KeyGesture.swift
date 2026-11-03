@@ -15,6 +15,10 @@ public enum GestureEvent: Equatable, Sendable {
 
 public struct GestureTiming: Sendable {
     public var longPress: TimeInterval = 0.35
+    /// The punctuation key (`. , ? ! '`) opens almost at once, as SwiftKey's does. Its own
+    /// character is in the popup and stays picked until the finger slides, so a tap held a
+    /// little long still types a full stop.
+    public var punctuationLongPress: TimeInterval = 0.1
     public var repeatDelay: TimeInterval = 0.45
     public var repeatInterval: TimeInterval = 0.08
     public var cursorStep: CGFloat = 12
@@ -42,6 +46,8 @@ public struct KeyGesture: Sendable {
     private var mode: Mode = .pressing
     private var alternatesOriginX: CGFloat = 0
     private var highlighted = 0
+    /// The key's own character is picked and the finger hasn't slid off it yet.
+    private var holdingOwn = false
     private var cursorAnchorX: CGFloat = 0
     private var nextRepeat: TimeInterval = 0
 
@@ -59,10 +65,19 @@ public struct KeyGesture: Sendable {
     public mutating func setAlternatesOrigin(x: CGFloat) -> [GestureEvent] {
         alternatesOriginX = x
         guard mode == .alternates else { return [] }
+        // The popup starts with its first option lit.
+        if holdingOwn { return highlighted == 0 ? [] : [.highlightAlternate(highlighted)] }
         let index = alternateIndex(at: start.x)
         guard index != highlighted else { return [] }
         highlighted = index
         return [.highlightAlternate(index)]
+    }
+
+    private var alternatesDelay: TimeInterval {
+        if case .character(let text) = key.action, text.allSatisfy(\.isPunctuation) {
+            return timing.punctuationLongPress
+        }
+        return timing.longPress
     }
 
     public mutating func tick(at time: TimeInterval) -> [GestureEvent] {
@@ -77,10 +92,15 @@ public struct KeyGesture: Sendable {
                 mode = .settingsOpened
                 return [.openSettings]
             }
-            if !key.alternates.isEmpty, time - startTime >= timing.longPress {
+            if !key.alternates.isEmpty, time - startTime >= alternatesDelay {
                 mode = .alternates
                 alternatesOriginX = start.x - alternateWidth / 2
-                highlighted = 0
+                if case .character(let own) = key.action, let index = key.alternates.firstIndex(of: own) {
+                    highlighted = index
+                    holdingOwn = true
+                } else {
+                    highlighted = 0
+                }
                 return [.showAlternates(key.alternates)]
             }
             return []
@@ -109,6 +129,10 @@ public struct KeyGesture: Sendable {
         case .cursor:
             return moveCursor(to: point.x)
         case .alternates:
+            if holdingOwn {
+                guard abs(point.x - start.x) >= alternateWidth / 2 else { return [] }
+                holdingOwn = false
+            }
             let index = alternateIndex(at: point.x)
             guard index != highlighted else { return [] }
             highlighted = index

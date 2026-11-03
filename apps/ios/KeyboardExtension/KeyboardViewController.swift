@@ -21,7 +21,7 @@ final class KeyboardViewController: UIInputViewController {
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
 
-    private let provider = EngineSuggestionProvider.bundled()
+    private let provider = EngineSuggestionProvider.shared
     private var lastRequest: SuggestionRequest?
     private var latest = SuggestionResult.empty
     /// A request was sent and neither its result nor its timeout has arrived.
@@ -43,6 +43,10 @@ final class KeyboardViewController: UIInputViewController {
         }
         input.updateSuggestions(result)
         refreshTopBar()
+    }
+
+    deinit {
+        Diagnostics(category: "keyboard").info("Keyboard released; footprint \(Diagnostics.footprint())")
     }
 
     /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
@@ -142,7 +146,11 @@ final class KeyboardViewController: UIInputViewController {
         super.viewDidAppear(animated)
         log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); footprint \(Diagnostics.footprint())")
         guard suggestions.isEnabled else { return }
-        Task { [provider] in await provider.warmUp() }
+        // The provider is shared: an earlier session may have shed it for memory.
+        Task { [provider] in
+            await provider.resume()
+            await provider.warmUp()
+        }
     }
 
     override func viewWillLayoutSubviews() {

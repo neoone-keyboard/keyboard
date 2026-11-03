@@ -372,6 +372,11 @@ impl Engine {
                     a
                 }
             });
+            // Corrections that are contractions (index, score before edits), and the edit
+            // cost of each bare correction (`whats`), for the step after the search.
+            let mut contractions_found: Vec<(usize, f32)> = Vec::new();
+            let mut bare_costs: std::collections::HashMap<String, u8> =
+                std::collections::HashMap::new();
             if let Some(automaton) = automaton {
                 let probe = automaton.clone();
                 lex.search(automaton, CORRECTION_LIMIT, |key, count, state| {
@@ -417,11 +422,7 @@ impl Engine {
                     // Only leaving out apostrophes (`dont` → `don't`) costs nothing:
                     // it is the commonest slip, and no letter is wrong.
                     let apostrophes_only = only_apostrophes_missing(word, typed_n);
-                    let penalty = if apostrophes_only {
-                        0.0
-                    } else {
-                        rank::EDIT_PENALTY * f32::from(cost)
-                    };
+                    let penalty = if apostrophes_only { 0.0 } else { slip_penalty(cost) };
                     let candidate = Candidate {
                         text: show(word),
                         kind: Kind::Correction,
@@ -445,9 +446,27 @@ impl Engine {
                         if word.starts_with(|c: char| c.is_ascii_uppercase()) {
                             names.insert(candidate.text.clone());
                         }
+                        if word.contains('\'') {
+                            contractions_found.push((corrections.len(), score_of(count)));
+                        } else {
+                            bare_costs.insert(word.to_ascii_lowercase(), cost);
+                        }
                         corrections.push((candidate, cost));
                     }
                 });
+            }
+            // A contraction reached through its bare form costs only the slips to that
+            // form (`whsts` → whats → what's): the apostrophe was never typed.
+            for (index, base) in contractions_found {
+                let (candidate, cost) = &mut corrections[index];
+                let bare = candidate.text.replace('\'', "").to_ascii_lowercase();
+                if rank::CONTRACTION_LOOKALIKES.contains(&bare.as_str()) {
+                    continue;
+                }
+                if let Some(&bare_cost) = bare_costs.get(&bare).filter(|&&c| c < *cost) {
+                    *cost = bare_cost;
+                    candidate.score = candidate.score.max(base - slip_penalty(bare_cost));
+                }
             }
             // The best near completion takes part only if its matched letters are no word
             // themselves (`recieve` is receive, not received) and it holds most of what
@@ -1147,6 +1166,12 @@ fn same_first_letter(a: &str, b: &str) -> bool {
 }
 
 /// Whether `word` is `typed` with apostrophes put back, ignoring case.
+/// What a correction's edits cost (`fuzzy` half-edits) against its frequency.
+fn slip_penalty(cost: u8) -> f32 {
+    rank::EDIT_PENALTY * f32::from(cost)
+        + rank::EXTRA_SLIP_PENALTY * f32::from(cost.saturating_sub(fuzzy::EDIT))
+}
+
 fn only_apostrophes_missing(word: &str, typed: &str) -> bool {
     let letters = word.bytes().filter(|&b| b != b'\'');
     word.contains('\'')

@@ -9,6 +9,11 @@ pub const KNOWN_BONUS: f32 = 2.0;
 pub const UNKNOWN: f32 = -18.0;
 /// Penalty per half-edit (`fuzzy::CHEAP_EDIT`) of a correction.
 pub const EDIT_PENALTY: f32 = 1.6;
+/// Added per half-edit past one full edit (`fuzzy::EDIT`), so that slips pile up: three
+/// neighbouring-key slips in a five-letter word (`whsts` → where) rarely beat one (`whsts`
+/// → whats). On the eval sets, 1.0–2.5 all helped: chat top-1 0.795 → 0.804, typos
+/// 0.832 → 0.856, human 0.568 → 0.575 at 2.0; English wrong rate unchanged.
+pub const EXTRA_SLIP_PENALTY: f32 = 2.0;
 /// Penalty for a completion, plus a little for every letter it adds.
 pub const COMPLETION_PENALTY: f32 = 1.0;
 pub const COMPLETION_PER_CHAR: f32 = 0.3;
