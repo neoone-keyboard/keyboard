@@ -237,3 +237,72 @@ fn capitals_typed_on_purpose_are_respected() {
     assert_eq!(middle(&engine, "Teh").0, "The");
     assert_eq!(middle(&engine, "It rains. Teh").0, "The");
 }
+
+/// An engine whose learned and removed words live in `dir`, as on the phone.
+fn engine_in(dir: &std::path::Path) -> Engine {
+    Engine::new(
+        Sources {
+            english: english(),
+            ..Sources::default()
+        },
+        UserStore::open(dir),
+    )
+}
+
+#[test]
+fn a_removed_correction_gives_way_to_the_next_best() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    assert_eq!(middle(&engine, "teh"), ("the".into(), Kind::Correction));
+    engine.remove_word("the");
+    let bar = texts(&engine, "teh");
+    assert!(!bar.contains(&"the".to_string()), "{bar:?}");
+    assert_eq!(middle(&engine, "teh"), ("ten".into(), Kind::Correction));
+    assert!(
+        !texts(&engine, "Teh").contains(&"The".to_string()),
+        "removals ignore case"
+    );
+    // What the user types is still shown as typed.
+    assert_eq!(middle(&engine, "the"), ("the".into(), Kind::Verbatim));
+    drop(engine);
+    let engine = engine_in(dir.path());
+    assert_eq!(middle(&engine, "teh").0, "ten", "the removal was kept");
+    // Learning it again (the user tapped the quoted word) brings it back.
+    engine.learn("the");
+    assert_eq!(middle(&engine, "teh"), ("the".into(), Kind::Correction));
+}
+
+#[test]
+fn a_removed_completion_gives_way_to_another() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    let before = texts(&engine, "hel");
+    assert!(before.contains(&"help".to_string()), "{before:?}");
+    engine.remove_word("help");
+    let after = texts(&engine, "hel");
+    assert!(!after.contains(&"help".to_string()), "{after:?}");
+    assert_eq!(
+        after.len(),
+        before.len(),
+        "another word took the slot: {after:?}"
+    );
+    engine.forget_learned();
+    assert!(texts(&engine, "hel").contains(&"help".to_string()));
+}
+
+#[test]
+fn a_removed_learned_word_is_forgotten() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    engine.learn("Anu");
+    engine.remove_word("Anu");
+    assert_eq!(middle(&engine, "Anu").0, "And", "no longer learned");
+    engine.note_committed("Anu");
+    engine.note_committed("Anu");
+    assert_eq!(
+        middle(&engine, "Anu").0,
+        "And",
+        "typing it does not bring it back"
+    );
+    assert!(!texts(&engine, "An").contains(&"Anu".to_string()));
+}

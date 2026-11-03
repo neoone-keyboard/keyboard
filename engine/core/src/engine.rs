@@ -190,8 +190,27 @@ impl Engine {
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
 
+    /// Forgets learned words and words removed from the bar.
     pub fn forget_learned(&self) {
         self.user().forget_all();
+    }
+
+    /// The user removed `word` from the bar: it is forgotten if learned and never
+    /// suggested again (as typed, it still shows), until it is learned anew.
+    pub fn remove_word(&self, word: &str) {
+        self.user().remove(&normalize(word));
+    }
+
+    /// Takes out words the user removed from the bar. Pools are filtered before the
+    /// middle is chosen, so a removed word never replaces one and the next best fills its
+    /// slot. Never given the typed word itself.
+    fn drop_removed(&self, candidates: &mut Vec<Candidate>) {
+        let user = self.user();
+        candidates.retain(|c| !user.is_removed(&c.text));
+    }
+
+    fn is_removed(&self, candidate: &Candidate) -> bool {
+        self.user().is_removed(&candidate.text)
     }
 
     pub fn suggest(&self, context_before: &str, layout: Layout, autocorrect: bool) -> Suggestions {
@@ -505,6 +524,15 @@ impl Engine {
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
+        // Removed words take no part (Manglish ones are taken out in `manglish`).
+        self.drop_removed(&mut completions);
+        {
+            let user = self.user();
+            corrections.retain(|(c, _)| !user.is_removed(&c.text));
+        }
+        let case_fix = case_fix.filter(|c| !self.is_removed(c));
+        let contraction = contraction.filter(|c| !self.is_removed(c));
+        let dominant = dominant.filter(|c| !self.is_removed(c));
 
         let manglish =
             manglish.unwrap_or_else(|| self.manglish(typed_n, manglish_bias, false, deadline));
@@ -741,6 +769,12 @@ impl Engine {
                 });
             }
         }
+        {
+            let user = self.user();
+            found.exact.retain(|(c, _)| !user.is_removed(&c.text));
+        }
+        self.drop_removed(&mut found.completions);
+        self.drop_removed(&mut found.side);
         found
     }
 
@@ -1002,6 +1036,7 @@ impl Engine {
                 score,
             });
         }
+        self.drop_removed(&mut others);
         // Native Malayalam is never replaced: the typed word always stays in the middle.
         arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
     }
@@ -1031,6 +1066,7 @@ impl Engine {
                 score: count as f32,
             });
         }
+        self.drop_removed(&mut found);
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
         found
@@ -1442,6 +1478,26 @@ mod tests {
         assert_eq!(
             engine.suggest("thnaks", Layout::Latin, true).candidates[0].text,
             "thnaks"
+        );
+    }
+
+    #[test]
+    fn removed_words_leave_next_words_and_malayalam_completions() {
+        let engine = engine();
+        engine.remove_word("am");
+        assert_eq!(
+            texts(&engine.suggest("I ", Layout::Latin, true)),
+            ["have", "was", "will"]
+        );
+        engine.remove_word("എന്റെ");
+        assert_eq!(
+            texts(&engine.suggest("എന്", Layout::Malayalam, true)),
+            ["എന്", "എന്ത്"]
+        );
+        // The verbatim slot is what was typed, removed or not.
+        assert_eq!(
+            texts(&engine.suggest("എന്റെ", Layout::Malayalam, true))[0],
+            "എന്റെ"
         );
     }
 

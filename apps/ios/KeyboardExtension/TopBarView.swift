@@ -3,10 +3,13 @@ import KeyboardCore
 
 /// The strip above the keys: three suggestion slots, or after a Malayalam
 /// consonant the best completion on the left and the vowel signs scrolling
-/// sideways at full size beside it.
+/// sideways at full size beside it. Holding a suggestion slot asks whether to
+/// remove its word (`SuggestionRemoval`).
 final class TopBarView: UIView {
     var onVowelSign: (@MainActor (String) -> Void)?
     var onSuggestion: (@MainActor (SuggestionSlot) -> Void)?
+    /// The user confirmed removing a word held in the bar.
+    var onRemoveSuggestion: (@MainActor (String) -> Void)?
 
     private let suggestionStack = UIStackView()
     private let vowelRow = UIStackView()
@@ -19,6 +22,13 @@ final class TopBarView: UIView {
     private var shownContent: [String] = []
     /// The consonant the vowel strip is drawn on; nil while suggestions show.
     private var stripBase: String?
+    /// "Remove “word”?" with Remove and Cancel, over the slots while `removal` is set.
+    private let confirmRow = UIStackView()
+    private let confirmLabel = UILabel()
+    private let removeButton = UIButton(type: .custom)
+    private let cancelButton = UIButton(type: .custom)
+    private var removal: SuggestionRemoval?
+    private var removalTimeout: Task<Void, Never>?
 
     /// Whether the vowel strip is showing (rather than the suggestion slots).
     var showsVowelSigns: Bool { stripBase != nil }
@@ -57,11 +67,38 @@ final class TopBarView: UIView {
         vowelRow.addArrangedSubview(completionButton)
         vowelRow.addArrangedSubview(vowelScroll)
 
-        for view in [suggestionStack, vowelRow, vowelStack] {
+        confirmLabel.font = .systemFont(ofSize: 16)
+        confirmLabel.adjustsFontSizeToFitWidth = true
+        confirmLabel.minimumScaleFactor = 0.6
+        confirmLabel.lineBreakMode = .byTruncatingMiddle
+        // A long word shrinks or truncates in the label; the buttons keep their size.
+        confirmLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        for (button, title) in [(removeButton, "Remove"), (cancelButton, "Cancel")] {
+            button.setTitle(title, for: .normal)
+            button.titleLabel?.font = .systemFont(ofSize: 16, weight: button === removeButton ? .semibold : .regular)
+            button.layer.cornerRadius = 6
+            button.setContentCompressionResistancePriority(.required, for: .horizontal)
+            if let title = button.titleLabel {
+                button.widthAnchor.constraint(equalTo: title.widthAnchor, constant: 24).isActive = true
+            }
+        }
+        removeButton.addAction(UIAction { [weak self] _ in self?.confirmRemoval() }, for: .touchUpInside)
+        cancelButton.addAction(UIAction { [weak self] _ in self?.cancelRemoval() }, for: .touchUpInside)
+        confirmRow.axis = .horizontal
+        confirmRow.spacing = 6
+        confirmRow.addArrangedSubview(confirmLabel)
+        confirmRow.addArrangedSubview(cancelButton)
+        confirmRow.addArrangedSubview(removeButton)
+        confirmRow.isLayoutMarginsRelativeArrangement = true
+        confirmRow.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 4)
+        confirmRow.isHidden = true
+
+        for view in [suggestionStack, vowelRow, vowelStack, confirmRow] {
             view.translatesAutoresizingMaskIntoConstraints = false
         }
         addSubview(suggestionStack)
         addSubview(vowelRow)
+        addSubview(confirmRow)
         let content = vowelScroll.contentLayoutGuide
         NSLayoutConstraint.activate([
             suggestionStack.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -72,6 +109,10 @@ final class TopBarView: UIView {
             vowelRow.trailingAnchor.constraint(equalTo: trailingAnchor),
             vowelRow.topAnchor.constraint(equalTo: topAnchor),
             vowelRow.bottomAnchor.constraint(equalTo: bottomAnchor),
+            confirmRow.leadingAnchor.constraint(equalTo: leadingAnchor),
+            confirmRow.trailingAnchor.constraint(equalTo: trailingAnchor),
+            confirmRow.topAnchor.constraint(equalTo: topAnchor),
+            confirmRow.bottomAnchor.constraint(equalTo: bottomAnchor),
             completionButton.widthAnchor.constraint(lessThanOrEqualTo: widthAnchor, multiplier: 0.4),
             vowelStack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
             vowelStack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
@@ -87,6 +128,54 @@ final class TopBarView: UIView {
     func apply(_ theme: KeyboardTheme) {
         self.theme = theme
         shownContent = []
+        confirmLabel.textColor = theme.keyText
+        removeButton.backgroundColor = theme.accent
+        removeButton.setTitleColor(theme.onAccent, for: .normal)
+        removeButton.setTitleColor(theme.hintText, for: .highlighted)
+        cancelButton.backgroundColor = theme.specialKey
+        cancelButton.setTitleColor(theme.keyText, for: .normal)
+        cancelButton.setTitleColor(theme.hintText, for: .highlighted)
+    }
+
+    /// Drops the "Remove …?" question, if showing: on Cancel, its timeout, or any typing.
+    func cancelRemoval() {
+        removalTimeout?.cancel()
+        removalTimeout = nil
+        guard removal != nil else { return }
+        removal = nil
+        updateVisibility()
+    }
+
+    @objc private func slotHeld(_ hold: SlotHold) {
+        guard hold.state == .began, let slot = hold.slot else { return }
+        askToRemove(slot)
+    }
+
+    private func askToRemove(_ slot: SuggestionSlot) {
+        guard let asked = SuggestionRemoval(slot: slot) else { return }
+        removal = asked
+        confirmLabel.text = asked.prompt
+        updateVisibility()
+        removalTimeout?.cancel()
+        removalTimeout = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: SuggestionRemoval.timeout)
+            guard !Task.isCancelled else { return }
+            self?.cancelRemoval()
+        }
+    }
+
+    private func confirmRemoval() {
+        guard let word = removal?.word else { return }
+        cancelRemoval()
+        onRemoveSuggestion?(word)
+    }
+
+    /// The question covers whichever row is showing; the row underneath keeps updating.
+    private func updateVisibility() {
+        let asking = removal != nil
+        confirmRow.isHidden = !asking
+        suggestionStack.isHidden = asking || stripBase != nil
+        vowelRow.isHidden = asking || stripBase == nil
     }
 
     /// Left, middle, right. The middle slot is what space commits, so it is bold.
@@ -95,8 +184,7 @@ final class TopBarView: UIView {
         guard content != shownContent else { return }
         shownContent = content
         stripBase = nil
-        vowelRow.isHidden = true
-        suggestionStack.isHidden = false
+        updateVisibility()
         replaceItems(in: suggestionStack, with: bar.slots.enumerated().map { index, slot in
             let button = UIButton(type: .custom)
             guard let slot else { return button }
@@ -107,6 +195,15 @@ final class TopBarView: UIView {
             button.setTitleColor(theme?.keyText, for: .normal)
             button.setTitleColor(theme?.hintText, for: .highlighted)
             button.addAction(UIAction { [weak self] _ in self?.onSuggestion?(slot) }, for: .touchUpInside)
+            // Once the hold is recognised the button's touch is cancelled, so it doesn't commit.
+            let hold = SlotHold(target: self, action: #selector(slotHeld(_:)))
+            hold.slot = slot
+            hold.minimumPressDuration = SuggestionRemoval.holdDuration
+            button.addGestureRecognizer(hold)
+            button.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Remove suggestion") { [weak self] _ in
+                self?.askToRemove(slot)
+                return true
+            }]
             return button
         })
     }
@@ -117,8 +214,6 @@ final class TopBarView: UIView {
         let content = ["vowels", base, completion?.text ?? ""] + signs
         guard content != shownContent else { return }
         shownContent = content
-        suggestionStack.isHidden = true
-        vowelRow.isHidden = false
         self.completion = completion
         completionButton.isHidden = completion == nil
         completionButton.setTitle(completion?.text, for: .normal)
@@ -139,10 +234,16 @@ final class TopBarView: UIView {
         // the same consonant leaves it where the user scrolled it.
         if base != stripBase { vowelScroll.setContentOffset(.zero, animated: false) }
         stripBase = base
+        updateVisibility()
     }
 
     private func replaceItems(in stack: UIStackView, with views: [UIView]) {
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         views.forEach(stack.addArrangedSubview)
     }
+}
+
+/// A hold on one suggestion slot, carrying the slot it was made for.
+private final class SlotHold: UILongPressGestureRecognizer {
+    var slot: SuggestionSlot?
 }
