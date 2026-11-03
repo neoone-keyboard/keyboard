@@ -8,9 +8,10 @@ use std::sync::{Mutex, MutexGuard};
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
+use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, lm_words};
 use crate::malayalam;
 use crate::manglish;
-use crate::nn::{Deadline, Search, Translit};
+use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
@@ -81,6 +82,9 @@ pub struct Sources {
     /// The neural transliterator (`nn::Translit`). Without it, Manglish ranking is M2's:
     /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
     pub translit: Option<Translit>,
+    /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
+    /// ranking is M3a's: the previous word sets the Manglish bias, `next.fst` the next words.
+    pub lm: Option<Lm>,
 }
 
 /// File paths handed over by the platform. Any of them may be missing.
@@ -92,6 +96,8 @@ pub struct Paths {
     pub next_words: Option<PathBuf>,
     /// The transliterator model (`.mlkbnn`).
     pub translit: Option<PathBuf>,
+    /// The language model (`.mlkbnn`).
+    pub lm: Option<PathBuf>,
     /// Directory for learned words; None keeps them in memory only.
     pub user_dir: Option<PathBuf>,
 }
@@ -99,16 +105,35 @@ pub struct Paths {
 impl Sources {
     pub fn open(paths: &Paths) -> Self {
         let open = |p: &Option<PathBuf>| p.as_deref().and_then(|p| Lexicon::open(p).ok());
+        let (english, malayalam) = (open(&paths.english), open(&paths.malayalam));
+        let lm = paths
+            .lm
+            .as_deref()
+            .and_then(|p| Lm::open(p).ok())
+            .filter(|lm| Self::lm_fits(lm, english.as_ref(), malayalam.as_ref()));
         Self {
-            english: open(&paths.english),
-            malayalam: open(&paths.malayalam),
+            english,
+            malayalam,
             manglish: open(&paths.manglish),
             next_words: open(&paths.next_words),
             translit: paths
                 .translit
                 .as_deref()
                 .and_then(|p| Translit::open(p).ok()),
+            lm,
         }
+    }
+
+    /// Whether `lm`'s tables were built from exactly these lexicons (design §3): its
+    /// first-token tables describe them, so with any others it is not loaded.
+    fn lm_fits(lm: &Lm, english: Option<&Lexicon>, malayalam: Option<&Lexicon>) -> bool {
+        let (Some(en), Some(ml)) = (english, malayalam) else {
+            return false;
+        };
+        let mut want = [0u8; 16];
+        want[..8].copy_from_slice(&en.fingerprint());
+        want[8..].copy_from_slice(&ml.fingerprint());
+        lm.tables().fingerprint == want
     }
 
     /// Names of the sources that loaded, for diagnostics.
@@ -129,6 +154,9 @@ impl Sources {
         if self.translit.is_some() {
             names.push("translit");
         }
+        if self.lm.is_some() {
+            names.push("lm");
+        }
         names
     }
 }
@@ -137,6 +165,9 @@ impl Sources {
 pub struct Engine {
     sources: Sources,
     user: Mutex<UserStore>,
+    /// The LM's context, kept in step with the text by each suggest (`LmContext::sync`).
+    lm_context: Mutex<LmContext>,
+    lm_weights: LmWeights,
 }
 
 impl Engine {
@@ -152,7 +183,14 @@ impl Engine {
         Self {
             sources,
             user: Mutex::new(user),
+            lm_context: Mutex::new(LmContext::default()),
+            lm_weights: LmWeights::default(),
         }
+    }
+
+    /// Weights other than `rank`'s for the LM terms: for the eval harness's sweeps only.
+    pub fn set_lm_weights(&mut self, weights: LmWeights) {
+        self.lm_weights = weights;
     }
 
     pub fn loaded_sources(&self) -> Vec<&'static str> {
@@ -162,6 +200,13 @@ impl Engine {
     /// A poisoned lock still holds usable data; never panic over it.
     fn user(&self) -> MutexGuard<'_, UserStore> {
         self.user
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// As `user`.
+    fn lm_context(&self) -> MutexGuard<'_, LmContext> {
+        self.lm_context
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
@@ -267,6 +312,43 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
     ) -> Suggestions {
+        let Some(lm) = &self.sources.lm else {
+            return self.suggest_with(context_before, layout, autocorrect, deadline, None);
+        };
+        let (typed, _) = self.current_word(context_before);
+        let before = &context_before[..context_before.len() - typed.len()];
+        let mut lm_ctx = self.lm_context();
+        let ready = lm_ctx.sync(lm, &lm_words(before), &|| true);
+        let view = ready.then(|| LmView {
+            lm,
+            ctx: &lm_ctx,
+            weights: self.lm_weights,
+        });
+        let scores = view.as_ref().map(|v| v as &dyn ContextScores);
+        self.suggest_with(context_before, layout, autocorrect, deadline, scores)
+    }
+
+    /// `suggest` with `scores` in place of the LM, for the engine's tests.
+    #[cfg(test)]
+    fn suggest_scored(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        scores: &dyn ContextScores,
+    ) -> Suggestions {
+        self.suggest_with(context_before, layout, autocorrect, None, Some(scores))
+    }
+
+    /// The suggestions, with the context's scores when the LM is ready (`scores`), else M3a's.
+    fn suggest_with(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        deadline: Option<Deadline<'_>>,
+        scores: Option<&dyn ContextScores>,
+    ) -> Suggestions {
         let (typed, address) = self.current_word(context_before);
         if typed.is_empty() {
             return Suggestions {
@@ -289,7 +371,10 @@ impl Engine {
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
-                let bias = self.manglish_bias(previous.map(|(word, _)| word));
+                let bias = match scores {
+                    Some(s) => s.manglish_bias(),
+                    None => self.manglish_bias(previous.map(|(word, _)| word)),
+                };
                 self.suggest_latin(
                     typed,
                     &typed_n,
@@ -1379,6 +1464,7 @@ fn arrange(
 mod tests {
     use super::*;
     use crate::lexicon::build;
+    use crate::lm_context::NextPiece;
 
     fn lex(words: &[(&str, u64)]) -> Option<Lexicon> {
         Some(
@@ -1408,6 +1494,7 @@ mod tests {
             ]),
             manglish: None,
             translit: None,
+            lm: None,
             next_words: lex(&[
                 ("i\0am", 30),
                 ("i\0have", 20),
@@ -1420,6 +1507,95 @@ mod tests {
 
     fn texts(s: &Suggestions) -> Vec<&str> {
         s.candidates.iter().map(|c| c.text.as_str()).collect()
+    }
+
+    /// Context scores fixed by the test, in place of a trained LM.
+    #[derive(Default)]
+    struct Fake {
+        bias: f32,
+        deltas: std::collections::HashMap<&'static str, f32>,
+        next: Vec<NextPiece>,
+        first: std::collections::HashMap<&'static str, &'static str>,
+    }
+
+    impl ContextScores for Fake {
+        fn manglish_bias(&self) -> f32 {
+            self.bias
+        }
+        fn weighted(&self, word: &str) -> f32 {
+            self.deltas
+                .get(word.to_lowercase().as_str())
+                .copied()
+                .unwrap_or(0.0)
+        }
+        fn prefix_delta(&self, _typed: &str) -> f32 {
+            0.0
+        }
+        fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
+            self.next.clone()
+        }
+        fn first_piece(&self, word: &str) -> Option<String> {
+            self.first.get(word).map(|s| s.to_string())
+        }
+    }
+
+    /// `engine()` with Manglish: a skeleton lexicon over its Malayalam words, and `pain`
+    /// beside `പണി` for the letters `pani`.
+    fn manglish_engine() -> Engine {
+        let malayalam: Vec<(String, u64)> = [
+            ("എന്റെ", 100),
+            ("എന്ത്", 80),
+            ("കാര്യം", 10),
+            ("കിളി", 5),
+            ("കീ", 1),
+            ("പണി", 60),
+        ]
+        .iter()
+        .map(|(w, c)| (w.to_string(), *c))
+        .collect();
+        let words: Vec<(&str, u64)> = malayalam.iter().map(|(w, c)| (w.as_str(), *c)).collect();
+        let sources = Sources {
+            english: lex(&[
+                ("the", 1000),
+                ("then", 50),
+                ("hello", 40),
+                ("help", 60),
+                ("London", 30),
+                ("I", 200),
+                ("feel", 300),
+                ("pain", 900),
+            ]),
+            malayalam: lex(&words),
+            manglish: Some(
+                Lexicon::from_bytes(build(manglish::entries(&malayalam)).unwrap()).unwrap(),
+            ),
+            ..Sources::default()
+        };
+        Engine::new(sources, UserStore::in_memory())
+    }
+
+    #[test]
+    fn the_lm_bias_replaces_the_previous_word_bias() {
+        let engine = manglish_engine();
+        // After an English word M3a's bias keeps `pani` English-leaning; the LM says Malayalam.
+        let m3a = engine.suggest("I feel pani", Layout::Latin, true);
+        let fake = Fake {
+            bias: rank::CONTEXT_AFTER_MALAYALAM,
+            ..Fake::default()
+        };
+        let lm = engine.suggest_scored("I feel pani", Layout::Latin, true, &fake);
+        assert_ne!(m3a.candidates[0].text, "പണി");
+        assert_eq!(lm.candidates[0].text, "പണി");
+    }
+
+    #[test]
+    fn without_an_lm_nothing_changes() {
+        let engine = engine();
+        assert!(!engine.loaded_sources().contains(&"lm"));
+        assert_eq!(
+            texts(&engine.suggest("I ", Layout::Latin, true)),
+            ["am", "have", "was"]
+        );
     }
 
     #[test]

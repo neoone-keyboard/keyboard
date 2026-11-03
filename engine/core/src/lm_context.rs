@@ -199,6 +199,91 @@ impl LmContext {
     }
 }
 
+/// A word-start piece the LM offers next, with what next words need (design §6).
+#[derive(Debug, Clone, PartialEq)]
+pub struct NextPiece {
+    /// The piece without its word mark.
+    pub text: String,
+    /// A Latin piece (English candidates); otherwise Malayalam script.
+    pub latin: bool,
+    /// ln p(t | ctx) + lang(t).
+    pub log_p: f32,
+    /// `lex.first_en[t]` or `lex.first_ml[t]`.
+    pub first_log_mass: f32,
+}
+
+/// What the engine asks of the context. The LM implements it (`LmView`); tests use fakes.
+pub trait ContextScores {
+    /// The Manglish bias for the word being typed, on the scale of `rank::CONTEXT_*`.
+    fn manglish_bias(&self) -> f32;
+    /// The weighted, clamped tier-0 correction for a candidate (0 when the LM says nothing).
+    fn weighted(&self, word: &str) -> f32;
+    /// The same for the English words that begin with the typed letters, as one candidate.
+    fn prefix_delta(&self, typed: &str) -> f32;
+    /// The `k` likeliest word-start pieces that are Latin or Malayalam script.
+    fn next_pieces(&self, k: usize) -> Vec<NextPiece>;
+    /// The first piece of `word`, without its word mark, if it is a word-start piece.
+    fn first_piece(&self, word: &str) -> Option<String>;
+}
+
+/// The tunable weights of design §6, defaulting to `rank`'s constants. The eval harness may
+/// set others (`Engine::set_lm_weights`) for sweeps; the keyboard never does.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LmWeights {
+    pub en: f32,
+    pub ml: f32,
+    pub clip: f32,
+    pub lang_weight: f32,
+    pub lang_offset: f32,
+    pub next_bigram: f32,
+    pub tier1_gap: f32,
+}
+
+impl Default for LmWeights {
+    fn default() -> Self {
+        Self {
+            en: rank::LM_WEIGHT_EN,
+            ml: rank::LM_WEIGHT_ML,
+            clip: rank::LM_CLIP,
+            lang_weight: rank::LANG_WEIGHT,
+            lang_offset: rank::LANG_OFFSET,
+            next_bigram: rank::NEXT_BIGRAM_WEIGHT,
+            tier1_gap: rank::TIER1_GAP,
+        }
+    }
+}
+
+/// The LM's scores for a ready context.
+pub struct LmView<'a> {
+    pub lm: &'a Lm,
+    pub ctx: &'a LmContext,
+    pub weights: LmWeights,
+}
+
+impl ContextScores for LmView<'_> {
+    fn manglish_bias(&self) -> f32 {
+        let l = self.ctx.lang();
+        (self.weights.lang_weight * (l.log_ml - l.log_en) + self.weights.lang_offset)
+            .clamp(rank::CONTEXT_AFTER_ENGLISH, rank::CONTEXT_AFTER_MALAYALAM)
+    }
+
+    fn weighted(&self, _word: &str) -> f32 {
+        0.0
+    }
+
+    fn prefix_delta(&self, _typed: &str) -> f32 {
+        0.0
+    }
+
+    fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
+        Vec::new()
+    }
+
+    fn first_piece(&self, _word: &str) -> Option<String> {
+        None
+    }
+}
+
 /// The language posterior over word-start pieces (design §6).
 fn lang(next: &[f32], lm: &Lm) -> Lang {
     let (tok, p_en) = (lm.tokenizer(), &lm.tables().p_en);

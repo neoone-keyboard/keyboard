@@ -25,20 +25,47 @@ fn engine() -> Engine {
 }
 
 fn open_engine(translit: Option<PathBuf>) -> Engine {
+    Engine::open(&bundle_paths(translit, None))
+}
+
+fn bundle_paths(translit: Option<PathBuf>, lm: Option<PathBuf>) -> Paths {
     let dir = bundle_dir();
     assert!(
         dir.join("en.fst").exists(),
         "no lexicon bundle in {}: run `make lexicons`",
         dir.display()
     );
-    Engine::open(&Paths {
+    Paths {
         english: Some(dir.join("en.fst")),
         malayalam: Some(dir.join("ml.fst")),
         manglish: Some(dir.join("manglish.fst")),
         next_words: Some(dir.join("next.fst")),
         translit,
+        lm,
         user_dir: None,
-    })
+    }
+}
+
+/// The LM: MLENGINE_LM, else the bundled one, else the training output.
+fn lm_path() -> Option<PathBuf> {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let path = std::env::var_os("MLENGINE_LM")
+        .map(PathBuf::from)
+        .into_iter()
+        .chain([
+            root.join("apps/ios/KeyboardExtension/Models/lm.mlkbnn"),
+            root.join("training/build/lm.mlkbnn"),
+        ])
+        .find(|p| p.exists());
+    if path.is_none() {
+        println!("skipping the LM: no lm.mlkbnn (`make models` builds it)");
+    }
+    path
+}
+
+/// Both models when they exist; None (the row is skipped) without the LM.
+fn lm_engine() -> Option<Engine> {
+    Some(Engine::open(&bundle_paths(model_path(), Some(lm_path()?))))
 }
 
 /// The keyboard's bundled model (MLENGINE_TRANSLIT to test another export).
@@ -606,6 +633,24 @@ fn translit_model_leaves_english_as_typed() {
             texts(&engine, context)
         );
     }
+}
+
+#[test]
+fn lm_loads_only_with_the_lexicons_it_was_built_for() {
+    let Some(engine) = lm_engine() else { return };
+    assert!(engine.loaded_sources().contains(&"lm"));
+    let other = Engine::open(&Paths {
+        english: None,
+        ..bundle_paths(None, lm_path())
+    });
+    assert!(!other.loaded_sources().contains(&"lm"));
+    let swapped = bundle_paths(None, lm_path());
+    let other = Engine::open(&Paths {
+        english: swapped.malayalam.clone(),
+        malayalam: swapped.english.clone(),
+        ..swapped
+    });
+    assert!(!other.loaded_sources().contains(&"lm"));
 }
 
 /// Out of time before the model starts, a suggest is the lexicon-only engine's; with time to

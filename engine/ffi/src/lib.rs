@@ -62,6 +62,10 @@ pub struct EngineConfig {
     /// The transliterator model (`.mlkbnn`); nil keeps Manglish on the lexicons alone.
     #[uniffi(default = None)]
     pub translit: Option<String>,
+    /// The language model (`.mlkbnn`); nil, or one built against other lexicons, keeps
+    /// ranking on the previous word and `next.fst`.
+    #[uniffi(default = None)]
+    pub lm: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
     /// Milliseconds from the start of a suggest after which the transliterator stops and its
@@ -79,6 +83,7 @@ impl From<&EngineConfig> for mlengine_core::Paths {
             manglish: path(&c.manglish),
             next_words: path(&c.next_words),
             translit: path(&c.translit),
+            lm: path(&c.lm),
             user_dir: path(&c.user_dir),
         }
     }

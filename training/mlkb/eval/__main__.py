@@ -45,14 +45,15 @@ CONTEXT_SETS = {  # scored like chat_golden: name: (gate file, tune file)
 ACCURACY_SETS = ("chat_golden", "human", "english_typos", *CONTEXT_SETS)
 
 
-def load_engine(translit_model: str | None):
-    """The engine on the committed bundle, plus the transliterator model when given."""
+def load_engine(translit_model: str | None, lm_model: str | None = None):
+    """The engine on the committed bundle, plus the transliterator and the LM when given."""
     return mlengine.Engine(
         english=str(LEX / "en.fst"),
         malayalam=str(LEX / "ml.fst"),
         manglish=str(LEX / "manglish.fst"),
         next_words=str(LEX / "next.fst"),
         translit=translit_model,
+        lm=lm_model,
     )
 
 
@@ -126,14 +127,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m mlkb.eval", description=__doc__.splitlines()[0])
     parser.add_argument("--record", action="store_true", help="write data/eval/baselines.json")
     parser.add_argument("--translit", metavar="PATH", help="transliterator model file")
-    parser.add_argument("--lm", metavar="PATH", help="language model file (accepted; not loaded yet)")
+    parser.add_argument("--lm", metavar="PATH", help="language model file")
     parser.add_argument("--tune", action="store_true", help="run the .tune files; never record or gate")
     args = parser.parse_args(argv)
 
-    engine = load_engine(args.translit)
+    engine = load_engine(args.translit, args.lm)
     print(f"sources: {engine.loaded_sources()}")
-    if args.lm:
-        print(f"lm: {args.lm} (not loaded: the engine has no LM yet)")
+    if args.lm and "lm" not in engine.loaded_sources():
+        print(f"lm: {args.lm} did not load (missing, or built against other lexicons)")
+        return 1
     if args.tune:
         for name, (_, tune, layout) in NEXT_SETS.items():
             run_next(engine, name, EVAL / tune, layout)
