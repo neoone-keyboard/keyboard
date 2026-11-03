@@ -80,7 +80,9 @@ pub fn previous_word(context_before: &str) -> Option<(&str, bool)> {
         return None;
     }
     let trimmed = context_before.trim_end();
-    let sentence_end = trimmed.ends_with(['.', '?', '!']);
+    // A line break ends a sentence too (a new line in a chat is a new message).
+    let sentence_end =
+        trimmed.ends_with(['.', '?', '!']) || context_before[trimmed.len()..].contains('\n');
     let without_punct = trimmed.trim_end_matches(|c: char| !is_token_char(c) || is_apostrophe(c));
     match current_word(without_punct) {
         "" => None,
@@ -199,6 +201,8 @@ mod tests {
         assert_eq!(previous_word("It rains. "), Some(("rains", true)));
         assert_eq!(previous_word("Really? "), Some(("Really", true)));
         assert_eq!(previous_word("ഞാൻ "), Some(("ഞാൻ", false)));
+        assert_eq!(previous_word("ok\n"), Some(("ok", true)));
+        assert_eq!(previous_word("ok \n "), Some(("ok", true)));
         assert_eq!(previous_word("I am"), None);
         assert_eq!(previous_word(" "), None);
         assert_eq!(previous_word(""), None);

@@ -140,6 +140,7 @@ fn english_user_reports() {
             // One slip from whats, three from where (reported from the phone).
             ("whsts", "what's"),
             ("wgats", "what's"),
+            ("ok\nWhsts", "What's"),
         ] {
             assert_eq!(
                 middle(&engine, context),
