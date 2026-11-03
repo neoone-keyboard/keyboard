@@ -4,7 +4,15 @@ import KeyboardCore
 import MLEngine
 
 final class KeyboardViewController: UIInputViewController {
-    private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "keyboard")
+    private let log = Diagnostics(category: "keyboard")
+    /// Largest footprint seen since the keyboard loaded, and when it was last logged.
+    private var peakFootprint: UInt64 = 0
+    private var lastFootprintSample: Double = 0
+    private static let footprintSampleInterval: Double = 5
+    /// How the last delivered fetch ended, for explaining an empty bar.
+    private var lastOutcome: (outcome: SuggestionCoordinator.Outcome, elapsed: Duration)?
+    /// The empty-bar reason last logged, so a repeated render isn't logged twice.
+    private var loggedEmptyBar: String?
     private var gate = PredictionGate(budget: .keyboardExtension)
     private let topBar = TopBarView()
     private let keyboardView = KeyboardView()
@@ -29,8 +37,9 @@ final class KeyboardViewController: UIInputViewController {
         guard let self else { return }
         awaitingResult = false
         latest = result
-        if !result.isFor(word: Self.straight(input.currentWord)) {
-            log.debug("Result for '\(result.typed, privacy: .public)' but word is '\(self.input.currentWord, privacy: .public)'; \(result.candidates.count) candidates")
+        if !result.isFor(word: Self.straight(input.currentWord)), lastOutcome?.outcome == .result {
+            // Lengths only: no typed text in the diagnostics.
+            log.info("Stale result: for a \(result.typed.count)-char word but the word is \(input.currentWord.count) chars; \(result.candidates.count) candidates dropped")
         }
         input.updateSuggestions(result)
         refreshTopBar()
@@ -45,6 +54,18 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        suggestions.onOutcome = { [weak self] outcome, elapsed in
+            guard let self else { return }
+            lastOutcome = (outcome, elapsed)
+            switch outcome {
+            case .timedOut:
+                log.warning("Suggest timed out after \(Diagnostics.milliseconds(elapsed)); word \(input.currentWord.count) chars")
+            case .failed:
+                log.warning("Suggest failed after \(Diagnostics.milliseconds(elapsed)); word \(input.currentWord.count) chars")
+            case .result, .cancelled:
+                break
+            }
+        }
         keyboardView.onEvent = { [unowned self] in handle($0) }
         topBar.onVowelSign = { [unowned self] sign in
             let page = input.page, shift = input.shift
@@ -70,6 +91,7 @@ final class KeyboardViewController: UIInputViewController {
             applySettings()
         }
         settingsPanel.onDone = { [unowned self] in hideSettings() }
+        settingsPanel.onInsertDiagnostics = { [unowned self] in insertDiagnostics() }
         // The actor clears the log and the in-memory store; the main thread doesn't wait.
         settingsPanel.onForgetLearned = { [provider] in
             Task { await provider.forgetLearned() }
@@ -103,7 +125,7 @@ final class KeyboardViewController: UIInputViewController {
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
             self.applySettings()
         }
-        log.info("Keyboard loaded; footprint \(MemoryMonitor.footprintBytes(), privacy: .public) bytes")
+        log.info("Keyboard loaded; \(Diagnostics.buildDescription); iOS \(UIDevice.current.systemVersion); footprint \(Diagnostics.footprint())")
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -118,7 +140,7 @@ final class KeyboardViewController: UIInputViewController {
     /// first word typed already has suggestions.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        log.info("Appeared; prediction \(self.suggestions.isEnabled ? "on" : "off", privacy: .public); footprint \(MemoryMonitor.footprintBytes(), privacy: .public) bytes")
+        log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); footprint \(Diagnostics.footprint())")
         guard suggestions.isEnabled else { return }
         Task { [provider] in await provider.warmUp() }
     }
@@ -146,8 +168,10 @@ final class KeyboardViewController: UIInputViewController {
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         if gate.memoryWarning(now: ProcessInfo.processInfo.systemUptime) == .off {
-            log.warning("Memory warning (\(MemoryMonitor.footprintBytes(), privacy: .public) bytes); prediction off for now")
+            log.warning("Memory warning (\(Diagnostics.footprint())); prediction off for now")
             shedPrediction()
+        } else {
+            log.warning("Memory warning (\(Diagnostics.footprint())); prediction already off, cooldown restarted")
         }
     }
 
@@ -285,7 +309,57 @@ final class KeyboardViewController: UIInputViewController {
         }
         if current == nil, awaitingResult, !topBar.showsVowelSigns, barWord == word { return }
         barWord = word
-        topBar.showSuggestions(SuggestionBar(current ?? .empty))
+        let bar = SuggestionBar(current ?? .empty)
+        topBar.showSuggestions(bar)
+        noteBar(empty: bar.left == nil && bar.middle == nil && bar.right == nil, current: current)
+    }
+
+    /// Logs why the bar is empty (once per reason and word length) and when it fills again.
+    /// Not while a result is on its way: the bar is briefly empty on every new word.
+    private func noteBar(empty: Bool, current: SuggestionResult?) {
+        guard empty else {
+            if loggedEmptyBar != nil { log.info("Bar filled again") }
+            loggedEmptyBar = nil
+            return
+        }
+        if awaitingResult, suggestions.isEnabled { return }
+        let reason: String
+        if !suggestions.isEnabled {
+            reason = gate.isOn ? "prediction off (resuming)" : "prediction off (memory gate)"
+        } else if let lastOutcome, lastOutcome.outcome != .result {
+            // Before the next check: a timeout's `.empty` also "matches" an empty word.
+            reason = "\(lastOutcome.outcome.rawValue) after \(Diagnostics.milliseconds(lastOutcome.elapsed))"
+        } else if current != nil {
+            reason = input.currentWord.isEmpty ? "no next words" : "no candidates"
+        } else if lastRequest == nil {
+            reason = "no request since the text changed"
+        } else {
+            reason = "result was for another word (\(latest.typed.count) chars)"
+        }
+        let key = "\(reason)|\(input.currentWord.count)"
+        guard key != loggedEmptyBar else { return }
+        loggedEmptyBar = key
+        log.info("Bar empty: \(reason); word \(input.currentWord.count) chars, \(input.language == .malayalam ? "ml" : "latin"), footprint \(Diagnostics.footprint())")
+    }
+
+    /// Types a short report into the field (no Full Access, so no pasteboard): the build,
+    /// memory, prediction state and the newest diagnostics lines. No typed words.
+    private func insertDiagnostics() {
+        let footprint = MemoryMonitor.footprintBytes()
+        peakFootprint = max(peakFootprint, footprint)
+        let prediction = suggestions.isEnabled ? "on" : "off"
+        let gateState = gate.isOn ? "on" : "off"
+        let build = Diagnostics.buildDescription
+        let system = "iOS \(UIDevice.current.systemVersion)"
+        let peak = Diagnostics.megabytes(peakFootprint)
+        log.info("Diagnostics inserted")
+        hideSettings()
+        Task { [weak self, provider] in
+            let status = await provider.status()
+            guard let self else { return }
+            let header = "\(build); \(system); footprint \(Diagnostics.megabytes(footprint)) (peak \(peak)); gate \(gateState); prediction \(prediction); \(status)"
+            textDocumentProxy.insertText(Diagnostics.report(header: header))
+        }
     }
 
     private static func straight(_ text: String) -> String {
@@ -296,12 +370,18 @@ final class KeyboardViewController: UIInputViewController {
 
     private func checkMemoryBudget() {
         let footprint = MemoryMonitor.footprintBytes()
-        switch gate.update(footprintBytes: footprint, now: ProcessInfo.processInfo.systemUptime) {
+        let now = ProcessInfo.processInfo.systemUptime
+        peakFootprint = max(peakFootprint, footprint)
+        if now - lastFootprintSample >= Self.footprintSampleInterval {
+            lastFootprintSample = now
+            log.info("Footprint \(Diagnostics.megabytes(footprint)) (peak \(Diagnostics.megabytes(peakFootprint))); gate \(gate.isOn ? "on" : "off")")
+        }
+        switch gate.update(footprintBytes: footprint, now: now) {
         case .off:
-            log.warning("Over memory budget (\(footprint, privacy: .public) bytes); prediction off for now")
+            log.warning("Over memory budget (\(Diagnostics.megabytes(footprint))); prediction off for now")
             shedPrediction()
         case .on:
-            log.info("Memory recovered (\(footprint, privacy: .public) bytes); prediction back on")
+            log.info("Memory recovered (\(Diagnostics.megabytes(footprint))); prediction back on")
             // Enabled only once the provider has resumed, so the first request isn't refused.
             Task { [weak self, provider] in
                 await provider.resume()

@@ -37,6 +37,7 @@ actor BlockingProvider: SuggestionProvider {
 @MainActor
 final class Recorder {
     var updates: [SuggestionResult] = []
+    var outcomes: [SuggestionCoordinator.Outcome] = []
 }
 
 @MainActor
@@ -131,5 +132,16 @@ struct SuggestionCoordinatorTests {
         await task.value
         withExtendedLifetime(coordinator) {}
         #expect(recorder.updates == [.empty])
+    }
+
+    @Test func reportsHowEachFetchEnded() async {
+        let coordinator = makeCoordinator(timeout: .milliseconds(20))
+        coordinator.onOutcome = { [recorder] outcome, _ in recorder.outcomes.append(outcome) }
+        await coordinator.request(englishRequest("wor")).value
+        await coordinator.request(englishRequest("hang")).value
+        await coordinator.request(englishRequest("fail")).value
+        withExtendedLifetime(coordinator) {}
+        #expect(recorder.outcomes == [.result, .timedOut, .failed])
+        #expect(recorder.updates == [echo("wor"), .empty, .empty])
     }
 }

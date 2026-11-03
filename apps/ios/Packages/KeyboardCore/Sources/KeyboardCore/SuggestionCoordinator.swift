@@ -21,6 +21,15 @@ public final class SuggestionCoordinator {
         didSet { if oldValue && !isEnabled { clear() } }
     }
 
+    /// How a fetch ended. A timeout or failure shows as an empty result.
+    public enum Outcome: String, Equatable, Sendable {
+        case result, timedOut, failed, cancelled
+    }
+
+    /// Called just before `onUpdate` for each delivered fetch, with how it ended and how
+    /// long it took. For diagnostics only.
+    public var onOutcome: (@MainActor (Outcome, Duration) -> Void)?
+
     private let provider: any SuggestionProvider
     private let timeout: Duration
     private let onUpdate: @MainActor (SuggestionResult) -> Void
@@ -54,9 +63,11 @@ public final class SuggestionCoordinator {
         let provider = self.provider
         let timeout = self.timeout
         let task = Task { [weak self] in
-            let result = await Self.fetch(from: provider, request: request, timeout: timeout)
+            let start = ContinuousClock.now
+            let fetched = await Self.fetch(from: provider, request: request, timeout: timeout)
             guard let self, requestGeneration == self.generation else { return }
-            self.onUpdate(result)
+            self.onOutcome?(fetched.outcome, ContinuousClock.now - start)
+            self.onUpdate(fetched.result)
         }
         inFlight = task
         return task
@@ -79,39 +90,50 @@ public final class SuggestionCoordinator {
         from provider: any SuggestionProvider,
         request: SuggestionRequest,
         timeout: Duration
-    ) async -> SuggestionResult {
+    ) async -> Fetched {
         let gate = FirstResultGate()
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 gate.install(continuation)
                 let work = Task {
-                    gate.finish((try? await provider.suggestions(for: request)) ?? .empty)
+                    do {
+                        gate.finish(Fetched(result: try await provider.suggestions(for: request), outcome: .result))
+                    } catch is CancellationError {
+                        gate.finish(Fetched(result: .empty, outcome: .cancelled))
+                    } catch {
+                        gate.finish(Fetched(result: .empty, outcome: .failed))
+                    }
                 }
                 let timer = Task {
                     try? await Task.sleep(for: timeout)
-                    gate.finish(.empty)
+                    gate.finish(Fetched(result: .empty, outcome: .timedOut))
                 }
                 gate.attach([work, timer])
             }
         } onCancel: {
-            gate.finish(.empty)
+            gate.finish(Fetched(result: .empty, outcome: .cancelled))
         }
     }
+}
+
+private struct Fetched: Sendable {
+    var result: SuggestionResult
+    var outcome: SuggestionCoordinator.Outcome
 }
 
 /// Resumes its continuation exactly once, with the first result offered, then
 /// cancels the tasks racing for it.
 private final class FirstResultGate: Sendable {
     private struct State {
-        var continuation: CheckedContinuation<SuggestionResult, Never>?
-        var result: SuggestionResult?
+        var continuation: CheckedContinuation<Fetched, Never>?
+        var result: Fetched?
         var tasks: [Task<Void, Never>] = []
     }
 
     private let state = Mutex(State())
 
-    func install(_ continuation: CheckedContinuation<SuggestionResult, Never>) {
-        let early = state.withLock { state -> SuggestionResult? in
+    func install(_ continuation: CheckedContinuation<Fetched, Never>) {
+        let early = state.withLock { state -> Fetched? in
             if let result = state.result { return result }
             state.continuation = continuation
             return nil
@@ -128,8 +150,8 @@ private final class FirstResultGate: Sendable {
         if finished { tasks.forEach { $0.cancel() } }
     }
 
-    func finish(_ result: SuggestionResult) {
-        let (continuation, tasks) = state.withLock { state -> (CheckedContinuation<SuggestionResult, Never>?, [Task<Void, Never>]) in
+    func finish(_ result: Fetched) {
+        let (continuation, tasks) = state.withLock { state -> (CheckedContinuation<Fetched, Never>?, [Task<Void, Never>]) in
             guard state.result == nil else { return (nil, []) }
             state.result = result
             defer { state.continuation = nil; state.tasks = [] }

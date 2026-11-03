@@ -9,7 +9,7 @@ import os
 /// the actor. Callers reach it only through `Task { await … }`, so the main
 /// thread never waits.
 actor EngineSuggestionProvider: SuggestionProvider {
-    private let log = Logger(subsystem: "me.jishnu.keyboard.extension", category: "engine")
+    private let log = Diagnostics(category: "engine")
     private let config: EngineConfig
     private var engine: Engine?
     /// Set while memory is short: the engine stays unloaded until `resume`.
@@ -17,6 +17,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// When opening last failed; it is tried again after `retryDelay`.
     private var failedAt: ContinuousClock.Instant?
     private static let retryDelay: Duration = .seconds(30)
+    /// The last reason a request was refused, so each refusal is logged once, not per key.
+    private var refusalLogged: String?
+    private var loadedSources: [String] = []
 
     init(config: EngineConfig) {
         self.config = config
@@ -55,7 +58,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         )
         let elapsed = ContinuousClock.now - start
         if elapsed > .milliseconds(10) {
-            log.warning("Slow suggest: \(elapsed, privacy: .public) for \(result.typed.count) chars")
+            log.warning("Slow suggest: \(Diagnostics.milliseconds(elapsed)) for \(result.typed.count) chars, \(result.candidates.count) candidates, \(request.language == .malayalam ? "ml" : "latin")")
         }
         return SuggestionResult(
             typed: result.typed,
@@ -87,8 +90,20 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
+    /// For the diagnostics report: what is open now, and why not if nothing is.
+    func status() -> String {
+        if engine != nil {
+            let model = loadedSources.contains("translit") ? "yes" : "no"
+            return "engine open; sources \(loadedSources.joined(separator: ",")); model loaded \(model)"
+        }
+        if shed { return "engine unloaded (memory)" }
+        if failedAt != nil { return "engine failed to open (retrying)" }
+        return "engine not opened yet"
+    }
+
     /// Drops the engine so its memory is released, and keeps it unloaded until `resume`.
     func unload() {
+        if engine != nil { log.info("Engine unloaded; footprint before \(Diagnostics.footprint())") }
         engine = nil
         shed = true
     }
@@ -96,27 +111,42 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// Memory has recovered: the engine opens again on the next request.
     func resume() {
         shed = false
+        refusalLogged = nil
     }
 
     private struct Shed: Error {}
 
     private func loadedEngine() throws -> Engine {
         if let engine { return engine }
-        if shed { throw Shed() }
-        if let failedAt, ContinuousClock.now - failedAt < Self.retryDelay { throw Shed() }
+        if shed {
+            noteRefusal("engine unloaded for memory")
+            throw Shed()
+        }
+        if let failedAt, ContinuousClock.now - failedAt < Self.retryDelay {
+            noteRefusal("engine open failed; waiting to retry")
+            throw Shed()
+        }
         do {
             let start = ContinuousClock.now
             let created = try Engine(config: config)
             engine = created
             failedAt = nil
-            log.info("Engine open in \(ContinuousClock.now - start, privacy: .public); sources \((try? created.loadedSources()) ?? [], privacy: .public); config en=\(self.config.english != nil) ml=\(self.config.malayalam != nil)")
+            refusalLogged = nil
+            loadedSources = (try? created.loadedSources()) ?? []
+            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil); footprint \(Diagnostics.footprint())")
             return created
         } catch {
-            log.error("Engine failed to open: \(String(describing: error), privacy: .public)")
+            log.error("Engine failed to open: \(String(describing: error)); footprint \(Diagnostics.footprint())")
             // Don't re-read every lexicon on each keystroke: wait before trying again.
             failedAt = .now
             throw error
         }
+    }
+
+    private func noteRefusal(_ reason: String) {
+        guard refusalLogged != reason else { return }
+        refusalLogged = reason
+        log.warning("Suggest refused: \(reason)")
     }
 
     private static func kind(_ kind: CandidateKind) -> SuggestionKind {
