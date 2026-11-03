@@ -35,6 +35,20 @@ import MLEngine
     #expect(try !completions().contains("Thomasina"))
 }
 
+@Test func removedWordsStayRemovedUntilForgotten() throws {
+    let dir = FileManager.default.temporaryDirectory.appending(path: "mlengine-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: dir) }
+    let config = EngineConfig(userDir: dir.path)
+    let engine = try Engine(config: config)
+    let completions = { try engine.suggest(contextBefore: "Thoma", layout: .latin, autocorrect: true).candidates.map(\.text) }
+    try engine.learn(word: "Thomasina")
+    #expect(try completions().contains("Thomasina"))
+    try engine.removeWord(word: "Thomasina")
+    #expect(try !completions().contains("Thomasina"))
+    let reloaded = try Engine(config: config)
+    #expect(try !reloaded.suggest(contextBefore: "Thoma", layout: .latin, autocorrect: true).candidates.map(\.text).contains("Thomasina"))
+}
+
 /// Spec §10 risk: Swift ↔ Rust call overhead. The whole keystroke budget is 15 ms;
 /// one FFI round-trip must be a tiny fraction of it.
 @Test func ffiRoundTripIsFast() throws {

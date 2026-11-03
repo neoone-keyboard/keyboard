@@ -54,3 +54,24 @@ import KeyboardCore
     #expect(Malayalam.orderedStripSigns(preferred: ["x", "\u{0D3E}", "\u{0D3E}"]) == Malayalam.stripSigns)
     #expect(Malayalam.orderedStripSigns(preferred: []) == Malayalam.stripSigns)
 }
+
+@Test func holdingASlotAsksToRemoveItsWord() {
+    let removal = SuggestionRemoval(slot: SuggestionSlot(suggestion: Suggestion("the", kind: .correction), quoted: false))
+    #expect(removal?.word == "the")
+    #expect(removal?.prompt == "Remove \u{201C}the\u{201D}?")
+}
+
+@Test func theQuotedTypedWordIsRemovedWithoutItsQuotes() {
+    let removal = SuggestionRemoval(slot: SuggestionSlot(suggestion: Suggestion("teh", kind: .verbatim), quoted: true))
+    #expect(removal?.word == "teh")
+    #expect(removal?.prompt == "Remove \u{201C}teh\u{201D}?")
+}
+
+@Test func aSlotWithNoWordCannotBeRemoved() {
+    #expect(SuggestionRemoval(slot: SuggestionSlot(suggestion: Suggestion("", kind: .verbatim), quoted: false)) == nil)
+}
+
+@Test func removalTimings() {
+    #expect(SuggestionRemoval.holdDuration == 0.5)
+    #expect(SuggestionRemoval.timeout == .seconds(4))
+}

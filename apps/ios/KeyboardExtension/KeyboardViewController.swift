@@ -85,6 +85,19 @@ final class KeyboardViewController: UIInputViewController {
             input.commitSuggestion(slot)
             afterInput(pageBefore: page, shiftBefore: shift)
         }
+        // Removal runs on the provider's actor; the bar asks again once it is done, so the
+        // word is gone from it and the next best takes its slot.
+        topBar.onRemoveSuggestion = { [unowned self] word in
+            // Lengths only: no typed text in the diagnostics.
+            log.info("Suggestion removed; \(word.count) chars")
+            Task { [weak self, provider] in
+                await provider.remove(word)
+                guard let self else { return }
+                lastRequest = nil
+                requestSuggestions()
+                refreshTopBar()
+            }
+        }
         // Learning runs on the provider's actor; the main thread never waits for it.
         input.onLearningEvent = { [provider] event in
             Task { await provider.handle(event) }
@@ -163,6 +176,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
+        topBar.cancelRemoval()
         if !output.hostTextIsOwn { noteExternalChange() }
         updateAutocorrect()
         let shiftBefore = input.shift
@@ -210,6 +224,8 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func afterInput(pageBefore: KeyboardPage, shiftBefore: ShiftState) {
+        // Typing answers "Remove …?" with no.
+        topBar.cancelRemoval()
         input.applyAutoCapitalization(autoCapitalization)
         if input.page != pageBefore {
             reloadKeys()
@@ -258,6 +274,7 @@ final class KeyboardViewController: UIInputViewController {
     /// Covers the keys; touches already on them are dropped so lifting doesn't type.
     private func showSettings() {
         keyboardView.cancelAllTouches()
+        topBar.cancelRemoval()
         settingsPanel.show(settings)
         settingsPanel.apply(theme)
         settingsPanel.isHidden = false

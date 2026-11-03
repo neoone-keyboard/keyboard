@@ -100,3 +100,23 @@ public struct SuggestionBar: Equatable, Sendable {
     /// Left, middle, right; nil for an empty slot.
     public var slots: [SuggestionSlot?] { [left, middle, right] }
 }
+
+/// Holding a bar slot asks whether to remove its word (SwiftKey's "Remove …?"). Once
+/// removed, the engine never suggests the word again until the user learns it anew.
+/// The bar drops the question after `timeout`, or as soon as the text changes.
+public struct SuggestionRemoval: Equatable, Sendable {
+    /// How long a slot must be held, in seconds; a shorter touch is a tap and commits the slot.
+    public static let holdDuration: Double = 0.5
+    public static let timeout: Duration = .seconds(4)
+
+    /// The word itself, never the quoted title.
+    public let word: String
+
+    /// Nil for a slot with no word.
+    public init?(slot: SuggestionSlot) {
+        guard !slot.suggestion.text.isEmpty else { return nil }
+        word = slot.suggestion.text
+    }
+
+    public var prompt: String { "Remove \u{201C}\(word)\u{201D}?" }
+}

@@ -260,3 +260,12 @@ fn a_capitalised_word_after_english_stays_a_name() {
     assert_eq!(middle(&engine, "Ente").0, "എന്റെ");
     assert_eq!(middle(&engine, "ഞാൻ Ente").0, "എന്റെ");
 }
+
+#[test]
+fn a_removed_manglish_word_is_not_suggested() {
+    let engine = engine();
+    assert_eq!(middle(&engine, "ente"), ("എന്റെ".into(), Kind::Manglish));
+    engine.remove_word("എന്റെ");
+    assert!(!has(&engine, "ente", "എന്റെ"));
+    assert_ne!(middle(&engine, "ente").0, "എന്റെ");
+}

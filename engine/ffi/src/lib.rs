@@ -159,8 +159,14 @@ impl Engine {
         guarded(|| self.inner.note_committed(&word))
     }
 
+    /// Forgets learned words and words removed from the bar.
     pub fn forget_learned(&self) -> Result<(), EngineError> {
         guarded(|| self.inner.forget_learned())
+    }
+
+    /// The user held a suggestion and chose Remove: never suggest it again until learned.
+    pub fn remove_word(&self, word: String) -> Result<(), EngineError> {
+        guarded(|| self.inner.remove_word(&word))
     }
 
     /// Which lexicons loaded, for diagnostics ("english", "malayalam", ...).
@@ -386,6 +392,26 @@ mod tests {
         engine.learn("Thom".into()).unwrap();
         engine.note_committed("Anu".into()).unwrap();
         engine.forget_learned().unwrap();
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn removal_crosses_ffi_and_persists() {
+        let dir = std::env::temp_dir().join(format!("mlengine-ffi-remove-test-{}", std::process::id()));
+        let config = EngineConfig { user_dir: Some(dir.to_string_lossy().into_owned()), ..EngineConfig::default() };
+        let texts = |engine: &Engine| -> Vec<String> {
+            let s = engine.suggest("thoma".into(), InputLayout::Latin, true).unwrap();
+            s.candidates.into_iter().map(|c| c.text).collect()
+        };
+        let engine = Engine::new(config.clone()).unwrap();
+        engine.learn("Thomasina".into()).unwrap();
+        assert!(texts(&engine).contains(&"Thomasina".to_string()));
+        engine.remove_word("Thomasina".into()).unwrap();
+        assert!(!texts(&engine).contains(&"Thomasina".to_string()));
+        drop(engine);
+        let engine = Engine::new(config).unwrap();
+        assert!(!texts(&engine).contains(&"Thomasina".to_string()), "the removal was kept");
         drop(engine);
         let _ = std::fs::remove_dir_all(dir);
     }

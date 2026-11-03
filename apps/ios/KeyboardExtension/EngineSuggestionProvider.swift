@@ -108,6 +108,16 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
+    /// The user removed `word` from the bar. Best effort, like `handle`; works while the
+    /// engine is shed, as `forgetLearned` does, so the choice is never silently lost.
+    func remove(_ word: String) {
+        if let engine {
+            try? engine.removeWord(word: word)
+        } else {
+            try? Engine(config: EngineConfig(userDir: config.userDir)).removeWord(word: word)
+        }
+    }
+
     /// For the diagnostics report: what is open now, and why not if nothing is.
     func status() -> String {
         if engine != nil {
