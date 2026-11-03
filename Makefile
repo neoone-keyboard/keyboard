@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons models bench eval spike-assets
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons lm-data models bench eval spike-assets
 
 all: build
 
@@ -62,9 +62,20 @@ eval:
 lexicons:
 	./data/build-lexicons.sh
 
-# Rebuilds the bundled transliterator: training pairs (needs the Dakshina and Aksharantar
-# extracts in data/raw, see data/manifests), training (several hours; skipped when
-# training/build/translit.pt exists), int8 export, then the copy into the keyboard bundle.
+# The LM's training text, vocabulary and token shards in training/build/lm (design §5; needs
+# data/fetch.sh and the lexicon text in data/raw/text, about 2 hours).
+lm-data:
+	cd training && uv run --group train python -m mlkb.lm.sources && \
+	  uv run --group train python -m mlkb.lm.corpus --out build/lm/text && \
+	  uv run --group train python -m mlkb.lm.tokenizer --text build/lm/text --out build/lm && \
+	  uv run --group train python -m mlkb.lm.shards --text build/lm/text --vocab build/lm/pieces.tsv \
+	    --out build/lm/shards
+
+# Rebuilds the bundled models. The transliterator: training pairs (needs the Dakshina and
+# Aksharantar extracts in data/raw, see data/manifests), training (several hours; skipped when
+# training/build/translit.pt exists), int8 export, then the copy into the keyboard bundle. Then
+# the LM: training (`make lm-data` first; 4-5 hours, skipped when training/build/lm.pt exists),
+# export, and the memorisation check (design §10), which must pass before the copy.
 models:
 	@if [ ! -f training/build/translit.pt ]; then \
 	  cd training && uv run --group train python -m mlkb.data.pairs && \
@@ -74,6 +85,16 @@ models:
 	  --checkpoint build/translit.pt --out build/translit.mlkbnn --reference build/translit-reference.json
 	mkdir -p $(dir $(TRANSLIT_MODEL))
 	cp training/build/translit.mlkbnn $(TRANSLIT_MODEL)
+	@if [ ! -f training/build/lm.pt ]; then \
+	  cd training && uv run --group train python -m mlkb.lm.train --shards build/lm/shards \
+	    --vocab build/lm/pieces.tsv --out build/lm.pt; \
+	fi
+	cd training && uv run --group train python -m mlkb.lm.export --checkpoint build/lm.pt \
+	  --vocab build/lm/pieces.tsv --shards build/lm/shards --out build/lm.mlkbnn \
+	  --reference build/lm-reference.json
+	cd training && uv run --group train python -m mlkb.lm.memorise --model build/lm.mlkbnn \
+	  --shards build/lm/shards --out $(CURDIR)/data/eval/memorisation.json
+	cp training/build/lm.mlkbnn $(LM_MODEL)
 
 # Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model and the

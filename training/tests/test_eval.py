@@ -77,3 +77,15 @@ def test_next_word_metrics_are_gated():
     base = {"english_wrong_rate": 0.001, "next_en": {"top1": 0.2, "top3": 0.4, "ks": 0.1, "n": 9}}
     now = {"english_wrong_rate": 0.001, "next_en": {"top1": 0.2, "top3": 0.39, "ks": 0.1, "n": 9}}
     assert regressions(now, base) == ["next_en top3: 0.3900 < baseline 0.4000"]
+
+
+def test_ship_gate_needs_gains_and_no_new_wrong_replacements():
+    from mlkb.eval.__main__ import ship_gate
+
+    m3a = {"english_wrong": 3, "next_en": {"top3": 0.30, "ks": 0.10},
+           "english_typos_context": {"top1": 0.60}, "language_choice": {"top1": 0.70}}
+    good = {"english_wrong": 3, "next_en": {"top3": 0.40, "ks": 0.15},
+            "english_typos_context": {"top1": 0.75}, "language_choice": {"top1": 0.80}}
+    assert ship_gate(good, m3a) == []
+    bad = {**good, "english_wrong": 4, "next_en": {"top3": 0.30, "ks": 0.15}}
+    assert ship_gate(bad, m3a) == ["english_wrong: 4 > M3a 3", "next_en top3: 0.3000 not above M3a 0.3000"]

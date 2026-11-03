@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
-use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, lm_words};
+use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::malayalam;
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Translit};
@@ -100,7 +100,8 @@ pub struct Timing<'a> {
     pub lm_prefill: Option<Duration>,
     /// Everything the LM does after a space.
     pub lm_after_space: Option<Duration>,
-    /// Tier-1 rows while a word is being typed (Task 15).
+    /// Was the cutoff for tier-1 rows while a word is typed. Tier 1 was removed (design §9), so
+    /// nothing reads it; it stays so the FFI's `EngineConfig` and its Swift callers don't change.
     pub lm_deadline: Option<Duration>,
 }
 
@@ -267,7 +268,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, 0.0, None, None)
+                .suggest_latin(word, word, true, false, false, false, 0.0, None, None)
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -412,8 +413,13 @@ impl Engine {
         let before = &context_before[..context_before.len() - typed.len()];
         let after_space = typed.is_empty();
         let mut lm_ctx = self.lm_context();
-        let ready = lm_ctx.sync(lm, &lm_words(before), &|| more(after_space));
-        let view = ready.then(|| LmView {
+        let words = lm_words(before);
+        let ready = lm_ctx.sync(lm, &words, &|| more(after_space));
+        // At the start of the text the LM knows only how its corpus begins paragraphs, not how
+        // messages begin: the first word is M3a's. On chat_golden (292 of 322 rows start the
+        // text) tier 0 there cost top-1 0.8043 → 0.7857: വേണ്ടേ, വേണം, അത്, കുറച്ച് lost.
+        let at_start = words.iter().all(String::is_empty);
+        let view = (ready && !at_start).then(|| LmView {
             lm,
             ctx: &lm_ctx,
             weights: self.lm_weights,
@@ -465,16 +471,15 @@ impl Engine {
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
-                let bias = match scores {
-                    Some(s) => s.manglish_bias(),
-                    None => self.manglish_bias(previous.map(|(word, _)| word)),
-                };
+                let previous_bias = self.manglish_bias(previous.map(|(word, _)| word));
+                let bias = scores.map_or(previous_bias, |s| s.manglish_bias());
                 self.suggest_latin(
                     typed,
                     &typed_n,
                     autocorrect,
                     sentence_start,
                     mid_sentence,
+                    previous_bias <= rank::CONTEXT_AFTER_ENGLISH,
                     bias,
                     deadline,
                     scores,
@@ -554,9 +559,28 @@ impl Engine {
         }
     }
 
+    /// The LM's tier-0 term for a candidate (`ContextScores::weighted`), 0 without the LM. A
+    /// Malayalam word whose other final-u spelling (`malayalam::other_final_u`) is in the
+    /// lexicon gets the better of the two spellings' terms: the LM learned both orthographies
+    /// and leans to the older one (ഇന്നു over ഇന്ന്, അതു over അത്), so between the two the
+    /// lexicon decides, as in M3a.
+    fn lm_term(&self, scores: Option<&dyn ContextScores>, text: &str) -> f32 {
+        let Some(s) = scores else {
+            return 0.0;
+        };
+        let own = s.weighted(text);
+        match (malayalam::other_final_u(text), &self.sources.malayalam) {
+            (Some(other), Some(ml)) if ml.get(other.as_bytes()).is_some() => {
+                own.max(s.weighted(&other))
+            }
+            _ => own,
+        }
+    }
+
     /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
     /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
-    /// before it didn't (neither at the very start of the text).
+    /// before it didn't (neither at the very start of the text). `after_english`: the word
+    /// before it is English.
     /// `manglish_bias` comes from the previous word's language (`manglish_bias`), or from
     /// the LM. `scores`: the LM's in-context corrections (design §6), when it is ready.
     #[allow(clippy::too_many_arguments)]
@@ -567,6 +591,7 @@ impl Engine {
         autocorrect: bool,
         sentence_start: bool,
         mid_sentence: bool,
+        after_english: bool,
         manglish_bias: f32,
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
@@ -813,8 +838,19 @@ impl Engine {
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
         // Floors were checked on scores without it; the final one below takes it back out.
-        let lm_term = |text: &str| scores.map_or(0.0, |s| s.weighted(text));
+        let lm_term = |text: &str| self.lm_term(scores, text);
         if scores.is_some() {
+            // Context reorders Manglish completions, but doesn't lift one over a word the
+            // typed letters spell that was ahead of it: `വേഗം vaa` offered വന്നു (0.9 behind
+            // വാ, 0.04 ahead after tier 0) in place of വാ.
+            let spelled_before: Vec<(String, f32)> = manglish
+                .exact
+                .iter()
+                .filter(|(_, spelled)| *spelled)
+                .map(|(c, _)| (c.text.clone(), c.score))
+                .collect();
+            let completions_before: Vec<f32> =
+                manglish.completions.iter().map(|c| c.score).collect();
             for (c, _) in &mut corrections {
                 c.score += lm_term(&c.text);
             }
@@ -835,6 +871,35 @@ impl Engine {
                 c.score += lm_term(&c.text);
             }
             known_score = known_score.map(|s| s + lm_term(typed_n));
+            for (c, before) in manglish.completions.iter_mut().zip(completions_before) {
+                for (text, spelled) in &spelled_before {
+                    if *spelled > before {
+                        let after = spelled + lm_term(text);
+                        c.score = c.score.min(after - 1e-3);
+                    }
+                }
+            }
+            // The standard spelling keeps its place against the rare one, whatever context
+            // says of each: it is the rare form's word.
+            if let Some((text, rare, offset)) = &manglish.neighbour {
+                let rare = manglish
+                    .exact
+                    .iter()
+                    .map(|(c, _)| c)
+                    .chain(&manglish.side)
+                    .filter(|c| &c.text == rare)
+                    .map(|c| c.score)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                for c in manglish
+                    .exact
+                    .iter_mut()
+                    .map(|(c, _)| c)
+                    .chain(&mut manglish.side)
+                    .filter(|c| &c.text == text)
+                {
+                    c.score = c.score.max(rare + offset);
+                }
+            }
         }
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
@@ -842,6 +907,13 @@ impl Engine {
         // correction may replace: space never commits an unfinished word.
         let capitals = Capitals::of(typed_n, mid_sentence);
         let may_replace = autocorrect && !learned && !capitals.acronym;
+        // A Malayalam word the typed letters spell out counts for more against English,
+        // unless an English word comes before it (`rank::MANGLISH_SPELLED_OVER_CORRECTION`).
+        let spelled_bonus = if manglish_bias <= rank::CONTEXT_AFTER_ENGLISH {
+            0.0
+        } else {
+            rank::MANGLISH_SPELLED_OVER_CORRECTION
+        };
         // Candidates that take the first side slots whatever their scores.
         let mut first_sides: Vec<Candidate> = Vec::new();
         let english_completions: Vec<Candidate> = {
@@ -905,13 +977,7 @@ impl Engine {
                     .as_ref()
                     .is_some_and(|(_, cost)| cost.is_some_and(|c| c > fuzzy::CHEAP_EDIT));
             // A Malayalam word with exactly the typed skeleton competes as a
-            // correction; one the typed letters spell out counts for more
-            // against English, unless an English word comes before it.
-            let spelled_bonus = if manglish_bias <= rank::CONTEXT_AFTER_ENGLISH {
-                0.0
-            } else {
-                rank::MANGLISH_SPELLED_OVER_CORRECTION
-            };
+            // correction (with `spelled_bonus`).
             let malayalam = manglish
                 .exact
                 .iter()
@@ -920,8 +986,12 @@ impl Engine {
                     (c.clone(), against_english)
                 })
                 .max_by(|a, b| a.1.total_cmp(&b.1))
-                // A capitalised word after an English word is a name in English text.
-                .filter(|_| !(capitals.deliberate && manglish_bias <= rank::CONTEXT_AFTER_ENGLISH));
+                // A capitalised word after an English word is a name in English text, whatever
+                // the LM's bias: `Add Rahul and Priya` (−1.4 there) became പ്രിയ.
+                .filter(|_| {
+                    !(capitals.deliberate
+                        && (after_english || manglish_bias <= rank::CONTEXT_AFTER_ENGLISH))
+                });
             match (english, malayalam) {
                 // Too close to call: keep what was typed and offer both.
                 (Some((e, _)), Some((m, m_score)))
@@ -1152,6 +1222,12 @@ impl Engine {
         let Some((text, _)) = neighbour else {
             return;
         };
+        let offset = if middle_spelled.is_some() {
+            rank::MANGLISH_NEIGHBOUR_PROMOTION
+        } else {
+            -rank::MANGLISH_NEIGHBOUR_PENALTY
+        };
+        found.neighbour = Some((text.clone(), best.text.clone(), offset));
         match middle_spelled {
             // The rare form would take the middle: the standard one takes it
             // instead, on the rare form's evidence, and the rare form moves aside.
@@ -1343,7 +1419,7 @@ impl Engine {
                 let score = lex.log_prob(count)
                     - rank::COMPLETION_PENALTY
                     - rank::COMPLETION_PER_CHAR * extra
-                    + scores.map_or(0.0, |s| s.weighted(word));
+                    + self.lm_term(scores, word);
                 others.push(Candidate {
                     text: word.to_string(),
                     kind: Kind::Completion,
@@ -1382,31 +1458,28 @@ impl Engine {
     }
 
     /// Next words from the LM (design §6): for each of its likeliest word-start pieces, the
-    /// lexicon words whose first token it is, scored `ln p(t | ctx) + lang(t) + ln P_lex(w | t)`
-    /// plus the weighted `next.fst` bigram where it has pairs for the previous word.
+    /// lexicon words whose first token it is, scored `ln p(t | ctx) + lang(t) + ln P_lex(w | t)`,
+    /// and the previous word's `next.fst` followers scored the same way (a set phrase, ആധാർ
+    /// കാർഡ് or ഈഫൽ ടവർ, often begins with a piece outside the LM's likeliest), with the
+    /// `next.fst` bigram mixed in (`rank::NEXT_BIGRAM_WEIGHT`).
     fn lm_next_words(
         &self,
         scores: &dyn ContextScores,
         previous: Option<(&str, bool)>,
     ) -> Vec<Candidate> {
         let sentence_end = previous.is_some_and(|(_, end)| end);
-        let mut found = Vec::new();
+        let followers = self.followers(previous.map(|(w, _)| w));
+        // Each word with its first piece and lexicon count.
+        let mut pieces: Vec<(NextPiece, String, u64)> = Vec::new();
         for p in scores.next_pieces(rank::NEXT_PIECES) {
-            let lex = if p.latin {
-                &self.sources.english
-            } else {
-                &self.sources.malayalam
+            let Some(lex) = self.next_lexicon(&p) else {
+                continue;
             };
-            let Some(lex) = lex else { continue };
             // The piece itself, in its stored case (`i` is I), and the commonest words it
             // begins (ignoring case: `lon` begins London) whose first token it is.
-            let mut words: Vec<(String, u64)> = lex
-                .case_variants(p.text.as_bytes())
-                .into_iter()
-                .max_by_key(|(_, count)| *count)
-                .and_then(|(key, count)| Some((String::from_utf8(key).ok()?, count)))
-                .into_iter()
-                .collect();
+            if let Some(word) = stored_case(lex, &p.text) {
+                pieces.push((p.clone(), word.0, word.1));
+            }
             for (key, count) in lex.top_completions(p.text.as_bytes(), TOP_K) {
                 let Ok(word) = String::from_utf8(key) else {
                     continue;
@@ -1414,46 +1487,108 @@ impl Engine {
                 if word.len() > p.text.len()
                     && scores.first_piece(&word).as_deref() == Some(p.text.as_str())
                 {
-                    words.push((word, count));
+                    pieces.push((p.clone(), word, count));
                 }
             }
-            for (word, count) in words {
-                let bigram = self.bigram_log_prob(previous.map(|(w, _)| w), &word);
-                let score = p.log_p + lex.log_prob(count) - p.first_log_mass
-                    + bigram.map_or(0.0, |b| self.lm_weights.next_bigram * b);
-                let text = if sentence_end {
-                    capitalize(&word)
-                } else {
-                    word
-                };
-                found.push(Candidate {
-                    text,
-                    kind: Kind::NextWord,
-                    score,
-                });
+        }
+        for (word, _) in &followers {
+            let Some(p) = scores.piece_of(word) else {
+                continue;
+            };
+            if let Some((word, count)) = self.next_lexicon(&p).and_then(|l| stored_case(l, word)) {
+                pieces.push((p, word, count));
             }
         }
-        self.drop_removed(&mut found);
+        let b = f64::from(self.lm_weights.next_bigram);
+        let mut found: Vec<Candidate> = Vec::new();
+        for (p, word, count) in pieces {
+            let Some(lex) = self.next_lexicon(&p) else {
+                continue;
+            };
+            let bigram = followers
+                .iter()
+                .find(|(f, _)| f.eq_ignore_ascii_case(&word))
+                .map_or(0.0, |(_, p)| *p);
+            let text = if sentence_end {
+                capitalize(&word)
+            } else {
+                word
+            };
+            let lm = p.log_p + lex.log_prob(count) - p.first_log_mass;
+            found.push(Candidate {
+                text,
+                kind: Kind::NextWord,
+                score: ((1.0 - b) * f64::from(lm).exp() + b * bigram)
+                    .max(1e-30)
+                    .ln() as f32,
+            });
+        }
+        {
+            let user = self.user();
+            found.retain(|c| !user.is_removed(&c.text));
+        }
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
         found
     }
 
-    /// ln P(word | previous) from `next.fst`, or None when it has no pairs for `previous`.
-    /// `next.fst` keeps only each word's few commonest followers, so a word that isn't one
-    /// counts as the least of them (it is at most that common), not as never seen.
-    fn bigram_log_prob(&self, previous: Option<&str>, word: &str) -> Option<f32> {
-        let (lex, previous) = (self.sources.next_words.as_ref()?, previous?);
+    /// How often `word` was seen in its lexicon's text, all cases together (as `next.fst`
+    /// counts it); 0 for none.
+    fn word_count(&self, word: &str) -> u64 {
+        let word = normalize(word);
+        match text::script(&word) {
+            Script::Malayalam => self.malayalam_count(&word),
+            _ => self.sources.english.as_ref().map_or(0, |lex| {
+                lex.case_variants(word.as_bytes())
+                    .iter()
+                    .map(|(_, c)| c)
+                    .sum()
+            }),
+        }
+    }
+
+    /// The count of a Malayalam word in the lexicon, 0 for none.
+    fn malayalam_count(&self, word: &str) -> u64 {
+        self.sources
+            .malayalam
+            .as_ref()
+            .and_then(|ml| ml.get(word.as_bytes()))
+            .unwrap_or(0)
+    }
+
+    /// The lexicon a next-word piece's words come from.
+    fn next_lexicon(&self, p: &NextPiece) -> Option<&Lexicon> {
+        if p.latin {
+            self.sources.english.as_ref()
+        } else {
+            self.sources.malayalam.as_ref()
+        }
+    }
+
+    /// The followers `next.fst` keeps for `previous`, commonest first, each with its share of
+    /// their counts: P(word | previous), given that it is one of them.
+    fn followers(&self, previous: Option<&str>) -> Vec<(String, f64)> {
+        let (Some(lex), Some(previous)) = (&self.sources.next_words, previous) else {
+            return Vec::new();
+        };
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
-        let followers = lex.top_completions(&key, TOP_K);
-        let mass: u64 = followers.iter().map(|(_, count)| count).sum();
-        let least = followers.iter().map(|(_, count)| *count).min()?;
-        let count = followers
+        let found = lex.top_completions(&key, TOP_K);
+        // Out of every time `previous` was seen (`next.fst` is counted from the lexicons'
+        // text), not only before a kept follower: after ഞാൻ, a follower's share of the few
+        // kept is many times its probability.
+        let mass = found
             .iter()
-            .find(|(k, _)| k[key.len()..].eq_ignore_ascii_case(word.as_bytes()))
-            .map_or(least, |(_, count)| *count);
-        Some((count as f64 / mass as f64).ln() as f32)
+            .map(|(_, count)| count)
+            .sum::<u64>()
+            .max(self.word_count(previous));
+        found
+            .into_iter()
+            .filter_map(|(k, count)| {
+                let word = String::from_utf8(k[key.len()..].to_vec()).ok()?;
+                Some((word, count as f64 / mass as f64))
+            })
+            .collect()
     }
 
     /// M3a's next words: `next.fst`'s commonest followers of the previous word.
@@ -1541,6 +1676,9 @@ struct ManglishCandidates {
     /// Side slots only, and they don't stop a correction: rare words with the
     /// typed skeleton, or else the transliteration (names, words not in the list).
     side: Vec<Candidate>,
+    /// The standard spelling offered for a rare one (`Engine::add_standard_neighbour`): its
+    /// text, the rare form's, and its score's offset from the rare form's.
+    neighbour: Option<(String, String, f32)>,
 }
 
 /// A long typed word read as a near match of a key's first letters (`matched`) plus a
@@ -1645,6 +1783,15 @@ fn verbatim(typed: &str, score: f32) -> Candidate {
     }
 }
 
+/// The commonest case variant of `word` in `lex` (`i` is I), with its count.
+fn stored_case(lex: &Lexicon, word: &str) -> Option<(String, u64)> {
+    let (key, count) = lex
+        .case_variants(word.as_bytes())
+        .into_iter()
+        .max_by_key(|(_, count)| *count)?;
+    Some((String::from_utf8(key).ok()?, count))
+}
+
 /// Highest score first; of two candidates with the same text, the better one stays.
 fn sort_and_dedup(candidates: &mut Vec<Candidate>) {
     candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
@@ -1686,7 +1833,6 @@ fn arrange(
 mod tests {
     use super::*;
     use crate::lexicon::build;
-    use crate::lm_context::NextPiece;
 
     fn lex(words: &[(&str, u64)]) -> Option<Lexicon> {
         Some(
@@ -1820,6 +1966,10 @@ mod tests {
         fn next_pieces(&self, _k: usize) -> Vec<NextPiece> {
             self.next.clone()
         }
+        fn piece_of(&self, word: &str) -> Option<NextPiece> {
+            let first = self.first.get(word)?;
+            self.next.iter().find(|p| p.text == *first).cloned()
+        }
         fn first_piece(&self, word: &str) -> Option<String> {
             self.first.get(word).map(|s| s.to_string())
         }
@@ -1872,6 +2022,28 @@ mod tests {
         let lm = engine.suggest_scored("I feel pani", Layout::Latin, true, &fake);
         assert_ne!(m3a.candidates[0].text, "പണി");
         assert_eq!(lm.candidates[0].text, "പണി");
+    }
+
+    #[test]
+    fn context_lifts_no_completion_over_the_spelled_word() {
+        let engine = manglish_engine();
+        // `kee` spells കീ; കിളി is a completion, 2.3 behind without the LM.
+        let scores = |s: &Suggestions| {
+            let at = |w: &str| s.candidates.iter().find(|c| c.text == w).map(|c| c.score);
+            (at("കീ").unwrap(), at("കിളി").unwrap())
+        };
+        let (spelled, completion) = scores(&engine.suggest("എന്റെ kee", Layout::Latin, true));
+        assert!(spelled > completion + 2.0);
+        // Context lifts കിളി by 4.0, but not past കീ.
+        let fake = Fake {
+            bias: rank::CONTEXT_AFTER_MALAYALAM,
+            deltas: [("കിളി", 4.0)].into(),
+            ..Fake::default()
+        };
+        let lm = engine.suggest_scored("എന്റെ kee", Layout::Latin, true, &fake);
+        let (spelled_lm, completion_lm) = scores(&lm);
+        assert_eq!(spelled_lm, spelled);
+        assert!(completion_lm < spelled && completion_lm > spelled - 0.01);
     }
 
     #[test]
@@ -1999,11 +2171,13 @@ mod tests {
 
     #[test]
     fn lm_next_words_keep_the_stored_case_and_lean_on_the_bigram() {
+        // Each word is the whole lexicon mass of its piece, so its LM score is the piece's.
+        let third = (1f32 / 3.0).ln();
         let fake = Fake {
             next: vec![
-                piece("i", true, -1.0, -5.0),
-                piece("we", true, -0.8, -5.0),
-                piece("they", true, -0.79, -5.0),
+                piece("i", true, -1.0, third),
+                piece("we", true, -0.8, third),
+                piece("they", true, -0.79, third),
             ],
             ..Fake::default()
         };
@@ -2015,11 +2189,12 @@ mod tests {
             },
             UserStore::in_memory(),
         );
-        // The LM prefers "we" by 0.2; the bigram, 9:1 for "I", turns it at weight 0.25.
-        // "they" isn't among the followers `next.fst` keeps: it counts as the least of them.
+        // The LM prefers "they" and "we" to "I"; the bigram, 9:1 for "I", turns it at weight
+        // 0.25 (0.75 × 0.37 + 0.25 × 0.9 against 0.75 × 0.45 + 0.25 × 0.1). "they" isn't
+        // among the followers `next.fst` keeps: it gets no share of the bigram.
         assert_eq!(
             texts(&engine.suggest_scored("so ", Layout::Latin, true, &fake)),
-            ["I", "they", "we"]
+            ["I", "we", "they"]
         );
     }
 

@@ -32,9 +32,34 @@ pub fn vowel_sign_drops(word: &str) -> Vec<String> {
         .collect()
 }
 
+/// The other spelling of a final half-u: ഇന്ന് ↔ ഇന്നു. Older text (Wikisource, much of
+/// Wikipedia) ends such words with ു where chat writes ് (samvruthokaram).
+pub fn other_final_u(word: &str) -> Option<String> {
+    let stem = word
+        .strip_suffix('\u{0D41}')
+        .or_else(|| word.strip_suffix('\u{0D4D}'))?;
+    if !stem.chars().last().is_some_and(is_consonant) {
+        return None;
+    }
+    let other = if word.ends_with('\u{0D41}') {
+        '\u{0D4D}'
+    } else {
+        '\u{0D41}'
+    };
+    Some(format!("{stem}{other}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_other_final_u_swaps_virama_and_u() {
+        assert_eq!(other_final_u("ഇന്ന്").as_deref(), Some("ഇന്നു"));
+        assert_eq!(other_final_u("അതു").as_deref(), Some("അത്"));
+        assert_eq!(other_final_u("വേണം"), None);
+        assert_eq!(other_final_u("ു"), None);
+    }
 
     #[test]
     fn vowel_sign_drops_drop_one_sign() {

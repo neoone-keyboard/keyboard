@@ -3,8 +3,6 @@
 //! Everything here is optional work: `sync` stops when told to and resumes on the next call,
 //! and until it has caught up the engine ignores the LM.
 
-use std::collections::HashMap;
-
 use crate::nn::lm::MAX_POSITION;
 use crate::nn::tokenizer::{BOS, WORD_START, flag, lm_normalize};
 use crate::nn::{Cache, Lm, LmScratch};
@@ -52,8 +50,6 @@ pub struct LmContext {
     ready: bool,
     fed: usize,
     scratch: LmScratch,
-    /// Tier-1 results for this context (Task 15).
-    pub(crate) memo: HashMap<String, f32>,
 }
 
 /// The tokens a context word is fed as: bos for "", else the word's tokens, at most
@@ -127,7 +123,6 @@ impl LmContext {
             self.next
                 .extend_from_slice(lm.next_log_probs(cache, &mut self.scratch));
             self.lang = lang(&self.next, lm);
-            self.memo.clear();
             self.ready = true;
         }
         true
@@ -220,8 +215,11 @@ pub trait ContextScores {
     fn weighted(&self, word: &str) -> f32;
     /// The same for the English words that begin with the typed letters, as one candidate.
     fn prefix_delta(&self, typed: &str) -> f32;
-    /// The `k` likeliest word-start pieces that are Latin or Malayalam script.
+    /// The `k` likeliest word-start pieces that are Latin or Malayalam script, in the next
+    /// word's language.
     fn next_pieces(&self, k: usize) -> Vec<NextPiece>;
+    /// The first piece of `word` as `next_pieces` would give it, if it would.
+    fn piece_of(&self, word: &str) -> Option<NextPiece>;
     /// The first piece of `word`, without its word mark, if it is a word-start piece.
     fn first_piece(&self, word: &str) -> Option<String>;
 }
@@ -236,7 +234,6 @@ pub struct LmWeights {
     pub lang_weight: f32,
     pub lang_offset: f32,
     pub next_bigram: f32,
-    pub tier1_gap: f32,
 }
 
 impl Default for LmWeights {
@@ -248,7 +245,6 @@ impl Default for LmWeights {
             lang_weight: rank::LANG_WEIGHT,
             lang_offset: rank::LANG_OFFSET,
             next_bigram: rank::NEXT_BIGRAM_WEIGHT,
-            tier1_gap: rank::TIER1_GAP,
         }
     }
 }
@@ -260,7 +256,43 @@ pub struct LmView<'a> {
     pub weights: LmWeights,
 }
 
+/// Next words are in the sentence's language (design §1): the likelier of the two. Its split
+/// per piece (`p_en`) is too rough to mix them: after `ente`, a share of `▁a`'s mass, which
+/// Manglish words begin, would offer English "a".
+fn next_in_english(lang: Lang) -> bool {
+    lang.log_en > lang.log_ml
+}
+
 impl LmView<'_> {
+    /// `(ln p(t | ctx) + lang(t), first_log_mass, latin)` for a word-start piece `t` in the
+    /// next word's language (`english`) that begins some lexicon word; None for any other.
+    fn next_piece(&self, t: u32, english: bool) -> Option<(f32, f32, bool)> {
+        let (f, tab, ctx) = (self.lm.tokenizer().flags(t), self.lm.tables(), self.ctx);
+        let (lp, lang, t) = (ctx.next()[t as usize], ctx.lang(), t as usize);
+        if f & flag::WORD_START == 0 || english != (f & flag::LATIN != 0) {
+            return None;
+        }
+        let (log_p, first, latin) = if f & flag::MALAYALAM != 0 {
+            (lp + lang.log_ml - lang.log_script, tab.first_ml[t], false)
+        } else if f & flag::LATIN != 0 {
+            (lp + tab.p_en[t].ln(), tab.first_en[t], true)
+        } else {
+            return None;
+        };
+        (log_p.is_finite() && first.is_finite()).then_some((log_p, first, latin))
+    }
+
+    /// `next_piece` as a `NextPiece`.
+    fn piece(&self, t: u32, english: bool) -> Option<NextPiece> {
+        let (log_p, first_log_mass, latin) = self.next_piece(t, english)?;
+        Some(NextPiece {
+            text: self.lm.tokenizer().piece(t)[WORD_START.len_utf8()..].to_string(),
+            latin,
+            log_p,
+            first_log_mass,
+        })
+    }
+
     /// The clamped tier-0 correction for `word` and whether it is Latin, or None when its
     /// first piece isn't a Latin or Malayalam word start, or the lexicon has no word starting
     /// with it (design §6).
@@ -325,31 +357,12 @@ impl ContextScores for LmView<'_> {
     }
 
     fn next_pieces(&self, k: usize) -> Vec<NextPiece> {
-        let (tok, tab) = (self.lm.tokenizer(), self.lm.tables());
-        let (next, lang) = (self.ctx.next(), self.ctx.lang());
-        // Next words are in the sentence's language (design §1): the likelier of the two.
-        // Its split per piece (`p_en`) is too rough to mix them: after `ente`, a share of
-        // `▁a`'s mass, which Manglish words begin, would offer English "a".
-        let english = lang.log_en > lang.log_ml;
-        // Word starts in that language that begin some lexicon word: (id, log_p, latin).
-        let mut found: Vec<(usize, f32, bool)> = Vec::new();
-        for (t, &lp) in next.iter().enumerate() {
-            let f = tok.flags(t as u32);
-            if f & flag::WORD_START == 0 || english != (f & flag::LATIN != 0) {
-                continue;
-            }
-            let (log_p, first, latin) = if f & flag::MALAYALAM != 0 {
-                (lp + lang.log_ml - lang.log_script, tab.first_ml[t], false)
-            } else if f & flag::LATIN != 0 {
-                (lp + tab.p_en[t].ln(), tab.first_en[t], true)
-            } else {
-                continue;
-            };
-            if log_p.is_finite() && first.is_finite() {
-                found.push((t, log_p, latin));
-            }
-        }
-        let by_score = |a: &(usize, f32, bool), b: &(usize, f32, bool)| b.1.total_cmp(&a.1);
+        let english = next_in_english(self.ctx.lang());
+        // Word starts in that language that begin some lexicon word: (id, log_p).
+        let mut found: Vec<(u32, f32)> = (0..self.ctx.next().len() as u32)
+            .filter_map(|t| Some((t, self.next_piece(t, english)?.0)))
+            .collect();
+        let by_score = |a: &(u32, f32), b: &(u32, f32)| b.1.total_cmp(&a.1);
         if found.len() > k {
             found.select_nth_unstable_by(k, by_score);
             found.truncate(k);
@@ -357,17 +370,13 @@ impl ContextScores for LmView<'_> {
         found.sort_by(by_score);
         found
             .into_iter()
-            .map(|(t, log_p, latin)| NextPiece {
-                text: tok.piece(t as u32)[WORD_START.len_utf8()..].to_string(),
-                latin,
-                log_p,
-                first_log_mass: if latin {
-                    tab.first_en[t]
-                } else {
-                    tab.first_ml[t]
-                },
-            })
+            .filter_map(|(t, _)| self.piece(t, english))
             .collect()
+    }
+
+    fn piece_of(&self, word: &str) -> Option<NextPiece> {
+        let &t = self.lm.tokenizer().word(word).first()?;
+        self.piece(t, next_in_english(self.ctx.lang()))
     }
 
     fn first_piece(&self, word: &str) -> Option<String> {
