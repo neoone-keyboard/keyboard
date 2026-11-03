@@ -210,7 +210,9 @@ final class KeyboardViewController: UIInputViewController {
     /// first word typed already has suggestions.
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); footprint \(Diagnostics.footprint())")
+        // The field's keyboard type (UIKeyboardType raw value: 4 number pad, 5 phone pad, 8 decimal pad,
+        // 11 ASCII number pad), to see which numeric fields iOS hands to this keyboard.
+        log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); field type \(textDocumentProxy.keyboardType?.rawValue ?? -1); footprint \(Diagnostics.footprint())")
         guard suggestions.isEnabled else { return }
         // The provider is shared: an earlier session may have shed it for memory.
         Task { [weak self, provider] in
