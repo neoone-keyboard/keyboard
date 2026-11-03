@@ -57,6 +57,21 @@ public enum Credits {
             licenceURL: "https://creativecommons.org/publicdomain/zero/1.0/",
             attribution: "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator. https://huggingface.co/datasets/ai4bharat/Aksharantar"
         ),
+        Credit(
+            id: "simplewiki", name: "Simple English Wikipedia", licence: "CC BY-SA 4.0",
+            licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
+            attribution: "Text of Simple English Wikipedia articles by Wikipedia contributors. https://simple.wikipedia.org/"
+        ),
+        Credit(
+            id: "enwikinews", name: "English Wikinews", licence: "CC BY 2.5 and CC BY 4.0",
+            licenceURL: "https://creativecommons.org/licenses/by/4.0/",
+            attribution: "News articles from English Wikinews, by Wikinews contributors. This work may be attributed to 'Wikinews'. https://en.wikinews.org/"
+        ),
+        Credit(
+            id: "gutenberg", name: "Project Gutenberg", licence: "Public domain",
+            licenceURL: "https://www.gutenberg.org/",
+            attribution: "Public-domain texts from Project Gutenberg. https://www.gutenberg.org/"
+        ),
     ]
 
     /// Open-source Rust crates linked into the keyboard's engine. The link is each crate's

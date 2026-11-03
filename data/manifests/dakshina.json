@@ -8,9 +8,9 @@
   "attribution": "Dakshina dataset by Google Research (Roark et al., 2020, LREC), CC BY-SA 4.0. Native-script text from Wikipedia; romanisations by Google's annotators.",
   "verdict": "use",
   "verdict_reason": "Share-alike, same position as Wikipedia (see the licence audit). Human romanisations are exactly what the rule probabilities need. Train split for training and for fitting the rule probabilities; dev and test splits held out for eval.",
-  "used_for": "Only ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv (native word, romanisation, annotator count). Train: transliterator training pairs and the romaniser's rule calibration (training/mlkb/data/calibrate.py). Dev: validation during training. Test: data/eval/translit-human.tsv (2,000 pairs). Dev and test words are kept out of every training pair. The romanized/ sentences and the native_script_wikipedia text (a copy of mlwiki) aren't used.",
+  "used_for": "ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv (native word, romanisation, annotator count), and for M3b the romanized/ rejoined dev and test sentences. Train: transliterator training pairs and the romaniser's rule calibration (training/mlkb/data/calibrate.py). Dev: validation during training. Test: data/eval/translit-human.tsv (2,000 pairs). Dev and test words are kept out of every training pair. The native_script_wikipedia text (a copy of mlwiki) isn't used. M3b: romanized/ rejoined dev sentences: data/eval/next-manglish*.tsv (eval only). Test sentences untouched. Both splits' sentences are removed from the M3b LM training text. The romaniser calibrated on the train split also writes the M3b synthetic Manglish LM text.",
   "retrieved": "2026-11-03",
-  "notes": "The tar holds all 12 languages (2,008,340,480 bytes). After data/fetch.sh, extract only the Malayalam lexicons: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/lexicons/*'. The SHA-256 of each extracted file is under `extracted`.",
+  "notes": "The tar holds all 12 languages (2,008,340,480 bytes). After data/fetch.sh, extract only the Malayalam lexicons: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/lexicons/*'. The SHA-256 of each extracted file is under `extracted`. For M3b: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/romanized/*' (training/mlkb/lm/sources.py does this).",
   "files": [
     {
       "url": "https://storage.googleapis.com/gresearch/dakshina/dakshina_dataset_v1.0.tar",
@@ -21,6 +21,10 @@
   "extracted": {
     "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.train.tsv": "f674db775d570785ce9ca27b95738824cf86222822ed5b23f841976b0a638bb9",
     "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.dev.tsv": "0b0b2da1dc949bde42461265f47010c9c24ff81de61b89681e7fa383e19361b3",
-    "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.test.tsv": "ccc081c6211a9a5ade9527872f60fdf72703dea1fb6f6c80afbd2b9032a4ef55"
+    "dakshina_dataset_v1.0/ml/lexicons/ml.translit.sampled.test.tsv": "ccc081c6211a9a5ade9527872f60fdf72703dea1fb6f6c80afbd2b9032a4ef55",
+    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.dev.native.txt": "f06ea4486b2072ceb65b2fa7e490d5d6094df75d19a2c938d42603c18b9ca3ef",
+    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.dev.roman.txt": "dfb56d39d4c83fcd80017eaaf9df2309b10d23a3dd81f045018f59e17ac0fd58",
+    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.test.native.txt": "f8b60a3cd94835a552fb7879bd58b622bd8827b3c3a374828b32c01acc788a11",
+    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.test.roman.txt": "2c679b43f7d839cd50a4f74644707270cea372d53c30427414c6fbba8cc8d8a0"
   }
 }

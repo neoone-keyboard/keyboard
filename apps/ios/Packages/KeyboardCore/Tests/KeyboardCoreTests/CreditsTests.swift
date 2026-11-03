@@ -13,12 +13,17 @@ private struct Manifest: Decodable {
     let licence: String
     let verdict: String?
     let status: String?
+    let used_for: String?
 
     /// Only third-party data that reaches the app needs a credit. A manifest with a
     /// `status` ("audited, not fetched", "fetched, not used yet") isn't in
     /// anything shipped yet, eval-only data never is, and "own work" (hand-written
     /// lists in data/) has no one else to credit.
     var isShipped: Bool { verdict != "eval only" && verdict != "own work" && status == nil }
+
+    /// Text for the M3b language model. The model ships later, but its sources are credited
+    /// from the moment they are fetched for training.
+    var isM3bTraining: Bool { used_for?.contains("M3b LM text (training)") ?? false }
 }
 
 @Test func everyShippedManifestIsCreditedWithItsLicence() throws {
@@ -26,13 +31,18 @@ private struct Manifest: Decodable {
     let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
         .filter { $0.pathExtension == "json" }
     #expect(!files.isEmpty, "no manifests in \(dir.path)")
-    let manifests = try files.map { try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: $0)) }
-        .filter(\.isShipped)
+    let all = try files.map { try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: $0)) }
+    let manifests = all.filter(\.isShipped)
     for manifest in manifests {
         let credit = Credits.dataSources.first { $0.id == manifest.id }
         #expect(credit?.licence == manifest.licence, "\(manifest.id) is not credited with \(manifest.licence)")
     }
-    #expect(Set(manifests.map(\.id)) == Set(Credits.dataSources.map(\.id)), "a credit has no manifest")
+    let training = all.filter { $0.isM3bTraining && !$0.isShipped }
+    #expect(!training.isEmpty, "no manifest is marked as M3b LM training text")
+    for manifest in training {
+        #expect(Credits.dataSources.contains { $0.id == manifest.id }, "\(manifest.id) trains the M3b LM but has no credit")
+    }
+    #expect(Set((manifests + training).map(\.id)) == Set(Credits.dataSources.map(\.id)), "a credit has no manifest")
 }
 
 /// engine/shipped-crates.txt is generated from `cargo tree -p mlengine-ffi` and kept fresh by

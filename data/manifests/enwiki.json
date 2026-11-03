@@ -6,7 +6,7 @@
   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
   "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
   "attribution": "Text of English Wikipedia articles by Wikipedia contributors.",
-  "used_for": "English word frequencies and next-word pairs: the first 6 of 27 article files of the 2026-10-01 dump, capped at 500 million words.",
+  "used_for": "English word frequencies and next-word pairs: the first 6 of 27 article files of the 2026-10-01 dump, capped at 500 million words. Also M3b LM text (training): the first 230M words of data/raw/text/en.txt.",
   "retrieved": "2026-11-02",
   "mirrors": [
     "https://dumps.wikimedia.your.org/",
