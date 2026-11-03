@@ -5,7 +5,7 @@
   "licence": "CC BY-SA 3.0",
   "licence_url": "https://creativecommons.org/licenses/by-sa/3.0/",
   "attribution": "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project.",
-  "used_for": "Extra Malayalam words (names, places, lemmas) kept even when rare in Wikipedia. Only words/*.txt at commit d1e6431; the text/ corpus is excluded because its news and web-crawl files don't state their own licences, and mlwiki-all-unique-words duplicates Malayalam Wikipedia.",
+  "used_for": "Extra Malayalam words (names, places, lemmas) kept even when rare in Wikipedia. Only words/*.txt at commit d1e6431; the text/ corpus is excluded because its news and web-crawl files don't state their own licences, and mlwiki-all-unique-words duplicates Malayalam Wikipedia. Also M3b: english-borrowed.txt marks Malayalam words as English loanwords for the synthetic Manglish and mixed-script LM text (training/mlkb/lm/corpus.py); only the words are used, as a filter.",
   "retrieved": "2026-11-02",
   "files": [
     {
