@@ -13,9 +13,12 @@ Reads data/raw/text/ (see `mlkb.lm.sources` and data/build-lexicons.sh) and writ
 | `mixed-{0,1}.txt` | `ml.txt` through `mix_sentence`, `frac` ~ U(0.2, 0.8) per sentence, `p_loan` 0.3 |
 | `valid-<bucket>.txt` | the held-out paragraphs of each source, with the same transforms |
 
-Rules (design §5): paragraphs are deduplicated exactly after masking numbers (Gutenberg's
-consecutive dialogue copies excepted); every sentence that is in an eval set, or is a Dakshina
-romanised dev or test sentence, is cut out of its paragraph (`is_leak`); 1/`VALID_EVERY` of the
+Rules (design §5, §10): paragraphs are deduplicated exactly after masking numbers (Gutenberg's
+consecutive dialogue copies excepted); training paragraphs lose runs of one repeated unit past
+`MAX_RUN` characters (`cut_runs`) and every sentence of `TEMPLATE_MIN_WORDS` or more words past
+the first `TEMPLATE_CAP` with its digits-masked key (`keep_template`); every sentence that is in
+an eval set, or is a Dakshina romanised dev or test sentence, is cut out of its paragraph
+(`is_leak`); 1/`VALID_EVERY` of the
 paragraphs of every source is held out by a hash of its first 64 characters; and 30% of the
 paragraphs of every bucket lose their punctuation (chat register).
 
@@ -75,6 +78,22 @@ TRANSLITERATED_WORDS = 60_000  # most frequent English words run through the tra
 LOANWORD_ENDINGS = ("ും", "ിൽ", "ന്റെ", "ുടെ", "ിനെ", "ിന്", "ിനു", "ക്ക്", "ാണ്", "ായി", "ിലെ", "ോട്", "ോടെ")
 # Sources whose consecutive identical paragraphs are kept: Gutenberg writes dialogue three times.
 REPEATS_KEPT = frozenset({"en-gutenberg"})
+# Templated sentences (design §10): a training sentence of at least `TEMPLATE_MIN_WORDS` words
+# is kept only while fewer than `TEMPLATE_CAP` sentences with its key (digits masked) have been,
+# across all sources. Wikipedia's place articles repeat their census sentences thousands of times
+# with only the numbers changed ("for every 100 females there were 0 males", 4,864 times), and
+# the v1 model recited 53-60 tokens of them. How often a sequence is duplicated is what drives
+# memorisation; three copies in about one epoch is a handful of sightings, and still teaches the
+# model the wording, which one copy might not. Shorter sentences ("he retired in 0.", or "c." left by the
+# sentence split) can't make up a long run, and capping them would cut ordinary text.
+TEMPLATE_CAP, TEMPLATE_MIN_WORDS = 3, 6
+# Runs of one unit (design §10): a unit of up to 8 characters repeated 4 or more times in a run
+# longer than `MAX_RUN` characters ("1000000000000000", ". . . . . .", "൦൦൦൦൦൦") is cut to the
+# whole units that fit in `MAX_RUN`, and to no fewer than 3. Digits and these marks are one
+# token each, so no 16-token window of training text is one loop, and a model that loops
+# can't match a long run of it. `MAX_RUN` keeps every number up to 10^12.
+MAX_RUN = 12
+_RUN = re.compile(r"(.{1,8}?)\1{3,}")
 
 # (bucket, raw file, word cap)
 ENGLISH = (
@@ -122,6 +141,31 @@ def is_leak(sentence: str, leaks: set[int]) -> bool:
     if len(bare.split()) < MIN_LEAK_WORDS:
         return False
     return dedupe_key(sentence) in leaks or dedupe_key(bare) in leaks
+
+
+def _cut_run(m: re.Match) -> str:
+    unit, run = m.group(1), m.group()
+    if len(run) <= MAX_RUN:
+        return run
+    return unit * max(3, MAX_RUN // len(unit))
+
+
+def cut_runs(text: str) -> str:
+    """The text with every run of one unit longer than `MAX_RUN` characters cut short."""
+    return _RUN.sub(_cut_run, text)
+
+
+def keep_template(sentence: str, counts: dict[int, int]) -> bool:
+    """Whether a training sentence (`lm_normalize`d) stays: fewer than `TEMPLATE_MIN_WORDS`
+    words, or fewer than `TEMPLATE_CAP` kept before it with the same key. Counts what it keeps."""
+    if len(sentence.split()) < TEMPLATE_MIN_WORDS:
+        return True
+    key = _key(sentence)
+    n = counts.get(key, 0)
+    if n >= TEMPLATE_CAP:
+        return False
+    counts[key] = n + 1
+    return True
 
 
 def _eval_strings(path: Path) -> Iterator[str]:
@@ -308,16 +352,38 @@ def _lines(path: Path) -> Iterator[str]:
                 yield line.rstrip("\n")
 
 
+def _filter_training(norm: str, templates: dict[int, int], stats: dict) -> str:
+    """`cut_runs`, then `keep_template` on each sentence; counts what goes into `stats`."""
+    cut = cut_runs(norm)
+    if len(cut) < len(norm):
+        stats["runs_cut"] += sum(len(m.group()) > MAX_RUN for m in _RUN.finditer(norm))
+        stats["run_chars"] += len(norm) - len(cut)
+    parts = sentences(cut)
+    kept = [s for s in parts if keep_template(s, templates)]
+    if len(kept) < len(parts):
+        stats["template_sentences"] += len(parts) - len(kept)
+        stats["template_words"] += sum(len(s.split()) for s in parts) - sum(len(s.split()) for s in kept)
+        return " ".join(kept)
+    return cut
+
+
 def clean_source(
     bucket: str, path: Path, cap: int | None, seen: set[int], leaks: set[int], rng: random.Random,
     train_out, valid_out, on_valid: Callable[[str, str], None] | None = None,
+    templates: dict[int, int] | None = None,
 ) -> dict:
     """Dedupes, cuts leaks, splits off validation and applies the chat transform for one source.
-    `train_out` / `valid_out` get the cleaned paragraph (with its punctuation) and the bucket's
-    transformed text. Returns the bucket's counts."""
+    Training paragraphs then lose long runs (`cut_runs`) and templated sentences past the cap
+    (`keep_template`, counted in `templates`, shared across sources); held-out ones stay as they
+    were, so validation losses compare across corpus versions. `train_out` / `valid_out` get the
+    cleaned paragraph (with its punctuation) and the bucket's transformed text. Returns the
+    bucket's counts."""
     stats = {"paragraphs": 0, "words": 0, "valid_paragraphs": 0, "valid_words": 0,
-             "duplicates": 0, "leaks_removed": 0, "raw_words": 0}
+             "duplicates": 0, "leaks_removed": 0, "raw_words": 0, "runs_cut": 0, "run_chars": 0,
+             "template_sentences": 0, "template_words": 0, "template_paragraphs": 0}
+    templates = {} if templates is None else templates
     previous = None
+    repeat: tuple[int, str] | None = None  # the last training paragraph's key and filtered text
     for raw in _lines(path):
         if cap is not None and stats["raw_words"] >= cap:
             break
@@ -340,6 +406,16 @@ def clean_source(
                 continue
             norm = " ".join(kept)
         valid = _is_valid(norm)
+        if not valid:
+            if repeat is not None and repeat[0] == key:  # a kept repeat (`REPEATS_KEPT`) stays a copy
+                norm = repeat[1]
+            else:
+                norm = _filter_training(norm, templates, stats)
+                repeat = (key, norm)
+            if not norm:
+                stats["template_paragraphs"] += 1
+                rng.random()  # the draw `_chat` would have made, so the held-out samples don't move
+                continue
         (valid_out if valid else train_out)(norm, _chat(norm, rng))
         prefix = "valid_" if valid else ""
         stats[prefix + "paragraphs"] += 1
@@ -442,6 +518,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(loanwords):,} loanwords", file=sys.stderr)
     summary: dict[str, dict] = {}
     seen: set[int] = set()
+    templates: dict[int, int] = {}
+    # memorise.py's record of where Wikisource begins in ml.txt: the paragraph count moves.
+    (out / "sources.tsv").unlink(missing_ok=True)
 
     # Malayalam first: the synthetic buckets are built from its clean text while English runs.
     rng = random.Random(args.seed)
@@ -454,7 +533,8 @@ def main(argv: list[str] | None = None) -> int:
             tune_ml.add(s)
 
     train, valid = _Writer(out / "ml.txt", work / "ml-clean.txt"), _Writer(out / "valid-ml.txt", work / "valid-ml-clean.txt")
-    summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml)
+    summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml,
+                                 templates)
     train.close()
     valid.close()
     print(f"ml: {summary['ml']}  ({time.time() - start:.0f}s)", file=sys.stderr)
@@ -479,7 +559,8 @@ def main(argv: list[str] | None = None) -> int:
                         tune_en.add(s)
 
             train, valid = _Writer(out / f"{bucket}.txt"), _Writer(out / f"valid-{bucket}.txt")
-            summary[bucket] = clean_source(bucket, RAW_TEXT / name, cap, seen, leaks, rng, train, valid, on_valid_en)
+            summary[bucket] = clean_source(bucket, RAW_TEXT / name, cap, seen, leaks, rng, train, valid,
+                                           on_valid_en, templates)
             train.close()
             valid.close()
             print(f"{bucket}: {summary[bucket]}  ({time.time() - start:.0f}s)", file=sys.stderr)
