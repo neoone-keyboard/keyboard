@@ -108,12 +108,23 @@ pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
 /// 0.781 / 0.567, −0.75 0.775 / 0.572, −1.0 (the floor) 0.775 / 0.570; before,
 /// 0.733 / 0.322. English wrong-replacements stayed at 0.0064 throughout. The
 /// human set's single words sit at the sentence start, where the floor bit hardest.
+///
+/// User-reported on device: `nanni` (നന്ദി) put നണ്ണി (−12.45; the model's runner-up at
+/// −0.44, after നന്നി at −0.11) in the middle through this relief. Granting it only to
+/// the model's first lexicon spelling cost chat top-1 0.782 → 0.773 (ഇപ്പോ, വേണ്ടേ,
+/// പുട്ട് lost) and left `bank` in the middle, so the relief stays; `nanni` is a chat
+/// form (`data/chat-forms.tsv`) instead.
 pub const MANGLISH_MODEL_CONFIDENT: f32 = -0.5;
 /// At most `MANGLISH_EXACT_BONUS`, so a candidate let in by the relief still
 /// clears `MIN_REPLACE` once the fit bonus is added (the final check in
 /// `suggest_latin`). 1.0 helped less (chat 0.765, human 0.497 at −0.5).
 pub const MANGLISH_MODEL_CONFIDENT_RELIEF: f32 = 1.5;
 const _: () = assert!(MANGLISH_MODEL_CONFIDENT_RELIEF <= MANGLISH_EXACT_BONUS);
+/// Manglish: a chat spelling from `data/chat-forms.tsv` (`nanni` → നന്ദി, `pwoli` → പൊളി)
+/// may take the middle this far below `MIN_REPLACE`, like a confident model reading:
+/// a hand-checked row is evidence the word is meant. Not where English is likely.
+/// പൊളി (−12.9, −13.9 at the start) needs it; നന്ദി and എന്റെ clear the floor anyway.
+pub const MANGLISH_CHAT_FORM_RELIEF: f32 = MANGLISH_MODEL_CONFIDENT_RELIEF;
 /// A rare spelling with one medial vowel sign more than a word at least this
 /// much more probable is a loose spelling of it: loose typing puts a vowel
 /// between consonants (`malayalam::vowel_sign_drops`; a final sign is

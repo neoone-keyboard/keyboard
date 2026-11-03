@@ -1,0 +1,170 @@
+# Indian English vocabulary for the English lexicon (en.fst), hand-written for this
+# repository; see data/manifests/indian-english.json. One word per line, in the spelling
+# the keyboard shows. `lexbuild --english-list` keeps every word here whatever its
+# Wikipedia count (the count, when there is one, still ranks it).
+#
+# What belongs here: words people type in English sentences in India and Kerala that
+# English Wikipedia uses too rarely to pass the unlisted-word threshold, so autocorrect
+# "fixes" them (Vishu -> Fish, biryani -> Britain, PNR -> ONE).
+#
+# What does not: a lowercase word that is also the usual Manglish spelling of a Malayalam
+# word (dosa, payasam, appam, puttu, sadya, vada, paisa, mundu, pooja ...). A word in the
+# English lexicon is never replaced, so listing it would stop `dosa` ever becoming ദോശ.
+# A word already in the lexicon keeps its own spelling (`pan`, not PAN): an all-capitals
+# abbreviation of up to four letters is never autocorrected anyway (engine.rs, `Capitals`).
+# Proper nouns are listed capitalised: a capitalised entry only matches a capitalised
+# word, so lowercase Manglish (`onam`, `vishu`, `munnar`) still converts. Personal names
+# are left out: a name at the start of a message is as likely Manglish as English.
+
+# Festivals and greetings
+Onam
+Vishu
+Thiruvathira
+Pooram
+Eid
+Bakrid
+Ramzan
+Muharram
+Mubarak
+Deepavali
+Holi
+Navratri
+Dussehra
+Pongal
+Sankranti
+Ugadi
+Lohri
+Baisakhi
+Rakhi
+Janmashtami
+Chaturthi
+
+# Kerala: districts, towns, places
+Munnar
+Ooty
+Thekkady
+Vagamon
+Kovalam
+Varkala
+Kumarakom
+Alleppey
+Alappuzha
+Ernakulam
+Thrissur
+Kozhikode
+Calicut
+Kannur
+Kasaragod
+Palakkad
+Malappuram
+Kottayam
+Idukki
+Wayanad
+Pathanamthitta
+Thiruvananthapuram
+Trivandrum
+Guruvayur
+Sabarimala
+Aluva
+Angamaly
+Kakkanad
+Edappally
+Kalamassery
+Technopark
+Infopark
+
+# Elsewhere in India
+Bengaluru
+Mysuru
+Mangaluru
+Mangalore
+Coimbatore
+Kodaikanal
+Kanyakumari
+Puducherry
+Pondicherry
+Gurugram
+Gurgaon
+Noida
+
+# Kerala arts
+Kathakali
+Mohiniyattam
+Theyyam
+Kalaripayattu
+
+# Food and dress written the English way (not the Manglish spelling)
+biryani
+idli
+chapati
+chapathi
+parotta
+porotta
+paratha
+paneer
+masala
+tikka
+samosa
+pakora
+chaat
+lassi
+kulfi
+jalebi
+ladoo
+laddu
+korma
+pulao
+naan
+kurta
+kurti
+salwar
+dupatta
+lungi
+saree
+
+# Money, travel and everyday Indian English
+lakh
+lakhs
+crore
+crores
+rupees
+autorickshaw
+tiffin
+prepone
+preponed
+Aadhaar
+
+# Abbreviations
+PNR
+OTP
+UPI
+KYC
+IFSC
+NEFT
+RTGS
+EMI
+GST
+IRCTC
+KSRTC
+KSEB
+PSC
+SSLC
+CBSE
+ICSE
+NEET
+JEE
+IIT
+IIM
+ISRO
+UPSC
+IAS
+IPS
+MLA
+RTO
+RTI
+NRI
+OBC
+LPG
+MBBS
+BTech
+MTech

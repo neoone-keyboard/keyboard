@@ -18,7 +18,8 @@ const MALAYALAM: &[(&str, u64)] = &[
     ("എന്റെ", 3_000_000), ("എന്ത്", 1_500_000), ("ഞാൻ", 2_500_000), ("വീട്", 400_000),
     ("വീട്ടിൽ", 300_000), ("അവൻ", 900_000), ("മലയാളം", 600_000), ("പണി", 20_000),
     ("ഹലോ", 5_000), ("മാൻ", 20_000), ("ഇല്ല", 2_000_000), ("അമ്മ", 700_000),
-    ("എന്റേത്", 50_000), ("തേ", 3_000), ("ഉറങ്ങി", 22),
+    ("എന്റേത്", 50_000), ("തേ", 3_000), ("ഉറങ്ങി", 22), ("നന്ദി", 300_000),
+    ("നണ്ണി", 40_000),
     // Stems for suffix splitting; none of the joined forms is listed.
     ("സുഖം", 300_000), ("കഴിച്ചു", 200_000), ("വരുന്നു", 400_000), ("വന്നു", 800_000),
     ("പൊട്ടാട്ട്", 50_000),
@@ -231,4 +232,31 @@ fn short_words_are_not_split() {
     let engine = engine();
     assert!(!has(&engine, "vano", "വന്നോ"));
     assert!(has(&engine, "vanno", "വന്നോ"));
+}
+
+#[test]
+fn chat_forms_reach_their_word() {
+    // `data/chat-forms.tsv`: nanni is നന്ദി as said, though ന്ദ romanises nd and the
+    // skeleton lookup alone finds only നണ്ണി. nte is എന്റെ with the vowel dropped.
+    let engine = engine();
+    for (typed, want) in [("nanni", "നന്ദി"), ("Nanni", "നന്ദി"), ("nte", "എന്റെ")]
+    {
+        assert_eq!(
+            middle(&engine, typed),
+            (want.into(), Kind::Manglish),
+            "{typed}"
+        );
+    }
+    assert_eq!(middle(&engine, "nandi").0, "നന്ദി");
+}
+
+#[test]
+fn a_capitalised_word_after_english_stays_a_name() {
+    let engine = engine();
+    assert_eq!(middle(&engine, "and ente").0, "എന്റെ");
+    assert_eq!(middle(&engine, "and Ente"), ("Ente".into(), Kind::Verbatim));
+    assert!(has(&engine, "and Ente", "എന്റെ"));
+    // Not after Malayalam, and not at the start, where the keyboard capitalises.
+    assert_eq!(middle(&engine, "Ente").0, "എന്റെ");
+    assert_eq!(middle(&engine, "ഞാൻ Ente").0, "എന്റെ");
 }

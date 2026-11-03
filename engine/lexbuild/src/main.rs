@@ -8,7 +8,8 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use lexbuild::{
-    Config, NextWords, count_words, english_vocab, malayalam_vocab, read_word_list, write_bundle,
+    Config, NextWords, count_words, english_vocab, malayalam_vocab, read_hand_list, read_word_list,
+    write_bundle,
 };
 use mlengine_core::text::Script;
 
@@ -24,6 +25,10 @@ struct Args {
     /// SCOWL word list, one word per line.
     #[arg(long)]
     scowl: PathBuf,
+    /// Hand-written English word lists (`data/indian-english.txt`), one word per
+    /// line, `#` comments: always kept, in the listed spelling.
+    #[arg(long = "english-list")]
+    english_list: Vec<PathBuf>,
     /// Malayalam word lists (SMC), one word per line.
     #[arg(long = "smc")]
     smc: Vec<PathBuf>,
@@ -71,7 +76,11 @@ fn run(args: Args) -> io::Result<()> {
         smc.extend(read_word_list(open(path)?)?);
     }
 
-    let english = english_vocab(&en_counts, &scowl, &config);
+    let mut extra = HashSet::new();
+    for path in &args.english_list {
+        extra.extend(read_hand_list(open(path)?)?);
+    }
+    let english = english_vocab(&en_counts, &scowl, &extra, &config);
     let malayalam = malayalam_vocab(&ml_counts, &smc, &config);
     drop((en_counts, ml_counts));
 

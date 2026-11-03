@@ -1,0 +1,23 @@
+# Chat spellings of common Malayalam words that no general rule reaches: latin<TAB>malayalam.
+# Hand-written for this repository; see data/manifests/chat-forms.json. Compiled into the
+# engine (engine/core/src/chat_forms.rs). A typed word matching a row (ignoring case) offers
+# its Malayalam word as if the letters spelled it out.
+#
+# Only genuinely irregular forms belong here. Before adding a row, check that the skeleton
+# lookup and the transliterator don't already reach the word, and that the irregularity is
+# specific to the word rather than a rule (a rule belongs in romanize.rs). Measured on the
+# Dakshina romanisation lexicon (Google Research, ml.translit.sampled.*): of 843 romanisations
+# of words with ന്ദ, only നന്ദി and നന്ദിയുടെ were written with "nn"; 784 used "nd". So the
+# spoken nd -> nn of നന്ദി is a property of that word, not a spelling rule.
+#
+# നന്ദി (thank you), said and typed "nanni". User-reported on device, 2026-11-03.
+nanni	നന്ദി
+# എന്റെ / എന്താ / എന്ത് with the initial vowel dropped, as in chat ("nte veedu", "ntha?").
+# The skeleton lookup reads these as the fragment tokens ന്റെ and ന്ത from the corpus.
+nte	എന്റെ
+nde	എന്റെ
+ntha	എന്താ
+nthu	എന്ത്
+# പൊളി (great, slang), spelled "pwoli": the w marks the rounded o of the spoken word.
+pwoli	പൊളി
+pwolichu	പൊളിച്ചു

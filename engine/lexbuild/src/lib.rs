@@ -127,14 +127,37 @@ pub fn read_word_list(reader: impl BufRead) -> io::Result<HashSet<String>> {
     Ok(set)
 }
 
+/// Reads a hand-written word list: one word per line, blank lines and lines
+/// starting with `#` skipped, normalised.
+pub fn read_hand_list(reader: impl BufRead) -> io::Result<HashSet<String>> {
+    let mut set = HashSet::new();
+    for line in reader.lines() {
+        let line = line?;
+        let word = line.trim();
+        if !word.is_empty() && !word.starts_with('#') {
+            set.insert(normalize(word));
+        }
+    }
+    Ok(set)
+}
+
 /// English words: surface forms merged by lowercase, filtered and capped.
 /// Sorted by count, highest first. Each keeps one spelling (see `display_form`).
+///
+/// `extra` is a hand-written list (`data/indian-english.txt`): words of Indian
+/// English that Wikipedia uses too rarely to pass `english_unlisted_min`
+/// (Vishu, biryani, PNR). Each is kept whatever its count (at least 1, like an
+/// SMC entry in Malayalam) and shown in the list's spelling, unless it is a
+/// word already (`PAN` is the English `pan`, which keeps its own spelling).
 pub fn english_vocab(
     counts: &Counts,
     scowl: &HashSet<String>,
+    extra: &HashSet<String>,
     config: &Config,
 ) -> Vec<(String, u64)> {
     let scowl_lower: HashSet<String> = scowl.iter().map(|w| lookup_key(w)).collect();
+    let extra_lower: HashMap<String, &str> =
+        extra.iter().map(|w| (lookup_key(w), w.as_str())).collect();
     let mut forms: HashMap<String, Vec<(&str, u64)>> = HashMap::new();
     for (form, &count) in counts {
         if form.len() <= config.max_english_len && form.matches('\'').count() <= 1 {
@@ -144,6 +167,10 @@ pub fn english_vocab(
                 .push((form, count));
         }
     }
+    // A listed word Wikipedia never uses is still kept.
+    for key in extra_lower.keys() {
+        forms.entry(key.clone()).or_default();
+    }
     let mut vocab: Vec<(String, u64)> = forms
         .into_iter()
         .filter_map(|(key, forms)| {
@@ -151,7 +178,14 @@ pub fn english_vocab(
             let listed = scowl_lower.contains(&key);
             let keep =
                 (listed && total >= config.min_count) || total >= config.english_unlisted_min;
-            keep.then(|| (display_form(&key, &forms, total, scowl), total))
+            if keep {
+                // Already a word: the list never respells it (`pan` stays, not `PAN`).
+                Some((display_form(&key, &forms, total, scowl), total))
+            } else {
+                extra_lower
+                    .get(&key)
+                    .map(|word| (word.to_string(), total.max(1)))
+            }
         })
         .collect();
     sort_and_cap(&mut vocab, config.english_max);
@@ -465,7 +499,12 @@ mod tests {
             english_unlisted_min: 3,
             ..Config::default()
         };
-        let vocab = english_vocab(&c, &set(&["the", "London", "I", "i", "hello"]), &config);
+        let vocab = english_vocab(
+            &c,
+            &set(&["the", "London", "I", "i", "hello"]),
+            &HashSet::new(),
+            &config,
+        );
         let mut got: Vec<&str> = vocab.iter().map(|(w, _)| w.as_str()).collect();
         got.sort();
         // hello: listed in lowercase and used in lowercase, despite Hello being more common.
@@ -485,12 +524,43 @@ mod tests {
             english_unlisted_min: 10,
             ..Config::default()
         };
-        assert!(english_vocab(&c, &HashSet::new(), &rare).is_empty());
+        assert!(english_vocab(&c, &HashSet::new(), &HashSet::new(), &rare).is_empty());
         let common = Config {
             english_unlisted_min: 5,
             ..rare
         };
-        assert_eq!(english_vocab(&c, &HashSet::new(), &common).len(), 1);
+        assert_eq!(
+            english_vocab(&c, &HashSet::new(), &HashSet::new(), &common).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn listed_indian_english_is_kept_in_its_own_spelling() {
+        // Vishu is too rare for an unlisted word, PNR is in no corpus here, and
+        // biryani's capitalised uses (menus, titles) outnumber its lowercase ones.
+        let config = Config {
+            min_count: 3,
+            english_unlisted_min: 100,
+            ..Config::default()
+        };
+        let c = counts(
+            &format!("Vishu vishu Biryani Biryani biryani zork {}", "pan ".repeat(5)),
+            Script::Latin,
+        );
+        let scowl = set(&["pan"]);
+        let extra = set(&["Vishu", "biryani", "PNR", "PAN"]);
+        let mut vocab = english_vocab(&c, &scowl, &extra, &config);
+        vocab.sort();
+        assert_eq!(
+            vocab,
+            [
+                ("PNR".to_string(), 1),
+                ("Vishu".to_string(), 2),
+                ("biryani".to_string(), 3),
+                ("pan".to_string(), 5),
+            ]
+        );
     }
 
     #[test]
@@ -519,7 +589,7 @@ mod tests {
             min_count: 1,
             ..Config::default()
         };
-        let vocab = english_vocab(&c, &set(&["a", "b", "c"]), &config);
+        let vocab = english_vocab(&c, &set(&["a", "b", "c"]), &HashSet::new(), &config);
         assert_eq!(
             vocab.iter().map(|(w, _)| w.as_str()).collect::<Vec<_>>(),
             ["a", "b"]
@@ -546,6 +616,12 @@ mod tests {
             i_entries,
             [&(b"i\0am".to_vec(), 2), &(b"i\0will".to_vec(), 2)]
         );
+    }
+
+    #[test]
+    fn hand_lists_skip_comments() {
+        let list = read_hand_list("# festivals\nOnam\n\n  PNR \n#biryani\n".as_bytes()).unwrap();
+        assert_eq!(list, set(&["Onam", "PNR"]));
     }
 
     #[test]
@@ -707,14 +783,15 @@ mod tests {
             min_count: 1,
             ..Config::default()
         };
-        let en = english_vocab(&c, &set(&["the", "cat", "dog"]), &config);
+        let en = english_vocab(&c, &set(&["the", "cat", "dog"]), &HashSet::new(), &config);
         let build_once = || {
             let dir = tempfile::tempdir().unwrap();
             let mut next = NextWords::new(&en, &config);
             next.add_corpus("the cat the dog the cat".as_bytes(), None)
                 .unwrap();
             write_bundle(dir.path(), &en, &[], &next.entries(3)).unwrap();
-            ["en.fst", "ml.fst", "manglish.fst", "next.fst"].map(|n| fs::read(dir.path().join(n)).unwrap())
+            ["en.fst", "ml.fst", "manglish.fst", "next.fst"]
+                .map(|n| fs::read(dir.path().join(n)).unwrap())
         };
         assert_eq!(build_once(), build_once());
     }
