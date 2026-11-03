@@ -53,9 +53,9 @@ fn is_closing(c: char) -> bool {
     )
 }
 
-/// An email or handle (it has an `@`) or a URL (it starts with `http://`, `https://` or
-/// `www.`, in any case), with a letter or digit. Typed as one word: never corrected,
-/// and learned whole.
+/// An email or handle (it has an `@`), a URL (it starts with `http://`, `https://` or
+/// `www.`, in any case) or a dotted word (`is_dotted`), with a letter or digit. Typed as
+/// one word: never corrected, and learned whole.
 pub fn is_address(token: &str) -> bool {
     let starts = |prefix: &str| {
         token
@@ -66,40 +66,27 @@ pub fn is_address(token: &str) -> bool {
         || starts("http://")
         || starts("https://")
         || starts("www.")
-        || is_domain(token))
+        || is_dotted(token))
         && token.chars().any(char::is_alphanumeric)
 }
 
-/// Top-level domains that make `name.tld` (and `name.tld/path`) an address. Not ones that
-/// are English words (`it`, `is`, `to`, `no` …): `end.it` is a missed space, not a site.
-pub const DOMAIN_ENDINGS: [&str; 34] = [
-    "com", "net", "org", "edu", "gov", "mil", "int", "io", "dev", "app", "ai", "co", "uk", "in",
-    "me", "ca", "de", "fr", "jp", "au", "nz", "sg", "ae", "ly", "gg", "tv", "info", "biz", "xyz",
-    "tech", "site", "online", "store", "blog",
-];
+/// `a.b.c`, `e.g.`, `3.14`, `googel.com`: a full stop with more typed after it. A full
+/// stop ends a word only when whitespace follows it (`hello.`, `hello.)`).
+fn is_dotted(token: &str) -> bool {
+    without_trailing_punctuation(token).contains('.')
+}
 
-/// `example.com`, `example.com/blog`, `gov.in`: labels of letters, digits and hyphens joined by
-/// dots, the last one in `DOMAIN_ENDINGS`, then an optional `/path`.
-fn is_domain(token: &str) -> bool {
-    let host = token.split('/').next().unwrap_or(token);
-    let mut labels = host.split('.');
-    let Some(ending) = host.rsplit('.').next() else {
-        return false;
-    };
-    host.contains('.')
-        && labels.all(|l| !l.is_empty() && l.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
-        && DOMAIN_ENDINGS.iter().any(|e| e.eq_ignore_ascii_case(ending))
+/// `word` less the punctuation, brackets and quotes typed after it (`(e.g.),` → `(e.g`).
+fn without_trailing_punctuation(word: &str) -> &str {
+    word.trim_end_matches(|c: char| matches!(c, '.' | ',' | ';' | ':' | '?' | '!') || is_closing(c))
 }
 
 /// An address as it is learned, without the brackets, quotes and punctuation typed
-/// around it (`(priya@example.com),`); None for a word that is no address.
+/// around it (`(priya@example.com),`); None for a word that is no address, or one without
+/// a letter (`3.14`: numbers are never learned).
 pub fn learnable_address(word: &str) -> Option<&str> {
-    let trimmed = word
-        .trim_start_matches(is_opening)
-        .trim_end_matches(|c: char| {
-            matches!(c, '.' | ',' | ';' | ':' | '?' | '!') || is_closing(c)
-        });
-    is_address(trimmed).then_some(trimmed)
+    let trimmed = without_trailing_punctuation(word.trim_start_matches(is_opening));
+    (is_address(trimmed) && trimmed.chars().any(char::is_alphabetic)).then_some(trimmed)
 }
 
 fn is_apostrophe(c: char) -> bool {
@@ -303,14 +290,24 @@ mod tests {
     }
 
     #[test]
-    fn other_punctuation_still_ends_a_word() {
+    fn a_full_stop_with_more_typed_after_it_is_inside_the_word() {
         assert_eq!(current_word("x.com"), "x.com");
         assert_eq!(current_word("see example.com/blog"), "example.com/blog");
-        assert_eq!(current_word("end.it"), "it", "a missed space, not a site");
-        assert_eq!(current_word("x.co"), "x.co");
-        assert_eq!(current_word("x.c"), "c", "not a domain yet");
-        assert_eq!(current_word("wwwx.com"), "wwwx.com");
+        assert_eq!(current_word("end.it"), "end.it");
+        assert_eq!(current_word("googel.c"), "googel.c");
+        assert_eq!(current_word("so a.b.c"), "a.b.c");
+        assert_eq!(current_word("(e.g"), "e.g");
+        assert_eq!(current_word("pi 3.14"), "3.14");
+        assert_eq!(current_word("e.g.,"), "e.g.,");
+    }
+
+    #[test]
+    fn a_full_stop_before_whitespace_still_ends_a_word() {
         assert_eq!(current_word("hello."), "");
+        assert_eq!(current_word("hello..."), "");
+        assert_eq!(current_word("(hello.)"), "");
+        assert_eq!(current_word("Hello. Wor"), "Wor");
+        assert_eq!(current_word("well-known"), "known");
         assert_eq!(current_word("@"), "");
         assert_eq!(current_word("me @"), "");
     }
@@ -331,12 +328,28 @@ mod tests {
         assert!(is_address("www.x"));
         assert!(!is_address("@"));
         assert!(is_address("x.com"));
-        assert!(is_address("Google.COM"));
-        assert!(is_address("mail.gov.in"));
-        assert!(!is_address("end.it"));
+        assert!(is_address("end.it"));
+        assert!(is_address("a..com"));
+        assert!(is_address("e.g."));
         assert!(!is_address("hello."));
-        assert!(!is_address("a..com"));
+        assert!(!is_address("hello.\u{201D}"));
+        assert!(!is_address("..."));
         assert!(!is_address("hello"));
+    }
+
+    #[test]
+    fn dotted_words_are_learned_without_the_punctuation_after_them() {
+        assert_eq!(learnable_address("(e.g.),"), Some("e.g"));
+        assert_eq!(learnable_address("a.b.c"), Some("a.b.c"));
+        assert_eq!(learnable_address("hello."), None);
+        assert_eq!(learnable_address("3.14"), None, "numbers are never learned");
+    }
+
+    #[test]
+    fn previous_word_after_a_dotted_word() {
+        assert_eq!(previous_word("so a.b.c "), Some(("a.b.c", false)));
+        assert_eq!(previous_word("see e.g. "), Some(("e.g", true)));
+        assert_eq!(previous_word("teh. "), Some(("teh", true)));
     }
 
     #[test]

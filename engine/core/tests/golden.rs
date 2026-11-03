@@ -433,6 +433,43 @@ fn without_a_learned_address_punctuation_ends_a_word() {
     let engine = engine();
     assert_eq!(engine.suggest("neo.", Layout::Latin, true).typed, "");
     assert_eq!(engine.suggest("x.com", Layout::Latin, true).typed, "x.com");
-    assert_eq!(engine.suggest("end.it", Layout::Latin, true).typed, "it");
     assert!(engine.learned_addresses().is_empty());
+}
+
+#[test]
+fn a_full_stop_with_more_typed_after_it_is_inside_the_word() {
+    let engine = engine();
+    for typed in ["a.b.c", "e.g", "googel.com", "end.it", "teh.teh"] {
+        let s = engine.suggest(&format!("so {typed}"), Layout::Latin, true);
+        assert_eq!(s.typed, typed);
+        assert_eq!(middle(&engine, typed), (typed.into(), Kind::Verbatim));
+    }
+}
+
+#[test]
+fn a_full_stop_before_whitespace_ends_the_sentence() {
+    let engine = engine();
+    let s = engine.suggest("teh.", Layout::Latin, true);
+    assert_eq!(s.typed, "");
+    assert!(
+        s.candidates.iter().all(|c| c.kind == Kind::NextWord),
+        "{s:?}"
+    );
+    assert_eq!(middle(&engine, "hello. teh").0, "The");
+}
+
+#[test]
+fn a_dotted_word_committed_twice_is_learned_and_completed() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    engine.note_committed("a.b.c.");
+    assert!(!texts(&engine, "a.b").contains(&"a.b.c".to_string()));
+    engine.note_committed("a.b.c");
+    for typed in ["a.", "a.b", "so a.b"] {
+        assert!(
+            texts(&engine, typed).contains(&"a.b.c".to_string()),
+            "{typed}"
+        );
+    }
+    assert_eq!(engine.learned_addresses(), ["a.b.c"]);
 }
