@@ -169,6 +169,11 @@ impl Engine {
         guarded(|| self.inner.remove_word(&word))
     }
 
+    /// The learned emails and URLs: the keyboard treats letters that begin one as one word.
+    pub fn learned_addresses(&self) -> Result<Vec<String>, EngineError> {
+        guarded(|| self.inner.learned_addresses())
+    }
+
     /// Which lexicons loaded, for diagnostics ("english", "malayalam", ...).
     pub fn loaded_sources(&self) -> Result<Vec<String>, EngineError> {
         guarded(|| self.inner.loaded_sources().into_iter().map(String::from).collect())
@@ -391,7 +396,10 @@ mod tests {
         let engine = Engine::new(config.clone()).unwrap();
         engine.learn("Thom".into()).unwrap();
         engine.note_committed("Anu".into()).unwrap();
+        engine.learn("sam@example.com".into()).unwrap();
+        assert_eq!(engine.learned_addresses().unwrap(), ["sam@example.com"]);
         engine.forget_learned().unwrap();
+        assert!(engine.learned_addresses().unwrap().is_empty());
         drop(engine);
         let _ = std::fs::remove_dir_all(dir);
     }

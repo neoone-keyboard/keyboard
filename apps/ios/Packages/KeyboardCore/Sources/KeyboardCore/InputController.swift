@@ -48,6 +48,9 @@ public final class InputController {
     public var autocorrectEnabled = true
     /// A password field: nothing typed is reported for learning.
     public var secureTextEntry = false
+    /// The engine's learned emails and URLs. Letters that begin one are one word with
+    /// their punctuation (`neo.9` of sam.2024@example.com), as in the engine. May be a little stale.
+    public var learnedAddresses: [String] = []
 
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
@@ -169,7 +172,7 @@ public final class InputController {
     /// The word before the cursor, as the host shares it ("" after a space).
     /// A leading quote isn't part of it (`'teh` → `teh`), as in the engine.
     public var currentWord: String {
-        String(Self.word(endingAt: output.contextBefore ?? ""))
+        String(word(endingAt: output.contextBefore ?? ""))
     }
 
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
@@ -187,7 +190,7 @@ public final class InputController {
         lastReplacement = nil
         suggestions = .empty
         let context = output.contextBefore ?? ""
-        let word = Self.word(endingAt: context)
+        let word = self.word(endingAt: context)
         if !word.isEmpty { delete(String(word), from: context) }
         output.insertText(text + " ")
         shift = shift.afterCharacter
@@ -263,12 +266,12 @@ public final class InputController {
     private func commitMiddle(separator: String) -> Bool {
         guard autocorrectEnabled, language == .english else { return false }
         let context = output.contextBefore ?? ""
-        let word = String(Self.word(endingAt: context))
+        let word = String(self.word(endingAt: context))
         guard !word.isEmpty,
               Self.straight(suggestions.typed) == Self.straight(word),
               keptWord.map({ Self.straight($0) != Self.straight(word) }) ?? true,
               !Self.containsMalayalam(word),
-              !Self.isAddress(word[...]),
+              address(endingAt: context) == nil,
               !Self.looksLikeCodeOrAddress(before: context.dropLast(word.count)),
               let middle = suggestions.middle,
               middle.kind == .correction || middle.kind == .manglish,
@@ -319,7 +322,18 @@ public final class InputController {
     /// Whether typing `mark` keeps or makes an address (`priya@example` + `.`, `www` + `.`):
     /// then it is part of the word, not punctuation that ends it.
     private func continuesAddress(with mark: String) -> Bool {
-        Self.isAddress(Self.token(endingAt: (output.contextBefore ?? "") + mark))
+        address(endingAt: (output.contextBefore ?? "") + mark) != nil
+    }
+
+    /// The address at the end of `context`: a `token` that `isAddress`, or one of two
+    /// characters or more that begins a learned address and runs past the plain word
+    /// (`neo.9`). Matches the engine's `Engine::current_word`.
+    private func address(endingAt context: String) -> Substring? {
+        let token = Self.token(endingAt: context)
+        if Self.isAddress(token) { return token }
+        guard token.count >= 2, token != Self.plainWord(endingAt: context) else { return nil }
+        let lower = token.lowercased()
+        return learnedAddresses.contains { $0.lowercased().hasPrefix(lower) } ? token : nil
     }
 
     /// Learning events go to the engine, except from a password field.
@@ -348,7 +362,8 @@ public final class InputController {
     private func noteCommittedWord() {
         let word = currentWord
         guard !word.isEmpty,
-              Self.isAddress(word[...]) || (autocorrectEnabled && suggestions.isFor(word: word))
+              address(endingAt: output.contextBefore ?? "") != nil
+                || (autocorrectEnabled && suggestions.isFor(word: word))
         else { return }
         report(.committed(word))
     }
@@ -386,12 +401,16 @@ public final class InputController {
         return context[index...]
     }
 
-    /// The word being typed at the end of `context`, without leading
+    /// The word being typed at the end of `context`: an address (`address(endingAt:)`)
+    /// whole, otherwise the `plainWord`.
+    private func word(endingAt context: String) -> Substring {
+        address(endingAt: context) ?? Self.plainWord(endingAt: context)
+    }
+
+    /// The letters, digits and apostrophes at the end of `context`, without leading
     /// apostrophes (an opening quote), and "" when it has no letter or digit.
-    /// An address is the whole `token`. Matches the engine's `text::current_word`.
-    private static func word(endingAt context: String) -> Substring {
-        let token = token(endingAt: context)
-        if isAddress(token) { return token }
+    /// Matches the engine's `text::current_word` for a word that is no address.
+    private static func plainWord(endingAt context: String) -> Substring {
         let word = wordSuffix(of: context, includingSpaces: false).drop { isApostrophe($0) }
         return word.contains { $0.isLetter || $0.isNumber } ? word : word.suffix(0)
     }

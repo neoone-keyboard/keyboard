@@ -20,6 +20,8 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// The last reason a request was refused, so each refusal is logged once, not per key.
     private var refusalLogged: String?
     private var loadedSources: [String] = []
+    /// The last `learnedAddresses` read from the engine.
+    private var addresses: [String] = []
 
     init(config: EngineConfig) {
         self.config = config
@@ -101,6 +103,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// Must work even when the engine is shed or failed to open: an engine with
     /// no lexicons opens only the learned-word store, which is cheap.
     func forgetLearned() {
+        addresses = []
         if let engine {
             try? engine.forgetLearned()
         } else {
@@ -116,6 +119,16 @@ actor EngineSuggestionProvider: SuggestionProvider {
         } else {
             try? Engine(config: EngineConfig(userDir: config.userDir)).removeWord(word: word)
         }
+    }
+
+    /// The learned emails and URLs, for `InputController.learnedAddresses`. Asked after the
+    /// engine opens and after each learning, removal or forget; while the engine is shed or
+    /// not yet open, the last list read.
+    func learnedAddresses() -> [String] {
+        if let engine, let found = try? engine.learnedAddresses() {
+            addresses = found
+        }
+        return addresses
     }
 
     /// For the diagnostics report: what is open now, and why not if nothing is.

@@ -103,14 +103,18 @@ final class KeyboardViewController: UIInputViewController {
             Task { [weak self, provider] in
                 await provider.remove(word)
                 guard let self else { return }
+                refreshLearnedAddresses()
                 lastRequest = nil
                 requestSuggestions()
                 refreshTopBar()
             }
         }
         // Learning runs on the provider's actor; the main thread never waits for it.
-        input.onLearningEvent = { [provider] event in
-            Task { await provider.handle(event) }
+        input.onLearningEvent = { [weak self, provider] event in
+            Task {
+                await provider.handle(event)
+                self?.refreshLearnedAddresses()
+            }
         }
 
         settingsPanel.onChange = { [unowned self] changed in
@@ -120,8 +124,11 @@ final class KeyboardViewController: UIInputViewController {
         settingsPanel.onDone = { [unowned self] in hideSettings() }
         settingsPanel.onInsertDiagnostics = { [unowned self] in insertDiagnostics() }
         // The actor clears the log and the in-memory store; the main thread doesn't wait.
-        settingsPanel.onForgetLearned = { [provider] in
-            Task { await provider.forgetLearned() }
+        settingsPanel.onForgetLearned = { [weak self, provider] in
+            Task {
+                await provider.forgetLearned()
+                self?.refreshLearnedAddresses()
+            }
         }
 
         stack.addArrangedSubview(topBar)
@@ -171,9 +178,19 @@ final class KeyboardViewController: UIInputViewController {
         log.info("Appeared; prediction \(suggestions.isEnabled ? "on" : "off"); footprint \(Diagnostics.footprint())")
         guard suggestions.isEnabled else { return }
         // The provider is shared: an earlier session may have shed it for memory.
-        Task { [provider] in
+        Task { [weak self, provider] in
             await provider.resume()
             await provider.warmUp()
+            self?.refreshLearnedAddresses()
+        }
+    }
+
+    /// Gives the input controller the engine's learned addresses, so letters that begin one
+    /// are one word there too. Read off the main thread; a list a key or two stale is fine.
+    private func refreshLearnedAddresses() {
+        Task { [weak self, provider] in
+            let addresses = await provider.learnedAddresses()
+            self?.input.learnedAddresses = addresses
         }
     }
 
