@@ -42,6 +42,7 @@ for f in "$RAW"/smc-words/*.txt; do smc+=(--smc "$f"); done
 rm -rf "$RAW/bundle"
 "$ROOT/engine/target/release/lexbuild" \
   --english "$TEXT/en.txt" --malayalam "$TEXT/ml.txt" --scowl "$TEXT/scowl.txt" "${smc[@]}" \
+  --english-list "$ROOT/data/indian-english.txt" \
   --out "$RAW/bundle"
 
 mkdir -p "$OUT"

@@ -6,7 +6,7 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 # Stamped into the keyboard extension for its diagnostics report.
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
-ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
+ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
 .PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons models bench eval spike-assets
 

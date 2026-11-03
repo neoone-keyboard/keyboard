@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
+use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::malayalam;
@@ -181,7 +182,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, 0.0)
+                .suggest_latin(word, word, true, false, false, 0.0)
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -205,8 +206,16 @@ impl Engine {
                 let before = &context_before[..context_before.len() - typed.len()];
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
+                let mid_sentence = previous.is_some_and(|(_, end)| !end);
                 let bias = self.manglish_bias(previous.map(|(word, _)| word));
-                self.suggest_latin(typed, &typed_n, autocorrect, sentence_start, bias)
+                self.suggest_latin(
+                    typed,
+                    &typed_n,
+                    autocorrect,
+                    sentence_start,
+                    mid_sentence,
+                    bias,
+                )
             }
             (_, Script::Malayalam) | (Layout::Malayalam, _) => self.suggest_malayalam(typed),
             _ => vec![verbatim(typed, 0.0)],
@@ -255,6 +264,8 @@ impl Engine {
     }
 
     /// `typed` is shown as typed; `typed_n` (its normal form) is what is looked up.
+    /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
+    /// before it didn't (neither at the very start of the text).
     /// `manglish_bias` comes from the previous word's language (`manglish_bias`).
     fn suggest_latin(
         &self,
@@ -262,6 +273,7 @@ impl Engine {
         typed_n: &str,
         autocorrect: bool,
         sentence_start: bool,
+        mid_sentence: bool,
         manglish_bias: f32,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
@@ -278,6 +290,8 @@ impl Engine {
         // Another case of the typed word (`tom` → `Tom`): the best correction there is.
         let mut case_fix: Option<Candidate> = None;
         let mut corrections = Vec::new();
+        // Corrections to a name: the lexicon stores them capitalised (London, Kochi).
+        let mut names: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut completions = Vec::new();
 
         if let Some(lex) = &self.sources.english {
@@ -344,6 +358,9 @@ impl Engine {
                             ..candidate
                         });
                     } else {
+                        if word.starts_with(|c: char| c.is_ascii_uppercase()) {
+                            names.insert(candidate.text.clone());
+                        }
                         corrections.push(candidate);
                     }
                 });
@@ -384,7 +401,8 @@ impl Engine {
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
-        let replacement = if autocorrect && !learned && known_score.is_none() {
+        let capitals = Capitals::of(typed_n, mid_sentence);
+        let replacement = if autocorrect && !learned && known_score.is_none() && !capitals.acronym {
             let best_completion = completions
                 .iter()
                 .map(|c| c.score)
@@ -395,6 +413,10 @@ impl Engine {
                 Some(fix) => Some(fix.clone()),
                 None => corrections
                     .iter()
+                    .filter(|c| {
+                        !capitals.deliberate
+                            || (names.contains(&c.text) && same_first_letter(&c.text, typed_n))
+                    })
                     .max_by(|a, b| a.score.total_cmp(&b.score))
                     .cloned(),
             };
@@ -413,7 +435,9 @@ impl Engine {
                     let against_english = c.score + if *spelled { spelled_bonus } else { 0.0 };
                     (c.clone(), against_english)
                 })
-                .max_by(|a, b| a.1.total_cmp(&b.1));
+                .max_by(|a, b| a.1.total_cmp(&b.1))
+                // A capitalised word after an English word is a name in English text.
+                .filter(|_| !(capitals.deliberate && manglish_bias <= rank::CONTEXT_AFTER_ENGLISH));
             match (english, malayalam) {
                 // Too close to call: keep what was typed and offer both.
                 (Some(e), Some((m, m_score))) if (e.score - m_score).abs() < rank::AMBIGUOUS => {
@@ -500,6 +524,7 @@ impl Engine {
                 rank::MIN_REPLACE,
             );
         }
+        self.add_chat_form(typed_n, bias, &mut found);
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
         let splits = if found.exact.is_empty() && !english_word {
             self.scored_splits(lex, typed_n)
@@ -535,6 +560,35 @@ impl Engine {
             }
         }
         found
+    }
+
+    /// A chat spelling in `data/chat-forms.tsv` (`nanni` → നന്ദി) offers its word as if the
+    /// typed letters spelled it out, scored like a skeleton match with no distance. The
+    /// table is curated evidence, not a guess, so the word may take the middle a little
+    /// below `MIN_REPLACE` (`rank::MANGLISH_CHAT_FORM_RELIEF`), except where English is
+    /// likely (after an English word, or a capital), as for the model's confident readings.
+    fn add_chat_form(&self, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
+        let (Some(word), Some(ml)) = (chat_forms::lookup(typed_n), &self.sources.malayalam) else {
+            return;
+        };
+        let Some(count) = ml.get(word.as_bytes()) else {
+            return;
+        };
+        let english_likely = bias <= rank::CONTEXT_AFTER_ENGLISH
+            || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
+        let floor = if english_likely {
+            rank::MIN_REPLACE
+        } else {
+            rank::MIN_REPLACE - rank::MANGLISH_CHAT_FORM_RELIEF
+        };
+        found.push(
+            word.to_string(),
+            ml.log_prob(count) + bias,
+            rank::MANGLISH_EXACT_BONUS,
+            0,
+            true,
+            floor,
+        );
     }
 
     /// Offers the commonest Malayalam word one medial vowel sign (dropped) away
@@ -874,6 +928,42 @@ impl ManglishCandidates {
         } else {
             self.side.push(candidate);
         }
+    }
+}
+
+/// Capitals the user typed on purpose, which autocorrect respects. The keyboard
+/// capitalises the first word of the text and of each sentence on its own, so only a
+/// capital elsewhere, or a run of capitals, says anything.
+#[derive(Debug, Clone, Copy)]
+struct Capitals {
+    /// Two to four letters, all capitals (`PNR`, `OTP`): an abbreviation. Never replaced:
+    /// every short string is one edit from some word or other abbreviation (`PNR` → `ONE`).
+    acronym: bool,
+    /// An acronym, or a capitalised word mid-sentence (`for Vishu`, `to Munnar`): a
+    /// name. Corrected only to another name with its first letter (`Lodnon` → `London`,
+    /// not `Fish`, `Lunar` or `Rail`), and not replaced by Malayalam after an English
+    /// word (`Add Rahul`).
+    deliberate: bool,
+}
+
+impl Capitals {
+    fn of(typed: &str, mid_sentence: bool) -> Self {
+        let letters = typed.chars().filter(char::is_ascii_alphabetic).count();
+        let acronym = (2..=4).contains(&letters)
+            && letters == typed.chars().count()
+            && typed.chars().all(|c| c.is_ascii_uppercase());
+        let capital = typed.starts_with(|c: char| c.is_ascii_uppercase());
+        Self {
+            acronym,
+            deliberate: acronym || (capital && mid_sentence),
+        }
+    }
+}
+
+fn same_first_letter(a: &str, b: &str) -> bool {
+    match (a.chars().next(), b.chars().next()) {
+        (Some(x), Some(y)) => x.eq_ignore_ascii_case(&y),
+        _ => false,
     }
 }
 
