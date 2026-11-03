@@ -64,6 +64,10 @@ pub struct EngineConfig {
     pub translit: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
+    /// Milliseconds from the start of a suggest after which the transliterator stops and its
+    /// finished spellings are used (`mlengine_core::nn::Deadline`); nil lets it run to the end.
+    #[uniffi(default = None)]
+    pub model_deadline_ms: Option<u32>,
 }
 
 impl From<&EngineConfig> for mlengine_core::Paths {
@@ -96,6 +100,7 @@ impl From<mlengine_core::Kind> for CandidateKind {
 #[derive(uniffi::Object)]
 pub struct Engine {
     inner: mlengine_core::Engine,
+    model_deadline: Option<std::time::Duration>,
 }
 
 #[uniffi::export]
@@ -104,7 +109,14 @@ impl Engine {
     /// file is missing or corrupt: that source is just disabled.
     #[uniffi::constructor]
     pub fn new(config: EngineConfig) -> Result<Arc<Self>, EngineError> {
-        guarded(|| Arc::new(Self { inner: mlengine_core::Engine::open(&(&config).into()) }))
+        guarded(|| {
+            Arc::new(Self {
+                inner: mlengine_core::Engine::open(&(&config).into()),
+                model_deadline: config
+                    .model_deadline_ms
+                    .map(|ms| std::time::Duration::from_millis(ms.into())),
+            })
+        })
     }
 
     pub fn suggest(
@@ -118,7 +130,13 @@ impl Engine {
                 InputLayout::Latin => mlengine_core::Layout::Latin,
                 InputLayout::Malayalam => mlengine_core::Layout::Malayalam,
             };
-            let s = self.inner.suggest(&context_before, layout, autocorrect);
+            let start = std::time::Instant::now();
+            let budget = self.model_deadline.unwrap_or_default();
+            let left = || budget.saturating_sub(start.elapsed());
+            let deadline = self
+                .model_deadline
+                .map(|budget| mlengine_core::nn::Deadline { budget, left: &left });
+            let s = self.inner.suggest_until(&context_before, layout, autocorrect, deadline);
             Suggestions {
                 typed: s.typed,
                 candidates: s

@@ -43,9 +43,18 @@ actor EngineSuggestionProvider: SuggestionProvider {
             manglish: lexicon("manglish"),
             nextWords: lexicon("next"),
             translit: model("translit"),
-            userDir: userDir
+            userDir: userDir,
+            modelDeadlineMs: modelDeadlineMs
         ))
     }
+
+    /// Milliseconds into a suggest after which the transliterator stops and its finished
+    /// spellings are used (`EngineConfig.modelDeadlineMs`). Typing
+    /// leaves the CPU idle between keys, and a suggest that starts from idle runs 5–7× slower
+    /// than the same one back to back (iPhone 15 Pro Max, debug app's `-suggestCheck`): a
+    /// 4 ms suggest took 20–25 ms, past the coordinator's 15 ms, and the bar went empty. With
+    /// 8 ms, the slowest still end by about 11 ms.
+    static let modelDeadlineMs: UInt32 = 8
 
     func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult {
         try Task.checkCancellation()
@@ -133,7 +142,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             failedAt = nil
             refusalLogged = nil
             loadedSources = (try? created.loadedSources()) ?? []
-            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil); footprint \(Diagnostics.footprint())")
+            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil); footprint \(Diagnostics.footprint())")
             return created
         } catch {
             log.error("Engine failed to open: \(String(describing: error)); footprint \(Diagnostics.footprint())")

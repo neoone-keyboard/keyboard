@@ -1,14 +1,14 @@
 //! Golden checks and the latency gate on the real, committed lexicon bundle.
 //! `make lexicons` rebuilds it. Set MLENGINE_BUNDLE to test another directory.
 //!
-//! The transliterator rows also need the trained model, `training/build/translit.mlkbnn`,
-//! which isn't committed; they are skipped without it.
+//! The transliterator rows use the model the keyboard bundles,
+//! `apps/ios/KeyboardExtension/Models/translit.mlkbnn` (`make models`).
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
-use mlengine_core::nn::{Translit, Transliteration};
+use mlengine_core::nn::{Deadline, Translit, Transliteration};
 use mlengine_core::{Engine, Kind, Layout, Paths, rank, suffix};
 
 fn bundle_dir() -> PathBuf {
@@ -41,14 +41,19 @@ fn open_engine(translit: Option<PathBuf>) -> Engine {
     })
 }
 
+/// The keyboard's bundled model (MLENGINE_TRANSLIT to test another export).
 fn model_path() -> Option<PathBuf> {
-    let path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/translit.mlkbnn");
+    let path = std::env::var_os("MLENGINE_TRANSLIT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../apps/ios/KeyboardExtension/Models/translit.mlkbnn")
+        });
     if path.exists() {
         Some(path)
     } else {
         println!(
-            "skipping the transliterator: {} is missing (export it with mlkb.translit.export)",
+            "skipping the transliterator: {} is missing (`make models` builds it)",
             path.display()
         );
         None
@@ -485,13 +490,51 @@ fn translit_model_leaves_english_as_typed() {
     }
 }
 
+/// Out of time before the model starts, a suggest is the lexicon-only engine's; with time to
+/// spare, it is the unbounded one's.
+#[test]
+fn the_model_deadline_falls_back_to_the_lexicons() {
+    let Some(with) = model_engine() else { return };
+    let without = engine();
+    let budget = Duration::from_millis(10);
+    let (gone, plenty) = (|| Duration::ZERO, || budget);
+    for context in [
+        "sukhamano",
+        "I said avishyam",
+        "enthu",
+        "hrithvik",
+        "preferenc",
+        "ente veettil",
+        "Jishnu",
+    ] {
+        let late = Some(Deadline {
+            budget,
+            left: &gone,
+        });
+        assert_eq!(
+            with.suggest_until(context, Layout::Latin, true, late),
+            without.suggest(context, Layout::Latin, true),
+            "{context}"
+        );
+        let early = Some(Deadline {
+            budget,
+            left: &plenty,
+        });
+        assert_eq!(
+            with.suggest_until(context, Layout::Latin, true, early),
+            with.suggest(context, Layout::Latin, true),
+            "{context}"
+        );
+    }
+}
+
 /// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included.
 /// Run in release: `make bench`.
 #[test]
 #[ignore = "timing: run with `make bench` (release build)"]
 fn latency() {
-    // With the transliterator when it has been exported: that is what the keyboard runs.
-    let engine = model_engine().unwrap_or_else(engine);
+    // With the transliterator: that is what the keyboard runs.
+    let engine = model_engine().expect("the latency gate needs the bundled transliterator");
     println!("sources: {:?}", engine.loaded_sources());
     let words = [
         "the",
@@ -516,6 +559,11 @@ fn latency() {
         "teh",
         "becuase",
         "helo",
+        "preference",
+        "apostrophe",
+        "definitely",
+        "enthu",
+        "avishyam",
     ];
     let mut inputs: Vec<(String, Layout)> = Vec::new();
     for w in words {

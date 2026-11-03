@@ -408,14 +408,14 @@ fn nn_latency() {
     );
     report("random full-size model", &t);
 
-    let trained =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/translit.mlkbnn");
+    let trained = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../apps/ios/KeyboardExtension/Models/translit.mlkbnn");
     if trained.exists() {
         let t = Transformer::new(&ModelFile::open(&trained).unwrap()).unwrap();
-        report("training/build/translit.mlkbnn", &t);
+        report("the bundled translit.mlkbnn", &t);
     } else {
         println!(
-            "skipping the trained model: {} is missing (export it with mlkb.translit.export)",
+            "skipping the trained model: {} is missing (`make models` builds it)",
             trained.display()
         );
     }

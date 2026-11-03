@@ -88,10 +88,13 @@ enum RuntimeCheck {
 /// The keyboard's full suggest, timed per keystroke on the phone: the extension's bundled
 /// lexicons and model, words typed letter by letter after "I said ". Each word runs typed
 /// back to back (the CPU stays busy, as in a benchmark) and with a pause between keys (as when
-/// typing, so each suggest starts from an idle CPU). Launch the app with `-suggestCheck`;
+/// typing, so each suggest starts from an idle CPU), then paused with the keyboard's model
+/// deadline, marking keys whose bar it changed. Launch the app with `-suggestCheck`;
 /// the result is Documents/suggest-check.txt.
 enum SuggestCheck {
     static let words = ["preferenc", "apostrophe", "definitely", "enthu", "sukhamano", "avishyam"]
+    /// As the keyboard's `EngineSuggestionProvider.modelDeadlineMs`.
+    static let deadlineMs: UInt32 = 8
     static var output: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("suggest-check.txt")
@@ -107,35 +110,44 @@ enum SuggestCheck {
             return
         }
         let file = { (dir: String, name: String) in appex.appendingPathComponent(dir).appendingPathComponent(name).path }
-        let config = EngineConfig(
-            english: file("Lexicon", "en.fst"),
-            malayalam: file("Lexicon", "ml.fst"),
-            manglish: file("Lexicon", "manglish.fst"),
-            nextWords: file("Lexicon", "next.fst"),
-            translit: file("Models", "translit.mlkbnn"),
-            userDir: nil
-        )
-        guard let engine = try? Engine(config: config) else {
+        let config = { (deadline: UInt32?) in
+            EngineConfig(
+                english: file("Lexicon", "en.fst"),
+                malayalam: file("Lexicon", "ml.fst"),
+                manglish: file("Lexicon", "manglish.fst"),
+                nextWords: file("Lexicon", "next.fst"),
+                translit: file("Models", "translit.mlkbnn"),
+                userDir: nil,
+                modelDeadlineMs: deadline
+            )
+        }
+        guard let unbounded = try? Engine(config: config(nil)),
+              let bounded = try? Engine(config: config(deadlineMs))
+        else {
             text += "engine failed to open\n"
             write()
             return
         }
-        text += "sources \((try? engine.loadedSources()) ?? [])\n"
-        for word in words {  // warm the page cache
+        text += "sources \((try? unbounded.loadedSources()) ?? [])\n"
+        let bar = { (engine: Engine, context: String) in
+            ((try? engine.suggest(contextBefore: context, layout: .latin, autocorrect: true))?.candidates ?? []).map(\.text)
+        }
+        var full: [String: [String]] = [:]
+        for word in words {  // warm the page cache; the bar without a deadline
             for end in 1...word.count {
-                _ = try? engine.suggest(contextBefore: "I said " + word.prefix(end), layout: .latin, autocorrect: true)
+                let context = "I said " + word.prefix(end)
+                full[context] = bar(unbounded, context)
+                _ = bar(bounded, context)
             }
         }
-        let phases: [(String, Double, qos_class_t)] = [
-            ("back to back, user-initiated", 0, QOS_CLASS_USER_INITIATED),
-            ("150 ms between keys, user-initiated", 0.15, QOS_CLASS_USER_INITIATED),
-            ("150 ms between keys, user-interactive", 0.15, QOS_CLASS_USER_INTERACTIVE),
-            ("150 ms between keys, utility", 0.15, QOS_CLASS_UTILITY),
-            ("back to back, utility", 0, QOS_CLASS_UTILITY),
+        let phases: [(String, Double, Engine)] = [
+            ("back to back, no deadline", 0, unbounded),
+            ("150 ms between keys, model deadline \(deadlineMs) ms (* bar differs)", 0.15, bounded),
+            ("150 ms between keys, no deadline", 0.15, unbounded),
         ]
-        for (label, pause, qos) in phases {
-            pthread_set_qos_class_self_np(qos, 0)
+        for (label, pause, engine) in phases {
             var all: [Double] = []
+            var differs: [String] = []
             text += "\n\(label)\n"
             for word in words {
                 var line = word
@@ -143,16 +155,20 @@ enum SuggestCheck {
                     let context = "I said " + word.prefix(end)
                     if pause > 0 { Thread.sleep(forTimeInterval: pause) }
                     let start = ContinuousClock.now
-                    _ = try? engine.suggest(contextBefore: context, layout: .latin, autocorrect: true)
+                    let shown = bar(engine, context)
                     let ms = (ContinuousClock.now - start).milliseconds
                     all.append(ms)
-                    line += String(format: " %.1f", ms)
+                    line += String(format: " %.1f", ms) + (shown == full[context] ? "" : "*")
+                    if shown != full[context] {
+                        differs.append("\(word.prefix(end)): \(shown) for \(full[context] ?? [])")
+                    }
                 }
                 text += line + "\n"
             }
             all.sort()
             text += String(format: "p50 %.1f ms, p90 %.1f ms, max %.1f ms\n",
                            all[all.count / 2], all[all.count * 9 / 10], all[all.count - 1])
+            text += differs.map { "* \($0)\n" }.joined()
             write()
         }
         text += "done\n"

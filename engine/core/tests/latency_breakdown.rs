@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
-use mlengine_core::nn::Translit;
+use mlengine_core::nn::{Search, Translit};
 use mlengine_core::{Engine, Layout, Paths};
 
 fn root() -> PathBuf {
@@ -46,7 +46,15 @@ fn breakdown() {
     let model =
         Translit::open(&root().join("apps/ios/KeyboardExtension/Models/translit.mlkbnn")).unwrap();
     let ml = Lexicon::open(&root().join("apps/ios/KeyboardExtension/Lexicon/ml.fst")).unwrap();
-    for word in ["preferenc", "apostrophe", "definitely", "enthu", "sukhamano", "avishyam"] {
+    let en = Lexicon::open(&root().join("apps/ios/KeyboardExtension/Lexicon/en.fst")).unwrap();
+    for word in [
+        "preferenc",
+        "apostrophe",
+        "definitely",
+        "enthu",
+        "sukhamano",
+        "avishyam",
+    ] {
         println!("{word}");
         for end in 1..=word.len() {
             let typed = &word[..end];
@@ -54,11 +62,21 @@ fn breakdown() {
             let full = median(|| drop(with.suggest(&ctx, Layout::Latin, true)), 9);
             let base = median(|| drop(without.suggest(&ctx, Layout::Latin, true)), 9);
             let beam = median(|| drop(model.candidates(typed, &ml, 4)), 9);
-            let (_, tr) = model.candidates_traced(typed, &ml, &[], 4);
+            let search = Search {
+                width: 4,
+                ..Search::default()
+            };
+            let (_, tr) = model.search(typed, &ml, &[], &search);
+            let own: u64 = en
+                .case_variants(typed.as_bytes())
+                .iter()
+                .map(|(_, c)| c)
+                .sum();
+            let prefix = en.log_prob(en.subtree_count(typed.as_bytes()).saturating_sub(own));
             let top = with.suggest(&ctx, Layout::Latin, true);
             let shown: Vec<&str> = top.candidates.iter().map(|c| c.text.as_str()).collect();
             println!(
-                "  {typed:<12} full {:>5.2} no-model {:>5.2} beam {:>5.2} ms | steps {:>2} rows {:>3} prefix {:>4} clones {:>3} enc {:>4.2} dec {:>4.2} search {:>4.2} ms  {shown:?}",
+                "  {typed:<12} full {:>5.2} no-model {:>5.2} beam {:>5.2} ms | steps {:>2} rows {:>3} prefix {:>4} clones {:>3} enc {:>4.2} dec {:>4.2} search {:>4.2} ms en-prefix {prefix:>6.1} {shown:?}",
                 full.as_secs_f64() * 1e3,
                 base.as_secs_f64() * 1e3,
                 beam.as_secs_f64() * 1e3,

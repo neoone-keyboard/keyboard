@@ -12,4 +12,4 @@ pub mod vocab;
 
 pub use file::{Config, ModelFile, NnError, TensorRef};
 pub use transformer::{Decoder, DecoderState, Encoded, Transformer};
-pub use translit::{BeamTrace, Translit, Transliteration};
+pub use translit::{BeamTrace, Deadline, Search, Translit, Transliteration};
