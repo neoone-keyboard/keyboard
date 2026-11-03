@@ -126,3 +126,12 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     #expect(g.moved(to: CGPoint(x: 140, y: 10)) == [])
     #expect(g.ended() == [])
 }
+
+@Test func punctuationKeyShowsItsAlternatesSooner() {
+    var period = gesture(Key(.character("."), alternates: [",", "?", "!", "'"]))
+    #expect(period.tick(at: 0.15) == [])
+    #expect(period.tick(at: 0.21) == [.showAlternates([",", "?", "!", "'"])])
+    // A letter held as long is still a tap.
+    var letter = gesture(Key(.character("e"), alternates: ["3", "é"]))
+    #expect(letter.tick(at: 0.21) == [])
+}

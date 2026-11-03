@@ -1,8 +1,8 @@
 # English typo-correction set: context<TAB>typed<TAB>intended (context = text before the word, may be empty).
 # Top-1: the middle slot (what space commits) is the intended word; top-3: it is anywhere in the bar.
 # Rows whose intended word is the typed word are real words that must stay (its, lets, were, well).
-# Hand-written for this repo: user reports from the phone (whats, apos, apostrap, preferenc,
-# definately, prefarance), common contractions typed without the apostrophe, and common
+# Hand-written for this repo: user reports from the phone (whats, whsts, apos, apostrap,
+# preferenc, definately, prefarance), common contractions typed without the apostrophe, and common
 # misspellings and keyboard slips. Intended words were checked against the bundled en.fst. No external data.
 	whats	what's
 	dont	don't
@@ -177,3 +177,6 @@ I	definately	definitely
 	thru	thru
 	alright	alright
 	okay	okay
+	whsts	what's
+so	whsts	what's
+	wgats	what's

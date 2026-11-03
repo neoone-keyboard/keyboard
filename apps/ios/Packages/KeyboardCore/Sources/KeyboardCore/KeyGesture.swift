@@ -15,6 +15,9 @@ public enum GestureEvent: Equatable, Sendable {
 
 public struct GestureTiming: Sendable {
     public var longPress: TimeInterval = 0.35
+    /// The punctuation key (`.` holding `, ? ! '`): its alternates are what it's held for,
+    /// and no fast typing rests on it the way it rests on letters.
+    public var punctuationLongPress: TimeInterval = 0.2
     public var repeatDelay: TimeInterval = 0.45
     public var repeatInterval: TimeInterval = 0.08
     public var cursorStep: CGFloat = 12
@@ -65,6 +68,13 @@ public struct KeyGesture: Sendable {
         return [.highlightAlternate(index)]
     }
 
+    private var alternatesDelay: TimeInterval {
+        if case .character(let text) = key.action, text.allSatisfy(\.isPunctuation) {
+            return timing.punctuationLongPress
+        }
+        return timing.longPress
+    }
+
     public mutating func tick(at time: TimeInterval) -> [GestureEvent] {
         switch mode {
         case .pressing:
@@ -77,7 +87,7 @@ public struct KeyGesture: Sendable {
                 mode = .settingsOpened
                 return [.openSettings]
             }
-            if !key.alternates.isEmpty, time - startTime >= timing.longPress {
+            if !key.alternates.isEmpty, time - startTime >= alternatesDelay {
                 mode = .alternates
                 alternatesOriginX = start.x - alternateWidth / 2
                 highlighted = 0
