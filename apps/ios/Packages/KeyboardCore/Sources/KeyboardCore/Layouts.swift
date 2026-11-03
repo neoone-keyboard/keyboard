@@ -52,8 +52,12 @@ extension KeyboardLayout {
             Key(.nextKeyboard),
             Key(.toggleLanguage),
             Key(.space, width: 4.5),
-            // As SwiftKey: the full stop shows right above the key, ? to its right, the rest left.
-            Key(.character("."), alternates: ["'", "!", ",", ".", "?"]),
+            // Two rows, as Gboard's: the full stop right above the key (as SwiftKey's), ? to
+            // its right, the rest to the left and in the row above.
+            Key(.character("."), alternates: [
+                "&", "%", "+", "=", "\"", "-", ":", "'", "@",
+                ";", "/", "(", ")", "#", "!", ",", ".", "?",
+            ], alternatesPerRow: 9),
             Key(.returnKey, width: 2),
         ]
     }

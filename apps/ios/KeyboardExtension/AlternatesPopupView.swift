@@ -1,6 +1,6 @@
 import UIKit
 
-/// The row of long-press options shown above a key.
+/// The long-press options shown above a key, in one row or several.
 final class AlternatesPopupView: UIView {
     private var labels: [UILabel] = []
     private var theme: KeyboardTheme?
@@ -17,10 +17,13 @@ final class AlternatesPopupView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// Shows `options` above `keyRect`, kept inside `bounds` horizontally, with option
-    /// `anchor` straight above the key (lit). Returns the x where the first option starts,
-    /// for KeyGesture.setAlternatesOrigin.
-    func show(_ options: [String], anchor: Int = 0, above keyRect: CGRect, within bounds: CGRect, theme: KeyboardTheme) -> CGFloat {
+    /// Shows `options` above `keyRect` in rows of `columns` (top row first), kept inside
+    /// `bounds` horizontally, with option `anchor` straight above the key (lit). Returns
+    /// the x where the first column starts, for KeyGesture.setAlternatesOrigin.
+    func show(
+        _ options: [String], columns: Int? = nil, anchor: Int = 0,
+        above keyRect: CGRect, within bounds: CGRect, theme: KeyboardTheme
+    ) -> CGFloat {
         self.theme = theme
         labels.forEach { $0.removeFromSuperview() }
         labels = options.map { option in
@@ -33,12 +36,17 @@ final class AlternatesPopupView: UIView {
             addSubview(label)
             return label
         }
-        let width = keyRect.width * CGFloat(options.count)
-        let x = min(max(keyRect.minX - CGFloat(anchor) * keyRect.width, bounds.minX), bounds.maxX - width)
-        frame = CGRect(x: x, y: keyRect.minY - keyRect.height - 8, width: width, height: keyRect.height)
+        let columns = max(1, min(columns ?? options.count, options.count))
+        let rows = (options.count + columns - 1) / columns
+        let width = keyRect.width * CGFloat(columns)
+        let height = keyRect.height * CGFloat(rows)
+        let x = min(max(keyRect.minX - CGFloat(anchor % columns) * keyRect.width, bounds.minX), bounds.maxX - width)
+        frame = CGRect(x: x, y: keyRect.minY - height - 8, width: width, height: height)
         for (index, label) in labels.enumerated() {
-            label.frame = CGRect(x: CGFloat(index) * keyRect.width, y: 0, width: keyRect.width, height: keyRect.height)
-                .insetBy(dx: 2, dy: 2)
+            label.frame = CGRect(
+                x: CGFloat(index % columns) * keyRect.width, y: CGFloat(index / columns) * keyRect.height,
+                width: keyRect.width, height: keyRect.height
+            ).insetBy(dx: 2, dy: 2)
         }
         backgroundColor = theme.key
         layer.shadowColor = theme.shadow.cgColor

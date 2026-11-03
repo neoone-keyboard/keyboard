@@ -127,30 +127,47 @@ private func gesture(_ key: Key, x: CGFloat = 100) -> KeyGesture {
     #expect(g.ended() == [])
 }
 
-private let period = Key(.character("."), alternates: ["'", "!", ",", ".", "?"])
+private let period = Key(.character("."), alternates: [
+    "&", "%", "+", "=", "\"", "-", ":", "'", "@",
+    ";", "/", "(", ")", "#", "!", ",", ".", "?",
+], alternatesPerRow: 9)
+
+private func periodGesture() -> KeyGesture {
+    KeyGesture(key: period, at: CGPoint(x: 100, y: 100), time: 0, alternateWidth: 30, alternateHeight: 40)
+}
 
 @Test func punctuationKeyShowsItsAlternatesSooner() {
-    var g = gesture(period)
+    var g = periodGesture()
     #expect(g.tick(at: 0.05) == [])
-    #expect(g.tick(at: 0.11) == [.showAlternates(["'", "!", ",", ".", "?"])])
+    #expect(g.tick(at: 0.11) == [.showAlternates(period.alternates)])
     // A letter held as long is still a tap.
     var letter = gesture(Key(.character("e"), alternates: ["3", "é"]))
     #expect(letter.tick(at: 0.11) == [])
 }
 
 @Test func heldPunctuationKeyStillTypesItselfUntilTheFingerSlides() {
-    var g = gesture(period)
+    var g = periodGesture()
     _ = g.tick(at: 0.11)
-    // Pushed to fit on screen: the finger is over ",", but "." stays picked.
-    #expect(g.setAlternatesOrigin(x: 45) == [])
-    #expect(g.moved(to: CGPoint(x: 110, y: 10)) == [])
+    // The popup is placed with "." (column 7) above the finger; a small wobble keeps it.
+    #expect(g.setAlternatesOrigin(x: 100 - 7 * 30 - 15) == [])
+    #expect(g.moved(to: CGPoint(x: 110, y: 90)) == [])
     #expect(g.ended() == [.commitAlternate(".")])
 }
 
-@Test func slidingOnAHeldPunctuationKeyPicksTheOptionUnderTheFinger() {
-    var g = gesture(period)
+@Test func slidingRightOnAHeldPunctuationKeyPicksTheQuestionMark() {
+    var g = periodGesture()
     _ = g.tick(at: 0.11)
-    _ = g.setAlternatesOrigin(x: 45)
-    #expect(g.moved(to: CGPoint(x: 170, y: 10)) == [.highlightAlternate(4)])
+    _ = g.setAlternatesOrigin(x: 100 - 7 * 30 - 15)
+    #expect(g.moved(to: CGPoint(x: 130, y: 100)) == [.highlightAlternate(17)])
     #expect(g.ended() == [.commitAlternate("?")])
+}
+
+@Test func slidingUpOnAHeldPunctuationKeyPicksFromTheTopRow() {
+    var g = periodGesture()
+    _ = g.tick(at: 0.11)
+    _ = g.setAlternatesOrigin(x: 100 - 7 * 30 - 15)
+    // Over the bottom row (one row up) it is still ".", then the row above.
+    #expect(g.moved(to: CGPoint(x: 100, y: 55)) == [])
+    #expect(g.moved(to: CGPoint(x: 100, y: 35)) == [.highlightAlternate(7)])
+    #expect(g.ended() == [.commitAlternate("'")])
 }

@@ -42,6 +42,7 @@ public struct KeyGesture: Sendable {
     private let start: CGPoint
     private let startTime: TimeInterval
     private let alternateWidth: CGFloat
+    private let alternateHeight: CGFloat
     private let timing: GestureTiming
     private var mode: Mode = .pressing
     private var alternatesOriginX: CGFloat = 0
@@ -51,11 +52,17 @@ public struct KeyGesture: Sendable {
     private var cursorAnchorX: CGFloat = 0
     private var nextRepeat: TimeInterval = 0
 
-    public init(key: Key, at point: CGPoint, time: TimeInterval, alternateWidth: CGFloat, timing: GestureTiming = GestureTiming()) {
+    /// `alternateHeight` is a popup row's height (the key's); a popup with several rows
+    /// picks the row above once the finger has slid up that far.
+    public init(
+        key: Key, at point: CGPoint, time: TimeInterval, alternateWidth: CGFloat,
+        alternateHeight: CGFloat? = nil, timing: GestureTiming = GestureTiming()
+    ) {
         self.key = key
         self.start = point
         self.startTime = time
         self.alternateWidth = max(alternateWidth, 1)
+        self.alternateHeight = max(alternateHeight ?? alternateWidth, 1)
         self.timing = timing
     }
 
@@ -67,7 +74,7 @@ public struct KeyGesture: Sendable {
         guard mode == .alternates else { return [] }
         // The popup lights the key's own character itself.
         if holdingOwn { return [] }
-        let index = alternateIndex(at: start.x)
+        let index = alternateIndex(at: start)
         guard index != highlighted else { return [] }
         highlighted = index
         return [.highlightAlternate(index)]
@@ -130,10 +137,11 @@ public struct KeyGesture: Sendable {
             return moveCursor(to: point.x)
         case .alternates:
             if holdingOwn {
-                guard abs(point.x - start.x) >= alternateWidth / 2 else { return [] }
+                guard abs(point.x - start.x) >= alternateWidth / 2 || start.y - point.y >= alternateHeight / 2
+                else { return [] }
                 holdingOwn = false
             }
-            let index = alternateIndex(at: point.x)
+            let index = alternateIndex(at: point)
             guard index != highlighted else { return [] }
             highlighted = index
             return [.highlightAlternate(index)]
@@ -161,8 +169,14 @@ public struct KeyGesture: Sendable {
         return [.moveCursor(steps)]
     }
 
-    private func alternateIndex(at x: CGFloat) -> Int {
-        let raw = Int(((x - alternatesOriginX) / alternateWidth).rounded(.down))
-        return min(max(raw, 0), key.alternates.count - 1)
+    /// The option under `point`: the column from x, the row from how far the finger has
+    /// slid up from where it pressed. The popup's bottom row sits about one row above the
+    /// press, so the next row up starts one and a half rows up.
+    private func alternateIndex(at point: CGPoint) -> Int {
+        let (columns, rows) = key.alternatesGrid
+        let column = min(max(Int(((point.x - alternatesOriginX) / alternateWidth).rounded(.down)), 0), columns - 1)
+        let rowsUp = Int(max(0, (start.y - point.y) / alternateHeight - 0.5).rounded(.down))
+        let row = max(rows - 1 - rowsUp, 0)
+        return min(row * columns + column, key.alternates.count - 1)
     }
 }

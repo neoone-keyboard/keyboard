@@ -52,7 +52,7 @@ final class KeyboardView: UIView {
     func refreshLabels() {
         guard let theme, let label else { return }
         for (cap, key) in zip(caps, layout.rows.flatMap { $0 }) {
-            cap.configure(title: label(key), hint: key.alternates.first, special: Self.isSpecial(key.action), theme: theme)
+            cap.configure(title: label(key), hint: Self.hint(key), special: Self.isSpecial(key.action), theme: theme)
         }
     }
 
@@ -81,7 +81,10 @@ final class KeyboardView: UIView {
             let point = touch.location(in: self)
             guard let index = KeyboardGeometry.index(at: point, in: frames), frames.indices.contains(index) else { continue }
             let frame = frames[index]
-            let gesture = KeyGesture(key: frame.key, at: point, time: touch.timestamp, alternateWidth: frame.rect.width)
+            let gesture = KeyGesture(
+                key: frame.key, at: point, time: touch.timestamp,
+                alternateWidth: frame.rect.width, alternateHeight: frame.rect.height
+            )
             activeTouches[ObjectIdentifier(touch)] = (gesture, index)
             setPressed(true, at: index)
             if playsClicks { UIDevice.current.playInputClick() }
@@ -129,7 +132,10 @@ final class KeyboardView: UIView {
                 // The key's own character (the full stop's popup holds it) sits right above it.
                 let own: String? = if case .character(let c) = frames[index].key.action { c } else { nil }
                 let anchor = options.firstIndex { $0 == own } ?? 0
-                let x = popup.show(options, anchor: anchor, above: frames[index].rect, within: bounds, theme: theme)
+                let x = popup.show(
+                    options, columns: frames[index].key.alternatesGrid.columns, anchor: anchor,
+                    above: frames[index].rect, within: bounds, theme: theme
+                )
                 popupOwner = id
                 let highlight = entry.gesture.setAlternatesOrigin(x: x)
                 activeTouches[id] = entry
@@ -184,6 +190,15 @@ final class KeyboardView: UIView {
     private func setPressed(_ pressed: Bool, at index: Int?) {
         guard let index, caps.indices.contains(index) else { return }
         caps[index].isPressed = pressed
+    }
+
+    /// The small hint on a key: its first alternate, or for a key whose popup holds the
+    /// key itself (the full stop), the option to its right (`?`).
+    private static func hint(_ key: Key) -> String? {
+        if case .character(let own) = key.action, let index = key.alternates.firstIndex(of: own) {
+            return key.alternates.indices.contains(index + 1) ? key.alternates[index + 1] : nil
+        }
+        return key.alternates.first
     }
 
     private static func isSpecial(_ action: KeyAction) -> Bool {
