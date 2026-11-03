@@ -251,4 +251,113 @@ struct InputControllerTests {
         input.applyAutoCapitalization(.words)
         #expect(input.shift == .once)
     }
+
+    // MARK: Emails and URLs
+
+    /// Learning events reported while `body` runs.
+    func events(_ body: () -> Void) -> [LearningEvent] {
+        var events: [LearningEvent] = []
+        input.onLearningEvent = { events.append($0) }
+        body()
+        input.onLearningEvent = nil
+        return events
+    }
+
+    func typeText(_ text: String) {
+        for c in text { input.handle(.character(String(c)), at: 0) }
+    }
+
+    func verbatim(_ word: String) -> SuggestionResult {
+        SuggestionResult(typed: word, candidates: [Suggestion(word, kind: .verbatim)])
+    }
+
+    @Test func anAddressIsOneWord() {
+        for (text, word) in [
+            ("mail priya@example.com", "priya@example.com"),
+            ("mail priya@example.", "priya@example."),
+            ("see https://x.com/a-b", "https://x.com/a-b"),
+            ("(www.x.com", "www.x.com"),
+            ("x.com", "com"),
+            ("hello.", ""),
+            ("me @", ""),
+        ] {
+            output.text = text
+            #expect(input.currentWord == word, "\(text)")
+        }
+    }
+
+    @Test func punctuationInsideAnAddressNeitherCorrectsNorCommits() {
+        let reported = events {
+            output.text = "jishnu"
+            input.updateSuggestions(SuggestionResult(typed: "jishnu", candidates: [Suggestion("Kishan", kind: .correction)]))
+            typeText("@gmial")
+            #expect(output.text == "priya@exmaple")
+            for mark in [".", ",", "?", "!"] {
+                input.updateSuggestions(SuggestionResult(typed: input.currentWord, candidates: [Suggestion("gmail", kind: .correction)]))
+                typeText(mark)
+            }
+            #expect(output.text == "priya@exmaple.,?!")
+        }
+        #expect(reported.isEmpty)
+    }
+
+    @Test func aFullStopThatMakesAnAddressDoesNotCorrect() {
+        output.text = "www"
+        input.updateSuggestions(SuggestionResult(typed: "www", candidates: [Suggestion("wow", kind: .correction)]))
+        typeText(".")
+        #expect(output.text == "www.")
+    }
+
+    @Test func spaceAfterAnAddressKeepsItAndReportsItWhole() {
+        let reported = events {
+            output.text = "mail priya@exmaple.com"
+            input.updateSuggestions(SuggestionResult(typed: "priya@exmaple.com", candidates: [Suggestion("priya@example.com", kind: .correction)]))
+            input.handle(.space, at: 0)
+            #expect(output.text == "mail priya@exmaple.com ")
+            output.text = "mail priya@example.com"
+            input.updateSuggestions(verbatim("priya@example.com"))
+            input.handle(.returnKey, at: 0)
+        }
+        #expect(reported == [.committed("priya@exmaple.com"), .committed("priya@example.com")])
+    }
+
+    @Test func anAddressIsReportedWhereAutocorrectIsOff() {
+        input.autocorrectEnabled = false
+        let reported = events {
+            output.text = "priya@example.com"
+            input.handle(.space, at: 0)
+        }
+        #expect(reported == [.committed("priya@example.com")])
+    }
+
+    @Test func nothingIsLearnedInASecureField() {
+        input.secureTextEntry = true
+        let reported = events {
+            output.text = "priya@example.com"
+            input.handle(.space, at: 0)
+            output.text = "hello"
+            input.updateSuggestions(verbatim("hello"))
+            input.handle(.space, at: 0)
+            output.text = "teh"
+            input.updateSuggestions(SuggestionResult(typed: "teh", candidates: [Suggestion("the", kind: .correction), Suggestion("teh", kind: .verbatim)]))
+            input.handle(.space, at: 0)
+            input.handle(.backspace, at: 0.1)
+            input.commitSuggestion("could")
+        }
+        #expect(reported.isEmpty)
+    }
+
+    @Test func aCompletionReplacesTheWholeAddress() {
+        output.text = "mail priya@e"
+        input.commitSuggestion("priya@example.com")
+        #expect(output.text == "mail priya@example.com ")
+    }
+
+    @Test func noCapitalAfterAFullStopInsideAnAddress() {
+        output.text = "Mail priya@example."
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .off)
+        typeText("c")
+        #expect(output.text == "Mail priya@example.c")
+    }
 }
