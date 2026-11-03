@@ -5,6 +5,7 @@ pub mod engine;
 pub mod fuzzy;
 pub mod keys;
 pub mod lexicon;
+pub mod lm_context;
 pub mod malayalam;
 pub mod manglish;
 pub mod nn;

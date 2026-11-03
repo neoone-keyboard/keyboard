@@ -222,6 +222,28 @@ pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;
 pub const CONTEXT_AT_START: f32 = -1.0;
 
+/// LM context window in tokens (design §2): the oldest whole words are dropped past it.
+pub const LM_WINDOW: usize = 32;
+/// Words before the cursor read for the LM context.
+pub const LM_WORDS: usize = 40;
+/// A tier-0 correction is clamped to ±this before its weight (design §6).
+pub const LM_CLIP: f32 = 4.0;
+/// Weight of the tier-0 correction for English candidates. Swept in Task 14.
+pub const LM_WEIGHT_EN: f32 = 0.5;
+/// Weight of the tier-0 correction for Malayalam candidates. Swept in Task 14.
+pub const LM_WEIGHT_ML: f32 = 0.5;
+/// `manglish_bias` from the LM: this × (ln P_ml − ln P_en) + `LANG_OFFSET`, clamped to the
+/// range of the old previous-word constants (`CONTEXT_AFTER_ENGLISH`..`CONTEXT_AFTER_MALAYALAM`).
+pub const LANG_WEIGHT: f32 = 1.0;
+/// See `LANG_WEIGHT`.
+pub const LANG_OFFSET: f32 = CONTEXT_AT_START;
+/// Next words: word-start pieces read from the LM.
+pub const NEXT_PIECES: usize = 64;
+/// Next words: the weight of the `next.fst` bigram beside the LM.
+pub const NEXT_BIGRAM_WEIGHT: f32 = 0.25;
+/// Tier 1 runs when the two best middle candidates are within this after tier 0 (Task 15).
+pub const TIER1_GAP: f32 = 3.0;
+
 /// Makes a suggestion follow the case of what was typed: `Hel` → `Hello`,
 /// `HEL` → `HELLO`. Words stored with capitals (London, I, NASA) keep them.
 pub fn apply_case(typed: &str, candidate: &str) -> String {
