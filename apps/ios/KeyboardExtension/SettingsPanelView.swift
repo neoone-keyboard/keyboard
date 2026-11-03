@@ -8,6 +8,8 @@ final class SettingsPanelView: UIView {
     var onChange: (@MainActor (KeyboardSettings) -> Void)?
     var onDone: (@MainActor () -> Void)?
     var onForgetLearned: (@MainActor () -> Void)?
+    /// Opens "Your words" (`YourWordsView`).
+    var onYourWords: (@MainActor () -> Void)?
     var onInsertDiagnostics: (@MainActor () -> Void)?
 
     private(set) var settings = KeyboardSettings()
@@ -24,6 +26,7 @@ final class SettingsPanelView: UIView {
     private let clicksSwitch = UISwitch()
     private let autocorrectLabel = UILabel()
     private let autocorrectSwitch = UISwitch()
+    private let yourWordsButton = UIButton(type: .system)
     private let forgetButton = UIButton(type: .system)
     private let diagnosticsButton = UIButton(type: .system)
     /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
@@ -80,6 +83,13 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.autocorrect = self.autocorrectSwitch.isOn }
         }, for: .valueChanged)
+        yourWordsButton.setTitle("Your words", for: .normal)
+        yourWordsButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
+        yourWordsButton.titleLabel?.font = .systemFont(ofSize: 15)
+        // The chevron after the title, and both at the left like the other rows.
+        yourWordsButton.semanticContentAttribute = .forceRightToLeft
+        yourWordsButton.contentHorizontalAlignment = .left
+        yourWordsButton.addAction(UIAction { [weak self] _ in self?.onYourWords?() }, for: .touchUpInside)
         forgetButton.titleLabel?.font = .systemFont(ofSize: 15)
         forgetButton.contentHorizontalAlignment = .leading
         forgetButton.addAction(UIAction { [weak self] _ in self?.forgetTapped() }, for: .touchUpInside)
@@ -100,8 +110,8 @@ final class SettingsPanelView: UIView {
         }
 
         let stack = UIStackView(arrangedSubviews: [
-            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, forgetButton,
-            diagnosticsButton,
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, yourWordsButton,
+            forgetButton, diagnosticsButton,
         ])
         stack.axis = .vertical
         stack.spacing = 6
@@ -131,6 +141,7 @@ final class SettingsPanelView: UIView {
             header.heightAnchor.constraint(equalToConstant: 36),
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
+            yourWordsButton.heightAnchor.constraint(equalToConstant: 36),
             forgetButton.heightAnchor.constraint(equalToConstant: 36),
             diagnosticsButton.heightAnchor.constraint(equalToConstant: 36),
         ])
@@ -157,6 +168,7 @@ final class SettingsPanelView: UIView {
             label.textColor = theme.keyText
         }
         doneButton.tintColor = theme.keyText
+        yourWordsButton.tintColor = theme.keyText
         forgetButton.tintColor = theme.keyText
         diagnosticsButton.tintColor = theme.keyText
         themeControl.backgroundColor = theme.specialKey

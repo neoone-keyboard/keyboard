@@ -121,6 +121,36 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
+    /// The learned and removed words for "Your words", read when the screen opens. Works
+    /// while the engine is shed, as `forgetLearned` does; the caller drops the lists on close.
+    func yourWords() -> YourWords {
+        let engine = engine ?? (try? Engine(config: EngineConfig(userDir: config.userDir)))
+        let learned = (try? engine?.learnedWords()) ?? []
+        let removed = (try? engine?.removedWords()) ?? []
+        return YourWords(learned: learned, removed: removed)
+    }
+
+    /// Forgets one learned word from "Your words", without blocking it. Best effort, and
+    /// works while the engine is shed, like `remove`.
+    func forget(_ word: String) {
+        // The last list read stands in while the engine is shed; it mustn't keep the word.
+        addresses.removeAll { $0 == word }
+        if let engine {
+            try? engine.forgetWord(word: word)
+        } else {
+            try? Engine(config: EngineConfig(userDir: config.userDir)).forgetWord(word: word)
+        }
+    }
+
+    /// Un-removes a word from "Your words", so it may be suggested again. Like `forget`.
+    func restore(_ word: String) {
+        if let engine {
+            try? engine.restoreWord(word: word)
+        } else {
+            try? Engine(config: EngineConfig(userDir: config.userDir)).restoreWord(word: word)
+        }
+    }
+
     /// The learned emails and URLs, for `InputController.learnedAddresses`. Asked after the
     /// engine opens and after each learning, removal or forget; while the engine is shed or
     /// not yet open, the last list read.

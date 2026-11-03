@@ -17,9 +17,13 @@ final class KeyboardViewController: UIInputViewController {
     private let topBar = TopBarView()
     private let keyboardView = KeyboardView()
     private let settingsPanel = SettingsPanelView()
-    /// The top bar over the keys.
+    /// In the top bar's place while open, with the keys below typing its search.
+    private let yourWordsView = YourWordsView()
+    /// The top bar (or "Your words") over the keys.
     private let stack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
+    private var yourWordsHeight: NSLayoutConstraint?
+    private var yourWordsOpen: Bool { !yourWordsView.isHidden }
     private var settings = KeyboardSettings()
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
 
@@ -52,6 +56,7 @@ final class KeyboardViewController: UIInputViewController {
     /// and with it whatever is still inside: the keys, the bar and the panel, about 1 MB a
     /// session until the memory gate turned prediction off. Emptied, and without its height
     /// constraint, what stays behind is about 50 KB a session (the app's `-keyboardCycles`).
+    /// "Your words" is in `stack`, so it goes with it.
     isolated deinit {
         stack.removeFromSuperview()
         settingsPanel.removeFromSuperview()
@@ -131,8 +136,25 @@ final class KeyboardViewController: UIInputViewController {
             }
         }
 
+        settingsPanel.onYourWords = { [unowned self] in showYourWords() }
+        yourWordsView.onBack = { [unowned self] in
+            hideYourWords()
+            showSettings()
+        }
+        yourWordsView.onForget = { [unowned self] word in
+            // Lengths only: no typed text in the diagnostics.
+            log.info("Learned word forgotten; \(word.count) chars")
+            changeUserWords { await $0.forget(word) }
+        }
+        yourWordsView.onRestore = { [unowned self] word in
+            log.info("Removed word restored; \(word.count) chars")
+            changeUserWords { await $0.restore(word) }
+        }
+
         stack.addArrangedSubview(topBar)
+        stack.addArrangedSubview(yourWordsView)
         stack.addArrangedSubview(keyboardView)
+        yourWordsView.isHidden = true
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -144,9 +166,17 @@ final class KeyboardViewController: UIInputViewController {
         let height = view.heightAnchor.constraint(equalToConstant: 270)
         height.priority = .defaultHigh + 1
         heightConstraint = height
+        // Below required: the stack collapses whichever of the two is hidden with its own
+        // required constraint, which would otherwise conflict.
+        let wordsHeight = yourWordsView.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
+        wordsHeight.priority = .required - 1
+        yourWordsHeight = wordsHeight
+        let barHeight = topBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
+        barHeight.priority = .required - 1
         NSLayoutConstraint.activate([
             height,
-            topBar.heightAnchor.constraint(equalToConstant: 40),
+            wordsHeight,
+            barHeight,
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 3),
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
             stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
@@ -160,12 +190,17 @@ final class KeyboardViewController: UIInputViewController {
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
             self.applySettings()
         }
+        // "Your words" grows the keyboard less in landscape.
+        registerForTraitChanges([UITraitVerticalSizeClass.self]) { (self: Self, _: UITraitCollection) in
+            self.updateHeight()
+        }
         log.info("Keyboard loaded; \(Diagnostics.buildDescription); iOS \(UIDevice.current.systemVersion); footprint \(Diagnostics.footprint())")
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         settings = KeyboardSettings.load(from: .standard)
+        hideYourWords()
         hideSettings()
         noteExternalChange()
         applySettings()
@@ -183,6 +218,12 @@ final class KeyboardViewController: UIInputViewController {
             await provider.warmUp()
             self?.refreshLearnedAddresses()
         }
+    }
+
+    /// The lists of "Your words" are held only while it shows.
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        hideYourWords()
     }
 
     /// Gives the input controller the engine's learned addresses, so letters that begin one
@@ -228,6 +269,10 @@ final class KeyboardViewController: UIInputViewController {
     // MARK: Input
 
     private func handle(_ event: GestureEvent) {
+        if yourWordsOpen {
+            handleSearch(event)
+            return
+        }
         let pageBefore = input.page, shiftBefore = input.shift
         output.beginEdit()
         switch event {
@@ -313,6 +358,95 @@ final class KeyboardViewController: UIInputViewController {
         settingsPanel.isHidden = true
     }
 
+    // MARK: Your words
+
+    private static let topBarHeight: CGFloat = 40
+
+    /// How much taller the keyboard grows for "Your words" (it takes the top bar's place and
+    /// this): a short list, so the keys stay showing to type its search. Less in landscape.
+    private var yourWordsExtraHeight: CGFloat {
+        traitCollection.verticalSizeClass == .compact ? 60 : 160
+    }
+
+    /// Replaces the settings panel and the top bar, and reads the lists off the main thread.
+    private func showYourWords() {
+        hideSettings()
+        keyboardView.cancelAllTouches()
+        topBar.cancelRemoval()
+        yourWordsView.apply(theme)
+        yourWordsView.show(nil)
+        topBar.isHidden = true
+        yourWordsView.isHidden = false
+        updateHeight()
+        Task { [weak self, provider] in
+            let words = await provider.yourWords()
+            guard let self, yourWordsOpen else { return }
+            log.info("Your words opened; \(words.learned.count) learned, \(words.removed.count) removed; footprint \(Diagnostics.footprint())")
+            yourWordsView.show(words)
+        }
+    }
+
+    /// Back to the top bar; the lists are dropped. The language may have changed meanwhile,
+    /// so the bar asks again.
+    private func hideYourWords() {
+        guard yourWordsOpen else { return }
+        yourWordsView.isHidden = true
+        yourWordsView.release()
+        topBar.isHidden = false
+        updateHeight()
+        requestSuggestions()
+        refreshTopBar()
+    }
+
+    /// While "Your words" shows, letters and backspace edit its search, and the host's text
+    /// is left alone. Keys that change the keys (a page, the language) still do, through the
+    /// input controller, which writes no text for them.
+    private func handleSearch(_ event: GestureEvent) {
+        switch event {
+        case .tap(let action):
+            guard yourWordsView.handle(action) == .passThrough else { return }
+            if action == .nextKeyboard {
+                advanceToNextInputMode()
+                return
+            }
+            let pageBefore = input.page, shiftBefore = input.shift
+            input.handle(action, at: ProcessInfo.processInfo.systemUptime)
+            if input.page != pageBefore {
+                reloadKeys()
+            } else if input.shift != shiftBefore {
+                keyboardView.refreshLabels()
+            }
+        case .commitAlternate(let text):
+            yourWordsView.type(text)
+        case .deleteWord:
+            yourWordsView.clearQuery()
+        case .openSettings:
+            hideYourWords()
+            showSettings()
+        case .moveCursor, .showAlternates, .highlightAlternate:
+            break
+        }
+    }
+
+    /// Runs a forget or restore on the provider's actor, then asks the bar again, as removal
+    /// does, so the change shows in the next suggestions.
+    private func changeUserWords(_ change: @escaping @Sendable (EngineSuggestionProvider) async -> Void) {
+        Task { [weak self, provider] in
+            await change(provider)
+            guard let self else { return }
+            refreshLearnedAddresses()
+            lastRequest = nil
+            requestSuggestions()
+            refreshTopBar()
+        }
+    }
+
+    private func updateHeight() {
+        let extra = yourWordsOpen ? yourWordsExtraHeight : 0
+        yourWordsHeight?.constant = Self.topBarHeight + extra
+        heightConstraint?.constant = (settings.numberRow ? 320 : 270) + extra
+    }
+
     // MARK: Appearance
 
     private func applySettings() {
@@ -320,9 +454,10 @@ final class KeyboardViewController: UIInputViewController {
         view.backgroundColor = theme.background
         topBar.apply(theme)
         if !settingsPanel.isHidden { settingsPanel.apply(theme) }
+        if yourWordsOpen { yourWordsView.apply(theme) }
         input.numberRow = settings.numberRow
         keyboardView.playsClicks = settings.keyClicks
-        heightConstraint?.constant = settings.numberRow ? 320 : 270
+        updateHeight()
         updateAutocorrect()
         lastRequest = nil // autocorrect may have changed: ask again
         requestSuggestions()
