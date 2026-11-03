@@ -91,10 +91,10 @@ impl Loader<'_> {
             Some(t) => Err(NnError::Shape(format!(
                 "{name}: expected int8 [{rows}, {cols}], found {:?} {}",
                 t.dims(),
-                if matches!(t, TensorRef::F32 { .. }) {
-                    "f32"
-                } else {
-                    "int8"
+                match t {
+                    TensorRef::F32 { .. } => "f32",
+                    TensorRef::I8 { .. } => "int8",
+                    TensorRef::Bytes(_) => "bytes",
                 }
             ))),
             None => Err(NnError::Missing(name.into())),

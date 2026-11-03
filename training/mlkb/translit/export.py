@@ -6,8 +6,9 @@
 
 The format is documented at the top of `engine/core/src/nn/file.rs`, which reads it; keep the
 two in sync. In short: a header with the model shape, then every `state_dict` tensor under its
-PyTorch name (matrices as int8 with one f32 scale per row, everything else f32), each data block
-aligned to 16 bytes, then an FNV-1a checksum.
+PyTorch name (matrices as int8 with one f32 scale per row, raw bytes as dtype 2, everything else
+f32), each data block aligned to 16 bytes, then an FNV-1a checksum. The language model
+(`mlkb.lm.export`) writes the same format with `kind=KIND_LM`.
 
 `--reference` also writes, for `REFERENCE_CASES`, the encoder output and the decoder logits at
 every step, from PyTorch in eval mode on the float weights and on the dequantised int8 weights.
@@ -29,8 +30,9 @@ from mlkb.translit.vocab import encode_latin, encode_ml
 MAGIC = b"MLKBNN01"
 VERSION = 1
 KIND_TRANSLIT = 1  # encoder–decoder transliterator (`model.Translit`)
+KIND_LM = 2  # decoder-only language model (`mlkb.lm.model.LM`)
 FIELDS = ("d", "heads", "enc_layers", "dec_layers", "ff", "max_len", "src_vocab", "tgt_vocab")
-F32, I8 = 0, 1
+F32, I8, BYTES = 0, 1, 2
 ALIGN = 16
 _FNV_OFFSET, _FNV_PRIME, _MASK = 0xCBF29CE484222325, 0x100000001B3, (1 << 64) - 1
 
@@ -62,17 +64,23 @@ def quantise(w: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return scales, values
 
 
-def write(path: Path, config: dict, tensors: dict[str, np.ndarray]) -> None:
-    """Writes `tensors` in order: 2-D arrays as int8, the rest as f32. `config` needs `FIELDS`."""
+def write(path: Path, config: dict, tensors: dict[str, np.ndarray | bytes], kind: int = KIND_TRANSLIT) -> None:
+    """Writes `tensors` in order: `bytes` values as raw bytes (1-D), 2-D arrays as int8, the
+    rest as f32. `config` needs `FIELDS`."""
     out = bytearray(MAGIC)
-    out += struct.pack("<2I", VERSION, KIND_TRANSLIT)
+    out += struct.pack("<2I", VERSION, kind)
     out += struct.pack(f"<{len(FIELDS)}I", *(int(config[k]) for k in FIELDS))
     out += struct.pack("<I", len(tensors))
     for name, value in tensors.items():
-        value = np.asarray(value, dtype=np.float32)
         encoded = name.encode()
-        dtype = I8 if value.ndim == 2 else F32
         out += struct.pack("<H", len(encoded)) + encoded
+        if isinstance(value, bytes | bytearray):
+            out += struct.pack("<BBI", BYTES, 1, len(value))
+            out += bytes(-len(out) % ALIGN)
+            out += value
+            continue
+        value = np.asarray(value, dtype=np.float32)
+        dtype = I8 if value.ndim == 2 else F32
         out += struct.pack("<BB", dtype, value.ndim) + struct.pack(f"<{value.ndim}I", *value.shape)
         out += bytes(-len(out) % ALIGN)
         if dtype == I8:
@@ -109,7 +117,7 @@ def layout(data: bytes) -> list[tuple[str, int, tuple[int, ...], int]]:
             pos += -pos % ALIGN
             out.append((name, dtype, dims, pos))
             size = int(np.prod(dims))
-            pos += 4 * size if dtype == F32 else 4 * dims[0] + size
+            pos += {F32: 4 * size, BYTES: size}.get(dtype, 4 * dims[0] + size)
     except struct.error as e:
         raise ValueError(f"truncated .mlkbnn file: {e}") from e
     if pos + 8 != len(data):
@@ -117,8 +125,9 @@ def layout(data: bytes) -> list[tuple[str, int, tuple[int, ...], int]]:
     return out
 
 
-def read(path: Path) -> tuple[dict, dict[str, np.ndarray]]:
-    """`(config, tensors)` from an `.mlkbnn` file, int8 matrices dequantised to f32.
+def read(path: Path) -> tuple[dict, dict[str, np.ndarray | bytes]]:
+    """`(config, tensors)` from an `.mlkbnn` file, int8 matrices dequantised to f32, raw bytes
+    as `bytes`.
     ValueError on a bad magic, version, checksum or layout."""
     data = Path(path).read_bytes()
     entries = layout(data)
@@ -138,6 +147,8 @@ def read(path: Path) -> tuple[dict, dict[str, np.ndarray]]:
             scales = np.frombuffer(data, "<f4", rows, offset)
             values = np.frombuffer(data, np.int8, rows * cols, offset + 4 * rows).reshape(rows, cols)
             tensors[name] = (values.astype(np.float32) * scales[:, None]).astype(np.float32)
+        elif dtype == BYTES:
+            tensors[name] = bytes(data[offset : offset + dims[0]])
         else:
             raise ValueError(f"unknown dtype {dtype} for {name}")
     return config, tensors

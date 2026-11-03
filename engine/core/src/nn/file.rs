@@ -6,7 +6,7 @@
 //! |---|---|
 //! | 8 | magic `MLKBNN01` |
 //! | 4 | `u32` version, currently 1 |
-//! | 4 | `u32` kind: 1 = encoder–decoder transliterator |
+//! | 4 | `u32` kind: 1 = encoder–decoder transliterator, 2 = language model |
 //! | 32 | `u32` × 8: `d`, `heads`, `enc_layers`, `dec_layers`, `ff`, `max_len`, `src_vocab`, `tgt_vocab` |
 //! | 4 | `u32` tensor count |
 //! | … | the tensors, one after another (below) |
@@ -14,17 +14,25 @@
 //!
 //! Each tensor:
 //! - `u16` name length, then the name in UTF-8: PyTorch's `state_dict` key, exactly;
-//! - `u8` dtype: 0 = f32, 1 = int8 with one f32 scale per row (2-D only);
+//! - `u8` dtype: 0 = f32, 1 = int8 with one f32 scale per row (2-D only), 2 = raw bytes
+//!   (1-D only);
 //! - `u8` ndim, then `u32` dims × ndim;
 //! - zero bytes up to the next offset that is a multiple of 16 (from the start of the file);
 //! - the data. f32: the values, row-major. int8: `rows` f32 scales, then `rows × cols` int8
-//!   values, row-major; element `[r, c]` is `scales[r] * values[r * cols + c]`.
+//!   values, row-major; element `[r, c]` is `scales[r] * values[r * cols + c]`. Bytes: the
+//!   bytes, `dims[0]` of them.
 //!
 //! Matrices (linear weights, embeddings) are int8, quantised symmetrically per row
 //! (`scale = max |row| / 127`). Biases and layer-norm parameters are f32.
 //!
+//! A language model (`KIND_LM`) reuses the header: `enc_layers` = 0, `dec_layers` = its layers,
+//! `max_len` = its training sequence length, `src_vocab` = 0, `tgt_vocab` = its vocabulary. Its
+//! tokeniser and lookup tables travel in the same file, the pieces as bytes (UTF-8,
+//! NUL-separated).
+//!
 //! The file is memory-mapped and checked once on open. The f32 tensors and the scales, which
-//! are small, are copied out then; the int8 values are read in place from the mapping.
+//! are small, are copied out then; the int8 values and raw bytes are read in place from the
+//! mapping.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -46,18 +54,22 @@ pub const VERSION: u32 = 1;
 /// `kind` of the encoder–decoder transliterator.
 pub const KIND_TRANSLIT: u32 = 1;
 
+/// `kind` of the decoder-only language model.
+pub const KIND_LM: u32 = 2;
+
 /// Every tensor's data starts at a multiple of this many bytes.
 pub const ALIGN: usize = 16;
 
 const DTYPE_F32: u8 = 0;
 const DTYPE_I8: u8 = 1;
+const DTYPE_BYTES: u8 = 2;
 const HEADER_LEN: usize = 8 + 4 * 11;
 const CHECKSUM_LEN: usize = 8;
 
 /// The model's shape, from the file header.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Config {
-    /// What the tensors describe; `KIND_TRANSLIT` is the only kind so far.
+    /// What the tensors describe: `KIND_TRANSLIT` or `KIND_LM`.
     pub kind: u32,
     /// Model width.
     pub d: usize,
@@ -137,6 +149,8 @@ pub enum TensorRef<'a> {
         rows: usize,
         cols: usize,
     },
+    /// Raw bytes (1-D), read in place from the file.
+    Bytes(&'a [u8]),
 }
 
 impl TensorRef<'_> {
@@ -145,10 +159,11 @@ impl TensorRef<'_> {
         match *self {
             Self::F32 { dims, .. } => dims.to_vec(),
             Self::I8 { rows, cols, .. } => vec![rows, cols],
+            Self::Bytes(b) => vec![b.len()],
         }
     }
 
-    /// Every value as f32, row-major (int8 matrices dequantised).
+    /// Every value as f32, row-major (int8 matrices dequantised, bytes as their values).
     pub fn to_f32(&self) -> Vec<f32> {
         match *self {
             Self::F32 { values, .. } => values.to_vec(),
@@ -159,6 +174,7 @@ impl TensorRef<'_> {
                 .zip(scales)
                 .flat_map(|(row, &s)| row.iter().map(move |&b| s * f32::from(b as i8)))
                 .collect(),
+            Self::Bytes(b) => b.iter().map(|&v| f32::from(v)).collect(),
         }
     }
 }
@@ -170,6 +186,7 @@ enum Data {
         scales: Vec<f32>,
         values: Range<usize>,
     },
+    Bytes(Range<usize>),
 }
 
 #[derive(Debug)]
@@ -249,6 +266,7 @@ impl ModelFile {
                 rows: entry.dims[0],
                 cols: entry.dims[1],
             },
+            Data::Bytes(range) => TensorRef::Bytes(&self.0.bytes.as_ref()[range.clone()]),
         })
     }
 
@@ -261,7 +279,7 @@ impl ModelFile {
     pub(crate) fn int8_range(&self, name: &str) -> Option<Range<usize>> {
         match &self.0.tensors.get(name)?.data {
             Data::I8 { values, .. } => Some(values.clone()),
-            Data::F32(_) => None,
+            Data::F32(_) | Data::Bytes(_) => None,
         }
     }
 }
@@ -382,6 +400,16 @@ fn parse(bytes: &[u8]) -> Result<Parsed, NnError> {
                     "{name}: int8 tensor is {ndim}-D"
                 )));
             }
+            DTYPE_BYTES if ndim == 1 => {
+                let start = r.pos;
+                r.take(size)?;
+                Data::Bytes(start..r.pos)
+            }
+            DTYPE_BYTES => {
+                return Err(NnError::Malformed(format!(
+                    "{name}: bytes tensor is {ndim}-D"
+                )));
+            }
             other => return Err(NnError::Malformed(format!("{name}: unknown dtype {other}"))),
         };
         if tensors.insert(name.clone(), Entry { dims, data }).is_some() {
@@ -474,6 +502,49 @@ mod tests {
         assert_eq!(data[1] as i8, -2);
         assert_eq!(emb.to_f32(), [0.5, -1.0, 63.5, -31.75, 0.0, 1.0]);
         assert!(file.tensor("missing").is_none());
+    }
+
+    #[test]
+    fn reads_a_bytes_tensor_and_the_lm_kind() {
+        let mut out = MAGIC.to_vec();
+        for v in [VERSION, KIND_LM, 8, 2, 0, 1, 16, 48, 0, 300, 1] {
+            out.extend(v.to_le_bytes());
+        }
+        let name = b"tok.pieces";
+        out.extend((name.len() as u16).to_le_bytes());
+        out.extend(name);
+        out.extend([DTYPE_BYTES, 1]);
+        out.extend(5u32.to_le_bytes());
+        pad(&mut out);
+        out.extend(b"a\0b\0c");
+        let sum = fnv1a(&out);
+        out.extend(sum.to_le_bytes());
+        let file = ModelFile::from_bytes(out).unwrap();
+        assert_eq!(file.config().kind, KIND_LM);
+        match file.tensor("tok.pieces") {
+            Some(TensorRef::Bytes(b)) => assert_eq!(b, b"a\0b\0c"),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn reads_the_lm_fixture_written_by_the_python_export() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn");
+        let file = ModelFile::open(&path).unwrap();
+        let c = file.config();
+        assert_eq!(
+            (c.kind, c.enc_layers, c.dec_layers, c.tgt_vocab),
+            (KIND_LM, 0, 2, 300)
+        );
+        let Some(TensorRef::Bytes(pieces)) = file.tensor("tok.pieces") else {
+            panic!("tok.pieces should be bytes");
+        };
+        assert_eq!(pieces.split(|&b| b == 0).count(), 300);
+        assert!(
+            matches!(file.tensor("lex.fingerprint"), Some(TensorRef::Bytes(b)) if b.len() == 16)
+        );
+        assert_eq!(file.tensor("tok.p_en").unwrap().dims(), [300]);
+        assert_eq!(file.tensor("emb.weight").unwrap().dims(), [300, 64]);
     }
 
     #[test]
