@@ -432,6 +432,7 @@ fn a_learned_email_is_offered_from_its_first_letters() {
 fn without_a_learned_address_punctuation_ends_a_word() {
     let engine = engine();
     assert_eq!(engine.suggest("neo.", Layout::Latin, true).typed, "");
-    assert_eq!(engine.suggest("x.com", Layout::Latin, true).typed, "com");
+    assert_eq!(engine.suggest("x.com", Layout::Latin, true).typed, "x.com");
+    assert_eq!(engine.suggest("end.it", Layout::Latin, true).typed, "it");
     assert!(engine.learned_addresses().is_empty());
 }

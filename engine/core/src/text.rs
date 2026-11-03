@@ -62,8 +62,33 @@ pub fn is_address(token: &str) -> bool {
             .get(..prefix.len())
             .is_some_and(|s| s.eq_ignore_ascii_case(prefix))
     };
-    (token.contains('@') || starts("http://") || starts("https://") || starts("www."))
+    (token.contains('@')
+        || starts("http://")
+        || starts("https://")
+        || starts("www.")
+        || is_domain(token))
         && token.chars().any(char::is_alphanumeric)
+}
+
+/// Top-level domains that make `name.tld` (and `name.tld/path`) an address. Not ones that
+/// are English words (`it`, `is`, `to`, `no` …): `end.it` is a missed space, not a site.
+pub const DOMAIN_ENDINGS: [&str; 34] = [
+    "com", "net", "org", "edu", "gov", "mil", "int", "io", "dev", "app", "ai", "co", "uk", "in",
+    "me", "ca", "de", "fr", "jp", "au", "nz", "sg", "ae", "ly", "gg", "tv", "info", "biz", "xyz",
+    "tech", "site", "online", "store", "blog",
+];
+
+/// `example.com`, `example.com/blog`, `gov.in`: labels of letters, digits and hyphens joined by
+/// dots, the last one in `DOMAIN_ENDINGS`, then an optional `/path`.
+fn is_domain(token: &str) -> bool {
+    let host = token.split('/').next().unwrap_or(token);
+    let mut labels = host.split('.');
+    let Some(ending) = host.rsplit('.').next() else {
+        return false;
+    };
+    host.contains('.')
+        && labels.all(|l| !l.is_empty() && l.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+        && DOMAIN_ENDINGS.iter().any(|e| e.eq_ignore_ascii_case(ending))
 }
 
 /// An address as it is learned, without the brackets, quotes and punctuation typed
@@ -279,8 +304,12 @@ mod tests {
 
     #[test]
     fn other_punctuation_still_ends_a_word() {
-        assert_eq!(current_word("x.com"), "com");
-        assert_eq!(current_word("wwwx.com"), "com");
+        assert_eq!(current_word("x.com"), "x.com");
+        assert_eq!(current_word("see example.com/blog"), "example.com/blog");
+        assert_eq!(current_word("end.it"), "it", "a missed space, not a site");
+        assert_eq!(current_word("x.co"), "x.co");
+        assert_eq!(current_word("x.c"), "c", "not a domain yet");
+        assert_eq!(current_word("wwwx.com"), "wwwx.com");
         assert_eq!(current_word("hello."), "");
         assert_eq!(current_word("@"), "");
         assert_eq!(current_word("me @"), "");
@@ -301,7 +330,12 @@ mod tests {
         assert!(is_address("HTTPS://x"));
         assert!(is_address("www.x"));
         assert!(!is_address("@"));
-        assert!(!is_address("x.com"));
+        assert!(is_address("x.com"));
+        assert!(is_address("Google.COM"));
+        assert!(is_address("mail.gov.in"));
+        assert!(!is_address("end.it"));
+        assert!(!is_address("hello."));
+        assert!(!is_address("a..com"));
         assert!(!is_address("hello"));
     }
 

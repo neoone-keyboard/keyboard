@@ -277,7 +277,10 @@ struct InputControllerTests {
             ("mail priya@example.", "priya@example."),
             ("see https://x.com/a-b", "https://x.com/a-b"),
             ("(www.x.com", "www.x.com"),
-            ("x.com", "com"),
+            ("see example.com/blog", "example.com/blog"),
+            ("Google.COM", "Google.COM"),
+            ("x.com", "x.com"),
+            ("end.it", "it"),
             ("hello.", ""),
             ("me @", ""),
         ] {
@@ -379,7 +382,7 @@ struct InputControllerTests {
 
     @Test func otherLettersStillEndAtPunctuation() {
         input.learnedAddresses = ["sam.2024@example.com"]
-        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("x.com", "com")] {
+        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("end.it", "it")] {
             output.text = text
             #expect(input.currentWord == word, "\(text)")
         }

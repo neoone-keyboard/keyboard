@@ -304,13 +304,31 @@ public final class InputController {
         return "@./:_#\\".contains(last) || last.isNumber
     }
 
-    /// An email or handle (it has an `@`) or a URL (`http://`, `https://`, `www.`)
-    /// with a letter or digit: one word up to the whitespace before it, never
-    /// corrected. Matches the engine's `text::is_address`.
+    /// An email or handle (it has an `@`), a URL (`http://`, `https://`, `www.`) or a
+    /// domain (`example.com`, `example.com/blog`) with a letter or digit: one word up to the
+    /// whitespace before it, never corrected. Matches the engine's `text::is_address`.
     private static func isAddress(_ token: Substring) -> Bool {
         guard token.contains(where: { $0.isLetter || $0.isNumber }) else { return false }
         let lower = token.lowercased()
         return token.contains("@") || ["http://", "https://", "www."].contains { lower.hasPrefix($0) }
+            || isDomain(lower)
+    }
+
+    /// The engine's `text::DOMAIN_ENDINGS`: no English words (`end.it` is a missed space).
+    private static let domainEndings: Set<Substring> = [
+        "com", "net", "org", "edu", "gov", "mil", "int", "io", "dev", "app", "ai", "co", "uk", "in",
+        "me", "ca", "de", "fr", "jp", "au", "nz", "sg", "ae", "ly", "gg", "tv", "info", "biz", "xyz",
+        "tech", "site", "online", "store", "blog",
+    ]
+
+    /// `example.com`, `gov.in`, `example.com/blog` (lowercased): labels of ASCII letters, digits
+    /// and hyphens joined by dots, ending in `domainEndings`, then an optional `/path`.
+    private static func isDomain(_ lower: String) -> Bool {
+        let host = lower.split(separator: "/", omittingEmptySubsequences: false).first ?? ""
+        let labels = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= 2, let ending = labels.last else { return false }
+        return domainEndings.contains(ending)
+            && labels.allSatisfy { !$0.isEmpty && $0.allSatisfy { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" } }
     }
 
     /// The text after the last whitespace in `context`, less opening brackets and quotes.
