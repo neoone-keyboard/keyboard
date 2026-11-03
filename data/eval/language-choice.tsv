@@ -1,0 +1,107 @@
+# Language choice (gate split): context<TAB>latin<TAB>wanted, the format of chat-golden.tsv.
+# Latin words that read as English or as Manglish, with the meaning set by the context. Half the rows
+# want the English word as typed, half the Malayalam word. Contexts are what the keyboard would have
+# committed: Malayalam script for Manglish words, except a few rows where the user kept Latin.
+# Written for this repo, with no external data. Malayalam targets were checked against the bundled
+# ml.fst and English targets against en.fst.
+innu bhayankara	pani	പണി
+njan ippo	varam	വരാം
+ente	veedu	വീട്
+nale	kanam	കാണാം
+ഇന്ന് ഭയങ്കര	pani	പണി
+എനിക്ക് നല്ല	pani	പനി
+ഞാൻ ഇപ്പോ	varam	വരാം
+നാളെ	kanam	കാണാം
+അവൻ	poli	പൊളി
+പടം	poli	പൊളി
+അവനെ	pole	പോലെ
+നിന്നെ	pole	പോലെ
+ok	sari	ശരി
+അത്	sari	ശരി
+എന്റെ	mole	മോളെ
+എന്റെ	mone	മോനെ
+ഒരു	vada	വട
+ഒരു	chaya	ചായ
+നീ	evide	എവിടെ
+അവൻ	vannilla	വന്നില്ല
+എടാ	poda	പോടാ
+cricket	kali	കളി
+നല്ല	mazha	മഴ
+ഭയങ്കര	choodu	ചൂട്
+എനിക്ക്	vishakkunnu	വിശക്കുന്നു
+ഞാൻ ഓഫീസിൽ	pokanam	പോകണം
+bus	kitti	കിട്ടി
+movie	kandu	കണ്ടു
+exam	kazhinju	കഴിഞ്ഞു
+meeting	kazhinju	കഴിഞ്ഞു
+ente	amma	അമ്മ
+അവളുടെ	peru	പേര്
+എന്ത്	patti	പറ്റി
+food	kazhichu	കഴിച്ചു
+ok	pinne	പിന്നെ
+ശരി	ennal	എന്നാൽ
+വീട്ടിൽ	ethi	എത്തി
+എത്ര	rupa	രൂപ
+super	padam	പടം
+പടം	adipoli	അടിപൊളി
+നല്ല	kutty	കുട്ടി
+എനിക്ക്	ishtam	ഇഷ്ടം
+എനിക്ക്	ariyilla	അറിയില്ല
+നമ്മൾ	pokam	പോകാം
+വേഗം	vaa	വാ
+ഞാൻ നാളെ	varum	വരും
+അമ്മ	paranju	പറഞ്ഞു
+phone	vilikkam	വിളിക്കാം
+കുറച്ച്	vellam	വെള്ളം
+നീ	aara	ആരാ
+what do you	mean	mean
+see you at the	mall	mall
+she wore a red	sari	sari
+I have a	mole	mole
+the electric	pole	pole
+yes we	can	can
+I'll be there at	ten	ten
+and	then	then
+a frying	pan	pan
+the	van	van
+my old	pal	pal
+the first aid	kit	kit
+that's so	cool	cool
+a cup of	tea	tea
+what's the	date	date
+I missed the	bus	bus
+I'll take the	car	car
+did you	pass	pass
+fried	rice	rice
+I have back	pain	pain
+not in the	mood	mood
+do you have a	pet	pet
+a	pot	pot
+can I borrow a	pen	pen
+take a	seat	seat
+let's	eat	eat
+pay the	bill	bill
+throw the	ball	ball
+he's a nice	man	man
+the front	door	door
+let's	chat	chat
+the same	set	set
+is it the	same	same
+I'm so	bored	bored
+I'm	fine	fine
+good	night	night
+open the	window	window
+the	main	main
+call the	police	police
+look at the	moon	moon
+it's too	hot	hot
+under the	tree	tree
+on	time	time
+go	home	home
+a safety	pin	pin
+the	party	party
+good	luck	luck
+a	bag	bag
+by the	sea	sea
+the swimming	pool	pool
+the	cat	cat

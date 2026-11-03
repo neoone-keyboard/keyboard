@@ -1,3 +1,4 @@
+from mlkb.eval.__main__ import regressions
 from mlkb.eval.english import wrong_replacements
 from mlkb.eval.translit import Row, score
 
@@ -70,3 +71,9 @@ def test_the_english_typo_set_is_gated_too():
     assert regressions(worse, base) == ["english_typos top1: 0.7900 < baseline 0.8000"]
     # A baseline recorded before the set existed gates nothing.
     assert regressions(worse, {**base, "english_typos": None}) == []
+
+
+def test_next_word_metrics_are_gated():
+    base = {"english_wrong_rate": 0.001, "next_en": {"top1": 0.2, "top3": 0.4, "ks": 0.1, "n": 9}}
+    now = {"english_wrong_rate": 0.001, "next_en": {"top1": 0.2, "top3": 0.39, "ks": 0.1, "n": 9}}
+    assert regressions(now, base) == ["next_en top3: 0.3900 < baseline 0.4000"]

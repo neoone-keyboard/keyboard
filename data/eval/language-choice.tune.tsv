@@ -1,0 +1,53 @@
+# Language choice (tune split, for weight sweeps only): context<TAB>latin<TAB>wanted, as language-choice.tsv.
+# Written for this repo, with no external data. Malayalam targets were checked against the bundled
+# ml.fst and English targets against en.fst.
+നീ	vannu	വന്നു
+അവൻ	paranju	പറഞ്ഞു
+ഇത്	ente	എന്റെ
+അവൾ	ente	എന്റെ
+നീ	ethra	എത്ര
+ഇത്	enthanu	എന്താണ്
+നല്ല	padam	പടം
+ഈ	padam	പടം
+എന്റെ	kutty	കുട്ടി
+നിന്റെ	peru	പേര്
+ഞാൻ	kazhichu	കഴിച്ചു
+ഞാൻ	pinne	പിന്നെ
+അവിടെ	ethiyo	എത്തിയോ
+ഇവിടെ	vaa	വാ
+ഞാൻ	vilikkam	വിളിക്കാം
+നല്ല	vellam	വെള്ളം
+അവൻ	aara	ആരാ
+ente	achan	അച്ഛൻ
+office il	pokanam	പോകണം
+ok	nanni	നന്ദി
+train	vannu	വന്നു
+class	kazhinju	കഴിഞ്ഞു
+nale	pokam	പോകാം
+എന്റെ	veedu	വീട്
+avan	poli	പൊളി
+the meaning	pole	pole
+I saw a	mole	mole
+nice	shot	shot
+a	bat	bat
+my	dad	dad
+I	love	love
+I	know	know
+call	me	me
+my	phone	phone
+the	chair	chair
+very	good	good
+that's	true	true
+I'm	sure	sure
+the	kids	kids
+have a	nice	nice
+I'm on my	way	way
+some	ice	ice
+the	pin	pin
+a	ten	ten
+my	mom	mom
+the	poll	poll
+I	am	am
+the	man	man
+it's	cool	cool
+a	mile	mile
