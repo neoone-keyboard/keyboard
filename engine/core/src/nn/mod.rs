@@ -11,6 +11,7 @@ pub mod tokenizer;
 pub mod transformer;
 pub mod translit;
 pub mod vocab;
+mod weights;
 
 pub use file::{Config, ModelFile, NnError, TensorRef};
 pub use tokenizer::{Tokenizer, lm_normalize};

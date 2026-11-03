@@ -315,6 +315,42 @@ mod neon {
     }
 }
 
+/// Multi-head attention of one query `q` (`d`) over `t` rows of `kv`, where row `j`'s key is
+/// `kv[j*stride + k_off ..][..d]` and its value `kv[j*stride + v_off ..][..d]`. Writes `d`
+/// values to `out`. `scores` needs `t` entries.
+#[allow(clippy::too_many_arguments)]
+pub fn attend(
+    q: &[f32],
+    kv: &[f32],
+    (k_off, v_off, stride): (usize, usize, usize),
+    t: usize,
+    heads: usize,
+    scores: &mut [f32],
+    out: &mut [f32],
+) {
+    let d = q.len();
+    let dh = d / heads;
+    let scale = 1.0 / (dh as f32).sqrt();
+    let scores = &mut scores[..t];
+    out.fill(0.0);
+    for h in 0..heads {
+        let cols = h * dh..(h + 1) * dh;
+        let qh = &q[cols.clone()];
+        for (j, s) in scores.iter_mut().enumerate() {
+            let k = &kv[j * stride + k_off + cols.start..][..dh];
+            *s = dot(qh, k) * scale;
+        }
+        softmax(scores);
+        let oh = &mut out[cols.clone()];
+        for (j, &p) in scores.iter().enumerate() {
+            let v = &kv[j * stride + v_off + cols.start..][..dh];
+            for (o, &vv) in oh.iter_mut().zip(v) {
+                *o += p * vv;
+            }
+        }
+    }
+}
+
 /// `out = (x - mean) / sqrt(var + eps) * weight + bias`, as `nn.LayerNorm` over one vector.
 pub fn layer_norm(x: &[f32], weight: &[f32], bias: &[f32], out: &mut [f32]) {
     let n = x.len() as f32;
