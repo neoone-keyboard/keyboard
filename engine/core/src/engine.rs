@@ -537,9 +537,11 @@ impl Engine {
         found
     }
 
-    /// Adds, as a side slot, the commonest Malayalam word one vowel sign (dropped)
-    /// away from the best whole-word candidate, when it is far more
-    /// common (`rank::MANGLISH_NEIGHBOUR_GAIN`). See `rank::MANGLISH_NEIGHBOUR_PENALTY`.
+    /// Offers the commonest Malayalam word one medial vowel sign (dropped) away
+    /// from the best whole-word candidate, when it is far more common
+    /// (`rank::MANGLISH_NEIGHBOUR_GAIN`): in its place for the middle when that
+    /// candidate may take it (`rank::MANGLISH_NEIGHBOUR_PROMOTION`), else as a
+    /// side slot (`rank::MANGLISH_NEIGHBOUR_PENALTY`).
     fn add_standard_neighbour(&self, found: &mut ManglishCandidates) {
         let Some(ml) = &self.sources.malayalam else {
             return;
@@ -553,6 +555,13 @@ impl Engine {
         let Some(best) = best else {
             return;
         };
+        // Its `spelled` flag, if it may take the middle (the same word may be
+        // filed twice, by the skeleton lookup and by the model).
+        let middle_spelled = found
+            .exact
+            .iter()
+            .find(|(c, _)| c.text == best.text)
+            .map(|(_, spelled)| *spelled);
         let Some(own) = ml.get(best.text.as_bytes()).map(|c| ml.log_prob(c)) else {
             return;
         };
@@ -567,13 +576,28 @@ impl Engine {
                 neighbour = Some((variant, log_prob));
             }
         }
-        if let Some((text, _)) = neighbour {
-            let score = best.score - rank::MANGLISH_NEIGHBOUR_PENALTY;
-            found.side.push(Candidate {
-                text,
-                kind: Kind::Manglish,
-                score,
-            });
+        let Some((text, _)) = neighbour else {
+            return;
+        };
+        match middle_spelled {
+            // The rare form would take the middle: the standard one takes it
+            // instead, on the rare form's evidence, and the rare form moves aside.
+            Some(spelled) => {
+                let candidate = Candidate {
+                    text,
+                    kind: Kind::Manglish,
+                    score: best.score + rank::MANGLISH_NEIGHBOUR_PROMOTION,
+                };
+                found.exact.push((candidate, spelled));
+            }
+            None => {
+                let candidate = Candidate {
+                    text,
+                    kind: Kind::Manglish,
+                    score: best.score - rank::MANGLISH_NEIGHBOUR_PENALTY,
+                };
+                found.side.push(candidate);
+            }
         }
     }
 

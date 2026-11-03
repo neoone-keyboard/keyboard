@@ -19,12 +19,15 @@ const VOWEL_SIGNS: [char; 11] = [
     '\u{0D48}', '\u{0D4A}', '\u{0D4B}',
 ];
 
-/// Every spelling of `word` with one vowel sign dropped (ആവിശ്യം → ആവശ്യം):
-/// the vowel loose spelling inserts between consonants.
+/// Every spelling of `word` with one medial vowel sign (one followed by a
+/// consonant) dropped: ആവിശ്യം → ആവശ്യം, the vowel loose spelling inserts
+/// between consonants. A final sign is inflection (വന്നോ, വന്ന), not a slip.
 pub fn vowel_sign_drops(word: &str) -> Vec<String> {
     let chars: Vec<char> = word.chars().collect();
     (0..chars.len())
-        .filter(|&i| VOWEL_SIGNS.contains(&chars[i]))
+        .filter(|&i| {
+            VOWEL_SIGNS.contains(&chars[i]) && chars.get(i + 1).is_some_and(|&c| is_consonant(c))
+        })
         .map(|i| chars[..i].iter().chain(&chars[i + 1..]).collect())
         .collect()
 }
@@ -36,7 +39,8 @@ mod tests {
     #[test]
     fn vowel_sign_drops_drop_one_sign() {
         assert_eq!(vowel_sign_drops("ആവിശ്യം"), ["ആവശ്യം"]);
-        assert_eq!(vowel_sign_drops("കിളി"), ["കളി", "കിള"]);
+        assert_eq!(vowel_sign_drops("കിളി"), ["കളി"], "the final ി is kept");
+        assert!(vowel_sign_drops("വന്നോ").is_empty());
         assert!(vowel_sign_drops("അവൻ").is_empty());
     }
     use proptest::prelude::*;

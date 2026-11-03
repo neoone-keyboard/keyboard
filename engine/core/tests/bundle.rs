@@ -372,23 +372,26 @@ fn translit_model_converts_in_the_middle() {
     }
 }
 
-/// Loose spellings of a rare lexicon word the model reads confidently convert in
-/// the middle (`rank::MANGLISH_MODEL_CONFIDENT`), with the far commoner standard
-/// spelling one vowel sign away beside them (`rank::MANGLISH_NEIGHBOUR_GAIN`).
-/// User-reported on device, 2026-11-03: ആവിശ്യം is the user's own spelling.
+/// Loose spellings convert in the middle to the commoner standard word one
+/// medial vowel sign away (`rank::MANGLISH_NEIGHBOUR_GAIN`), which takes the
+/// place of the rare form the model read confidently (`rank::MANGLISH_MODEL_CONFIDENT`);
+/// the rare form stays beside it. User-reported on device, 2026-11-03: the user
+/// types ആവശ്യം as `avshyam` and `avishyam` (ആവിശ്യം is in the lexicon too).
 #[test]
 fn translit_model_forgives_loose_spellings() {
     let Some(engine) = model_engine() else { return };
-    for typed in ["avshyam", "avishyam"] {
-        let bar = texts(&engine, typed);
+    for context in ["avshyam", "avishyam", "ഞാൻ avishyam"] {
+        let bar = texts(&engine, context);
         assert_eq!(
-            middle(&engine, typed),
-            ("ആവിശ്യം".to_string(), Kind::Manglish),
-            "{typed}: {bar:?}"
+            middle(&engine, context),
+            ("ആവശ്യം".to_string(), Kind::Manglish),
+            "{context}: {bar:?}"
         );
-        assert!(bar.contains(&"ആവശ്യം".to_string()), "{typed}: {bar:?}");
+        assert!(bar.contains(&"ആവിശ്യം".to_string()), "{context}: {bar:?}");
     }
     assert_eq!(middle(&engine, "aavashyam").0, "ആവശ്യം");
+    // A final vowel sign is inflection, not a slip: വന്നോ is not വന്ന.
+    assert_eq!(middle(&engine, "vanno").0, "വന്നോ");
 }
 
 /// Known misses, left for a later fix of chat forms; no ranking weight reaches them.

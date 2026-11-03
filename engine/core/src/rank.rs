@@ -114,20 +114,29 @@ pub const MANGLISH_MODEL_CONFIDENT: f32 = -0.5;
 /// `suggest_latin`). 1.0 helped less (chat 0.765, human 0.497 at −0.5).
 pub const MANGLISH_MODEL_CONFIDENT_RELIEF: f32 = 1.5;
 const _: () = assert!(MANGLISH_MODEL_CONFIDENT_RELIEF <= MANGLISH_EXACT_BONUS);
-/// A rare spelling with one vowel sign more than a word at least this much
-/// more probable is a loose spelling of it: loose typing puts a vowel between
-/// consonants. The common word joins the side slots
-/// (`Engine::add_standard_neighbour`): `avishyam` → ആവിശ്യം (−12.53, the
-/// user's colloquial form) in the middle, and the standard ആവശ്യം (−9.44)
-/// beside it. The model never reaches ആവശ്യം from `avishyam`, and from
-/// `avshyam` only past `MODEL_WIDTH`. A big gap only: words a vowel apart are
-/// often different words (കിളി, കളി). At 2.0 കപ്പൽ pushed the wanted കാപ്പിൽ
-/// out of `kaappil`'s bar. Swapping a sign as well as dropping it, at 1.0,
-/// put ലൂസി beside ലിസി and കുട്ടി beside കാട്ടി. At 2.5, dropping only, no
-/// eval row changes.
+/// A rare spelling with one medial vowel sign more than a word at least this
+/// much more probable is a loose spelling of it: loose typing puts a vowel
+/// between consonants (`malayalam::vowel_sign_drops`; a final sign is
+/// inflection, വന്നോ against വന്ന). The common word is offered
+/// (`Engine::add_standard_neighbour`): `avishyam` reads as ആവിശ്യം (−12.53) but
+/// means ആവശ്യം (−9.44), which the model never reaches from `avishyam`, and
+/// from `avshyam` only past `MODEL_WIDTH`. A big gap only: words a vowel apart
+/// are often different words (കിളി, കളി). At 2.0, കപ്പൽ pushed the wanted
+/// കാപ്പിൽ out of `kaappil`'s bar. Swapping a sign as well as dropping it, at
+/// 1.0, put ലൂസി beside ലിസി and കുട്ടി beside കാട്ടി. At 2.5, medial drops
+/// only, no old eval row changes.
 pub const MANGLISH_NEIGHBOUR_GAIN: f32 = 2.5;
-/// The neighbour scores this much below the word it was found from: side
-/// slot only, but ahead of the long completions and junk that fill them.
+/// Where the rare form would take the middle, the neighbour takes it instead,
+/// scoring this much above the rare form, which keeps a side slot. It inherits
+/// the rare form's evidence (score, `spelled`): a far commoner word one vowel
+/// away is likelier the intended spelling than the rare one. User follow-up on
+/// device: ആവിശ്യം was a typo; `avishyam` and `avshyam` mean ആവശ്യം. With
+/// final signs dropped too, promotion cost chat top-1 0.781 → 0.765 (വന്നോ →
+/// വന്ന, കണ്ടോ → കണ്ട, മിക്കി → മിക്ക); medial only, nothing changed.
+pub const MANGLISH_NEIGHBOUR_PROMOTION: f32 = 0.01;
+/// Otherwise (the rare form is only a side slot) the neighbour scores this
+/// much below it: side slot only, but ahead of the long completions and junk
+/// that fill them.
 pub const MANGLISH_NEIGHBOUR_PENALTY: f32 = 1.0;
 /// Score of the model's free spelling (off the lexicon), which replaces the
 /// rule-based one: side slot only, and only when no Malayalam word was found.
