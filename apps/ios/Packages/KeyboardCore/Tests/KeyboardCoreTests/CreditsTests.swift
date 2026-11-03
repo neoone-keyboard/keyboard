@@ -14,10 +14,11 @@ private struct Manifest: Decodable {
     let verdict: String?
     let status: String?
 
-    /// Only data that reaches the app needs a credit. A manifest with a
+    /// Only third-party data that reaches the app needs a credit. A manifest with a
     /// `status` ("audited, not fetched", "fetched, not used yet") isn't in
-    /// anything shipped yet, and eval-only data never is.
-    var isShipped: Bool { verdict != "eval only" && status == nil }
+    /// anything shipped yet, eval-only data never is, and "own work" (hand-written
+    /// lists in data/) has no one else to credit.
+    var isShipped: Bool { verdict != "eval only" && verdict != "own work" && status == nil }
 }
 
 @Test func everyShippedManifestIsCreditedWithItsLicence() throws {
