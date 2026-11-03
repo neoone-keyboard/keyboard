@@ -9,7 +9,7 @@
   "attribution": "News articles from English Wikinews by Wikinews contributors, CC BY 2.5 and CC BY 4.0. \"This work may be attributed to 'Wikinews'.\"",
   "verdict": "use",
   "verdict_reason": "Attribution only, with no share-alike, so it raises none of the CC BY-SA questions. It is modern prose, and Wikinews forbids importing copyrighted or Wikipedia text.",
-  "used_for": "M3b English LM text (main namespace articles).",
+  "used_for": "M3b LM text (training): main namespace articles, extracted to data/raw/text/wikinews.txt by training/mlkb/lm/sources.py.",
   "retrieved": "2026-11-03",
   "mirrors": [
     "https://dumps.wikimedia.your.org/",
@@ -22,5 +22,5 @@
       "path": "enwikinews-20261101-pages-articles.xml.bz2"
     }
   ],
-  "status": "fetched, not used yet"
+  "status": "fetched, used for M3b LM text"
 }

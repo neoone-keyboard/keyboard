@@ -1,0 +1,131 @@
+# English typos in context (gate split): context<TAB>typed<TAB>intended, as english-typos.tsv, every context non-empty.
+# Top-1: the middle slot (what space commits) is the intended word; top-3: it is anywhere in the bar.
+# Written for this repo, with no external data: the misspellings of english-typos.tsv put in natural chat
+# contexts, guard rows where the context favours the frequent word (they wre -> were), and rows whose
+# typed word is correct and must stay. Each misspelling is in this file or in english-typos-context.tune.tsv,
+# never both. Intended words were checked against the bundled en.fst.
+I can't	remeber	remember
+that's so	wierd	weird
+I bit my	tounge	tongue
+what a nice	suprise	surprise
+can I have a	peice	piece
+I didn't	recieve	receive
+I'll call you	tommorow	tomorrow
+I want to	acheive	achieve
+what's your	adress	address
+can you say that	agian	again
+I've	allready	already
+you're	alwasy	always
+we had an	arguement	argument
+from the	begining	beginning
+I can't	beleive	believe
+how's the	buisness	business
+he's a	collegue	colleague
+are you	comming	coming
+I'm	completly	completely
+she made a	desicion	decision
+that's a	diffrent	different
+I don't want to	dissapoint	disappoint
+it's bad for the	enviroment	environment
+she has a lot of	experiance	experience
+it	finaly	finally
+my best	freind	friend
+what	happend	happened
+call me	immediatly	immediately
+sorry to	interupt	interrupt
+I'm going to the	libary	library
+is it really	neccessary	necessary
+I	prefered	preferred
+I	realy	really
+can you	recomend	recommend
+it looks	similiar	similar
+a very	succesful	successful
+it's	unfortunatly	unfortunately
+wait	untill	until
+I don't know	wich	which
+I saw him	yesterady	yesterday
+they forgot	thier	their
+what's	teh	the
+you	adn	and
+I'm	jsut	just
+so	waht	what
+come	wiht	with
+I know	taht	that
+in	hte	the
+do you	knwo	know
+I like	tihs	this
+I	ahve	have
+ok	thnaks	thanks
+let me know if you need	anythign	anything
+is	everythign	everything
+you look	beutiful	beautiful
+I need to	excercise	exercise
+I	thougth	thought
+I'll	definatly	definitely
+I'm not	familar	familiar
+in a	foriegn	foreign
+we need more	knowlege	knowledge
+that's not	relevent	relevant
+a new	restaraunt	restaurant
+out of	curiousity	curiosity
+she's	independant	independent
+on this	ocasion	occasion
+can we	chnage	change
+I'm so	sorrry	sorry
+I'll do it	tomorro	tomorrow
+I'm	writting	writing
+the fuel	guage	gauge
+I'm late	beacuse	because
+I	dont	don't
+I really	cant	can't
+I think	thats	that's
+she	doesnt	doesn't
+I	didnt	didn't
+it	wasnt	wasn't
+they	arent	aren't
+I	havent	haven't
+I think	youre	you're
+I'm sure	theyre	they're
+I think	shes	she's
+where's	teh	the
+they	wre	were
+what is the	prise	price
+do you	wnt	want
+yesterday I	wnet	went
+how	mcuh	much
+see you	soom	soon
+I'm so	hapy	happy
+where are	yuo	you
+let me	knw	know
+I'm on my	wya	way
+what	tiem	time
+give me a	minite	minute
+I'm at	hoem	home
+have a good	nihgt	night
+good	mornign	morning
+can you	hlep	help
+I'm	waitng	waiting
+see you at the	meetign	meeting
+we	cna	can
+I'm at the	offce	office
+he's my	brothr	brother
+what's the	plna	plan
+I lost my	phnoe	phone
+that's	rihgt	right
+I'll send the	detials	details
+how's the	weathr	weather
+that's	grat	great
+she	siad	said
+I'm	tierd	tired
+we	were	were
+the	well	well
+I feel	ill	ill
+the dog wagged	its	its
+let's go	there	there
+how	far	far
+fill in the	form	form
+it's	fine	fine
+you	lose	lose
+better	than	than
+we	won	won
+my	advice	advice

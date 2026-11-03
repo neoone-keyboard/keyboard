@@ -6,7 +6,7 @@
   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
   "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
   "attribution": "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
-  "used_for": "Malayalam word frequencies (whole 2026-10-01 dump).",
+  "used_for": "Malayalam word frequencies (whole 2026-10-01 dump). Also M3b LM text (training): it is part of data/raw/text/ml.txt.",
   "retrieved": "2026-11-02",
   "mirrors": [
     "https://dumps.wikimedia.your.org/",

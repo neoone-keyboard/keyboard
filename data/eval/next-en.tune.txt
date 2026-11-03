@@ -1,0 +1,505 @@
+# Next-word eval set, English (tune split, for weight sweeps only): one sentence per line.
+# 500 sentences of 4-20 words sampled (seed 20261105) from held-out paragraphs, never trained on, of
+# Simple English Wikipedia (CC BY-SA 4.0, by Wikipedia contributors, https://simple.wikipedia.org/) and
+# English Wikinews (CC BY 2.5 and CC BY 4.0, by Wikinews contributors; this work may be attributed to
+# 'Wikinews', https://en.wikinews.org/). Built by training/mlkb/lm/corpus.py.
+The Gulf of Guinea is off West Africa.
+The community was named for its founder, Lovell B.
+Tone refers to the distinctive pitch level of a syllable.
+Story of the Blind Men and the Elephant from
+It said James Hemings could only do these things because Jefferson said he could.
+The city used to be known as Peking.
+She had been in politics last year but was forced out after the special votes were counted.
+Anil George as Qazi
+They are not rich or stylish, but they are good people.
+That is until Alfred the Great took that title away and made Ine second.
+They all live in America.
+The bar has been set high.
+There are bumps near the rear end.
+Froese, Rainer, and Daniel Pauly, eds.
+The Germans thought the war would be short.
+Wen was born in Hong Kong.
+It stars Mihail Badiceanu, Natalya Chetverikova, and Alexey Eybozhenko.
+The series follows the adventures of Yugi Mutou, a high school student who plays a game called Duel Monsters.
+Bernard puppy dog slowly crawl out of a blanket.
+It was the most important city culture of the Kotoko south of Lake Tchad.
+He starred in the movie The Giant Mechanical Man.
+The thermometer was invented by Galileo Galilei, who had noticed that the density of a liquid changes with temperature.
+The town is on the island of Guadalcanal.
+Jane Curtin as Muffy, a wasp who is Chip's wife.
+This property is called pseudoplasticity.
+Padraic went to school in Dublin.
+The station is in East Antarctica.
+It is flanked by four huge wings of student and faculty accommodations.
+It is native to South and Central America.
+He is known for his work in the field of finite groups.
+She has been a high-profile member of Governor Mark Dayton's administration and a key participant in legislative negotiations.
+This all gives rise to problems of spelling.
+Later, they moved to North Dakota, where they split from the Hidatsa.
+How can the Kurds win?
+Hilo is the county seat of Hawaii County, Hawaii, and is in the South Hilo District.
+It lives in forests, wetlands and sometimes cities.
+Examples are All horses are the same color, or Zeno's paradoxes.
+Pope Benedict left Cuba Wednesday evening.
+Many of these were done in territories that were part of the British Empire, or in its sphere of influence.
+His other son was his successor, Charles II of Spain.
+He wrote some operas and cantatas in Gotha.
+Trash Wheel also known as the Inner Harbor Trash Wheel, is a trash interceptor.
+Mendeleev noticed a gap in his periodic table and named the element in the gap eka-manganese.
+It lives in Peru.
+Como is a town in the U.S.
+These hot gases are known as a pyroclastic flow.
+Aarnio says he intends to appeal and had argued he acted lawfully.
+Hayward Field is a track and field stadium at the University of Oregon in Eugene, Oregon.
+Tuggeranong United Football Club is an Australian semi-professional soccer club based in the Tuggeranong district of Canberra.
+Their actions impacted the Chinese history.
+The capital is Toledo and the biggest cities are Albacete, Talavera of the Queen, Guadalajara, Ciudad Real, Puertollano, and Cuenca.
+According to the university and published reports, the hub focuses on practical learning through live projects, internships, and hackathons.
+He helped start the studies of geochemistry, biogeochemistry, and radiogeology.
+Ridley was born in Consett, County Durham.
+They are a commercially important flatfish.
+He is the son of Haitian immigrant Marcelene Octave.
+Stephanie McCrummen is an American journalist.
+He later served as an ambassador to France from Argentine.
+He added that an official announcement would come in January.
+Lamborghini designed it to be less expensive than the Countach.
+The man was arrested but later released pending investigation.
+When he gets out of prison, he gets murdered.
+He served on multiple submarines and earned the China Service Medal for his service in southeast Asia.
+Arrangements and all vocals and instruments by Wonder except as indicated.
+He is survived by four children and nine grandchildren.
+This ceramic type acquired increasing prominence until it became the exponent of the Neolithic period throughout a wide territory.
+Suren Aghababyan, a literary critic
+While going towards the gallows, Bhagat, Sukhdev and Rajguru were not even slightly afraid.
+This claim started the conflict between France and the Spanish Empire.
+He gets the nematodes away by playing his nose as a flute.
+Melton Mowbray is a town in Leicestershire, England.
+Telugu is both the official and spoken language.
+She delivered poisons and held black masses for payment.
+Both male and female same-sex sexual activity has always been legal in Burkina Faso.
+He was the son of King Atreus and Queen Aerope of Mycenae, and the brother of Agamemnon.
+Jamie Hyneman biography from the Discovery Channel
+It is a short audio recording of speech can be heard as one of two words.
+To the north is a tramway that travels in the air.
+All adult men in the Empire had to be in the Aztec military.
+This makes it even harder for oxygen to get to the brain, heart, and the rest of the body
+The electric signals from the theremin are amplified and sent to a loudspeaker.
+Valle de Sorteny Natural Park, the largest natural park in Andorra.
+There are limited catering services on-board the flights.
+Mass is an inertial property.
+It measures the tendency of an object to stay at a given speed when no force acts on it.
+It hangs in the National Gallery of Art in Washington, DC.
+With her dog Pippin, Auntie Mabel looks at how common things are made and how they work.
+Police have stated that another three youths have been interviewed regarding the incident.
+state of South Carolina.
+The disagreement over the pronunciation led to heated Internet debate.
+These campaigns were intended to weaken Byzantine defensive capabilities, acquire booty, and establish military pressure on Constantinople.
+This double bar line shows the end of a piece of music.
+Its capital, and the prefecture of the department, is the city of Annecy.
+Vane wanted to shoot Keightley for killing Burke, but Ben Hall stopped him.
+A singly linked list is a linked list that's used to store items in order.
+This would have caused the extinction of many groups.
+His work was often called homoerotic.
+Tye Dillinger also wrestled on WWE's main roster for the first time in the Royal Rumble match.
+Each item is usually called a node.
+Her parents try to tell her why it is dead.
+Specifically, it is an oblast.
+Four versions of a classification system have come from this collaboration.
+Epley stated that similar misunderstandings of emotional tone play a major role in starting online flame wars.
+The video is dedicated to X.
+There were eight matches on the card.
+Latvian Americans are Americans who are of Latvian ancestry.
+Mary Grant is a retired archer from Canada.
+The Tank has features like bulletproof glass and armored body panels.
+It was founded by German emigrants in Brazil.
+Australian drug trafficker to be executed in Singapore tomorrow
+It has expanded to become the national summer sport of several English-speaking countries.
+The climate for the most part remained warm enough to support forests well into the Pliocene.
+Vitamin C is not stored in the body which means it is needed every day.
+Rulers of Indian Princely States were also eligible for appointment to the Order.
+It is seen in cases of poorly controlled diabetes.
+Timon and Pumbaa meet the characters in different episodes when visiting Bora Bora and New Guinea.
+It features original material compiled throughout the previous month after a brief mention of some of the month's biggest stories.
+Komar will be released ...
+It is a console from the ninth generation of video games.
+The phrase was later borrowed to give a formal name for the logical fallacy and literary device.
+We Rock is a song off the soundtrack of Camp Rock.
+Shaurya Khanna is a rich and wealthy restaurateur in Delhi while Mehek Sharma is a low on confident middle-class girl.
+In roily waters, the fish appears to gray or silver.
+The United States and Australia refuse to sign Kyoto claiming its mandatory greenhouse gas cuts would threaten economic growth.
+Parkland, Illinois, an unincorporated community
+The American captives were forced to build bunkers and fortifications on Wake.
+In grade school, Cummings expressed intent to become a lawyer.
+The book won both the Pulitzer Prize and the Nobel Prize in Literature.
+The Equal Protection Clause itself applies only to state and local governments.
+They cover the western and northern parts of Quebec, including the city of Gatineau and the surrounding regions.
+Today, computerized GC-MS instruments are widely used in environmental monitoring of water, air, and soil.
+The Willamette River flows the entire length of the valley.
+Gillard is a member of the Left faction of the Labor party.
+She was portrayed by Gloria Foster and Mary Alice.
+Carpinteria tar pits, East of Santa Barbara, California.
+The group Keep America Beautiful paid for and made the ad.
+Since the time of the silent movies movies telling the story of Martin Luther have been made.
+This was after the amalgamation of Toronto.
+Rupnik became a major in the Austro-Hungarian army after training at the General Staff Academy in Vienna.
+Visayan Silent Gardens - Bohol Island
+Children also have other rights, which are related to them being vulnerable while they grow up.
+What conditions did you test your hypothesis under?
+People with bipolar II disorder and cyclothymia have hypomania, which is a less severe type of mania.
+Human rights apply to everyone, they also apply to children.
+The Central Garden at the Getty Center is the work of artist Robert Irwin.
+The genus is closely related to guinea pigs, chinchillas, agoutis, maras, and muskrats.
+Jane Goodall Institute Taiwan
+He changed the key to E minor which works well on the guitar.
+Rascal Flatts Official website
+They say they do.
+A home nation is one of the four countries that make up the United Kingdom.
+The character's name is based on the imaginary childhood friend of creator Norman Bridwell's wife, Norma Bridwell.
+Danielle Christmas is a retired racing cyclist and middle-distance runner from Great Britain.
+It is a part of the World Masterpiece Theater series.
+But with Iran, we shall do what we have to do in our own way.
+Changes in a phenotype like a trait or disease happen when many genes change.
+Indigenous Australian names for the eastern grey include iyirrbir and kucha.
+It is also called
+Bedford, Freeman and Worth Publishing Group
+Because of an accident during his childhood he had both feet amputated.
+It was the opposite in the United States at this time.
+Those with both copies with sickle mutation die of sickle disease before they can reproduce.
+She grew up with both American and Russian traditions.
+It can be applied to computer-assisted proofs for mathematical problems.
+She also hosted several talk shows with her brother Donny.
+In a large country like Germany or, I don't know where you're from.
+These are part of the Western Victorian Volcanic Plains.
+Tamsui is the terminal metro station on the Tamsui-Xinyi Line in New Taipei, Taiwan.
+The song surpassed one billion streams on Spotify.
+He worked for The Walt Disney Company.
+Some Chinese characters were originally fairly concrete pictures of the things they represent.
+They take a dislike to her at once.
+The game itself does not follow the movie's storyline.
+The length of the rope is such that the ball cannot touch the magnets, but is still influenced by them.
+Her father was actor Robert Montgomery.
+McKee, by whom he was especially commended, Troy was badly wounded by the enemy.
+However, wax can build up faster than in the ears of other cats.
+Garda National Drug Unit
+The book was published by Warner Books, Inc.
+Web page of wife Barbara O'Connor on the Dream Town Realty website
+The teachers allowed the students to call them by their first names.
+It is named after the state's first governor, Stevens T.
+There were three shogunates in Japan.
+loss of appetite and unintentional weight loss
+She hates Alan and takes every chance she gets to make him look stupid.
+Very often it corresponds to the part of the fruit that is eaten.
+Najeeb Tarakai at ESPNcricinfo
+There were four other songs that were finalists in the award that is based on songwriting, not record sales.
+It happened from late June through August.
+Finaly he reached Mahamudra or state of complete enlightement.
+Bernie Sanders for President - official campaign website
+Fauquier is a county in the U.S.
+The genus was much more abundant in the past, containing several species in the same genus, now all extinct.
+Sulu is played by actor George Takei and by John Cho.
+Below is a list of the islands of the country.
+The Skagerrak connects the North Sea to the Baltic Sea.
+Legislators passed new requirements for voter registration, including literacy tests, payment of poll taxes, and residency or property restrictions.
+It is dangerous because you cannot know what is in the drug.
+It is found in the region Hauts-de-France in the Pas-de-Calais department in the north of France.
+It has been a big success.
+For example, a kilogram of water has more heat capacity than a kilogram of steel.
+Among other things they use solid geometry and trigonometry to create correct perspective.
+Later when they were driven to Central India they began to be called Kalachuris and Haihayas.
+Enslaved men were often chained together at the ankles.
+The team can decide where to put the infielders and outfielders.
+There he was a professor of Architectural Composition and Theory of Architecture.
+This frog lives near streams with many plants growing nearby.
+Monocytes circulate in the bloodstream for about one to three days and then typically move into tissues throughout the body.
+It is her first album with the label Sumerian Records.
+The images are called sonograms, sonography being a procedure.
+The chance that these craters could be aligned like this accidentally are nearly zero.
+Shields was also a regular panelist on Inside Washington.
+The army was not happy either.
+At the time blacks could not vote in the Northern states.
+The energy driving this polymerization comes from cutting off two phosphate groups.
+House in order to run for Mayor of Los Angeles.
+Derek Benfield as Vincent's father
+The winters are long and very cold.
+He was a member of the National Wrestling Hall of Fame.
+Though Lynch and Capuano have expressed interest in the seat, Markey is thus far the only announced candidate.
+It is the worlds largest exhibition of this kind.
+This is a list of cricketers who have played Test cricket for Bangladesh.
+Doherty, past Governor-General of Australia Quentin Bryce, and many of Queensland's Premiers including Anna Bligh and Campbell Newman.
+During the World War II Arnhem was severely damaged.
+Emmental cheese review on Cheese Review
+There are brown stripes on the back.
+Afterwards, Seigenthaler wrote about his experience in USA Today.
+Afterwards, she was banned from competing in high school sports.
+It is the male version of a matronymic.
+It was taken from their fifth studio album Hotel California.
+The club runs handball, ice hockey and soccer.
+Yogi Bear became the most popular character on The Huckleberry Hound Show and quickly got his own show.
+He was a married man who considered divorcing his wife for Lee, but did not do so.
+Hydra is to the east.
+Cyril is a town in the U.S.
+Shreya Jain is an Indian actress who works in Hindi television.
+It lives in Colombia.
+They are caused by viruses.
+But I still audition for everything.
+It was used by Roman armies, and the proof is in the archaeological artefacts found in Aosta.
+It was built after the war.
+The song has also been used in many movies and TV shows.
+John O'Toole, official site
+Served as coxswain on board the U.S.S.
+She was a member of the Carter Family act.
+Many actors from the MCU movies return to voice their characters, while others are replaced by other voice actors.
+Stern, the brother of actor Daniel Stern, who co-starred in Home Alone and its first sequel.
+When the bubbles dry, they become a foam nest.
+Commerzbank Tower is located in Frankfurt's district Innenstadt in the centre of the city.
+The Toronto Rock is a professional lacrosse team in Toronto, Canada.
+The gardens of the National Art Gallery are popular for afternoon strolls.
+At of total area, Galloway Township is the largest municipality in the State of New Jersey.
+It's somewhat of a monopoly as well considering that the health care industry, the insurance companies don't have to compete.
+Milton Cruz at sports-reference.com
+Sapumal Kumaraya was the commander of the Kotte army at the time.
+Wards Island is still used for mental-health care.
+She was born in Los Angeles, California.
+All of the sick humans found were dairy farm workers.
+Henri Toulouse-Lautrec designed many posters for the cabaret.
+The pupils of this frog's eyes go side to side and open up and down.
+He is a lieutenant of the Starship Enterprise.
+The Iberia was a famous Spanish dress shop.
+The Hill Farm - Mark Baker
+Students who take a Prep Test are not given a mark.
+Delmark Records, It Ain't Over!
+Rose left school without taking her A-levels but won the bronze medal in an under-sevens gymnastics competition at her school.
+Damon Hines as Nick Murtaugh
+It works in two ways.
+It is north of Green Island.
+Nizam Prince Raunaq Yar Khan Exclusive Interview
+Bush and seven prominent former colleagues guilty of war crimes.
+They individually struggle against the Flash, but are able to defeat him by working together.
+During his duty of collecting tribute from a hill village, Nungpal Khwa Langpa meets a tragic death.
+For her performance in her second season, Clark was named a unanimous All-American.
+Charlene Choi, actress and singer
+Kasich was born in McKees Rocks, Pennsylvania.
+When she was six, Liang Chow opened a gymnastics school in her city.
+The district had a lot of fraud from factory workers going to the saloons after work.
+Not all of those buds develop into branches, but some do.
+It did not experience chart success in the United States or aboard.
+Goldsboro is best known as home to Seymour Johnson Air Force Base.
+This frog is not in danger of dying out because it lives in such a big area.
+However, scientists had thought these bones came from modern humans.
+Sharia deals with many topics, including crime, politics, marriage contracts, trade regulations, religious instructions, and economics.
+He painted several pictures of boys playing.
+Minors are slightly larger than minim workers, and are present in large numbers in and around foraging columns.
+There is a large reviewing stand and pavilion in the square.
+Carl Crawford, baseball player
+China Chronology World History Database
+Shoah Resource Center, The International School for Holocaust Studies
+The course is established in advance by the course designer.
+The tattoo artist guarantees that the person cannot receive any physical harm as long as they follow certain conditions.
+Greek equivalent is Bia
+Phthalic acid, when the groups are next to each other
+He was said to have fallen into a deep depression after being released by WCW.
+Author , under her married name of Margaret Guiheen, on .
+Because we use the decimal system, you probably know this point as the decimal point.
+As such Pakhi also kisses him unwillingly.
+In these individuals, hemoglobin in red blood cells is extremely sensitive to oxygen deprivation, and this causes shorter life expectancy.
+Wrought iron was one of the most common types of iron in the medieval times.
+Almost all of his films are incredible.
+In malaria prone areas, normal people die frequently of malaria often before they had children.
+It also can be made by reacting bromine in an organic solvent with ozone.
+She received a Grammy Award for Best New Artist on that studio album.
+Little Brown and Company.
+He was the first Roman Catholic cardinal to have been given a knighthood since the English Reformation.
+Porky Pig is a cartoon character from the Warner Bros.
+The state's revenue laws.
+Its capital is Honiara, which is also the national capital.
+The story is told in the first person.
+It has zero words after the abstract.
+They include actor Geoffrey Rush, surgeon Peter C.
+The award was won by David Tennant.
+Adil Hussain as Minister S.
+It exists to make room for the brain inside the skull.
+Tagore's travels gave him the opportunity to talk with many notable persons of his time.
+At Moulins, officials counted the fifty-three members of the President's party, and everyone was present.
+The band's main songwriter was Quorthon.
+Jinnah also started to have the idea of a separate country for Muslims of India.
+Was It Something I Said?
+He created three laws of planetary motion that described their orbits.
+It is based on the British television series of the same name.
+Before he can do so, it is implied that Gordon is teleported away to an unknown destination, ending the game.
+Millard Hampton, Andre Phillips, John Powell, Mac Wilkins, Al Feuerbach and others also trained there.
+He is very known for his FNAF theories.
+As the host countries, Canada, Mexico, and the United States all automatically qualified.
+She plays for the England women's cricket team.
+The most important match was the Royal Rumble match.
+However, there have been several mass stabbings in recent years.
+Diabetes insipidus can also cause polydipsia.
+The missile is reported to be capable of carrying either.
+Andrew Wuepper - Assistant
+While Revenue blocks may be as large as or larger than a tehsil, revenue circles are generally smaller.
+Backward chaining is the opposite of forward chaining.
+With Gandalf as their leader, the Fellowship first goes southwards through the land Hollin.
+Call, commemorative of their heroic struggles in aid of
+He worked under Prime Ministers Mahathir Mohamad and Abdullah Ahmad Badawi, and Health Minister Chua Jui Meng.
+The building would include condos, apartments, a hotel, a Skylobby, a Skydeck with a restaurant, an amusement ride and sky-garden.
+It is located in the east of the Iberian Peninsula, on the Costa del Azahar by the Mediterranean Sea.
+Limassol is a city on the southern coast of Cyprus.
+Kiersey Clemons as Iris West
+One day, she leaves her promiscuous daughter Caprice locked up over the garage and under house arrest.
+Most pivot tables do not automatically update when the spreadsheet or database it is based on changes.
+Iyers are mostly worshippers of Shiva and the Iyengars are Vaishnavites.
+Sophie, from Mamma Mia!
+At Revolution, Soho attack Baker and Jamie Hayter after their match, turning heel and joining Toni Storm and Saraya.
+It is thought that constant bombardment kept the Earth in a molten state until about the end of the eon.
+Roebling Suspension Bridge opens between Cincinnati, Ohio and Covington, Kentucky, becoming the longest suspension bridge in the world
+It is a very rare element in nature because of its short half-life.
+He was professor emeritus at the University of Geneva's Department of Astronomy.
+The biggest are Harappa and Mohenjo-Daro.
+The bassoon family of instruments and the oboe family of instruments play with a double reed.
+In exchange for his testimony, Mr.
+The city is also growing in the fields of education and information technology.
+This makes them great for gardens that need little care or where water is limited.
+He was created by Tex Avery and Bob Clampett.
+Moai are stone statues on Easter Island.
+The frogs have light colored stripes.
+Svyatoslav Kuznetsov as Young Tsigan
+The flight data recorder and cockpit voice recorder were both taken to Tehran as part of the investigation.
+Flores was born in Mexico to migrant farmworkers.
+The heart muscle can become sick and weak.
+The media cannot also view photographs or exhibitions that are evidence.
+He also played for the Austrian national football team.
+However, malaria is endemic and sub-endemic to many parts of the world.
+Many of these deaths might be stopped with medicine or mosquito control.
+It has regional and suburban railways connections.
+There have been no reported injuries as result of this product.
+He is a listed singer of Bangladesh Betar and BTV.
+Her mother was Hungarian and her father was German.
+Dave Mann as Cop
+After making the songs, they replaced Bratton with Trombino.
+He was the son of a Belgian mother and a Spanish father.
+It acts as a different version of the show's ending.
+This problem affects people of all identities, races and ages regularly.
+Calcium permanganate is only toxic because of the permanganate, not the calcium.
+The AfD's ideology has been described as far right, right-wing populist, anti-European, illiberal, authoritarian, national conservative, and anti-immigration.
+Band members Peter Pepper and Rostas Fez later started another band named Soho Beach House.
+Because they lost them, they could not go to South Korea.
+She acted in movies and television programs.
+Notably, there are incidents in which the authorities are also involved or even collaborate in these attacks.
+All of it is land.
+Ferrer was one of the leading figures of economic nationalism in Argentina.
+The Chief Minister announced plans to construct a tensile roof over BOAT before the next festival.
+Last month, Carroll wrote an article focussing on the dangers faced by his colleagues in Iraq, particularly local journalists.
+His father was actor Rex Harrison.
+A well-studied case is that of sickle cell anemia in humans, a hereditary disease that damages red blood cells.
+It is similar to a Wet boxer contest that shows men in their boxer shorts.
+Vane gave himself up and was sent to gaol.
+It is in Grand Est in the Marne department in northeast France.
+She opted to join Jessie.
+He was born at Frimley Park Hospital in Frimley, Surrey.
+floresiensis, in our human genus Homo.
+South Korea played in a tournament in January in Japan.
+At the time she has finished high school and moved to Utrecht.
+The King upgraded the existing citadel and built a new royal palace.
+Mayo mostly wrote his own songs and gave other entertainers, such as Ernie Mayne, with material.
+The airport is a hub for ITA Airways.
+The Hoshi Library The Official English Website of Shinichi Hoshi
+They then turned the Woodward's stores into both The Bay and Zellers.
+Benjamin was born in Worcester, Massachusetts.
+Oxalaia 's complete skull was probably long.
+Saint Kitts and Nevis - O Land of Beauty!
+Mirpur has a total area of .
+South Carolina is a state in the southeast United States.
+The Amazigh population, however, did not want to be forgotten by the government.
+Port Vincent is a village in Livingston Parish, Louisiana, United States.
+He was a member of the Proyecto Sur.
+Sean O'Bryan as Patrick O'Connell
+There is a bronze line from the mouth to where the front legs meet the body.
+He is partly of Walloon descent.
+If they could see their target, the enemy soldiers they were targeting could see them.
+Sayana's commentary on the Vedas, Brahmanas and Aranyakas was written under the patronage of Bukka.
+However, it feels like Ivan is looking at the second image.
+Her works include short stories, novels, science fiction, popular science writing, translations, and children's literature.
+Crowe had attended Auckland Grammar School before moving to Australia.
+This ability is called their electron affinity.
+Oceans would probably have formed as soon as the temperature allowed.
+It is a way to encourage young people and make them relaxed about the idea of taking exams.
+Asamoah was not part of the Juventus squad in the knockout stages.
+The crash site is inside the perimeter fence of Emirati air base, located near a busy highway intersection.
+Robbie live video clip
+He had a successful time with the teams.
+They usually wear no bra.
+Maud is a city in Oklahoma in the United States.
+Chlorine was the first chemical weapon used to try to kill enemy soldiers.
+Firemen report that the blaze was started by an electrical short-circuit.
+Aardvarks only come together to breed.
+During speeches delivered at orientation meetings, Rep.
+They had a son together, Patrick Wachsberger of Summit Entertainment.
+An Italian court convicted three Google Inc.
+Lye is a corrosive basic solution used for glass and soap making.
+The law firm of William J.
+Carmen, the character in Bizet's opera Carmen, sings a song and accompanies herself on the castanets.
+The same year, she also won the Bobbie Rosenfeld Award for Canada's female athlete of the year.
+We are only six years apart.
+She became the youngest person to ever win the award.
+De Graaf, on the inaugural ticket with Bread and Roses presidential nominee , secured ballot access in Vermont in July.
+They began sending Jews who could work to Janowska to do forced labor.
+She is the romantic interest of Superman in the comic books from DC Comics.
+Mostly, people died because they were sick, hungry to death, bombed, or the wrong ethnicity.
+As surveying is related to mathematics, he later studied the geometrical importance of complex numbers.
+It is found in the region Hauts-de-France in the Pas-de-Calais department in the north of France.
+Scott and his family were left to Emerson's wife, Eliza Sandford.
+The Imperial government in Vienna was planning another natural-history expedition.
+The magazine was produced in London, England.
+Wayne Osmond was a Cancer activist.
+They moved to places like Malaysia, Singapore, Indonesia, and the United States.
+It is also used occasionally outside of jungles.
+This change in environment resulted in a change in diet, from largely vegetarian to hunting.
+Some examples are Strugatsky brothers, Kir Bulychov and Ivan Yefremov.
+It is meant as a replacement for an evening bag.
+He is also an associate dean of the Center for Inquiry Institute.
+When he gets to the church, he jams the gun and stops the shelling.
+Tennessee College of Applied Technology - Knoxville
+ITN's flagship News at Ten programme gave a lot of coverage to the riots.
+A government commissioned review into how the climate crisis is currently taught in schools
+It is a popular ski resort, with several ski schools.
+Income tax is generally worked out a percentage of a persons income.
+The Song Dynasty Chinese rime dictionary of the Jiyun is published.
+Her district includes the cities of Fort Lauderdale and Miami Beach.
+Not all societies have social classes.
+These incidents led to discussions without the jury present.
+Men from states that had alliances with the Aztecs also fought in the Aztec military.
+There is a mark for zero and every other number, in order of size.
+Jerome Liebling, filmmaker and photographer
+He was the United States senator of Michigan.
+San Augustine County is a county in the U.S.
+They work with the European Organization for Nuclear Research.
+Sun Herald, Biloxi, Mississippi
+One man with a pistol forced employees to the ground while the other two men stole the paintings.
+She is a political independent.
+When built, the trains had some first-class seating.
+Lamartine went up to him, put a hand on his arm and began to talk quietly.
+The first performances attracted few people.
+Delgado was born in Whitechapel, London.
+Wismes is a commune.
+Richard Meier official website
+The band performed amazing live performances and was well liked by Delonge's fans.
+He also shot and killed a male student in a deli.
+The winner was Alexandra Sapot.
+Its dissolving properties and its ability to easily break surface tension are fundamental for its uses.
+The mayor of Prince George is Simon Yu.
+The male frog calls to the female frog and leads her to each one.
+The county seat is Tahoka.
+The stained glass windows and stone carvings are notable features.
+He purchased the team later that year through his company, Crimson Group.
+Horse racing in NSW, Queensland cancelled indefinitely
+Take the stack of cards.
+Echo, a sister company of Watary Digital.
+Pistosaurus was a advanced nothosaur-like body with a plesiosaur-like head.
+The Constitution of India is the supreme law in India.
+He was raised in Chicago, Illinois.
+Someone who is described as proud may be arrogant or boastful.
+Say, 'Truth has come and lies have disappeared, lies are to disappear.' Taisirul
+My challenge is to raise enough money that I can take time off work to actually run, full-time.
+Hector's dolphin, Cephalorhynchus hectori
+He is keeping Andres awake.
+He only makes sounds and writes meaningless letters on a blackboard.
+Eighteen people were killed.

@@ -449,7 +449,12 @@ def variants(word: str, rng: random.Random, rules: Rules = RULES) -> list[str]:
     Deterministic given the state of `rng`. Every spelling is lowercase a–z; the canonical
     spelling is always possible. A word with nothing to romanise (only digits, say) gives [].
     """
-    slots = _slots(word, rules)
+    return variants_of(_slots(word, rules), rng, rules)
+
+
+def variants_of(slots: tuple[Slot, ...], rng: random.Random, rules: Rules = RULES) -> list[str]:
+    """`variants` of a word already split into its slots (`_slots(word, rules)`), for callers
+    that romanise the same word many times and keep the slots."""
     canon = "".join(s.spellings[0] for s in slots)
     if not canon:
         return []

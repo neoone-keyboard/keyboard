@@ -1,0 +1,1006 @@
+# Next-word eval set, Manglish (gate split): roman<TAB>native, word-aligned sentences.
+# From the Dakshina dataset v1.0 (Google Research, Roark et al., 2020), CC BY-SA 4.0:
+# ml/romanized/ml.romanized.rejoined.dev.{roman,native}.txt, shuffled with seed 20261103 and split into
+# disjoint halves (gate from the first, tune from the second). Punctuation dropped, sentences with
+# digits skipped, only pairs with the same word count (2 to 20) kept. The test sentences are not used.
+# Eval only: these sentences are removed from the LM training text. Built by training/mlkb/eval/next_sets.py.
+kurachu beachukaleyullu	കുറച്ചു ബീച്ചുകളേയുള്ളു
+kshethraacharangalumayi bandhapetta oru sambradhayamenna nilayku ethu aavirbhavichathu thekke indiayikanennu karuthappedunnu	ക്ഷേത്രാചാരങ്ങളുമായി ബന്ധപ്പെട്ട ഒരു സമ്പ്രദായമെന്ന നിലയ്ക്ക് ഇത് ആവിർഭവിച്ചത് തെക്കേ ഇന്ത്യയിലാണെന്ന് കരുതപ്പെടുന്നു
+geetha sona naayar mattoru sahodari avane kaanan valare santhoshamund	ഗീത സോന നായർ മറ്റൊരു സഹോദരി അവനെ കാണാൻ വളരെ സന്തോഷമുണ്ട്
+indiayude swathanthryalabdhikkushesham sardar pattel kaikaryam cheytha mantralayathil menon secrataryayitheernu	ഇന്ത്യയുടെ സ്വാതന്ത്ര്യലബ്‌ധിക്കുശേഷം സർദാർ പട്ടേൽ കൈകാര്യം ചെയ്ത മന്ത്രാലയത്തിൽ മേനോൻ സെക്രട്ടറിയായിത്തീർന്നു
+honours passai	ഓണേഴ്‌സ് പാസായി
+vargam asterails	വർഗ്ഗം ആസ്റ്റെറെയിൽസ്
+nagararaashtrangalkkidayil pathivaaya sampoornaswabhaavathodu koodiya puthiya yudhangalkku vanthothilulla arumcheythikal avashyakhadakamaayi	നഗരരാഷ്ട്രങ്ങൾക്കിടയിൽ പതിവായ സമ്പൂർണ്ണസ്വഭാവത്തോടു കൂടിയ പുതിയ യുദ്ധങ്ങൾക്ക് വൻതോതിലുള്ള അരുംചെയ്തികൾ അവശ്യഘടകമായി
+nepoleane vadhikkuvanulla burbon gudalochana frenchu janathaye ilakki marichu	നെപോളിയളിയനെ വധിക്കാനുള്ള ബൂർബോൺ ഗൂഢാലോചന ഫ്രഞ്ചു ജനതയെ ഇളക്കി മറിച്ചു
+ee sambhavathinu shesham kumaarapanikkaradakamulla samara nethaakkalkku olivil pokendathaayi vannu	ഈ സംഭവത്തിന് ശേഷം കുമാരപ്പണിക്കരടക്കമുള്ള സമര നേതാക്കൾക്ക് ഒളിവിൽ പേകേണ്ടതായി വന്നു
+ennaal netveyarinethire oru velluviliyuyarthaan ithinaayilla	എന്നാൽ നെറ്റ്വെയറിനെതിരെ ഒരു വെല്ലുവിളിയുയർത്താൻ ഇതിനായില്ല
+e chithramandapathinte bahyavasath padinjaru chathurakrihiyilulla thunukalum akavasathu kizhakk oru bhithiyumanu	ഈ ചിത്രമണ്ഡപത്തിന്റെ ബാഹ്യവശത്ത് പടീഞ്ഞാറ് ചതുരാകൃതിയിലുള്ള തൂണുകളും അകവശത്ത് കിഴക്ക് ഒരു ഭിത്തിയുമാണ്
+jupitarinteyum veenasinteyum peril ayal daivadooshanaparamayi aanayittirunnathum orupakshe gawravathode aayirikkanamennilla	ജൂപ്പിറ്ററിന്റേയും വീനസിന്റേയും പേരിൽ അയാൾ ദൈവദൂഷണപരമായി ആണയിട്ടിരുന്നതും ഒരുപക്ഷേ ഗൗരവത്തോടെ ആയിരിക്കണമെന്നില്ല
+nan patt vanyajeevi sanketham	നാൻ പാറ്റ് വന്യജീവി സങ്കേതം
+jarmani mochanappanam vaagdhaanam cheythuvenkilum theevravaadhikal nirasichu	ജർമിനി മോചനപ്പണം വാഗ്ദാനം ചെയ്തുവെങ്കിലും തീവ്രവാദികൾ നിരസിച്ചു
+paala marangal valarnnu ninnirunna kaadu palakadaayennu chilar vadikkunnu	പാല മരങ്ങൾ വളർന്നു നിന്നിരുന്ന കാട് പാലക്കാടായെന്ന് ചിലർ വാദിക്കുന്നു
+chadulaprakruthiyaaya chaayaye adheham vilichathu pakku ennaayirunnu	ചടുലപ്രകൃതിയായ ഛായയെ അദ്ദേഹം വിളിച്ചത് പക്ക് എന്നായിരുന്നു
+avayude utharam apurnnavum parasparaviruddhavumayirikkum	അവയുടെ ഉത്തരം അപൂർണ്ണവും പരസ്പരവിരുദ്ധവുമായിരിക്കും
+congress socialist partiyude mukhapathramayirunnu prabhatham shornooril ninnanu ethu purathirangiyirunnathu	കോൺഗ്രസ്സ് സോഷ്യലിസ്റ്റ് പാർട്ടിയുടെ മുഖപത്രമായിരുന്നു പ്രഭാതം ഷൊർണൂരിൽ നിന്നണ് ഇത് പുറത്തിറങ്ങിയിരുന്നത്
+ataykkappayinil ninnum verthirikkunna rasasayukthangalepatti	അടയ്ക്കാപ്പയിനിൽ നിന്നും വേർതിരിക്കുന്ന രാസസയുക്തങ്ങളെപ്പറ്റി
+neppaal bhoottaan myaanmar ennivayum ee shalabhangalude aavaasakendhramaanu	നേപ്പാൾ ഭൂട്ടാൻ മ്യാൻമർ എന്നിവയും ഈ ശലഭങ്ങളുടെ ആവാസകേന്ദ്രമാണ്
+ee chithrathe adhyam pradarshipikkukayum agaadhavum adharmikavumaya oru sthreeye chithreekarikkunnathine apalapikkukayum cheythappol niravadhi vimarshakar aaveshamuyarthiyirunnu	ഈ ചിത്രത്തെ ആദ്യം പ്രദർശിപ്പിക്കുകയും അഗാധവും അധാർമികവുമായ ഒരു സ്ത്രീയെ ചിത്രീകരിക്കുന്നതിനെ അപലപിക്കുകയും ചെയ്തപ്പോൾ നിരവധി വിമർശകർ ആവേശമുയർത്തിയിരുന്നു
+aparna baalan kozhikkoduninnulla baadmintan kalikkaariyaanu	അപർണ ബാലൻ കോഴിക്കോട്നിന്നുള്ള ബാഡ്‌മിന്റൻ കളീക്കാരിയാണ്
+rakthasammardam kurayukayum thalakarakkam naavinum chundukalkum undakunna varlcha kannukal thanupokuka bodhakedu yenniva cholerayude gurutharamaya rogalakshanangalanu	രക്തസമ്മർദ്ദം കുറയുകയും തലകറക്കം നാവിനും ചുണ്ടുകൾക്കും ഉണ്ടാകുന്ന വരൾച്ച കണ്ണുകൾ താണുപോകുക ബോധക്കേട് എന്നിവ കോളറയുടെ ഗുരുതരമായ രോഗലക്ഷണങ്ങളാണ്
+intagrettad sarveesas dijittal netwarkkaanum dijital sabskaibar lain idsl	ഇന്റഗ്രേറ്റഡ് സർവീസസ് ഡിജിറ്റൽ നെറ്റ്വർക്ക് ഡിജിറ്റൽ സബ്സ്ക്രൈബർ ലൈൻ IDSL
+kaalsan kampany hospitaality sevana rangathu valare sajeevamaanu	കാൾസൺ കമ്പനി ഹോസ്പിറ്റാലിറ്റി സേവന രംഗത്ത് വളരെ സജീവമാണ്
+syam samgeethasamvidhanam nirvahichu	ശ്യാം സംഗീതസംവിധാനം നിർവഹിച്ചു
+paradhajeevikal ohuve shvetharakthanukkalku bhakshakakriyayiloode vizhungan pattavunnathinekal anekamadangu valippamullavayanu	പരാദജീവികൾ പൊതുവേ ശ്വേതരക്താണുക്കൾക്ക് ഭക്ഷകക്രിയയിലൂടെ വിഴുങ്ങാൻ പറ്റാവുന്നതിനേക്കാൾ അനേകമടങ്ങ് വലിപ്പമുള്ളവയാണ്
+j cheriyaanum aranoottaandukaalatholam ee ramgathu pravarthichu	ജെ ചെറിയാനും അരനൂറ്റാണ്ടുകാലത്തോളം ഈ രംഗത്ത് പ്രവർത്തിച്ചു
+electronic electronic upakaranagalil vaidutha charge shekharichu vekkanulla samvidanamanu capacitor athava sadharithram	ഇലക്ട്രിക് ഇലക്ട്രൊണിക് ഉപകരണങ്ങളിൽ വൈദ്യുത ചാർജ്ജ് ശേഖരിച്ച് വെക്കാനുള്ള സംവിധാനമാണ് കപ്പാസിറ്റർ അഥവാ സംധാരിത്രം
+pracheenakalathu abhijathaadhipathyam nilavilirunna ooro rajyathileyum athyunnathanmarum sreshttanmaarumayirunnu bharanachakram niyandrichirunnathu	പ്രാചീനകാലത്ത് അഭിജാതാധിപത്യം നിലവിലിരുന്ന ഓരോ രാജ്യത്തിലേയും അത്യുന്നതൻമാരും ശ്രേഷ്ഠൻമാരുമായിരുന്നു ഭരണചക്രം നിയന്ത്രിച്ചിരുന്നത്
+randaam thavana sameepichappol pradhanamayi chithrangal pakarthukayayirunnu cheythathu	രണ്ടാം തവണ സമീപിച്ചപ്പോൾ പ്രധാനമായി ചിത്രങ്ങൾ പകർത്തുകയായിരുന്നു ചെയ്തത്
+international association of road congress	ഇന്റർനാഷനൽ അസോസിയേഷൻ ഓഫ് റോഡ് കോൺഗ്രസ്
+roman catholic church aviduthe pradesikabhashayaya cattalan avarude schoolukalil upayogikkan prothsahippikunnu	റോമൻ കാത്തലിക് ചർച്ച് അവിടത്തെ പ്രാദേശികഭാഷയായ കാറ്റലാൻ അവരുടെ സ്കൂളുകളിൽ ഉപയൊഗിക്കാൻ പ്രോത്സഹ്ഹിപ്പിക്കുന്നു
+muniyara north	മുനിയറ നോർത്ത്
+janthukkalil maathramalla sasyangalilum fanghasukalilum serotoninund	ജന്തുക്കളിൽ മാത്രമല്ല സസ്യങ്ങളിലും ഫംഗസുകളിലും സെറോടോണിനുണ്ട്
+varabhivandhithapadham padmanabham	വാരാഭിവന്ദിതപദം പദ്മനാഭം
+rom romulas madras karokkadail bank trustinte sthapaka director ayirunnu	റോം റോമുലസ് മദ്രാസ് ൿരോക്കഡൈൽ ബാങ്ക് ട്രസ്റ്റിന്റെ സ്ഥാപക ഡിറക്റ്റർ ആയിരുന്നു
+idhehathinte dharmashaasthravum vaidhika nishtakalum prottastandisathinteyum loodharanisathinteyum aashayangale munkootti soochippikkunna tharathilullavayaayirunnu	ഇദ്ദേഹത്തിന്റെ ധർമശാസ്ത്രവും വൈദിക നിഷ്ഠകളും പ്രൊട്ടസ്റ്റന്റിസത്തിന്റെയും ലൂഥറനിസത്തിന്റെയും ആശയങ്ങളെ മുൻകൂട്ടി സൂചിപ്പിക്കുന്ന തരത്തിലുള്ളവയായിരുന്നു
+indimettu rileshans	ഇൻടിമേട് റിലേഷൻസ്
+matoru deshatheku olichodukavazhi ee niyukthiyil ninnu rakshapedamennu karuthiya yona yoppa thuramukhathu ninnu spainile tarshishileku kappal kayari	മറ്റൊരു ദേശത്തേക്ക് ഒളിച്ചോടുകവഴി ഈ നിയുക്തിയിൽ നിന്നു രക്ഷപെടാമെന്നു കരുതിയ യോനാ യോപ്പാ തുറമുഖത്തു നിന്ന് സ്പെയിനിലെ തർശീശിലേക്കു കപ്പൽ കയറി
+vaathakopathe shamippikkunnathu kkoodaathe shareerathe thanuppikkukayum thadippikkukayum cheyyunnu	വാതകോപത്തെ ശമിപ്പിക്കുന്നതു കൂടാതെ ശരീരത്തെ തണുപ്പിക്കുകയും തടിപ്പിക്കുകയും ചെയ്യുന്നു
+ezhunettunilkumbol marinjuveezhukayum udheshikkunnathupole nadakkaan kazhiyaathevarikayum cheyyum	എഴുന്നേറ്റുനില്ക്കുമ്പോൾ മറിഞ്ഞുവീഴുകയും ഉദ്ദേശിക്കുന്നതുപോലെ നടക്കാൻ കഴിയാതെവരികയും ചെയ്യും
+malabaar instityoott of teknolaji	മലബാർ ഇൻസ്റ്റിറ്റ്യൂട്ട് ഓഫ് ടെക്നോളജി
+mangalapuram palakkad pathayilulla mnjeswaramanu adutha theevandi station	മംഗലാപുരം പാലക്കാട് പാതയിലുള്ള മഞ്ജേശ്വരമാണു അടുത്ത തീവണ്ടി സ്റ്റേഷൻ
+padarnnu pandhalichu shakhakalote valarunna ivayute ilakal cheruthanu	പടർന്നു പന്തലിച്ച് ശാഖകളോടെ വളരുന്ന ഇവയുടെ ഇലകൾ ചെറുതാണ്
+lokabank krishikarku subsidkal nalkunnathinethiranu	ലോകബാങ്ക് കൃഷിക്കാർക്ക് സബ്സിഡികൾ നൽകുന്നതിനെതിരാണ്
+ramanattam enna kala parishkkarichanu kadhakali undayath	രാമനാട്ടം എന്ന കല പരിഷ്കരിച്ചാണ് കഥകളി ഉണ്ടായത്
+baibilil ikonyayil thaamasikkunnavarude charithram parayunnund	ബൈബിളിൽ ഇക്കോന്യയിൽ താമസിക്കുന്നവരുടെ ചരിത്രം പറയുന്നുണ്ട്
+maadhyamam abhikarmakangal reagents pareekshakante ovarkottu mukhammoodi enniva aramanikkoor prasharkukkarilo ottoklevilo aaviyil vaykkunnu	മാധ്യമം അഭികർമകങ്ങൾ reagents പരീക്ഷകന്റെ ഓവർകോട്ട് മുഖംമൂടി എന്നിവ അരമണിക്കൂർ പ്രഷർകുക്കറിലോ ഓട്ടോക്ലേവിലോ ആവിയിൽ വയ്ക്കുന്നു
+ee samayathu ithinte maamsam valare swaathullathaayitheerunnu	ഈ സമയത്ത് ഇതിന്റെ മാംസം വളരെ സ്വാദുള്ളതായിത്തീരുന്നു
+ponthayilo matto naarukal kondaavum koodundaakkuka	പൊന്തയിലോ മറ്റോ നാരുകൾ കൊണ്ടാവും കൂടുണ്ടാക്കുക
+bhaviyil oru diwasom kaimattam cheyyam yenna dharanayil nadaththunna vinimayakkaraarile nirakku forward exchange nirakku yennanu ariyapedunnathu	ഭാവിയിൽ ഒരു ദിവസം കൈമാറ്റം ചെയ്യാം എന്ന ധാരണയിൽ നടത്തുന്ന വിനിമയക്കരാറിലെ നിരക്ക് ഫോർവേഡ് എക്സ്‌ചേഞ്ച് നിരക്ക് എന്നാണ് അറിയപ്പെടുന്നത്
+o pravarthichuvarunnu	ഒ പ്രവർത്തിച്ചുവരുന്നു
+shareerathinu purathu ethra neram ivaykku nilanilppundennathine patti klipthathayilla	ശരീരത്തിനു പുറത്തു എത്ര നേരം ഇവയ്ക്കു നിലനിൽപ്പുണ്ടെന്നതിനെ പറ്റി ക്ലിപ്തതയില്ല
+oru asaltt raifil oru lait meshine gun enniva ithil ulppedunnu	ഒരു അസാൾട്ട് റൈഫിൾ ഒരു ലൈറ്റ് മെഷീൻ ഗൺ എന്നിവ ഇതിൽ ഉൾപ്പെടുന്നു
+indya royal banghaal kaduva	ഇന്ത്യ റോയൽ ബംഗാൾ കടുവ
+malayalathil birudhanantharabirudhavum mphilum karasthamaki	മലയാളത്തിൽ ബിരുദാന്തരബിരുദവും എംഫിലും കരസ്ഥമാക്കി
+baliyude peril jafthaaye kuttapeduthunna oru paraamarshavum bibilile aakhyaanathil illen choondikkaanikkapettittund	ബലിയുടെ പേരിൽ ജഫ്‌തായെ കുറ്റപ്പെടുത്തുന്ന ഒരു പരാമർശവും ബൈബിളിലെ ആഖ്യാനത്തിൽ ഇല്ലെന്ന് ചൂണ്ടിക്കാണിക്കപ്പെട്ടിട്ടുണ്ട്
+koottamayi kazhiyanishtappetatthavayanenkilum apoorvamayi cherusanghangalayi kanam	കൂട്ടമായി കഴിയാനിഷ്ടപ്പെടാത്തവയാണെങ്കിലും അപൂർവ്വമായി ചെറുസംഘങ്ങളായി കാണാം
+arjunan srikrishnanumonnichu khandavaprastham agnidevanu bhakshanamayi koduthu	അർജ്ജുനൻ ശ്രീകൃഷണനുമൊന്നിച്ച് ഖാണ്ഡവപ്രസ്ഥം അഗ്നിദേവനു ഭക്ഷണമായി കൊടുത്തു
+raajaavakunnathinu munp pathth kollam sreelankayil kazhinja shrimdhyavarmman bhudhamathaanuyaayi maariyirunnu	രാജാവാകുന്നതിനു മുൻപ് പത്ത് കൊല്ലം ശ്രീലങ്കയിൽ കഴിഞ്ഞ ശൃംന്ദ്രവർമ്മൻ ബുദ്ധമതാനുയായി മാറിയിരുന്നു
+dhaara cheyyunnathinu munnodiyaayi penninu saari kaimaarunna chadangundu	ധാര ചെയ്യുന്നതിനു മുന്നോടിയായി പെണ്ണിന് സാരി കൈമാറുന്ന ചടങ്ങുണ്ട്
+ethil rogiyude nilavilulla kidappu reethiyil ninnum matoru reethiyilekk matuvanulla saukaryangal ulkkollichittulla kattilukalum labhyamanu	ഇതിൽ രോഗിയുടെ നിലവിലുള്ള കിടപ്പു രീതിയിൽ നിന്നും മറ്റൊരു രീതിയിലേക്ക് മാറ്റുവാനുള്ള സൗകര്യങ്ങൾ ഉൾക്കൊള്ളിച്ചിട്ടുള്ള കട്ടിലുകളും ലഭ്യമാണ്
+kada kada sabdam untakkunnathinal meykkan kondu poya eva kuttam thetiyal kandethan eluppamanu	കട കട ശബ്ദം ഉണ്ടാക്കുന്നതിനാൽ മേയ്ക്കാൻ കൊണ്ട് പോയ ഇവ കൂട്ടം തെറ്റിയാൽ കണ്ടെത്താൻ എളുപ്പമാണ്
+islamika dharsanathe athinte arthathilum prayogathilum athepadi nilanirthanum pracharippikkanumulla parisramagalanu prasthanathinte onnamathe agenda	ഇസ്‌ലാമിക ദർശനത്തെ അതിന്റെ അർത്ഥത്തിലും പ്രയോഗത്തിലും അതേപടി നിലനിർത്താനും പ്രചരിപ്പിക്കാനുമുള്ള പരിശ്രമങ്ങളാണ് പ്രസ്ഥാനത്തിന്റെ ഒന്നാമത്തെ അജണ്ട
+thodayathil saahithyam kootticherthum poorvarangathinte angangalil purappaadinte shlokathinu munp vandhanashlokam cholluka ennoru erppaadukoodi idheham thudangivechu	തോടയത്തിൽ സാഹിത്യം കൂട്ടിച്ചേർത്തും പൂർവ്വരംഗത്തിന്റെ അംഗങ്ങളിൽ പുറപ്പാടിന്റെ ശ്ലോകത്തിനു മുൻപ് വന്ദനശ്ലോകം ചൊല്ലുക എന്നൊരു ഏർപ്പാടുകൂടി ഇദ്ദേഹം തുടങ്ങിവെച്ചു
+thekku bhaagathulla malanirakalile syriyan kavatam syrian gate yennariyappedunna belan malampathayanu asianmareyum mesapottemiyeyum bandhipikkunna ekayathrapadham	തെക്കു ഭാഗത്തുള്ള മലനിരകളിലെ സിറിയൻ കവാടം Syrian Gate എന്നറിയപ്പെടുന്ന ബെലൻ മലമ്പാതയാണ് ഏഷ്യാമൈനറിനേയും മെസപ്പോട്ടേമിയേയും ബന്ധിപ്പിക്കുന്ന ഏകയാത്രാപഥം
+athraykku prashasthamaaya nayanaanadhakaramaaya anushtaanakalayaayirunnu orikkal ithu ennu ithil ninnum manasilaakkaam	അത്രയ്ക്ക് പ്രശസ്തമായ നയനാന്ദകരമായ അനുഷ്ഠാനകലയായിരുന്നു ഒരിക്കൽ ഇത് എന്ന് ഇതിൽ നിന്നും മനസ്സിലാക്കാം
+ithinaayi programmar palatharathilulla flochaart chihnnangalum upayogikkaarund	ഇതിനായി പ്രോഗ്രാമർ പലതരത്തിലുള്ള ഫ്ളോച്ചാർട്ട് ചിഹ്നങ്ങളും ഉപയോഗിക്കാറുണ്ട്
+venalkalathu pookukayum vasantham kazhiyunnathode ela pozhiyukayum cheyyunna oru maramanu alasipoomaram athava gulmohar	വേനൽക്കാലത്ത് പൂക്കുകയും വസന്തം കഴിയുന്നതോടെ ഇല പൊഴിക്കുകയും ചെയ്യുന്ന ഒരു മരമാണ് അലസിപ്പൂമരം അഥവാ ഗുൽമോഹർ
+nikon corporation tokyo asthanamaya oru bahurastra companyanu	നിക്കോൺ കോർപ്പറേഷൻ ടോക്കിയോ ആസ്ഥാനമായ ഒരു ബഹുരാഷ്ട്ര കമ്പനിയാണ്
+uyaram kooduvaan upakarikkum	ഉയരം കൂടുവാൻ ഉപകരിക്കും
+kerala soil museum thiruvananthapuram	കേരള സോയിൽ മ്യൂസിയം തിരുവനന്തപുരം
+njanasidhandangale epistemologists pothuve avaganichathinum vishadeekaranamundayirunnu njanasidhandathe thathvachindayudeyennathinekkal mana shasthrathinte bhagamayanu durant kandath	ജ്ഞാനസിദ്ധാന്തികളെ Epistemologists പൊതുവേ അവഗണിച്ചതിനും വിശദീകരണമുണ്ടായിരുന്നു ജ്ഞാനസിദ്ധാന്തത്തെ തത്ത്വചിന്തയുടെയെന്നതിനേക്കാൾ മന ശാസ്ത്രത്തിന്റെ ഭാഗമായാണ് ഡുറാന്റ് കണ്ടത്
+vishrutha sangeethajnjayaayirunna m	വിശ്രുത സംഗീതജ്ഞയായിരുന്ന എം
+bhaaviye sambandhicha arakshithabodham avare alattunnu	ഭാവിയെ സംബന്ധിച്ച അരക്ഷിതബോധം അവരെ അലട്ടുന്നു
+orikkal vrukkayile kallu maattanulla vedhanaajanakamaayi shasthrakriyaykku vidheyanaaya peeps thudarnnuvanna varshangalil aa shasthrakriyayude vaarshikam suhruthukkalkku virunnu nalki aaghoshichu	ഒരിക്കൽ വൃക്കയിലെ കല്ല് മാറ്റാനുള്ള വേദനാജനകമായി ശസ്ത്രക്രിയക്കു വിധേയനായ പീപ്സ് തുടർന്നുവന്ന വർഷങ്ങളിൽ ആ ശസ്ത്രക്രിയയുടെ വാർഷികം സുഹൃത്തുക്കൾക്കു വിരുന്നു നൽകി ആഘോഷിച്ചു
+appol ee matham valiya shakthiyaayi theernnirunnu	അപ്പോൾ ഈ മതം വലിയ ശക്തിയായി തീർന്നിരുന്നു
+aa chedi valarnnu randayi pilarnnu oru purushanum sthreeyumayiththeernnu	ആ ചെടി വളർന്നു രണ്ടായി പിളർന്നു ഒരു പുരുഷനും സ്ത്രീയുമായിത്തീർന്നു
+ee avastha avasaanichu kaanaanulla aagraham kraisthavalokathembaadum sajeevamaayi	ഈ അവസ്ഥ അവസാനിച്ചു കാണാനുള്ള ആഗ്രഹം ക്രൈസ്തവലോകത്തെമ്പാടും സജീവമായി
+thudare thudare shabdichu parakkunna swabhavam	തുടരെ തുടരെ ശബ്ദിച്ച് പറക്കുന്ന സ്വഭാവം
+devavigrahathe chamaramkondu veshuka kumbharathi enthi devanu akampati sevikuka kshethravum parisaravum shuchiyakuka thutangiyavayum devadasikalude thozhilinte bhagamayirunnu	ദേവവിഗ്രഹത്തെ ചാമരംകൊണ്ടു വീശുക കുംഭാരതി ഏന്തി ദേവന് അകമ്പടി സേവിക്കുക ക്ഷേത്രവും പരിസരവും ശുചിയാക്കുക തുടങ്ങിയവയും ദേവദാസികളുടെ തൊഴിലിന്റെ ഭാഗമായിരുന്നു
+nidalamunnu sree choornamu petti	നിടലമുനനു ശ്രീ ചൂർണമു പെട്ടി
+ithinu purame ezholam saahithya krythikalum randu saahithya vimarshana grandhangalum adheham rachichittund	ഇതിനു പുറമെ ഏഴോളം സാഹിത്യ കൃതികളും രണ്ട് സാഹിത്യ വിമർശന ഗ്രന്ഥങ്ങളും അദ്ദേഹം രചിച്ചിട്ടുണ്ട്
+josephine de beauharnai ayirunnu nepoleante adhyabharya	ജോസ്ഫൈൻ ദു ബുവാർണ്യെ ആയിരുന്നു നെപോളിയന്റെ ആദ്യഭാര്യ
+pariyanambatta bhagavathi kshethram	പരിയാനമ്പറ്റ ഭഗവതി ക്ഷേത്രം
+ettavum uyarnna prathisheersha varumaanamulla raajyangalil onnaan saan mareeno	ഏറ്റവും ഉയർന്ന പ്രതിശീർഷ വരുമാനമുള്ള രാജ്യങ്ങളിൽ ഒന്നാണ് സാൻ മരീനോ
+ayal persiayude charithrathil akramiyaya alexander ennanu ariyapedunathu	അയാൾ പേർഷ്യയുടെ ചരിത്രത്തിൽ അക്രമിയായ അലക്‌സാണ്ടർ എന്നാണു അറിയപ്പെടുന്നത്
+angathvam nediyittulla rashtrangalude sambathikashakthiyude oru vansakhyam yennanu antharashtra vanijya mandalathe visheshippichittullathu	അംഗത്വം നേടിയിട്ടുള്ള രാഷ്ട്രങ്ങളുടെ സാമ്പത്തികശക്തിയുടെ ഒരു വൻസഖ്യം എന്നാണ് അന്താരാഷ്ട്ര വാണിജ്യ മണ്ഡലത്തെ വിശേഷിപ്പിച്ചിട്ടുള്ളത്
+yennal hiderinte yethiraliyum annu britishukarodu oppavum ayirunna pazhassirajavu kalathilirangukayum uparodhichavarkku sadhanavum samagrikalum yethunnath thadayukayum avare pinmaran nirbandhikkukayum cheythu	എന്നാൽ ഹൈദറിന്റെ എതിരാളിയും അന്ന് ബ്രിട്ടീഷുകാരോട് ഒപ്പവും ആയിരുന്ന പഴശ്ശിരാജാവ് കളത്തിലിറങ്ങുകയും ഉപരോധിച്ചവർക്ക് സാധനവും സാമഗ്രികളും എത്തുന്നത് തടയുകയും അവരെ പിന്മാറാൻ നിർബന്ധിതരാക്കുകയും ചെയ്തു
+vithukal pakiyum alasipoomaram kiliikkam	വിത്തുകൾ പാകിയും അലസിപ്പൂമരം കിളിപ്പിക്കാം
+sukarno veendum harthini yenna sthriye vivaha cheythappol fathmavathi muslim niyamaprakaram athine yethirthu	സുകാർണോ വീണ്ടും ഹാർതിനി എന്ന സ്ത്രീയെ വിവാഹം ചെയ്തപ്പോൾ ഫത്മാവതി മുസ്ലിം നിയമപ്രകാരം അതിനെ എതിർത്തു
+groopp aasteraids	ഗ്രൂപ്പ് ആസ്റ്റെറൈഡ്സ്
+raashtreeyakaaranangalaal deshabahishkritharaaya frenchpauranmaarkk thirichu varaanulla sugamamaaya vazhikalum orukkikoduthu	രാഷ്ട്രീയകാരണങ്ങളാൽ ദേശബഹിഷ്കൃതരായ ഫ്രഞ്ചുപൗരന്മാർക്ക് തിരിച്ചു വരാനുള്ള സുഗമമായ വഴികളും ഒരുക്കിക്കൊടുത്തു
+varshangalkkushesham thante makal ellaam marannennu karuthiya loranso daasa naattil thirichethi	വർഷങ്ങൾക്കുശേഷം തന്റെ മകൾ എല്ലാം മറന്നെന്നു കരുതിയ ലോറൻസോ ഡാസ നാട്ടിൽ തിരിച്ചെത്തി
+tiv samooham niravadhi vamshaparamparakulade sanchayamaanu	ടിവ് സമൂഹം നിരവധി വംശപരമ്പരകളുടെ സഞ്ചയമാണ്
+adiyilekku thenni neengiya falakathinte avashishttangal aazhakkadalil uruki maagmayaayi veendum uyarukayum agniparvathangal roopam kollaan idayaakukayum cheyyunnu	അടിയിലേക്ക് തെന്നി നീങ്ങിയ ഫലകത്തിന്റെ അവശിഷ്ടങ്ങൾ ആഴക്കടലിൽ ഉരുകി മാഗ്മയായി വീണ്ടും ഉയരുകയും അഗ്നിപർവതങ്ങൾ രൂപം കൊള്ളാൻ ഇടയാകുകയും ചെയ്യുന്നു
+panchaayath ofees pirappankott sthithi cheyyunnu	പഞ്ചായത്ത് ഓഫീസ് പിരപ്പൻകോട്ട് സ്ഥിതി ചെയ്യുന്നു
+ethinte asthanam thyolo anu	ഇതിന്റെ ആസ്ഥാനം ത്യൊലൊ ആണ്
+malottu north	മലോട്ടു നോർത്ത്
+ajay prasad akramikkapettathu	അജയ് പ്രസാദ് ആക്രമിക്കപ്പെട്ടത്
+india vibhajanakkaalathu indiayude raashtreeya yekeekaranathil mukhyapanku vahicha alanu vappala pangunni menon yenna v	ഇന്ത്യാ വിഭജനക്കാലത്ത് ഇന്ത്യയുടെ രാഷ്ട്രീയ ഏകീകരണത്തിൽ മുഖ്യപങ്ക് വഹിച്ച ആളാണ് വാപ്പാല പങ്കുണ്ണി മേനോൻ എന്ന വി
+paathrangalude aakrithi saadaarana vattathilaayathinaal appavum vrithaakrithiyilaayirikum	പാത്രങ്ങളുടെ ആകൃതി സാധാരണ വട്ടത്തിലായതിനാൽ അപ്പവും വൃത്താകൃതിയിലായിരിക്കും
+ayalude kunjine aval theruvil prasavikkunenkilum koodeyulla theruvu sthreekal aa kunjine ponthenkattilerinju kalayunnu	അയാളുടെ കുഞ്ഞിനെ അവൾ തെരുവിൽ പ്രസവിക്കുന്നെങ്കിലും കൂടെയുള്ള തെരുവ് സ്ത്രീകൾ ആ കുഞ്ഞിനെ പൊന്തക്കാട്ടിലെറിഞ്ഞു കളയുന്നു
+chekk rippubblik	ചെക്ക് റിപ്പബ്ലിക്ക്
+nellorile pazhakkam chenna kshetrangalil onnanu thalpagiri ranganathaswami kshetram athava ramganayakulu kshetram	നെല്ലൂരിലെ പഴക്കം ചെന്ന ക്ഷേത്രങ്ങളിൽ ഒന്നാണ് തൽപഗിരി രംഗനാഥസ്വാമി ക്ഷേത്രം അഥവാ രംഗനായകുലു ക്ഷേത്രം
+pravarthakal edhehathe marakayudhangal upayogichu akramichuvennayirunnu case	പ്രവർത്തകർ ഇദ്ദേഹത്തെ മാരകായുധങ്ങൾ ഉപയോഗിച്ച് ആക്രമിച്ചുവെന്നായിരുന്നു കേസ്
+keralathile chila sthalangalil thenum chunnampum kalarthi upayogikkunnavarund	കേരളത്തിലെ ചില സ്ഥലങ്ങളിൽ തേനും ചുണ്ണമ്പും കലർത്തി ഉപയോഗിക്കുന്നവരുണ്ട്
+athinu shesham kuttiye madiyil kidathy oru cheviyil vettila kond marach matte cheviyil peru moonnu praavshyam vilikum	അതിനു ശേഷം കുട്ടിയെ മടിയിൽ കിടത്തി ഒരു ചെവിയിൽ വെറ്റില കൊണ്ട് മറച്ച് മറ്റേ ചെവിയിൽ പേര് മൂന്ന് പ്രാവിശ്യം വിളിക്കും
+kuthan upayogikkunna orayudhamanu kuntham	കുത്താൻ ഉപയോഗിക്കുന്ന ഒരായുധമാണ് കുന്തം
+shareerathil hridhayathinulla pradhanyam ayurvedathil ashtangahridhayathinundu athukondu ashtangahridhayam yenna grandhanamam anvarthamanu	ശരീരത്തിൽ ഹൃദയത്തിനുള്ള പ്രാധാന്യം ആയുർവേദത്തിൽ അഷ്ടാംഗഹൃദയത്തിനുണ്ട് അതുകൊണ്ട് അഷ്ടാംഗഹൃദയം എന്ന ഗ്രന്ഥനാമം അന്വർഥമാണ്
+vedavalli yennivaranu	വേദവല്ലി എന്നിവരാണ്
+porcupine gorge deshiyodyanam australiyaile north west queens landilulla deshiyodyanamanu	പോർക്യുപൈൻ ഗോർജ് ദേശീയോദ്യാനം ആസ്ത്രേലിയയിലെ നോർത്ത് വെസ്റ്റ് ക്യുൻസ് ലാന്റിലുള്ള ദേശീയോദ്യാനമാണ്
+janmi thante udamasthathayilulla bhumi kudiyanmarkk krishicheyyankodukkukayum avar adayathinte oramsam janmikk pattamayi nalkukayum cheyyunna paramparyavyavasthayanu ith	ജന്മി തന്റെ ഉടമസ്ഥതയിലുള്ള ഭൂമി കുടിയാന്മാർക്ക് കൃഷിചെയ്യാൻകൊടുക്കുകയും അവർ ആദായത്തിന്റെ ഒരംശം ജന്മിക്ക് പാട്ടമായി നല്കുകയും ചെയ്യുന്ന പാരമ്പര്യവ്യവസ്ഥയാണ് ഇത്
+janaadhipathyavaadhikalum boorbonraajapakshakkaarum iru cherikalilaayi fraans aabhyantharakalahathinte vakkilethi nilkkayaayirunnu	ജനാധിപത്യവാദികളും ബൂർബോൺരാജപക്ഷക്കാരും ഇരു ചേരികളിലായി ഫ്രാൻസ് ആഭ്യന്തരകലഹത്തിന്റെ വക്കിലെത്തി നില്ക്കയായിരുന്നു
+dickle cinemayude banneril johny sagariga nirmicha ee chithram vitharanam cheythathum johny sagariga aanu	ഡിക്കിൾ സിനിമയുടെ ബാനറിൽ ജോണി സാഗരിഗ നിർമ്മിച്ച ഈ ചിത്രം വിതരണം ചെയ്തതും ജോണി സാഗരിഗ ആണ്
+valiya valippamulla vanyajivikalaya sambar man indian aana asiatic karutha karadi ennivayokke kandethiyirunnu enkilum avaye ee pradesathe janangal gurutharamayi vettayadiyirunnu	വലിയ വലിപ്പമുള്ള വന്യജീവിളായ സാംബാർ മാൻ ഇന്ത്യൻ ആന ഏഷ്യാറ്റിക് കറുത്ത കരടി എന്നിവയൊക്കെ കണ്ടെത്തിയിരുന്നു എങ്കിലും അവയെ ഈ പ്രദേശത്തെ ജനങ്ങൾ ഗുരുതരമായി വേട്ടയാടിയിരുന്നു
+nadodi ithivrithangale adhikarichullavayayirunnu rachanakal	നാടോടി ഇതിവൃത്തങ്ങളെ അധികരിച്ചുള്ളവയായിരുന്നു രചനകൾ
+ee bandhathil vanguvan kazhiyunna sadhanangaluteyum sevanangaludeyum vila orikalum upabhokthavinte varumanathekal kooduvan patilla	ഈ ബന്ധത്തിൽ വാങ്ങുവാൻ കഴിയുന്ന സാധനങ്ങളുടേയും സേവനങ്ങളുടേയും വില ഒരിക്കലും ഉപഭോക്താവിന്റെ വരുമാനത്തേക്കാൾ കൂടുവാൻ പാടില്ല
+parguae nadiyude theerathanu ee rajyam sthithi cheyyunnath	പരാഗ്വെ നദിയുടെ തീരത്താണ് ഈ രാജ്യം സ്ഥിതി ചെയ്യുന്നത്
+rathri nagarathil chutikkarangiyirunna thanum kuttukarum orikkal veedinaduthulloru thottathile peramarathile kaykal muzhuvan moshtichakaryam ere kutabodhathode augusthinos ezhuthunnund	രാത്രി നഗരത്തിൽ ചുറ്റിക്കറങ്ങിയിരുന്ന താനും കൂട്ടുകാരും ഒരിക്കൽ വീടിനടുത്തുള്ളൊരു തോട്ടത്തിലെ പേരമരത്തിലെ കായ്കൾ മുഴുവൻ മോഷ്ടിച്ചകാര്യം ഏറെ കുറ്റബോധത്തോടെ ആഗസ്തീനോസ് എഴുതുന്നുണ്ട്
+mumbaiyile chemboorilaanu vidhya valarnnathu	മുംബൈയിലെ ചേംബൂറിലാണ് വിദ്യ വളർന്നത്
+capacitorinte vaidyuthi sambharichuvekkanulla kazhivinte ekakamanu capacitance c	കപ്പാസിറ്ററിന്റെ വൈദ്യുതി സംഭരിച്ചുവെക്കാനുള്ള കഴിവിന്റെ ഏകകമാണ് കപ്പാസിറ്റൻസ് C
+kurachu divasathe niraharathinusesham nisahakaranasamaram pinvalikkukayanennu addheham ariyichu	കുറച്ചു ദിവസത്തെ നിരാഹാരത്തിനുശേഷം നിസ്സഹകരണസമരം പിൻവലിക്കുകയാണെന്ന് അദ്ദേഹം അറിയിച്ചു
+aadhyakaalangalil karnaataka sangeethakruthikal vaaghroopathil maathrame pracharichirunnulloo	ആദ്യകാലങ്ങളിൽ കർണാടക സംഗീതകൃതികൾ വാഗ്രൂപത്തിൽ മാത്രമേ പ്രചരിച്ചിരുന്നുള്ളൂ
+vasthraalankaaram velayudhan keezhillam	വസ്ത്രാലങ്കാരം വേലായുധൻ കീഴില്ലം
+dosthu muhammad khante nethruthvathil afganisthanil nilavil vanna bharanakoodatheyanu afganisthan amerath ennariyappetunnathu	ദോസ്ത് മുഹമ്മദ് ഖാന്റെ നേതൃത്വത്തിൽ അഫ്ഗാനിസ്താനിൽ നിലവിൽ വന്ന ഭരണകൂടത്തെയാണ് അഫ്ഗാനിസ്താൻ അമീറത്ത് എന്നറിയപ്പെടുന്നത്
+khan bahadur pookoya thangal kunjali pookunjibi aatabi thudangiyavaranu pradhana kadhapathrangal	ഖാൻ ബഹദൂർ പൂക്കോയ തങ്ങൾ കുഞ്ഞാലി പൂക്കുഞ്ഞീബി ആറ്റബീ തുടങ്ങിയവരാണ് പ്രധാന കഥാപാത്രങ്ങൾ
+mauho nagaraavashishtangal ton lesaap thadaakathinu sameepamaayi kandethi	മൌഹൊ നഗരാവശിഷ്ടങ്ങൾ ടോൺ ലെസാപ് തടാകത്തിന് സമീപമായി കണ്ടെത്തി
+muppathinayiratholam galaxy ethilundu	മുപ്പതിനായിരത്തോളം ഗാലക്സികൾ ഇതിലുണ്ട്
+vidhayalaparipadikalude sughamaya nadathipinu achadakkam athyavashiyamanu	വിദ്യാലയപരിപാടികളുടെ സുഗമമായ നടത്തിപ്പിന് അച്ചടക്കം അത്യാവശ്യമാണ്
+joothanmaar ellaa shaniyaazhchakalilum veedukalil nadakkunna shaabathu praarthanaykku munnodiyaayi meshappurathu bred moodiveykkaanaanu haalaa kavar upayogikkunnathu	ജൂതന്മാർ എല്ലാ ശനിയാഴ്ചകളിലും വീടുകളിൽ നടക്കുന്ന ശാബത്ത് പ്രാർഥനയ്ക്ക് മുന്നോടിയായി മേശപ്പുറത്ത് ബ്രഡ് മൂടിവയ്ക്കാനാണ് ഹാലാ കവർ ഉപയോഗിക്കുന്നത്
+vaikam mahadevakshetram	വൈക്കം മഹാദേവക്ഷേത്രം
+antharashtrapradhanyamulla oru gathagathamargamanithu	അന്താരാഷ്ട്രപ്രാധാന്യമുള്ള ഒരു ഗതാഗതമാർഗ്ഗമാണിത്
+varun kuryan	വരുൺ കുര്യൻ
+grendhakaaranum sabhacharithra gaveshakanumaayirunna profa	ഗ്രന്ഥകാരനും സഭാചരിത്ര ഗവേഷകനുമായിരുന്ന പ്രൊഫ
+urangaan kidakkalum urangiyeneekkalum ethu kooduthal yeluppamakunnu	ഉറങ്ങാൻ കിടക്കലും ഉറങ്ങിയെണീക്കലും ഇതു കൂടുതൽ എളുപ്പമാക്കുന്നു
+hindhudharmmamanusarichu manushyan anushtikkenda jeevithakhattangaleyaanu aashramangal ennu parayunnathu	ഹിന്ദുധർമ്മമനുസരിച്ച് മനുഷ്യൻ അനുഷ്ടിക്കേണ്ട ജീവിതഘട്ടങ്ങളെയാണ് ആശ്രമങ്ങൾ എന്നു പറയുന്നത്
+othkottinte paramamaaya lakshyam lokasamaadhaanam thanneyaan	ഓത്ത്കൊട്ടിന്റെ പരമമായ ലക്ഷ്യം ലോകസമാധാനം തന്നെയാണ്
+janakeeyamaya samskarikolsavamanithu	ജനകീയമായ സാംസ്കാരികോത്സവമാണിത്
+thutarnnu in hariharnagar godphadar viyatnam kolani kabulivala thutangiya hitu chithrangalum e kutuketil pirannu	തുടർന്ന് ഇൻ ഹരിഹർനഗർ ഗോഡ്ഫാദർ വിയറ്റ്നാം കോളനി കാബുളിവാല തുടങ്ങിയ ഹിറ്റ് ചിത്രങ്ങളും ഈ കുട്ടുകെട്ടിൽ പിറന്നു
+keralathile pramukha chalachithra pinnanigayikayayirunnu shantha p	കേരളത്തിലെ പ്രമുഖ ചലച്ചിത്ര പിന്നണിഗായികയായിരുന്നു ശാന്ത പി
+aduku puzhuk	അട്ക് പുഴുക്ക്
+ennu muthappante pathoolam dhaarshanikapreshnangal avyekththa ngalaan ennum athukond ava bhudhan vyekthamaakkiyittilla ennum prethipaadhichittilla dharshanakrithikalil parayunnu	എന്നു തുടങ്ങിയ പത്തോളം ദാർശനികപ്രശ്നങ്ങൾ അവ്യക്ത ങ്ങളാണ് എന്നും അതുകൊണ്ട് അവ ബുദ്ധൻ വ്യകതമാക്കിയിട്ടില്ല എന്നും പ്രതിപാദിച്ചിട്ടില്ല ദർശനകൃതികളിൽ പറയുന്നു
+manushyante arogyavum aavasasthanavum mechapeduthunnathil	മനുഷ്യന്റെ ആരോഗ്യവും ആവാസസ്ഥാനവും മെച്ചപ്പെടുത്തുന്നതിൽ
+pakarakkaariyaayi sheela vedhiyilethi	പകരക്കാരിയായി ഷീല വേദിയിലെത്തി
+stem ethuvashathu varachaalum ardham maarunnilla	സ്റ്റെം ഏതുവശത്തു വരച്ചാലും അർത്ഥം മാറുന്നില്ല
+muhammadhali thudakkam kurichu	മുഹമ്മദലി തുടക്കം കുറിച്ചു
+samskarangaludeyum charithravumayi thulanam cheyyan kestan sramichittund	സംസ്‌കാരങ്ങളുടെയും ചരിത്രവുമായി തുലനം ചെയ്യാൻ കേസ്റ്റൻ ശ്രമിച്ചിട്ടുണ്ട്
+haripad subrahmaniaswamykshetram	ഹരിപ്പാട് സുബ്രഹ്മണ്യസ്വാമീക്ഷേത്രം
+nepolean salisetiyumayi sauhridabandham sthapichu	നെപോളിയൻ സാലിസെറ്റിയുമായി സൗഹൃദബന്ധം സ്ഥാപിച്ചു
+bhaaskara ravivarman oru paraakramashaaliyaaya bharanaadhikaariyaayirunnuvenkilum chola chakravarthimaaraaya raajaraaja cholanum raajendhra cholanum idhehathe paraajayappeduthiyittund	ഭാസ്കര രവിവർമ്മൻ ഒരു പരാക്രമശാലിയായ ഭരണാധികാരിയായിരുന്നുവെങ്കിലും ചോള ചക്രവർത്തിമാരായ രാജരാജ ചോളനും രാജേന്ദ്ര ചോളനും ഇദ്ദേഹത്തെ പരാജയപ്പെടുത്തിയിട്ടുണ്ട്
+finnish kareliyan vaamozhiyile kalevara enna ithihaasa kavitha ee mekhalayilaanu rachikkappettathu	ഫിന്നിഷ് കരേലിയൻ വാമൊഴിയിലെ കലേവര എന്ന ഇതിഹാസ കവിത ഈ മേഖലയിലാണ് രചിക്കപ്പെട്ടത്
+annarkkali shavakudeerathinod chernnu panithathaayirunnathinaal anaarkkali haus enna perilum ariyappettirunnu	അനാർക്കലി ശവകുടീരത്തിനോട് ചേർന്ന് പണിതതായതിനാൽ അനാർക്കലി ഹൗസ് എന്ന പേരിലും അറിയപ്പെട്ടിരുന്നു
+moonnu pathittaandolam idheham ee sthaanam vahichirunnu	മൂന്നു പതിറ്റാണ്ടോളം ഇദ്ദേഹം ഈ സ്ഥാനം വഹിച്ചിരുന്നു
+ithinu pariharamayi banglooril niyama padanathinu chernnu	ഇതിനു പരിഹാരമായി ബാംഗ്ലൂരിൽ നിയമ പഠനത്തിനു ചേർന്നു
+aa sinima valare vijayamaayirunnu	ആ സിനിമ വളരെ വിജയമായിരുന്നു
+nadhiyude kizhakekarayilulla vallikodu panchayathinte bhagamaya pradheshathe vazhamuttam kizhaku ennum padinjarekarayilulla omalloor panchayathinte bhagamaya pradheshathe vazhamuttam padinjarennum vilikunnu	നദിയുടെ കിഴക്കെകരയിലുള്ള വള്ളിക്കോടു പഞ്ചായത്തിന്റെ ഭാഗമായ പ്രദേശത്തെ വാഴമുട്ടം കിഴക്ക് എന്നും പടിഞ്ഞാറെകരയിലുള്ള ഓമല്ലൂർ പഞ്ചായത്തിന്റെ ഭാഗമായ പ്രദേശത്തെ വാഴമുട്ടം പടിഞ്ഞാറെന്നും വിളിക്കുന്നു
+prekaashakhattam harithakanathinullile graanayil vachum irunddakhattam harithaganathinullile stromayil vachum nadakkunnu	പ്രകാശഘട്ടം ഹരിതകണത്തിനുളളിലെ ഗ്രാനയിൽ വച്ചും ഇരുണ്ടഘട്ടം ഹരിതകണത്തിനുളളിലെ സ്ട്രോമയിൽ വച്ചും നടക്കുന്നു
+sipayi lahala	ശിപായി ലഹള
+puthiya samvidhanavum sthapanangalum yere karkkashamanennu palarum karuthi	പുതിയ സംവിധാനവും സ്ഥാപനങ്ങളും ഏറെ കർക്കശമാണെന്ന് പലരും കരുതി
+spainil aavilaakaduthulla hondiverious yenna gramathilanu adheham janichathu	സ്പെയിനിൽ ആവിലാക്കടുത്തുള്ള ഫൊണ്ടിവെരോസ് എന്ന ഗ്രാമത്തിലാണ് അദ്ദേഹം ജനിച്ചത്
+nirmaana nirvahanam prajosh	നിർമ്മാണ നിർവ്വഹണം പ്രജോഷ്
+abbasiya kalaghattathil islamika lokathundaya vaijnjanika viplavathinte bhagabhakkavaan bagdadilekk thamasam marukayayirunnu pilkkalathth jahis	അബ്ബാസിയ കാലഘട്ടത്തിൽ ഇസ്ലാമിക ലോകത്തുണ്ടായ വൈജ്ഞാനിക വിപ്ലവത്തിന്റെ ഭാഗഭാക്കാവാൻ ബാഗ്ദാദിലേക്ക് താമസം മാറുകയായിരുന്നു പിൽക്കാലത്ത് ജാഹിസ്
+ethinte vishadhamsam enthanennu nokkam	ഇതിന്റെ വിശദാംശം എന്താണെന്നു നോക്കാം
+keralaa samsthaana kongras kammiteeyil k p c c	കേരളാ സംസ്ഥാന കോൺഗ്രസ് കമ്മിറ്റിയിൽ കെ പി സി സി
+shariyaayi nirnayikkaanum vivarikkaanum aavaatha vasthukkalude yadhaartha swabhaavatheyaanu ivide shoonyatha ennu vivakshikkunnathu	ശരിയായി നിർണ്ണയിക്കാനും വിവരിക്കാനും ആവാത്ത വസ്ത്തുക്കളുടെ യഥാർത്ഥ സ്വഭാവത്തെയാണ് ഇവിടെ ശൂന്യത എന്നു വിവക്ഷിക്കുന്നത്
+naja bhasamezhilum yathi pathinettilum jasa jasam shravikka lalitham	നജ ഭസമേഴിലും യതി പതിനെട്ടിലും ജസ ജസം ശ്രവിക്ക ലളിതം
+laser beaminte madhyathil intensity yettavum kooduthalum purathekku intensity kuranju varunnathumaya vidhathil laser beamine focus cheyunnu	ലേസർ ബീമിന്റെ മദ്ധ്യത്തിൽ ഇന്റൻസിറ്റി ഏറ്റവും കൂടുതലും പുറത്തേക്ക് ഇന്റൻസിറ്റി കുറഞ്ഞു വരുന്നതുമായ വിധത്തിൽ ലേസർ ബീമിനെ ഫോക്കസ് ചെയ്യുന്നു
+raashtreeya swayamsevak samkhiloode raashtreeya pravarthanam aarambhicha adwaani indyayile b j p sajeevamaakkunnathil pradhaana panku vahichu	രാഷ്ട്രീയ സ്വയംസേവക് സംഘിലൂടെ രാഷ്ട്രീയ പ്രവർത്തനം ആരംഭിച്ച അഡ്വാണി ഇന്ത്യയിലെ ബി ജെ പി സജീവമാക്കുന്നതിൽ പ്രധാന പങ്കു വഹിച്ചു
+i yku und	ഐ ക്ക് ഉണ്ട്
+chithrakaarante maranathinushesham thayyaaraakkiya adhehathinte saadhanasaamagrikalude vivarangalilum kyaamara obkyura polulla yaathoru prakaashika upakaranangalum undaayirunnilla	ചിത്രകാരൻ്റെ മരണത്തിനുശേഷം തയ്യാറാക്കിയ അദ്ദേഹത്തിൻ്റെ സാധനസാമഗ്രികളുടെ വിവരങ്ങളിലും ക്യാമറ ഒബ്ക്യുറ പോലുള്ള യാതൊരു പ്രകാശിക ഉപകരണങ്ങളും ഉണ്ടായിരുന്നില്ല
+veliyani shreekumaar paartti nethruthvam nalkunnathu	വെളിയണി ശ്രീകുമാർ പാർട്ടി നേതൃത്വം നൽകുന്നത്
+sarathushtarude abhiprayathil shareerathekal athmavinu pradhanyam nalkunna upavasavum athmavinekal shareerathinu pradhanyam nalkunna amithabhakshanavum onnu pole papangalanu	സരതുഷ്ട്രരുടെ അഭിപ്രായത്തിൽ ശരീരത്തെക്കാൾ ആത്മാവിനു പ്രാധാന്യം നൽകുന്ന ഉപവാസവും ആത്മാവിനേക്കാൾ ശരീരത്തിന് പ്രാധാന്യം നൽകുന്ന അമിതഭക്ഷണവും ഒന്ന് പോലെ പാപങ്ങളാണ്
+haidharali samoothiriye yudhathil tholppich paalakkad thante keezhilaakki	ഹൈദരലി സാമൂതിരിയെ യുദ്ധത്തിൽ തോൽപ്പിച്ച് പാലക്കാട് തന്റെ കീഴിലാക്കി
+iruvarum monto karloyil thaamasamaakki	ഇരുവരും മോൺടോ കാർലോയിൽ താമസമാക്കി
+chittayode adukki avatharikkapettitulla ettu bhaavageethasamaahaarangalilum pathu neendakavyangalilum paattukalumaayi sankha saahithyam parannukidakkunnu	ചിട്ടയോടെ അടുക്കി അവതരിക്കപ്പെട്ടിട്ടുള്ള എട്ടു ഭാവഗീതസമാഹാരങ്ങളിലും പത്തു നീണ്ടകാവ്യങ്ങളിലും പാട്ടുകളിലുമായി സംഘ സാഹിത്യം പരന്നുകിടക്കുന്നു
+sayyidh muhammadh yaasir thangal	സയ്യിദ് മുഹമ്മദ് യാസിർ തങ്ങൾ
+pincle systems	പിനാക്കിൾ സിസ്റ്റംസ്
+m n govindhan nair	എം എൻ ഗോവിന്ദൻ നായർ
+nikshepanaprakriyayilude arikalinum tharamthirippinum vidheyamayi adarukalayi rupamkollunna silakalaniva	നിക്ഷേപണപ്രക്രിയയിലൂടെ അരിക്കലിനും തരംതിരിപ്പിനും വിധേയമായി അടരുകളായി രൂപംകൊള്ളുന്ന ശിലകളാണിവ
+ruskin bondinte ethe perilulla noveline aspadhamaki vishal bhardwaj samvidhanam cheytha hindi chalachitramanu the blue umbrella	റസ്കിൻ ബോണ്ടിന്റെ ഇതേ പേരിലുള്ള നോവലിനെ ആസ്പദമാക്കി വിശാൽ ഭരദ്വാജ് സംവിധാനം ചെയ്ത ഹിന്ദി ചലച്ചിത്രമാണ് ദി ബ്ലൂ അംബ്രല്ല
+diwan nanu pilla biography with select writings and letters	ദിവാൻ നാണു പിള്ള ബയോഗ്രഫി വിത്ത് സെലക്റ്റ് റൈറ്റിംസ് ആൻഡ് ലെറ്റേഴ്സ്
+mikka kaymattangalum oru nattile nanyavum videdhananayangalum thammilayirikkum	മിക്ക കൈമാറ്റങ്ങളും ഒരു നാട്ടിലെ നാണ്യവും വിദേശനാണയങ്ങളും തമ്മിലായിരിക്കും
+chainayumaayi rajyaanthara athirthiyumundshimlayaanu thalasthaanam	ചൈനയുമായി രാജ്യാന്തര അതിർത്തിയുമുണ്ട്‌ഷിംലയാണ് തലസ്ഥാനം
+evarude ormaykkayi bajaj group dharalam vidyabhyasasthapanangal thudangukayum chila puraskarangal yerppeduthukayum cheythu	ഇവരുടെ ഓർമ്മയ്ക്കായി ബജാജ് ഗ്രൂപ്പ് ധാരാളം വിദ്യാഭ്യാസസ്ഥാപനങ്ങൾ തുടങ്ങുകയും ചില പുരസ്കാരങ്ങൾ ഏർപ്പെടുത്തുകയും ചെയ്തു
+nyooyorkkile bronks villayil aayirunnu dennisinte jananam	ന്യൂയോർക്കിലെ ബ്രോൻക്സ് വില്ലെയിൽ ആയിരുന്നു ഡെന്നിസിന്റെ ജനനം
+bheekarapravarthanasankhadanakalumaayi bhadhamundennu samshayikunnavarude pattikayaanu thangal tharunnathenna oudyogika sandeshathethudarnnannu googlepolulla kambanikal hytek sellinu vivaram kaimaaraan thyyaraayath	ഭീകരപ്രവർത്തനസംഘടനകളുമായി ബന്ധമുണ്ടെന്നു സംശയിക്കുന്നവരുടെ പട്ടികയാണ് തങ്ങൾ തരുന്നതെന്ന ഒൗദ്യോഗിക സന്ദേശത്തെതുടർന്നാണ് ഗൂഗ്ൾപോലുള്ള കമ്പനികൾ ഹൈടെക് സെല്ലിന് വിവരം കൈമാറാൻ തയ്യാറായത്
+dheeseeya hokki teeminu vendi nooriladhikam malsarangal idheham kyaap aninjittund	ദേശീയ ഹോക്കി ടീമിനു വേണ്ടി നൂറിലധികം മൽസരങ്ങൾ ഇദ്ദേഹം ക്യാപ് അണിഞ്ഞിട്ടിണ്ട്
+mere rang mem rangne vaali	മേരെ രംഗ് മേം റങ്ങ്നെ വാലി
+aandroyid opereting sistam adisthaanamaakki googil purathirakkiya oru smaart fon aanu galaxy nexas	ആൻഡ്രോയിഡ് ഓപ്പറേറ്റിംഗ് സിസ്റ്റം അടിസ്ഥാനമാക്കി ഗൂഗിൾ പുറത്തിറക്കിയ ഒരു സ്മാർട്ട് ഫോൺ ആണ് ഗ്യാലക്സി നെക്സസ്
+iva moonnu muthal anju vare kaanappedunnu	ഇവ മൂന്നു മുതൽ അഞ്ചു വരെ കാണപ്പെടുന്നു
+thiruvappana vellattam yenni randu daiwika roopangalude avatharamanu sri muthappan yennanu vishwasam	തിരുവപ്പന വെള്ളാട്ടം എന്നീ രണ്ടു ദൈവിക രൂപങ്ങളുടെ അവതാരമാണ് ശ്രീ മുത്തപ്പൻ എന്നാണ് വിശ്വാസം
+prarththanageethathinte avasanam athile bhakthi manam purattalundakkum vidham madhuravum aprasakthamam vidham gahanavum aayappozhanu mathsyam pravachakane charddichathennanu vadam	പ്രാർത്ഥനാഗീതത്തിന്റെ അവസാനം അതിലെ ഭക്തി മനം പുരട്ടലുണ്ടാക്കും വിധം മധുരവും അപ്രസക്തമാം വിധം ഗഹനവും ആയപ്പോഴാണ് മത്സ്യം പ്രവാചകനെ ഛർദ്ദിച്ചതെന്നാണ് വാദം
+mee kattiyulla ulla silicatukal adangiya bahyavaranam mantle budhanund	മീ കട്ടിയുള്ള ഉള്ള സിലിക്കേറ്റുകൾ അടങ്ങിയ ബാഹ്യാവരണം mantle ബുധനുണ്ട്
+svathe i	സ്വതേ ഐ
+sandhunalaavastha nilanirthaan sahaayikkunna madhyakarnam middle ear pesheethandhukkal charmathinte chila bhaagangal nethram chevi seribral korttex thudangiyavayil ninnum anusmasthishkkam aaveegangal impulses sweekarikkunnu	സന്തുലനാവസ്ഥ നിലനിർത്താൻ സഹായിക്കുന്ന മധ്യകർണം middle ear പേശീതന്തുക്കൾ ചർമത്തിന്റെ ചില ഭാഗങ്ങൾ നേത്രം ചെവി സെറിബ്രൽ കോർട്ടെക്സ് തുടങ്ങിയവയിൽ നിന്നും അനുമസ്തിഷ്കം ആവേഗങ്ങൾ impulses സ്വീകരിക്കുന്നു
+kannada malayala sahithya vivarthakanayirunnu k	കന്നട മലയാള സാഹിത്യ വിവർത്തകനായിരുന്നു കെ
+chithambaram aakaasham	ചിദംബരം ആകാശം
+ee randu daiwakolangalekurichum vyathyasthamaya vishadeekaranangal labhyamanu	ഈ രണ്ട് ദൈവക്കോലങ്ങളെക്കുറിച്ചും വ്യത്യസ്തമായ വിശദീകരണങ്ങൾ ലഭ്യമാണ്
+ottappalathe pradhana aasupathrikal tazhepparayunnu	ഒറ്റപ്പാലത്തെ പ്രധാന ആശുപത്രികൾ താഴെപ്പറയുന്നു
+indiayile prathyekavibhagam saivaraya akhorikalekurichum eththaaram vishvasangalundu	ഇന്ത്യയിലെ പ്രത്യേകവിഭാഗം ശൈവരായ അഘോരികളെക്കുറിച്ചും ഇത്തരം വിശ്വാസങ്ങളുണ്ട്
+avaye lokathil prathishttikkukayaayirunnu dhauthyam	അവയെ ലോകത്തിൽ പ്രതിഷ്ഠിക്കുകയായിരുന്നു ദൗത്യം
+janavaasamillaathaayitheernna nagaram kaadupidichu pothujanadhrushtiyilninnu aprathyakshamaakukayum visthruthamaakukayum cheythu	ജനവാസമില്ലാതായിത്തീർന്ന നഗരം കാടുപിടിച്ച് പൊതുജനദൃഷ്ടിയിൽനിന്ന് അപ്രത്യക്ഷമാകുകയും വിസ്മൃതമാകുകയും ചെയ്തു
+biharil ninnulla rashtriya nethavum parliamentile uparisabhayile rajyasabha amgavumanu k	ബീഹാറിൽ നിന്നുള്ള രാഷ്ട്രീയ നേതാവും പാർലമെന്റിലെ ഉപരിസഭയിലെ രാജ്യസഭ അംഗവുമാണ് കെ
+merikkundoru kunjadu	മേരിക്കുണ്ടൊരു കുഞ്ഞാട്
+athinte nadathippinu swathandhravum baahyavumaaya oru bodhathinte aavashyamilla	അതിന്റെ നടത്തിപ്പിന് സ്വതന്ത്രവും ബാഹ്യവുമായ ഒരു ബോധത്തിന്റെ ആവശ്യമില്ല
+rahibahyile porattathil omar mukhtar italian padaye njettippichu	റഹീബയിലെ പോരാട്ടത്തിൽ ഉമർ മുഖ്താർ ഇറ്റാലിയൻ പടയെ ഞെട്ടിപ്പിച്ചു
+eeree varshangalk munp panankaav ksheethram enna perilum ee ksheethram ariyapettirunnu	ഏറെ വർഷങ്ങൾക്കു മുമ്പ് പനങ്കാവ് ക്ഷേത്രം എന്ന പേരിലും ഈ ക്ഷേത്രം അറിയപ്പെട്ടിരുന്നു
+vrikshangalil mathram kaanunnayinam thadhesheeya jeevikalaanu mara thavalakal	വൃക്ഷങ്ങളിൽ മാത്രം കാണുന്നയിനം തദ്ദേശ്ശീയ ജീവികളാണ് മര തവളകൾ
+oru pendulum pole munpottum pirakottum aadaan aakum	ഒരു പെൻഡുലം പോലെ മുൻപൊട്ടും പിറകോട്ടും ആടാൻ ആകും
+excise nikuthi stamp nikuthi thozhil nikuthi vahana nikuthi yethanum petrolium ulpannangalude vilpana nikuthi thudangiya samsthana nikuthikal gstyil layikkunnathalla	എക്‌സൈസ് നികുതി സ്‌റ്റാംപ് നികുതി തൊഴിൽ നികുതി വാഹന നികുതി ഏതാനും പെട്രോളിയം ഉൽപന്നങ്ങളുടെ വിൽപന നികുതി തുടങ്ങിയ സംസ്‌ഥാന നികുതികൾ ജിഎസ്‌ടിയിൽ ലയിക്കുന്നതല്ല
+achadakkabodhathinte peril chilappol ayalkk abhiprayaprakadana svathanthryam vimarsana svathanthryam thudangiya chila maulikavakasangal nishedhikkappettu ennu varam	അച്ചടക്കബോധത്തിന്റെ പേരിൽ ചിലപ്പോൾ അയാൾക്ക് അഭിപ്രായപ്രകടന സ്വാതന്ത്ര്യം വിമർശന സ്വാതന്ത്ര്യം തുടങ്ങിയ ചില മൗലികാവകാശങ്ങൾ നിഷേധിക്കപ്പെട്ടു എന്നു വരാം
+sangeetham vaadhyangal	സംഗീതം വാദ്യങ്ങൾ
+vidhavayaayirunna avar thante kuttikkum kudumbathinum saampathika pinthuna nakunnathinuvendiyaanu saahithyarachanayilekku praveshichathu	വിധവയായിരുന്ന അവർ തൻറെ കുട്ടിയ്ക്കും കുടുംബത്തിനും സാമ്പത്തിക പിന്തുണ നൽകുന്നതിനുവേണ്ടിയാണ് സാഹിത്യരചനയിലേയ്ക്കു പ്രവേശിച്ച്ത്
+athesamayam itharamonnu islaamil illennum vaadhamundu	അതെസമയം ഇത്തരമൊന്ന് ഇസ്ലാമിൽ ഇല്ലെന്നും വാദമുണ്ട്
+kalkashanangale kootinirthanupayogichirikunna padarththam thirichariyan kazhinjitilla	കൽക്കഷണങ്ങളെ കൂട്ടിനിർത്താനുപയോഗിച്ചിരിക്കുന്ന പദാർത്ഥം തിരിച്ചറിയാൻ കഴിഞ്ഞിട്ടില്ല
+padmarajan samvidhanam cheytha koodevide ayirunnu rahmante adya malayalachithram	പത്മരാജൻ സംവിധാനം ചെയ്ത കൂടെവിടെ ആയിരുന്നു റഹ്മാന്റെ ആദ്യ മലയാളചിത്രം
+oru american animation parambarayanu the simpsons	ഒരു അമേരിക്കൻ ആനിമേഷൻ പരമ്പരയാണ് ദ സിംസൺസ്
+sasyasasthrajnjan aaya les pedli athine rakkosperma ennu perittenkilum ath purnnmayum svikrithamayilla	സസ്യശാസ്ത്രജ്ഞൻ ആയ ലെസ് പെഡ്‌ലി അതിനെ റാക്കോസ്പേർമ എന്ന് പേരിട്ടെങ്കിലും അത് പൂർണ്ണമായി സ്വീകൃതമായില്ല
+mukalilekk oru kallu erinju ath thazhe ethum munpayi nilathu kidakkunna kallukal ottayayo kuttamayo vari erinja kallum pidikkuka ennathanu reethi	മുകളിലേക്ക് ഒരു കല്ല് എറിഞ്ഞു അത് താഴെ എത്തും മുൻപായി നിലത്തു കിടക്കുന്ന കല്ലുകൾ ഒറ്റയായോ കൂട്ടമായോ വാരി എറിഞ്ഞ കല്ലും പിടിക്കുക എന്നതാണ് രീതി
+gandhi khan sauhridam neenda nalukal thudarnnu	ഗാന്ധി ഖാൻ സൗഹൃദം നീണ്ട നാളുകൾ തുടർന്നു
+cpmminte kozhikod jillakkammittiyilum samsthaana kammittiyilum angamaayirunnu	സിപിഎമ്മിന്റെ കോഴിക്കോട് ജില്ലാക്കമ്മിറ്റിയിലും സംസ്ഥാന കമ്മിറ്റിയിലും അംഗമായിരുന്നു
+adhyaayangalude vibhajanathile ekadheshapadhathi ithaanenkilum ee vishayavibhajanam paanini kruthyamaayi pinthudarunnilla	അദ്ധ്യായങ്ങളുടെ വിഭജനത്തിലെ ഏകദേശപദ്ധതി ഇതാണെങ്കിലും ഈ വിഷയവിഭജനം പാണിനി കൃത്യമായി പിന്തുടരുന്നില്ല
+greek aitheehyathil snehathinteyum saundharyathinteyum dhevathayaanu afrodaitti	ഗ്രീക്ക് ഐതിഹ്യത്തിൽ സ്നേഹത്തിന്റെയും സൗന്ദര്യത്തിന്റെയും ദേവതയാണ് അഫ്രൊഡൈറ്റി
+koha oru s q l msql databasodu koodiya web base intergrated library management systemanu	കോഹ ഒരു എസ് ക്യു എൽ MSQL ഡാറ്റാബേസോടു കൂടിയ വെബ് ബേസ്ഡ് ഇന്റഗ്രേറ്റഡ് ലൈബ്രറി മാനേജ്മെന്റ് സിസ്റ്റമാണ്
+indiayilum eeshiyayude mattu sthalangalilum jeevicha ivayude fossil aadyam kandu kittiyitullath indiayile madhyapredeshile jabalpooril ninnumaanu	ഇന്ത്യയിലും ഏഷ്യയുടെ മറ്റു സ്ഥലങ്ങളിലും ജീവിച്ച ഇവയുടെ ഫോസ്സിൽ ആദ്യം കണ്ടു കിട്ടിയിട്ടുള്ളത് ഇന്ത്യയിലെ മധ്യപ്രദേശിലെ ജബൽപൂരിൽ നിന്നുമാണ്
+yathartha kronikkik rachanyaum volters record sensor recordinekkurich kathayichirunnu	യഥാർത്ഥ ക്രോണിക്കിക് രചനയും വോൾട്ടേഴ്സ് റെക്കോർഡ് സെൻസർ റെക്കോർഡിനെക്കുറിച്ച് കത്തയച്ചിരുന്നു
+pashchima bengale indian peoples theater associationte sajeeva angam yennee nilakalil prashasthanayirunnu dileep bagachi	പശ്ചിമ ബംഗാളിലെ ഇന്ത്യൻ പീപ്പിൾസ് തീയേറ്റർ അസോസിയേഷന്റെ സജീവ അംഗം എന്നീ നിലകളിൽ പ്രശസ്തനായിരുന്നു ദിലീപ് ബാഗച്ചി
+russiayude salute soyus paddhathi americayude space shuttle paddhathi ennivayum antharashtra bahirakasa nilayavum manushyar sunyakasayathra nadathiyathinu udaharanangalanu	റഷ്യയുടെ സല്യൂട്ട് സൊയൂസ് പദ്ധതി അമേരിക്കയുടെ സ്പേസ് ഷട്ടിൽ പദ്ധതി എന്നിവയും അന്താരാഷ്ട്ര ബഹിരാകാശ നിലയവും മനുഷ്യർ ശൂന്യാകാശയാത്ര നടത്തിയതിന് ഉദാഹരണങ്ങളാണ്
+upaasakar loukeeka jeevitham vediyunnilla	ഉപാസകർ ലൗകിക ജീവിതം വെടിയുന്നില്ല
+ennal bharanakhadana ezhuthiyundaakunnathinumunp oru vyekthiyude avakaashangal enthokkeyennathinepatty oru theerumaanam undakkunath athyaavishamaanen naashanal asamblikk bhodyamaayi	എന്നാൽ ഭരണഘടന എഴുതിയുണ്ടാക്കുംമുമ്പ് ഒരു വ്യക്തിയുടെ അടിസ്ഥാന അവകാശങ്ങൾ എന്തൊക്കെയെന്നതിനെപ്പറ്റി ഒരു തീരുമാനമുണ്ടാകുന്നത് അത്യവശ്യമാണെന്ന് നാഷണൽ അസംബ്ലിക്ക് ബോധ്യമായി
+keralathile chila pradheshangalil ee appam adiyilum mukalilum theekathichu porichaanu undaakiyirunnathu	കേരളത്തിലെ ചില പ്രദേശങ്ങളിൽ ഈ അപ്പം അടിയിലും മുകളിലും തീകത്തിച്ചു പൊരിച്ചാണ് ഉണ്ടാക്കിയിരുന്നത്
+ebney e shaafi ebney shaafi ennum ezhuthum ennath paakkisthaanile preshasthanaaya oru apasarppaka novalisttaaya asraar ahamadinte thoolika naamamaanu	ഇബ്‌നെ ഇ ശാഫി ഇബ്‌നെ ഷാഫി എന്നും എഴുതും എന്നത് പാകിസ്താനിലെ പ്രശസ്തനായ ഒരു അപസർപ്പക നോവലിസ്റ്റായ അസ്റാർ അഹമ്മദിന്റെ തൂലിക നാമമാണ്
+ethil kurachubhagam cherukudaliloode bhagikamaye aagiranam cheyyapedunnu	ഇതിൽ കുറച്ചുഭാഗം ചെറുകുടലിലൂടെ ഭാഗികമായി ആഗിരണം ചെയ്യപ്പെടുന്നു
+middle east enna padam oru european bhumisasthraveekshanathinte falamayundayathanu	മിഡിൽ ഈസ്റ്റ് എന്ന പദം ഒരു യൂറോപ്യൻ ഭൂമിശാസ്ത്രവീക്ഷണത്തിന്റെ ഫലമായുണ്ടായതാണ്
+vividha raajyangalile ramaadha hottalukal thaazhe koduthirikkunnu	വിവിധ രാജ്യങ്ങളിലെ രമാദ ഹോട്ടലുകൾ താഴെ കൊടുത്തിരിക്കുന്നു
+ava thazhe koduthirikkunnu	അവ താഴെ കൊടുത്തിരിക്കുന്നു
+lorenso dasaykk oru kampisandesam kodukkan ayalude veettil chennappolanu floratino arisa fermina dasaye adyamayi kanunnath	ലോറൻസോ ഡാസയ്ക്ക് ഒരു കമ്പിസന്ദേശം കൊടുക്കാൻ അയാളുടെ വീട്ടിൽ ചെന്നപ്പോളാണ് ഫ്ലോറന്റിനോ അരിസ ഫെർമിന ഡാസയെ ആദ്യമായി കാണുന്നത്
+ivaru aachaari enna peru ashaari ennaakaan shramichirunnu	ഇവര് ആചാരി എന്ന പേര് ആശാരി എന്നാക്കാൻ ശ്രമിച്ചിരുന്നു
+grahathinte irumbinaal sambushttamaaya dhraavaka kaambinte karakkathinte falamaayirikkum ee dainaamo prathibhaasam	ഗ്രഹത്തിന്റെ ഇരുമ്പിനാൽ സമ്പുഷ്ടമായ ദ്രാവക കാമ്പിന്റെ കറക്കത്തിന്റെ ഫലമായിരിക്കും ഈ ഡൈനാമോ പ്രതിഭാസം
+elactrostaatik imaij ennaanu ithariyappedunnathu	ഇല്ക്ട്രോസ്റ്റാറ്റിക് ഇമേജ് എന്നാണ് ഇതറിയപ്പെടുന്നത്
+grigari sinoveev josaf staalin nathaashdha kupraskaaya lev kaamanov ennivar bolshevikkukalaayirunnu	ഗ്രിഗറി സീനോവീവ് ജോസഫ് സ്റ്റാലിൻ നതാഷ്ദ കുപ്രസ്കായ ലെവ് കാമനോവ് എന്നിവർ ബോൾഷെവിക്കുകളായിരുന്നു
+marpappaye pinthudaran germanyile speyeril ninnum thirichu thekkottu yathra cheytha henry avidengalil thante nila parungalilayirikkunnathu thiricharinju	മാർപ്പാപ്പായെ പിന്തുടരാൻ ജർമ്മനിയിലെ സ്പെയറിൽ നിന്നു തിരിച്ചു തെക്കോട്ടു യാത്ര ചെയ്ത ഹെൻറി അവിടങ്ങളിൽ തന്റെ നില പരുങ്ങലിലായിരിക്കുന്നതു തിരിച്ചറിഞ്ഞു
+kadha thirakkadha sambhaashanam enniva nirvahichathu ranjan pramodh aanu	കഥ തിരക്കഥ സംഭാഷണം എന്നിവ നിർവ്വഹിച്ചത് രഞ്ജൻ പ്രമോദ് ആണ്
+a sanghatanayute keezhil ampathiladhikam vidyabhyasasthapanangal pravarthikunnundu	ആ സംഘടനയുടെ കീഴിൽ അമ്പതിലധികം വിദ്യാഭ്യാസസ്ഥാപനങ്ങൾ പ്രവർത്തിക്കുന്നുണ്ട്
+vividha enam kothangallu kalikalilonnanu ethu	വിവിധ ഇനം കൊത്തങ്കല്ല് കളികളിൽഒന്നാണ് ഇത്
+romeile aalkootathinte bheeshaniyil nadanthanenna njayam paraju urban aramante thirajeduppu asaduvayi pkyapicha avar adhehathe mathavirudhum anthikristhuvumayi mudrakuthi	റോമിലെ ആൾക്കൂട്ടത്തിന്റെ ഭീഷണിയിൽ നടന്നതാണെന്ന ന്യായം പറഞ്ഞ് അർബൻ ആറാമന്റെ തെരഞ്ഞെടുപ്പ് അസാധുവായി പ്രഖ്യാപിച്ച അവർ അദ്ദേഹത്തെ മതവിരുദ്ധനും അന്തിക്രിസ്തുവുമായി മുദ്രകുത്തി
+bishop enna sthanam sabhayude adimakalam muthal undayirikkunnathanennum athu sabhayude bharanasamvidhanathinte oru bhagamayi amgikarikkamennum episcopal allatha sabhakal amgikarichathukondanu ee aikyam sadhyamayath	ബിഷപ്പ് എന്ന സ്ഥാനം സഭയുടെ ആദിമകാലം മുതൽ ഉണ്ടായിരിക്കുന്നതാണെന്നും അതു സഭയുടെ ഭരണസംവിധാനത്തിന്റെ ഒരു ഭാഗമായി അംഗീകരിക്കാമെന്നും എപ്പിസ്കോപ്പൽ അല്ലാത്ത സഭകൾ അംഗീകരിച്ചതുകൊണ്ടാണ് ഈ ഐക്യം സാധ്യമായത്
+athinal kunnathure padiyil eva randum onnich kettiyadikkunnilla	അതിനാൽ കുന്നത്തൂർ പാടിയിൽ ഇവ രണ്ടും ഒന്നിച്ച് കെട്ടിയാടിക്കുന്നില്ല
+athinal avaye pothuvayi samantharasuvisheshangal yennu vilikkunnu	അതിനാൽ അവയെ പൊതുവായി സമാന്തരസുവിശേഷങ്ങൾ എന്നു വിളിക്കുന്നു
+yudhangaludeyum sarkar niyanthrikkunna rashtriyathinteyum kalathum vaiyakthikagunangal athijeevikkunnathinepattiyulla ujvalamaya katha yennaanu newyork timesinte sahithyaniroopakan stephen spender pusthakathe visheshippichirunnu	യുദ്ധങ്ങളുടെയും സർക്കാർ നിയന്ത്രിക്കുന്ന രാഷ്ട്രീയത്തിന്റെയും കാലത്തും വൈയക്തികഗുണങ്ങൾ അതിജീവിക്കുന്നതിനെപ്പറ്റിയുള്ള ഉജ്ജ്വലമായ കഥ എന്നാണ് ന്യൂയോർക്ക് ടൈംസിന്റെ സാഹിത്യനിരൂപകൻ സ്റ്റീഫൻ സ്‌പെൻഡർ പുസ്തകത്തെ വിശേഷിപ്പിച്ചിരുന്നു
+adhya trimesteril surgical reethiye pole thanne karyakshamamanu mifepristone prostaglandin yennu vilikkapeduna randu medicationukal	ആദ്യ ട്രൈമെസ്റ്ററിൽ സർജിക്കൽ രീതിയെ പോലെ തന്നെ കാര്യക്ഷമമാണ് മൈഫെപ്രിസ്റ്റോൺ പ്രോസ്റ്റാഗ്ലാൻഡിൻ എന്ന് വിളിക്കപ്പെടുന്ന രണ്ട് മെഡിക്കേഷനുകൾ
+international silk association	ഇന്റർനാഷനൽ സിൽക്ക് അസോസിയേഷൻ
+samayabandhitha prasidheekaranangal postarukal achadi maadhyamangal thudangiyavayile roopakalppakaraanu ithinte pradhaana upayokthaakkal	സമയബന്ധിത പ്രസിദ്ധീകരണങ്ങൾ പോസ്റ്ററുകൾ അച്ചടി മാധ്യമങ്ങൾ തുടങ്ങിയവയിലെ രൂപകൽപ്പകരാണ് ഇതിന്റെ പ്രധാന ഉപയോക്താക്കൾ
+books aanu prasiddhikarichath	ബുക്സ് ആണ് പ്രസിദ്ധീകരിച്ചത്
+ulbhagathuninnu vathakangal puranthallappedunnatho dhumakethukkalude pathanamo aakaam jalasrothass	ഉൾഭാഗത്തുനിന്ന് വാതകങ്ങൾ പുറന്തള്ളപ്പെടുന്നതോ ധൂമകേതുക്കളുടെ പതനമോ ആകാം ജലസ്രോതസ്സ്
+oru njaninmel kaliyude avatharanamaanithu	ഒരു ഞാണിന്മേൽ കളിയുടെ അവതരണമാണിത്
+yettumuttalinte anthyam prakhyapichathinappuram athensum sportayum thammil anpathu varshathe mythreebandhatthinupolum nikkiyasinte shanthi yil vyavasthayundayirunnu	ഏറ്റുമുട്ടലിന്റെ അന്ത്യം പ്രഖ്യാപിച്ചതിനപ്പുറം ആഥൻസും സ്പാർട്ടയും തമ്മിൽ അൻപതു വർഷത്തെ മൈത്രീബന്ധത്തിനുപോലും നിക്കിയാസിന്റെ ശാന്തി യിൽ വ്യവസ്ഥയുണ്ടായിരുന്നു
+ethinavasyamaya narukal neythundakkiyum mrigaromathil ninnum labhyamakkunnu	ഇതിനാവശ്യമായ നാരുകൾ നെയ്തുണ്ടാക്കിയും മൃഗരോമത്തിൽ നിന്നും ലഭ്യമാക്കുന്നു
+charakan ayur vedathinte pithavu charakasamhitha yenna grantham rachichu taxonamiyil padanam nadathiya aadhya bharathiyan	ചരകൻ ആയുർ വേദത്തിന്റെ പിതാവ് ചരകസംഹിത എന്ന ഗ്രന്ഥം രചിച്ചു ടാക്സോണമിയിൽ പഠനം നടത്തിയ ആദ്യ ഭാരതീയൻ
+brahmanarilum oruvibhagam ee sthanaperu upayogichuvarunnu	ബ്രാഹ്മണരിലും ഒരുവിഭാഗം ഈ സ്ഥാനപ്പേര് ഉപയോഗിച്ചിരുന്നു
+avide kalthoniyil sookshichirikkunna morumvellam sanchaarikalkku dhaaham shamikkunnathuvare kudikkaam	അവിടെ കൽത്തോണിയിൽ സൂക്ഷിച്ചിരിക്കുന്ന മോരുംവെള്ളം സഞ്ചാരികൾക്ക് ദാഹം ശമിക്കുന്നതുവരെ കുടിക്കാം
+aaryasamaajathinte thathwangalil aakrishtanaayi cheruppathil sannyasa jeevitham aarambhichu	ആര്യസമാജത്തിന്റെ തത്ത്വങ്ങളിൽ ആകൃഷ്ടനായി ചെറുപ്പത്തിൽ സന്ന്യാസ ജീവിതം ആരംഭിച്ചു
+swananth kirkir asmaa syam anuragi yennivarude varikalku danniel b	സ്വാനന്ദ് കിർക്കിർ അസ്മാ ശ്യാം അനുരാഗി എന്നിവരുടെ വരികൾക്ക് ഡാനിയൽ ബി
+alamcode leelakrishnan	ആലങ്കോട് ലീലാകൃഷ്ണൻ
+prathifalathinulla chekk munkooraayi ayachukoduthu jooliyas nirbhandhichappol duraand sammadhichu	പ്രതിഫലത്തിനുള്ള ചെക്ക് മുൻകൂറായി അയച്ചുകൊടുത്ത് ജൂലിയസ് നിർബ്ബന്ധിച്ചപ്പോൾ ഡുറാന്റ് സമ്മതിച്ചു
+pala valiya thimimgalavamsangalum thimimgalavettayal vamsanasam neridukayanu	പല വലിയ തിമിംഗിലവംശങ്ങളും തിമിംഗിലവേട്ടയാൽ വംശനാശം നേരിടുകയാണ്
+pakshe niyamaprakaram arrest cheyyapetta pauran udan athinu vidheyanakanam cheruthu nilakkunnath shiksharhamayirikkum	പക്ഷെ നിയമപ്രകാരം അറസ്റ്റു ചെയ്യപ്പെട്ട പൗരൻ ഉടൻ അതിനു വിധേയനാകണം ചെറുത്തു നില്ക്കുന്നത് ശിക്ഷാർഹമായിരിക്കും
+national socialistukalude peedanathinu avasanam kandilla	നാഷണൽ സോഷ്യലിസ്റ്റുകളുടെ പീഡനത്തിന് അവസാനം കണ്ടില്ല
+sona nair	സോനാ നായർ
+idheham urdhu pershyan arabi ennee bhaashakalil paandithyam nedi	ഇദ്ദേഹം ഉർദു പേർഷ്യൻ അറബി എന്നീ ഭാഷകളിൽ പാണ്ഡിത്യം നേടി
+keralathile vazhiyorangalil april may masangalil ee marangal poovaniyunnu	കേരളത്തിലെ വഴിയോരങ്ങളിൽ ഏപ്രിൽ മേയ് മാസങ്ങളിൽ ഈ മരങ്ങൾ പൂവണിയുന്നു
+mamba central l p school	മാമ്പ സെൻട്രൽ എൽ പി സ്കൂൾ
+velaaskas mattu spaanish maastezhs ennivarude chithrangal valareyadhikam swaadheenichirunnu	വെലാസ്കസ് മറ്റ് സ്പാനിഷ് മാസ്റ്റേഴ്സ് എന്നിവരുടെ ചിത്രങ്ങൾ വളരെയധികം സ്വാധീനിച്ചിരുന്നു
+ishakiran khan hindi mythili bhshakalil pramukhamaya yezhithukariyanu	ഉഷാകിരൺ ഖാൻ ഹിന്ദി മൈഥിലി ഭാഷകളിൽ പ്രമുഖയായ എഴുത്തുകാരിയാണ്
+malayaaliyum vikyaatha pathrapravarthakanumaaya pothan josaf aayirunnu pradhama pathraadhipar	മലയാളിയും വിഖ്യാത പത്രപ്രവർത്തകനുമായ പോത്തൻ ജോസഫ് ആയിരുന്നു പ്രഥമ പത്രാധിപർ
+aakarshakamaaya shayleeavaidhagdhyam nediya gadhyakaaran enna yashassu pathrapravarthanakaalathu aarjikkuvaan idhehathin saadhichu	ആകർഷകമായ ശൈലീവൈദഗ്ദ്ധ്യം നേടിയ ഗദ്യകാരൻ എന്ന യശസ്സ് പത്രപ്രവർത്തനകാലത്ത് ആർജിക്കുവാൻ ഇദ്ദേഹത്തിനു സാധിച്ചു
+angaadippuram puzhakkaattiri panchaayathukalodu chernnu kidakkunna maalaaparamb paalachodinum kadungapuram pallikkulambinum idayilaayi ee vellachaattam sthithi cheyyunnu	അങ്ങാടിപ്പുറം പുഴക്കാട്ടിരി പഞ്ചായത്തുകളോടു ചേർന്നു കിടക്കുന്ന മാലാപറമ്പ് പാലച്ചോടിനും കടുങ്ങപുരം പള്ളിക്കുളമ്പിനും ഇടയിലായി ഈ വെള്ളച്ചാട്ടം സ്ഥിതി ചെയ്യുന്നു
+chuttiykku akavisthruthi kaivaruthi	ചുട്ടിയ്ക്ക് അകവിസ്തൃതി കൈവരുത്തി
+athukondu indiyayilum pakisthanilum ippol anglican sabhayute shakhakalilla	അതുകൊണ്ട് ഇന്ത്യയിലും പാകിസ്താനിലും ഇപ്പോൾ ആംഗ്ലിക്കൻ സഭയുടെ ശാഖകളില്ല
+kinarukalilum eva yethippedarundu	കിണറുകളിലും ഇവ എത്തിപ്പെടാറുണ്ട്
+anjamga dayarakttariyude nethrithvam pol baraasinum emmanuel shiyesinumaayirunu mattu moonu per moolaa gobiyar dukose verum namamaathramaaya amgangalum	അഞ്ചംഗ ഡയറക്റ്ററിയുടെ നേതൃത്വം പോൾ ബറാസിനും ഇമ്മാന്വേൽ ഷിയെസിനുമായിരുന്നു മറ്റു മൂന്നു പേർ മൂലാ ഗോബിയർ ഡൂക്കോസ് വെറും നാമമാത്ര അംഗങ്ങളും
+appol moonamathoru varamkoodi avalkku koduthathuu yamanavale anugrahichu	അപ്പോൾ മൂന്നാമതൊരു വരംകൂടി അവൾക്ക് കൊടുത്ത് യമനവളെ അനുഗ്രഹിച്ചു
+suraaj venjaarammoodu	സുരാജ് വെഞ്ഞാറമൂട്
+randaam ashokan ennu charithrakaaranmaar ashokane visheshippikkunnu	രണ്ടാം അശോകൻ എന്ന് ചരിത്രകാരന്മാർ അശോകനെ വിശേഷിപ്പിക്കുന്നു
+bhaskaran janichathu	ഭാസ്കരൻ ജനിച്ചത്
+nepoleante pathanasheshi italyil thamasamaki	നെപോളിയന്റെ പതനശേഷം ഇറ്റലിയിൽ താമസമാക്കി
+naayaatu malsyabandhanam enniva nirodhikkaanum adhikaarikal tholuvilakku upayogichirunnu	നായാട്ട് മത്സ്യബന്ധനം എന്നിവ നിരോധിക്കാനും അധികാരികൾ തോലുവിലക്ക് ഉപയോഗിച്ചിരുന്നു
+sarwa vaathilukalum adanjaalum thowbayude vaathilu thurannukidakum	സര്വ വാതിലുകളും അടഞ്ഞാലും തൗബയുടെ വാതില് തുറന്നുകിടക്കും
+anpulla appayil shivaji ganeshanoppamanu rehman abhinayichathu	അൻപുള്ള അപ്പയിൽ ശിവാജി ഗണേശനൊപ്പമാണ് റഹ്മാൻ അഭിനയിച്ചത്
+pathinettam nootandinte arambhakalathuthanne kalavandikalil kizhakkan pradeshangalilninnum karshikolppanangal changanasseriyilethichirunnathayi poorvikal paranjittundu	പതിനെട്ടാം നൂറ്റാണ്ടിൻ്റെ ആരംഭകാലത്തുതന്നെ കാളവണ്ടികളിൽ കിഴക്കൻ പ്രദേശങ്ങളിൽനിന്നും കാർഷികോൽപന്നങ്ങൾ ചങ്ങനാശേരിയിലെത്തിച്ചിരുന്നതായി പൂർവ്വികർ പറഞ്ഞിട്ടുണ്ട്
+avide paandyaraajaavu thante bhaaryayude chilamb paalakan moshttichuvennu varuthitheerthu	അവിടെ പാണ്ഡ്യരാജാവ് തൻറെ ഭാര്യയുടെ ചിലമ്പ് പാലകൻ മോഷ്ടിച്ചുവെന്ന് വരുത്തിത്തീർത്തു
+niravadhi bhaashakalil niravadhi pusthakangal ezhuthiyittund	നിരവധി ഭാഷകളിൽ നിരവധി പുസ്തകങ്ങൾ എഴുതിയിട്ടുണ്ട്
+puraanakathakale adhikarichum dhaaraalam kathaaprasangangal roopam kondittundu ava pradhaanamaayum avatharippikkappedunnathu kshethrangalile uthsavangalodu anubhandhichaanu	പുരാണകഥകളെ അധികരിച്ചും ധാരാളം കഥാപ്രസംഗങ്ങൾ രൂപം കൊണ്ടിട്ടുണ്ട് അവ പ്രധാനമായും അവതരിപ്പിക്കപ്പെടുന്നത് ക്ഷേത്രങ്ങളിലെ ഉത്സവങ്ങളോട് അനുബന്ധിച്ചാണ്
+kalaamandalam kalyaanikuttiyamma keralathile preshasthayaaya mohiniyaatta narthakiyaayirunnu	കലാമണ്ഡലം കല്യാണിക്കുട്ടിയമ്മ കേരളത്തിലെ പ്രശസ്തയായ മോഹിനിയാട്ട നർത്തകിയായിരുന്നു
+d ikku chernnu	ഡി യ്ക്കു ചേർന്നു
+pazhanchanaya oru kappalil thunipinni payayundakkikketti kadalvazhi yathra thudangi	പഴഞ്ചനായ ഒരു കപ്പലിൽ തുണിപിന്നി പായയുണ്ടാക്കിക്കെട്ടി കടൽവഴി യാത്ര തുടങ്ങി
+thomas aqueenaasine kaaral maarksumaayi onnippikkukayaayirunnu lakshyam	തോമസ് അക്വീനാസിനെ കാറൽ മാർക്സുമായി ഒന്നിപ്പിക്കുകയായിരുന്നു ലക്‌ഷ്യം
+kampanam cheyyunna oru vasthuvinte preranam moolam preranam cheluthunna vasthuvinte athe kambanaavruthiyil mattoru vasthu kambanam cheyyunnathaanu pranodhitha kambanam	കമ്പനം ചെയ്യുന്ന ഒരു വസ്തുവിന്റെ പ്രേരണം മൂലം പ്രേരണം ചെലുത്തുന്ന വസ്തുവിന്റെ അതേ കമ്പനാവൃത്തിയിൽ മറ്റൊരു വസ്തു കമ്പനം ചെയ്യുന്നതാണ് പ്രണോദിത കമ്പനം
+episcoppasi sabhayude bharanakramathinte bhagamayi amgikarikkappettathanu c	എപ്പിസ്കോപ്പസി സഭയുടെ ഭരണക്രമത്തിന്റെ ഭാഗമായി അംഗീകരിക്കപ്പെട്ടതാണ് സി
+cannon casio kodak sony pentaxn panasonic fujifilm olympus yennivayanu nikkoninte mukhya yethiralikal	കാനൺ കാസിയോ കൊഡാക്ക് സോണി പെന്റാക്സ് പാനസോണിക് ഫൂജിഫിലിം ഒളിമ്പസ് എന്നിവയാണ് നിക്കോണിൻറെ മുഖ്യ എതിരാളികൾ
+ithu sharikkum falichu ennu venam manasilaakkaan	ഇത് ശരിക്കും ഫലിച്ചു എന്ന് വേണം മനസ്സിലാക്കാൻ
+sedgvikkum bellum chernnu jernal of dha indyan bottani thudangukayum p	സെഡ്ഗ്വിക്കും ബെല്ലും ചേർന്ന് ജേർണൽ ഓഫ് ദ ഇന്ത്യൻ ബോട്ടണി തുടങ്ങുകയും പി
+athesamayam sainyathinte sahayathode henry thanne sthabhrashttanakkiyekumennu marpappa bhayannu	അതേസമയം സൈന്യത്തിന്റെ സഹായത്തോടെ ഹെൻറി തന്നെ സ്ഥാനഭ്രഷ്ടനാക്കിയേക്കുമെന്ന് മാർപ്പാപ്പാ ഭയന്നു
+kottarakara gramapanchayat kottarakara block panchayat kollam jillapanchayat yenninganeyulla thrithala panchayat samithiyude bharanathin keezhilanu kottarakara varunnath	കൊട്ടാരക്കര ഗ്രാമപഞ്ചായത്ത് കൊട്ടാരക്കര ബ്ലോക്ക് പഞ്ചായത്ത് കൊല്ലം ജില്ലാപഞ്ചായത്ത് എന്നിങ്ങനെയുള്ള ത്രിതല പഞ്ചായത്ത് സമിതിയുടെ ഭരണത്തിൻ കീഴിലാണ് കൊട്ടാരക്കര വരുന്നത്
+potty sreeramakuvinte athmahathya thudarnnundaya kalapavum bhashadisthanathilulla adya samsthanam anthrayude rupikaranam	പോറ്റി ശ്രീരാമലുവിന്റെ ആത്മഹത്യ തുടർന്നുണ്ടായ കലാപവും ഭാഷാടിസ്ഥാനത്തിലുള്ള ആദ്യ സംസ്ഥാനം ആന്ധ്രയുടെ രൂപീകരണം
+perunthachantethennu vishwasikkapedunna thurumbukayaraatha uliyum karinkallil kothivecha muzhakkolum innum ivideyundennullathu oru prathyekathayaanu	പെരുന്തച്ചന്റേതെന്ന് വിശ്വസിക്കപ്പെടുന്ന തുരുമ്പുകയറാത്ത ഉളിയും കരിങ്കല്ലിൽ കൊത്തിവെച്ച മുഴക്കോലും ഇന്നും ഇവിടെയുണ്ടെന്നുള്ളത് ഒരു പ്രത്യേകതയാണ്
+ethil avasanam paranjirikkunna kothukukalude erakal mrigangalanu	ഇതിൽ അവസാനം പറഞ്ഞിരിക്കുന്ന കൊതുകുകളുടെ ഇരകൾ മൃഗങ്ങളാണ്
+mokshamaargathilulla paryadanamaanu kaavyathinte vishayavasthu	മോക്ഷമാർഗ്ഗത്തിലുള്ള പര്യടനമാണ് കാവ്യത്തിൻറെ വിഷയവസ്തു
+adiyandharaavastha yudhangal sikh koottakola rajeevgandhi vadham sphodanaparambarakal enniva delhiye engane baadhikkunnu ennathinte nerkaazhchakalaanu novalinte ithivrutham	അടിയന്തരാവസ്ഥ യുദ്ധങ്ങൾ സിഖ് കൂട്ടക്കൊല രാജീവ്ഗാന്ധി വധം സ്ഫോടനപരമ്പരകൾ എന്നിവ ഡെൽഹിയെ എങ്ങനെ ബാധിക്കുന്നു എന്നതിന്റെ നേർക്കാഴ്ചകളാണ് നോവലിന്റെ ഇതിവൃത്തം
+ameer sulthaante raam harikumaar samvidhaanam cheytha thoothukkudi vishnuvardhante billa thudangiya chithrangalilum rahmaan pinneedu abhinayichu	അമീർ സുൽത്താന്റെ റാം ഹരികുമാർ സംവിധാനം ചെയ്ത തൂത്തുക്കുടി വിഷ്ണുവർദ്ധന്റെ ബില്ല തുടങ്ങിയ ചിത്രങ്ങളിലും റഹ്മാൻ പിന്നീട് അഭിനയിച്ചു
+missilukalum bombukalum surakshithamayi lakshyasthanathu yethikkuvanum krithyamayi prayogikkanum dronukalku sadhikkum	മിസൈലുകളും ബോംബുകളും സുരക്ഷിതമായി ലക്ഷ്യസ്ഥാനത്ത് എത്തിക്കുവാനും കൃത്യമായി പ്രയോഗിക്കാനും ഡ്രോണുകൾക്കു സാധിക്കും
+visapp manasikanila urakkam enne avasthaklalum niyanthrikkunnathil seratoninu pankund	വിശപ്പ് മാനസികനില ഉറക്കം എന്നീ അവസ്ഥകളും നിയന്ത്രിക്കുന്നതിൽ സെറോടോണിന് പങ്കുണ്ട്
+varakkara unniso palli	വരാക്കാര ഉണ്ണീശോ പള്ളി
+aathmaavinu shashwathamaya asthithvamillennu vaadikkunna budhamathasidhanthathe anathmavaadam ennu parayunnu	ആത്മാവിന് ശാശ്വതമായ അസ്തിത്വമില്ലെന്നു വാദിക്കുന്ന ബുദ്ധമതസിദ്ധാന്തത്തെ അനാത്മവാദം എന്നു പറയുന്നു
+ithaanu ingilishukaarum pinthudarunnath	ഇതാണ് ഇംഗ്ലീഷുകാരും പിന്തുടരുന്നത്
+aa cinema hit ayirunnu	ആ സിനിമ ഹിറ്റ് ആയിരുന്നു
+vanithaa vibhaagam offees	വനിതാ വിഭാഗം ഓഫീസ്
+kampyoottar vairassukalkkundaakkaan kazhiyunna doshafalangal valare vyaapthiyullathaanu	കമ്പ്യൂട്ടർ വൈറസുകൾക്കുണ്ടാക്കാൻ കഴിയുന്ന ദോഷഫലങ്ങൾ വളരെ വ്യാപ്തിയുള്ളതാണ്
+ganithavum sthithi vivarakkanakkukalum	ഗണിതവും സ്ഥിതി വിവരക്കണക്കുകളും
+ooro groupinum oru pandithan ameerayi undayirikkum	ഓരോ ഗ്രൂപ്പിനും ഒരു പണ്ഡിതൻ അമീറായി ഉണ്ടായിരിക്കും
+yennal churukkam chila avasadastharangal melparanjavayude sambannanikshepangalayum kanduvarunnu	എന്നാൽ ചുരുക്കം ചില അവസാദസ്തരങ്ങൾ മേല്പറഞ്ഞവയുടെ സമ്പന്നനിക്ഷേപങ്ങളായും കണ്ടുവരുന്നു
+vadakkancheri nagarasabhayile oru pradesamanu pullanikkadu	വടക്കാഞ്ചേരി നഗരസഭയിലെ ഒരു പ്രദേശമാണ് പുല്ലാനിക്കാട്
+noottandukalkku munp agniparvvathangal pottiyozhukiya lava evide malanirakalayi kanunnu	നൂറ്റാണ്ടുകൾക്കു മുൻപ് അഗ്നിപർവ്വതങ്ങൾ പൊട്ടിയൊഴുകിയ ലാവ ഇവിടെ മലനിരകളായി കാണുന്നു
+a birudham kudi ila karasthamakkiyirunnu	എ ബിരുദം കൂടി ഇള കരസ്ഥമാക്കിയിരുന്നു
+moonu loka sidhantham shethayudhakalathu randu samrajyathvashakthikal american aikyanatukalum soviet union onnam lokavum avarude niyanthranathilulla samrajyathvashakthikale cherthu oru randam lokavum therthu	മൂന്നു ലോക സിദ്ധാന്തം ശീതയുദ്ധക്കാലത്ത് രണ്ട് സാമ്രാജ്യത്വശക്തികൾ അമേരിക്കൻ ഐക്യനാടുകളും സോവിയറ്റ് യൂണിയനും ഒന്നാം ലോകവും അവരുടെ നിയന്ത്രണത്തിലുള്ള സാമ്രാജ്യത്വശക്തികളെ ചേർത്ത് ഒരു രണ്ടാം ലോകവും തീർത്തു
+bhakthakrithyathil erppettirikke pathrosinte pingami thangale aakramichenkilo ennayirunnu avarude pedi	ഭക്തകൃത്യത്തിൽ ഏർപ്പെട്ടിരിക്കെ പത്രോസിന്റെ പിൻഗാമി തങ്ങളെ ആക്രമിച്ചെങ്കിലോ എന്നായിരുന്നു അവരുടെ പേടി
+ithile prathipadyavishayam makkiyavalliyude dairghyam kudiya liviyekurichulla prabhashanangal enna pilkkalarachanayilum pariganikkappedunnu	ഇതിലെ പ്രതിപാദ്യവിഷയം മാക്കിയെവെല്ലിയുടെ ദൈർഘ്യം കൂടിയ ലിവിയെക്കുറിച്ചുള്ള പ്രഭാഷണങ്ങൾ എന്ന പിൽക്കാലരചനയിലും പരിഗണിക്കപ്പെടുന്നു
+maarbil paalas kalkkatha	മാർബിൾ പാലസ് കൽക്കത്ത
+melpparanja shilaashaasanathil ninnu thanne vishadhamaakkiyittullathu pole aa bhoomi kallanmaarudeyum kollakkaarudeyum thaavalamaayi maari	മേൽപ്പറഞ്ഞ ശിലാശാസനത്തിൽ നിന്ന് തന്നെ വിശദമാക്കിയിട്ടുള്ളത് പോലെ ആ ഭൂമി കള്ളൻമാരുടെയും കൊള്ളക്കാരുടെയും താവളമായി മാറി
+valiya vilapidicha vyavsayika ulpannamaya hytrogen syneid polimarukalude muthal aushadhanjalude vare nirmanathinu upayogikunnu	വലിയ വിലപിടിച്ച വ്യാവസായിക ഉൽപ്പന്നമായ ഹൈഡ്രജൻ സയനൈഡ് പോളിമറുകളുടെ മുതൽ ഔഷധങ്ങളുടെ വരെ നിർമ്മാണത്തിന് ഉപയോഗിക്കുന്നു
+avide avar kathayude puramchatta upekshichu atimavyavasthaye sambandhicha thante abhiprayangal nerkkuner avatharipikkunnu	അവിടെ അവർ കഥയുടെ പുറംചട്ട ഉപേക്ഷിച്ച് അടിമവ്യവസ്ഥയെ സംബന്ധിച്ച തന്റെ അഭിപ്രായങ്ങൾ നേർക്കുനേർ അവതരിപ്പിക്കുന്നു
+vikas manashasthrathinte gaveshanopadhikal palathum vaidhyasasthram bhauthika sasthrangal mattu saamuhika shastrangal udha naravamshashastram manavasamudhaya shastram yennivayil ninnu kadam kondavaranu	വികാസ മനഃശാസ്ത്രത്തിന്റെ ഗവേഷണോപാധികൾ പലതും വൈദ്യശാസ്ത്രം ഭൗതിക ശാസ്ത്രങ്ങൾ മറ്റു സാമൂഹിക ശാസ്ത്രങ്ങൾ ഉദാ നരവംശശാസ്ത്രം മാനവസമുദായ ശാസ്ത്രം എന്നിവയിൽ നിന്ന് കടം കൊണ്ടവയാണ്
+thozhilaalikal kooli vardhanavu aavashyappettu samaravum thudangi	തൊഴിലാളികൾ കൂലി വർദ്ധനവ് ആവശ്യപ്പെട്ട് സമരവും തുടങ്ങി
+communist bharanakoodathinethireyulla isalmikavadhikalude mujahideen senayude neekkagalkku america pinthuna nalkiponnirunnu	കമ്മ്യൂണിസ്റ്റ് ഭരണകൂടത്തിനെതിരെയുള്ള ഇസ്ലാമികവാദികളുടെ മുജാഹിദീൻ സേനയുടെ നീക്കങ്ങൾക്ക് അമേരിക്ക പിന്തുണ നൽകിപ്പോന്നിരുന്നു
+ethu oxicam classilpettathanu	ഇത് ഓക്സിക്കാം ക്ലാസ്സിൽപ്പെട്ടതാണ്
+ethinte sareeram radial symmetriyilanu	ഇതിന്റെ ശരീരം റേഡിയൽ സിമിട്രിയിലാണ്
+poovinte chuvappu niravum mikkavarum spooninte aakrithiyiyum aayirikkum	പൂവിന് ചുവപ്പ് നിറവും മിക്കവാറും സ്പൂണിന്റെ ആകൃതിയും ആയിരിക്കും
+koodathe punjabineyum neriyathothil badhikkukayundayi	കൂടാതെ പഞ്ചാബിനേയും നേരിയതോതിൽ ബാധിക്കുകയുണ്ടായി
+gandhi memorial museum madurai	ഗാന്ധി മെമ്മോറിയൽ മ്യൂസിയം മധുര
+athu kond thanne intarnett upayokthaakalkku parsaparam fayalukal kaimaattam cheyyan ithu vazhi saadhikunnu	അതു കൊണ്ട് തന്നെ ഇന്റർനെറ്റ് ഉപയോക്താക്കൾക്കു പരസ്പരം ഫയലുകൾ കൈമാറ്റം ചെയ്യാൻ ഇതു വഴി സാധിക്കുന്നു
+noosa deshiyidhyanamyennathu australiayile queens landile oru deshiyodhyanamanu	നൂസ ദേശീയോദ്യാനംഎന്നത് ആസ്ത്രേലിയയിലെ ക്യൂൻസ് ലാന്റിലെ ഒരു ദേശീയോദ്യാനമാണ്
+padhaarthaprapanchatheyum yeshuvinte vyakthithvatheyum ebraayabaibilineyum mattum sambandhicha jnjaanavaadhikalude nilapaadukale athil adheham vimarshichu	പദാർത്ഥപ്രപഞ്ചത്തേയും യേശുവിന്റെ വ്യക്തിത്വത്തേയും എബ്രായബൈബിളിനേയും മറ്റും സംബന്ധിച്ച ജ്ഞാനവാദികളുടെ നിലപാടുകളെ അതിൽ അദ്ദേഹം വിമർശിച്ചു
+akkaalath kadutha idathupakshaviswaasiyayirunnu vijayan	അക്കാലത്ത് കടുത്ത ഇടതുപക്ഷവിശ്വാസിയായിരുന്നു വിജയൻ
+chila rajyangalil kuthirappanthayangalum kuthirappurathulla matt mathsarangalum pradarsippikkunna paripadikaleyum vegathayum smayavum pradhana ghadakangalaya oru tharam motorvahana vinodamalsarangaleyum jimghanakal ennu ariyappedunnu	ചില രാജ്യങ്ങളിൽ കുതിരപ്പന്തയങ്ങളും കുതിരപ്പുറത്തുള്ള മറ്റ് മത്സരങ്ങളും പ്രദർശിപ്പിക്കുന്ന പരിപാടികളെയും വേഗതയും സമയവും പ്രധാന ഘടനങ്ങളായ ഒരു തരം മോട്ടോർവാഹന വിനോദമൽസരങ്ങളെയും ജിംഖാനകൾ എന്ന് അറിയപ്പെടുന്നു
+vimarshanaparamayi vilayiruthendathumdennum adheham vaadhichu	വിമർശനപരമായി വിലയിരുത്തേണ്ട്തുണ്ടെന്നും അദ്ദേഹം വാദിച്ചു
+athil vakkukal undaavilla	അതിൽ വാക്കുകൾ ഉണ്ടാവില്ല
+pezhsanal netwoyarinte chila bhaagangal netwoyar mobyl laan varkspes thudangiya dosinu vendiyulla ulpannangalulpeduthiyirunnu	പെഴ്സണൽ നെറ്റ്വെയറിന്റെ ചില ഭാഗങ്ങൾ നെറ്റ്വെയർ മൊബൈൽ ലാൻ വർക്ക്സ്പേസ് തുടങ്ങിയ ഡോസിനു വേണ്ടിയുള്ള ഉൽപ്പന്നങ്ങളിലുൾപ്പെടുത്തിയിരുന്നു
+indian upabhukandathile mukya aaharagalil onnanu dal mkhani	ഇന്ത്യൻ ഉപഭൂഖണ്ഡത്തിലെ മുഖ്യ ആഹാരങ്ങളിൽ ഒന്നാണ് ദാൽ മഖാനി
+paranna pacha thalappum athuniraye chuvanna pookalumayi nilkunna alasipoomaram kanaan bhangiyanu	പരന്ന പച്ച തലപ്പും അതുനിറയെ ചുവന്ന പൂക്കളുമായി നിൽക്കുന്ന അലസിപ്പൂമരം കാണാൻ ഭംഗിയാണ്
+paaraathairoyid hormon pattunoolpuzhuvinte kosha kalcharil innu vikasippichedukkunnund	പാരാതൈറോയിഡ് ഹോർമോൺ പട്ടുനൂൽപ്പുഴുവിന്റെ കോശ കൾച്ചറിൽ ഇന്ന് വികസിപ്പിച്ചെടുക്കുന്നുണ്ട്
+murukkamillatha avasadangalkkidayilekku pravahajalam urnnirangumpol jalathil layichuchernnittulla simentpadarthangal verpett samyojanam sadhikkunnu	മുറുക്കമില്ലാത്ത അവസാദങ്ങൾക്കിടയിലേക്കു പ്രവാഹജലം ഊർന്നിറങ്ങുമ്പോൾ ജലത്തിൽ ലയിച്ചുചേർന്നിട്ടുള്ള സിമന്റ്പദാർഥങ്ങൾ വേർപെട്ട് സംയോജനം സാധിക്കുന്നു
+gaiyyoosinte b	ഗൈയുസിന്റെ ബി
+mattu kshetrangalil ninnu vyathyasthamayi ee kshethrathil ee kodimarangalkku mumbil yella devanmareyum smarichu vadakottu mathrame namaskarikkanavu	മറ്റ് ക്ഷേത്രങ്ങളിൽ നിന്ന് വ്യത്യസ്തമായി ഈ ക്ഷേത്രത്തിൽ ഈ കൊടിമരങ്ങൾക്ക് മുമ്പിൽ എല്ലാ ദേവന്മാരെയും സ്മരിച്ച് വടക്കോട്ട് മാത്രമേ നമസ്കരിക്കാനാവൂ
+kaadu malakal nadhikal thodukal samathalangal enningane ellaa tharathilumulla bhooprakruthikal ivide drishyamaakum	കാട് മലകൾ നദികൾ തോടുകൾ സമതലങ്ങൾ എന്നിങ്ങനെ എല്ലാ തരത്തിലുമുള്ള ഭൂപ്രകൃതികൾ ഇവിടെ ദൃശ്യമാകും
+ee chithrathile nava mukunda hare	ഈ ചിത്രത്തിലെ നാവാ മുകുന്ദാ ഹരേ
+angane kodungallurammayude chaithanyam kudikollunna kunampayikkulam kshethram visalamaya manalpparappil nadinu aisvaryavum santhiyum nalki nilakollunnuvennabu visvasam	അങ്ങനെ കൊടുങ്ങല്ലൂരമ്മയുടെ ചൈതന്യം കുടികൊളളുന്ന കൂനമ്പായിക്കുളം ക്ഷേത്രം വിശാലമായ മണൽപ്പരപ്പിൽ നാടിന് ഐശ്വര്യവും ശാന്തിയും നൽകി നിലകൊള്ളുന്നുവെന്നാണ് വിശ്വാസം
+budhante achuthandinte charivu ethaandu poojyamaanu	ബുധന്റെ അച്ചുതണ്ടിന്റെ ചരിവ് ഏതാണ്ട് പൂജ്യമാണ്
+unangiya thuvara vevivh sarkkara cherththu payasam pakam cheyyunnu	ഉണങ്ങിയ തുവര വേവിച്ച് ശർക്കര ചേർത്ത് പായസം പാകം ചെയ്യുന്നു
+pukayila viruddhadinam ennivayanu matullava	പുകയില വിരുദ്ധദിനം എന്നിവയാണ് മറ്റുള്ളവ
+anglikan sabhayude nattukaranaya adhyathe pattakaran malayala vyakaranakrithum prasidha gadhyakaranum ayirunna georgum mathanum adhyathe nattukaranaya bishop c	അംഗ്ലിക്കൻ സഭയുടെ നാട്ടുകാരനായ ആദ്യത്തെ പട്ടക്കാരൻ മലയാള വ്യാകരണകൃത്തും പ്രസിദ്ധ ഗദ്യകാരനും ആയിരുന്ന ജോർജു മാത്തനും ആദ്യത്തെ നാട്ടുകാരനായ ബിഷപ്പ് സി
+herathile kotta shah rukhinte kalpanaprakaram puthukki nirmikkapettu	ഹെറാത്തിലെ കോട്ട ഷാ രൂഖിന്റെ കൽപ്പനപ്രകാരം പുതുക്കി നിർമ്മിക്കപ്പെട്ടു
+aa varshathe ettavum mikacha sahanadanulla samsthaana sarkkaar puraskaaravum ravi poothooraaniloode rahmaan nedi	ആ വർഷത്തെ ഏറ്റവും മികച്ച സഹനടനുള്ള സംസ്ഥാന സർക്കാർ പുരസ്കാരവും രവി പുത്തൂരാനിലൂടെ റഹ്മാൻ നേടി
+avasanam engottum yathrakkillennu paranj serji aa ananthamaya maravicha prakrithiyilekk thanne madangunnu	അവസാനം എങ്ങോട്ടും യാത്രക്കില്ലെന്നു പറഞ്ഞ് സെർജി ആ അനന്തമായ മരവിച്ച പ്രകൃതിയിലേക്കു തന്നെ മടങ്ങുന്നു
+thrinamul congress biju janathadal r	തൃണമൂൽ കോൺഗ്രസ് ബിജു ജനതാദൾ ആർ
+motham japan dvipukalum agniparvathajanyamanu	മൊത്തം ജപ്പാൻ ദ്വീപുകളും അഗ്നിപർവതജന്യമാണ്
+aduthulla oru kallilekku praveshicha oru dhurdhevthaykkethire ee song prathirodham theerkkunnu enna vishwaasamund	അടുത്തുള്ള ഒരു കല്ലിലേയ്ക്ക് പ്രവേശിച്ച ഒരു ദുർദ്ദേവതയ്ക്കെതിരേ ഈ സോങ് പ്രതിരോധം തീർക്കുന്നു എന്ന വിശ്വാസമുണ്ട്
+vadakkupadinjaran madagaskarinte vinasakaramaya mannolippinte nadakiya thelivanu ith	വടക്കുപടിഞ്ഞാറൻ മഡഗാസ്കറിന്റെ വിനാശകരമായ മണ്ണൊലിപ്പിന്റെ നാടകീയ തെളിവാണ് ഇത്
+chlorofomilum mattu kozhuppu layakangalilum ethu layikkunnathumanu	ക്ലോറോഫോമിലും മറ്റ് കൊഴുപ്പ് ലായകങ്ങളിലും ഇത് ലയിക്കുന്നതുമാണ്
+sameepathulla fansuri pradeshathu fansuri karpooram labhikkunnu	സമീപത്തുള്ള ഫാൻസൂർ പ്രദേശത്ത് ഫൻസൂരി കർപ്പൂരം ലഭിക്കുന്നു
+aalooru polees steshanu	ആളൂര് പോലീസ് സ്റ്റേഷന്
+nakshathrakammal nakshathra mulla theepori eshwara mulla velichemparathi yenni perukalil malayalathil ariyapedunnu	നക്ഷത്രക്കമ്മൽ നക്ഷത്ര മുല്ല തീപ്പൊരി ഈശ്വര മുല്ല വേലിച്ചെമ്പരത്തി എന്നീ പേരുകളിൽ മലയാളത്തിൽ അറിയപ്പെടുന്നു
+eth svarasthanangal eprakaram alapikkanam enningane	ഏത് സ്വരസ്ഥാനങ്ങൾ എപ്രകാരം ആലപിക്കണം എന്നിങ്ങനെ
+han nadhikal kuthaneyulla nadhithada thazhvarakal kurachu uyarnna samathalangal yennivayanu shan highlandinte visthruthi pradeshangal	ഹാൻ നദികൾ കുത്തനെയുള്ള നദീതട താഴ്വരകൾ കുറച്ച് ഉയർന്ന സമതലങ്ങൾ എന്നിവയാണ് ഷാൻ ഹൈലാൻഡിന്റെ വിസ്തൃതി പ്രദേശങ്ങൾ
+shilaashaasanangalil ninnum mattu ezhuthukalilninnumaanu pampante jeevithathe kurichulla vivarangal labhikkunnathu	ശിലാശാസനങ്ങളിൽ നിന്നും മറ്റു എഴുത്തുകളിൽനിന്നുമാണ പംപൻറെ ജീവിതത്തെ കുറിച്ചുള്ള വിവരങ്ങൾ ലഭിക്കുന്നത്
+bonaparte kuduumbathalavanenna nilayil nepolean tharavattu karyangal kaikaryam cheyyan thudangi	ബോണപാർട്ട് കുടുംബത്തലവനെന്ന നിലയിൽ നെപോളിയൻ തറവാട്ടു കാര്യങ്ങൾ കൈകാര്യം ചെയ്യാൻ തുടങ്ങി
+oru linerinodoppam keyword upayogichu linear thirayal nadapilakkan kazhiyum	ഒരു ലൈനറിനോടൊപ്പമുള്ള കീവേഡ് ഉപയോഗിച്ച് ലീനിയർ തിരയൽ നടപ്പിലാക്കാൻ കഴിയും
+oru filente full copy adhyamayi kaivasham ulla aalayirikkum adhyathe seed	ഒരു ഫയലിന്റെ ഫുൾ കോപ്പി ആദ്യമായി കൈവശം ഉള്ള ആളായിരിക്കും ആദ്യത്തെ സീഡ്
+aaruvarshakalam kottayam kollam sarvakalashalakalil visiting professorayi sevanamanushtichu	ആറുവർഷക്കാലം കോട്ടയം കൊല്ലം സർവകലാശാലകളിൽ വിസിറ്റിംഗ് പ്രൊഫസറായി സേവനമനുഷ്ടിച്ചു
+dakshina amerikkayile ushnameghalaa pradheshangalaanu swadheshamenkilum lokamempaadumulla samaana aavaasavyavasthakalil swaabhaavikamaayi valarunnu	ദക്ഷിണ അമേരിക്കയിലെ ഉഷ്ണമേഖലാ പ്രദേശങ്ങളാണ് സ്വദേശമെങ്കിലും ലോകമെമ്പാടുമുള്ള സമാന ആവാസവ്യവസ്ഥകളിൽ സ്വാഭാവികമായി വളരുന്നു
+ee chithrathile abhinayam valareyere prasamsikkappedukayum cheythu	ഈ ചിത്രത്തിലെ അഭിനയം വളരെയേറെ പ്രശംസിക്കപ്പെടുകയും ചെയ്തു
+madhyamangalkk vyajarekha nirmmichu nalki ennathanu case	മാധ്യമങ്ങൾക്ക് വ്യാജരേഖ നിർമ്മിച്ചു നൽകി എന്നതാണ് കേസ്
+ava mannolip falabhooshti ennivayil maattangal varuthunnu	അവ മണ്ണൊലിപ്പ് ഫലഭൂഷ്ടി എന്നിവയിൽ മാറ്റങ്ങൾ വരുത്തുന്നു
+madura sreeramgam thiruvalur ramesvaram thiruvannamala ennividangalile kshetrangal e sailiyude nalla mathrukakalanu	മധുര ശ്രീരംഗം തിരുവാലൂർ രാമേശ്വരം തിരുവണ്ണാമല എന്നിവിടങ്ങളിലെ ക്ഷേത്രങ്ങൾ ഈ ശൈലിയുടെ നല്ല മാതൃകകളാണ്
+arbudha rogam badhich kuachukalamayi chikithsayilayirunna eddheham bandrayile vasathiyil vach anhtharichu	അർബുദ രോഗബാധം ബാധിച്ച് കുറച്ചുകാലമായി ചികിത്സയിലായിരുന്ന ഇദ്ദേഹം ബാന്ദ്രയിലെ വസതിയിൽ വെച്ച് അന്തരിച്ചു
+enkilum ikkaaryathil vyathyasthaabhipraayam nilavilund	എങ്കിലും ഇക്കാര്യത്തിൽ വ്യത്യസ്താഭിപ്രായം നിലവിലുണ്ട്
+paradhangalaya pranikalil ee avayavam aathidheya jeeviyeyo muttayeyo thulaykan upayogikkunnu	പരാദങ്ങളായ പ്രാണികളിൽ ഈ അവയവം ആതിഥേയ ജീവിയെയോ മുട്ടയെയോ തുളക്കാൻ ഉപയോഗിക്കുന്നു
+vazhiyil sree sankaranarayanane kand vanangi pinne kaithikkilampalathil ethi marakkalam avide aduppichu	വഴിയിൽ ശ്രീ ശങ്കരനാരായണനെ കണ്ട് വണങ്ങി പിന്നെ കൈതിക്കീലമ്പലത്തിൽ എത്തി മരക്കലം അവിടെ അടുപ്പിച്ചു
+mikkavarum yellaam coffeescriptil oru expressionanu udhaharanathinu if switchforexpressionukalkkayi javascriptil thiricheththunna moolyamilla oru moolyam madakki nalkuka	മിക്കവാറും എല്ലാം കോഫീസ്ക്രിപ്റ്റിൽ ഒരു എക്സപ്രഷനാണ് ഉദാഹരണത്തിന് if switchforഎക്സ്പ്രഷനുകൾക്കായി ജാവാസ്ക്രിപ്റ്റിൽ തിരിച്ചെത്തുന്ന മൂല്യമില്ല ഒരു മൂല്യം മടക്കി നൽകുക
+romarahithamaaya manja nirathilulla shirassinu mukalbhaagavum moonnaam khandathileyum aaraam khandathileyum pottukalum ivaye neelagiri nakhavaalanil ninnum verthirichariyaan sahaayikkunnu	രോമരഹിതമായ മഞ്ഞ നിറത്തിലുള്ള ശിരസ്സിന് മുകൾഭാഗവും മൂന്നാം ഖണ്ഡത്തിലെയും ആറാം ഖണ്ഡത്തിലെയും പൊട്ടുകളും ഇവയെ നീലഗിരി നഖവാലനിൽ നിന്നും വേർതിരിച്ചറിയാൻ സഹായിക്കുന്നു
+athaayathu graafinte idathu bhaagathu thaazhnna moolakangalude moonnu naalu anukendhrangal koodicherukayaanenkil athu kooduthal sthirathayulla oru moolakam aayi theerunnu	അതായത് ഗ്രാഫിന്റെ ഇടത് ഭാഗത്ത് താഴ്ന്ന മൂലകങ്ങളുടെ മൂന്നു നാല് അണുകേന്ദ്രങ്ങൾ കൂടിചേരുകയാണെങ്കിൽ അത് കൂടുതൽ സ്ഥിരതയുള്ള ഒരു മൂലകം ആയി തീരുന്നു
+sahasrabdhangakumumbu bhaumaprakriyayil roopamkondirunnu vishvasikkapedunna chathanparayude uyaravum mukalparppinte vishalathayum yeduthu parayendathuthanne	സഹസ്രാബ്ദങ്ങൾക്കുമുൻപ് ഭൗമപ്രക്രിയയിൽ രൂപംകൊണ്ടതെന്നു വിശ്വസിക്കപ്പെടുന്ന ചാത്തൻപാറയുടെ ഉയരവും മുകൾപരപ്പിന്റെ വിശാലതയും എടുത്തു പറയേണ്ടതുതന്നെ
+orikkal ayodhana parisheelanathil yerpettirunna ayaasine nokki haidarali nee avane kandu padikkanamennu paranjathai oru kadha pracharathilundu	ഒരിക്കൽ ആയോധന പരിശീലത്തിൽ ഏർപ്പെട്ടിരുന്ന അയാസിനെ നോക്കി ഹൈദരലി നീ അവനെ കണ്ടു പഠിക്കണമെന്ന് പറഞ്ഞതായി ഒരു കഥ പ്രചാരത്തിലുണ്ട്
+ithil amerikkayile madhyavargga kudumbangalude jeevithareethiye falitharoopathil vimarshikkunnu	ഇതിൽ അമേരിക്കയിലെ മധ്യവർഗ കുടുംബങ്ങളുടെ ജീവിതരീതിയെ ഫലിതരൂപത്തിൽ വിമർശിക്കുന്നു
+kalangalayi nilaninna cassova serbia sangarshangal pariharikkanayi un nadathiya shramangalkku nethrithvam nalkiyathu pariganichanu puraskaram	കാലങ്ങളായി നിലനിന്ന കൊസോവ സെർബിയ സംഘർഷങ്ങൾ പരിഹരിക്കാനായി യുഎൻ നടത്തിയ ശ്രമങ്ങൾക്ക് നേതൃത്വം നൽകിയത് പരിഗണിച്ചാണ് പുരസ്‌കാരം
+ethupole aagolavyapthiyulla sangadanakalanu	ഇതുപോലെ ആഗോളവ്യാപ്തിയുള്ള സംഘടനകളാണ്
+myaanmarinte sentral samathalathil ninnu kuthane thaaylandinte vadakk padinjaaran bhaagathekku noorukanakkinu kilomeettarukal neendu kidakkunnu	മ്യാൻമറിന്റെ സെൻട്രൽ സമതലത്തിൽ നിന്ന് കുത്തനെ തായ്ലൻന്റെ വടക്ക് പടിഞ്ഞാറൻ ഭാഗത്തേക്ക് നൂറുകണക്കിന് കിലോമീറ്ററുകൾ നീണ്ട് കിടക്കുന്നു
+kesinekkurichu poornamaayi padicha sheshamaanu adheham kodathiyil ethiyirunnathu	കേസിനെക്കുറിച്ച് പൂർണ്ണമായി പഠിച്ച ശേഷമാണ് അദ്ദേഹം കോടതിയിൽ എത്തിയിരുന്നത്
+pullooppi east	പുല്ലൂപ്പി ഈസ്റ്റ്
+eppodiformeesu gothrathe eppodi trockili ennee randu upagothrangalayi thirichirikunnu	എപ്പോഡിഫോർമീസ് ഗോത്രത്തെ എപ്പോഡി ട്രോക്കിലി എന്നീ രണ്ട് ഉപഗോത്രങ്ങളായി തിരിച്ചിരിക്കുന്നു
+praacheenakaalam muthalkkeyulla oru pradhaana aayudhamaanu kuntham	പ്രാചീനകാലം മുതൽക്കേയുള്ള ഒരു പ്രധാന ആയുധമാണ് കുന്തം
+adhikamardathil mathram thurakkunna prathyeka tharam valvukal ullil ghadippichittulla valve regulator oru tharam lead acid batteryanu v	അധികമർദ്ദത്തിൽ മാത്രം തുറക്കുന്ന പ്രത്യേക തരം വാൾവുകൾ ഉള്ളിൽ ഘടിപ്പിച്ചിട്ടുള്ള വാൾവ് റെഗുലേറ്റഡ് ഒരു തരം ലെഡ് ആസിഡ് ബാറ്ററിയാണു് വി
+kannanjalude spin swayam bhramanam moolamundakunna koniya sovegam anusarichanu fermiyonukalennum bosonukennum tharam thirichirikkunathu	കണങ്ങളുടെ സ്പിൻ സ്വയം ഭ്രമണം മൂലമുണ്ടാകുന്ന കോണീയ സംവേഗം അനുസരിച്ചാണ് ഫെർമിയോണുകളെന്നും ബോസോണുകളെന്നും തരം തിരിച്ചിരിക്കുന്നത്
+vyoma surakshaa maanadhandangal paalikkunnathinte bhaagamaayi ee gopurathinu veluppu andhaaraashtra oranj ennee nirangalil peyint cheythirikkunnu	വ്യോമ സുരക്ഷാ മാനദണ്ഡങ്ങൾ പാലിക്കുന്നതിന്റെ ഭാഗമായി ഈ ഗോപുരത്തിന് വെളുപ്പ് അന്താരാഷ്ട്ര ഓറഞ്ച് എന്നീ നിറങ്ങളിൽ പെയിന്റ് ചെയ്തിരിക്കുന്നു
+africayile ebola akramanathe ormmappeduthunna tharathil aivi drippukal thukkiya nirasanchikalil sadhangal chumannu nadakkunna parikshinarude drisyangalkkudiyanith	ആഫ്രിക്കയിലെ എബോള ആക്രമണത്തെ ഓർമ്മപ്പെടുത്തുന്ന തരത്തിൽ ഐവി ഡ്രിപ്പുകൾ തൂക്കിയ നിറസഞ്ചികളിൽ സാധനങ്ങൾ ചുമന്നു നടക്കുന്ന പരിക്ഷീണരുടെ ദൃശ്യങ്ങൾക്കൂടിയാണിത്
+meter anu	മീറ്റർ ആണ്
+kammyoonist prathinidhiyaayaanu raajagopaalan naayar kerala niyamasabhayilekkethiyathu	കമ്മ്യൂണിസ്റ്റ് പ്രതിനിധിയായാണ് രാജഗോപാലൻ നായർ കേരള നിയമസഭയിലേക്കെത്തിയത്
+randum moonnum noottandukalilanu njaanavaadam ere prachaaram nediyath	രൺടും മൂന്നും നൂറ്റാണ്ടുകളിലണ് ജ്ഞാനവാദം ഏറെ പ്രചാരം നേടിയത്
+ee penkuttykku magic viral yennariyappedunna oru kazhivu svayathamayi undayirunnu	ഈ പെൺകുട്ടിക്ക് മാജിക് വിരൽ എന്നറിയപ്പെടുന്ന ഒരു കഴിവ് സ്വായത്തമായി ഉണ്ടായിരുന്നു
+munnil varachirikkunnathine munkaana ennum pirakil varaykkunnathine pinkaana ennum parayunnu	മുന്നിൽ വരച്ചിരിക്കുന്നതിനെ മുൻകാന എന്നും പിറകിൽ വരക്കുന്നതിനെ പിൻകാന എന്നും പറയുന്നു
+ithinaalaanu kooduthal indhanam chelavaayathu	ഇതിനാലാണു കൂടുതൽ ഇന്ധനം ചെലവായത്
+ithinte namarupamanu sashtaamgam cheyyunna sthalam ennarthamulla masjid	ഇതിന്റെ നാമരൂപമാണ് സാഷ്ടാംഗം ചെയ്യുന്ന സ്ഥലം എന്നർത്ഥമുള്ള മസ്ജിദ്
+khuraan muhammad nabiyku jibreel enna maalaakha khuraan erupath divasam kond ethichu koduthathaanennum	ഖുറാൻ മുഹമ്മദ് നബിയ്ക്ക് ജിബ്രീൽ എന്ന മാലാഖ ഖുറാൻ ഇരുപത് ദിവസം കൊണ്ട് എത്തിച്ചു കൊടുത്തതാണെന്നും
+leninte prasangam socialist forum post cheythath	ലെനിന്റെ പ്രസംഗം സോഷ്യലിസ്റ്റ് ഫോറം പോസ്റ്റ് ചെയ്തത്
+ee karaar undakkuvan panam kodukkanam	ഈ കരാർ ഉണ്ടാക്കുവാൻ പണം കൊടുക്കണം
+spaandayude kaalathu volters amoollyamaaya sevanangal nadathiyirunnu ennum volters sahaayamillaaathe thaan spandovine athijeevichekkamennu thanikku ariyillennum speeyar kootticherthu	സ്പാൻഡായുടെ കാലത്ത് വോൾട്ടേഴ്സ് അമൂല്യമായ സേവനങ്ങൾ നടത്തിയിരുന്നു എന്നും വോൾട്ടേഴ്സ് സഹായമില്ലാതെ താൻ സ്പാൻഡോവിനെ അതിജീവിച്ചേക്കാമെന്ന് തനിക്ക് അറിയില്ലെന്നും സ്പീയർ കൂട്ടിച്ചേർത്തു
+isthamboolile oru dhanikakudumbathil janicha chillar sampathikasasthrathil birudham nedukayum americayil ninnum doctorate karasthamakkukayum cheythu	ഇസ്താംബൂളിലെ ഒരു ധനികകുടൂംബത്തിൽ ജനിച്ച ചില്ലർ സാമ്പത്തികശാസ്ത്രത്തിൽ ബിരുദം നേടുകയും അമേരിക്കയിൽ നിന്നും ഡോക്ടറേറ്റ് കരസ്ഥമാക്കുകയും ചെയ്തു
+evarude bhaasha nyger kongo bhaashaakudumbathil ulpedunnu	ഇവരുടെ ഭാഷ നൈജർ കോംങ്ഗോ ഭാഷാകുടുംബത്തിൽ ഉൾപ്പെടുന്നു
+ee paramparayil pedunna dhraavidabhaashaarachanakalil oduvilathethu irupathaam noottaandinte thudakkathil a	ഈ പരമ്പരയിൽ പെടുന്ന ദ്രാവിഡഭാഷാരചനകളിൽ ഒടുവിലത്തേത് ഇരുപതാം നൂറ്റാണ്ടിന്റെ തുടക്കത്തിൽ എ
+gopurathinte udamastharum operatorumaya nippon denpattayude president hisakichi maeda hisakichi maeda americayile empire state buildinginekkalum uyaramulla oru nirmithiyanu vibhavanam cheythirunnath	ഗോപുരത്തിന്റെ ഉടമസ്ഥരും ഓപ്പറേറ്ററുമയ നിപ്പോൺ ഡെൻപാറ്റോയുടെ പ്രസിഡന്റ് ഹിസാകിചി മെയ്ദ Hisakichi Maeda അമേരിക്കയിലെ എമ്പയർ സ്റ്റേറ്റ് ബിൾഡിംഗിനേക്കാളും ഉയരമുള്ള ഒരു നിർമ്മിതിയാണ് വിഭാവനം ചെയ്തിരുന്നത്
+prasthutha kruthiyil ninnu labhikkunna adayaalangalum abhipraayangalum aaspadhamaakki vyathyasthangalaaya abhipraayangalaanu palarum paranjittullathu	പ്രസ്തുത കൃതിയിൽ നിന്നു ലഭിക്കുന്ന അടയാളങ്ങളും അഭിപ്രായങ്ങളും ആസ്പദമാക്കി വ്യത്യസ്തങ്ങളായ അഭിപ്രായങ്ങളാണ് പലരും പറഞ്ഞിട്ടുള്ളത്
+mukalilekkulla stem nottu headinte valathuvashathum thazhekulla stem nottu headinte edathuvashathumanu varaykkunnathu	മുകളിലേയ്ക്കുള്ള സ്റ്റെം നോട്ട് ഹെഡിന്റെ വലതുവശത്തും താഴേക്കുള്ള സ്റ്റെം നോട്ട് ഹെഡിന്റെ ഇടതുവശത്തുമാണ് വരയ്ക്കുന്നത്
+murivum chathavum bhedhamaakkaan ithinte veru aracheduthu upayogikkaarund	മുറിവും ചതവും ഭേദമാക്കാൻ ഇതിന്റെ വേരു് അരച്ചെടുത്തു് ഉപയോഗിക്കാറുണ്ടു്
+kavyathmaka bhashayil thertha harithapathrangalude manoharitha kondu samakalikaril ninnu verittunilkkunnavayanu sudheeshinre rachanakal	കാവ്യാത്മക ഭാഷയിൽ തീർത്ത ഹരിതപത്രങ്ങളുടെ മനോഹാരിത കൊണ്ട് സമകാലികരിൽ നിന്നു വേറിട്ടുനിൽക്കുന്നവയാണ് സുധീഷിൻറെ രചനകൾ
+kollathu maadanadayil gopaalapillayudeyum saraswathiyammayudeyum makalaayi janichu	കൊല്ലത്ത് മാടനടയിൽ ഗോപാലപിള്ളയുടേയും സരസ്വതിയമ്മയുടേയും മകളായി ജനിച്ചു
+pookal vellaniramo manjakalarnna vellaniramo aanu	പൂക്കൾ വെള്ളനിറമോ മഞ്ഞകലർന്ന വെള്ളനിറമോ ആണ്
+adhehathinte maranapetta bharyayude ormaykkayanu adheham ethil sahayam cheythathu	അദ്ദേഹത്തിന്റെ മരണപ്പെട്ട ഭാര്യയുടെ ഒര്മാക്കായാണ് അദ്ദേഹം ഇതിൽ സഹായം ചെയ്തത്
+erving goffman yenna samoohikashasthranjananu impression managementil yere shradheyamaya padanangal nadathiyittullathu	ഇർവിംഗ് ഗോഫ്‌മാൻ എന്ന സാമൂഹികശാസ്ത്രജ്ഞനാണ് ഇംപ്രഷൻ മാനേജ്മെൻറിൽ ഏറെ ശ്രദ്ധേയമായ പഠനങ്ങൾ നടത്തിയിട്ടുള്ളത്
+poshakangal nashttappedunnathu kuraykkuvaanum vilakalude ulpaadhanam uyarthuvaanum krithyamaaya fertigeshan valare athyaavashyamaanu	പോഷകങ്ങൾ നഷ്ടപ്പെടുന്നത് കുറയ്ക്കുവാനും വിളകളുടെ ഉൽപ്പാദനം ഉയർത്തുവാനും കൃത്യമായ ഫെർട്ടിഗേഷൻ വളരെ അത്യാവശ്യമാണ്
+guru grandh sahib visuddhamaya grandham enna sikkukaeude mathagrandhathil guruvaya nanakkinte siddhanthangale samaharich eddeham anasvaramakki	ഗുരു ഗ്രന്ഥ് സാഹിബ് വിശുദ്ധമായ ഗ്രന്ഥം എന്ന സിക്കുകാരുടെ മതഗ്രന്ഥത്തിൽ ഗുരുവായ നാനാക്കിന്റെ സിദ്ധാന്തങ്ങളെ സമാഹരിച്ച് ഇദ്ദേഹം അനശ്വരമാക്കി
+vanathe asrayikkunna samoohathinte avakashathinum jeevanathinum vanasamrakshanathinu oonal nalkikondu pravarthikunna sangadanayanu	വനത്തെ ആശ്രയിക്കുന്ന സമൂഹത്തിന്റെ അവകാശത്തിനും ജീവനത്തിനും വനസംരക്ഷണത്തിന് ഊന്നൽ നൽകിക്കൊണ്ട് പ്രവർത്തിക്കുന്ന സംഘടനയാണ്
+colonial sampathika adhikara ghatanayethanne velluvilikkukayayirunnu nisahakaranaprasthanam kond gandhiji uddesichirunnath	കൊളോണിയൽ സാമ്പത്തിക അധികാര ഘടനയെതന്നെ വെല്ലുവിളിക്കുകയായിരുന്നു നിസ്സഹകരണപ്രസ്ഥാനം കൊണ്ട് ഗാന്ധിജി ഉദ്ദേശിച്ചിരുന്നത്
+pinnedadheham anglican sabahyile adyathe indian bishopayi	പിന്നീടദ്ദേഹം ആംഗിക്കൻ സഭയിലെ ആദ്യത്തെ ഇന്ത്യൻ ബിഷപ്പായി
+jumua yenna vakkinte arabi bhashartham orumichu kooduka yennanu	ജുമുഅ എന്ന വാക്കിൻറെ അറബി ഭാഷാഅർഥം ഒരുമിച്ച് കൂടുക എന്നതാണ്
+kalaanilayam gopinaathan	കലാനിലയം ഗോപിനാഥൻ
+ningalude nikshepam yevideyo avideyanu ningalude hridhayavum	നിങ്ങളുടെ നിക്ഷേപം എവിടെയോ അവിടെയാണ് നിങ്ങളുടെ ഹൃദയവും
+aasoothrithamaakaathe koodekkoode undaakaan idayulla bharanaparivarthanangal athirukavinjavidhathil aakaathirikkuvaan abhijaathaadhipathyam shradhikkunnu	ആസൂത്രിതമാകാതെ കൂടെക്കൂടെ ഉണ്ടാകാൻ ഇടയുള്ള ഭരണപരിവർത്തനങ്ങൾ അതിരുകവിഞ്ഞവിധത്തിൽ ആകാതിരിക്കുവാൻ അഭിജാതാധിപത്യം ശ്രദ്ധിക്കുന്നു
+collegil ninnum intermediatum jayichu	കോളേജിൽ നിന്നും ഇന്റർമീഡിയേറ്റും ജയിച്ചു
+niranathushala niranam shala yennaperilulla purathana padashala evide pandu undayirunnu	നിരണത്തുശാല നിരണം ശാല എന്നപേരിലുള്ള പുരാതന പാഠശാല ഇവിടെ പണ്ട് ഉണ്ടായിരുന്നു
+kunjinte mughavum samrakshikkuvanayi neenda pithavinte karavum mathrame aa chithrathil undayirunnullu	കുഞ്ഞിന്റെ മുഖവും സംരക്ഷിക്കുവാനായി നീണ്ട പിതാവിന്റെ കരവും മാത്രമേ ആ ചിത്രത്തിൽ ഉണ്ടായിരുന്നുള്ളൂ
+diaryil vayanakar kandethunna peeps valare sangeernamaya vyakthithvathinudamayanu	ഡയറിയിൽ വായനക്കാർ കണ്ടെത്തുന്ന പീപ്സ് വളരെ സങ്കീർണ്ണമായ വ്യക്തിത്വത്തിനുടമയാണ്
+bred mold	ബ്രെഡ് മോൾഡ്
+randaamathevazhi thekke kodumudiyilekullathaanu	രണ്ടാമത്തെവഴി തെക്കേ കൊടുമുടിയിലേക്കുള്ളതാണ്
+st thomas l p school st sebastin highschool ennivayanu pradhana vidyakendrangal	സെന്റ് തോമസ് എൽ പി സ്കൂൾ സെന്റ് സെബാസ്റ്റിൻ ഹൈസ്ക്കൂൾ എന്നിവയാണ് പ്രധാന വിദ്യാകേന്ദ്രങ്ങൾ
+athinu shesham ganapathikkum subrahmannyanum sthusthipaadunnu	അതിനു ശേഷം ഗണപതിക്കും സുബ്രഹ്മണ്യനും സ്തുതിപാടുന്നു
+ethanum varshathinullil ayishayeyum ayal mozhichollunnu	ഏതാനം വർഷത്തിനുള്ളിൽ ആയിഷയേയും അയാൾ മൊഴിചൊല്ലുന്നു
+file allocation tablum fat directory entry tablum yenniva mothamayi netware memoryilekedukkunnathinal harddisk sheshi koottunnathinu primary memory paridhi koodunanthu anivaryamayirunnu	ഫയൽ അലോക്കേഷൻ ടേബിളും ഫാറ്റ് ഡയറക്റ്ററി എൻട്രി ടേബിളും എന്നിവ മൊത്തമായി നെറ്റ്വെയർ മെമ്മറിയിലേക്കെടുക്കുന്നതിനാൽ ഹാർഡ്‌ഡിസ്ക് ശേഷി കൂട്ടുന്നതിന് പ്രൈമറി മെമ്മറി പരിധി കൂടുന്നത് അനിവാര്യമായിരുന്നു
+vikhyatha swedish chalachitra nadaka opera samvidhayakananu ingmar bergman	വിഖ്യാത സ്വീഡിഷ് ചലച്ചിത്ര നാടക ഓപ്പെറ സംവിധായകനാണ് ഇങ്മർ ബർഗ്‍മൻ
+skoolil labhikkunna achadakkabodham pilkaalajeevithathilum kuttikalkku prayojanappedunnu	സ്കൂളിൽ ലഭിക്കുന്ന അച്ചടക്കബോധം പിൽക്കാലജീവിതത്തിലും കുട്ടികൾക്ക് പ്രയോജനപ്പെടുന്നു
+choreo graphy cheythirikkunnath prasanna	കോറിയോ ഗ്രാഫി ചെയ്തിരിക്കുന്നത് പ്രസന്ന
+nirdhishta filinte blockukalude vivarangal labhikkunnidam vare directoryile thudarnnulla blockukaloronnum vayikkuka	നിർദ്ദിഷ്ട ഫയലിന്റെ ബ്ലോക്കുകളുടെ വിവരങ്ങൾ ലഭിക്കുന്നിടം വരെ ഡയറക്റ്ററിയിലെ തുടർന്നുള്ള ബ്ലോക്കുകളോരോന്നും വായിക്കുക
+sadharanakarude prathinidhikal swantham nilayku sammelanam nadathaan orukkam kootti	സാധാരണക്കാരുടെ പ്രതിനിധികൾ സ്വന്തം നിലക്ക് സമ്മേളനം നടത്താൻ ഒരുക്കം കൂട്ടി
+ethukanda pishachaya angramanyu than ahuramasdhayaya daiwathodu thottathayi manasilakki	ഇതുകണ്ട പിശാചായ അംഗ്രാമൈന്യു താൻ അഹുറമസ്‌ദയായ ദൈവത്തോട് തോറ്റതായി മനസ്സിലാക്കി
+rogam illathavarkkum ee thailanassyamkond gunangal labhikkumennu aayurvedham vidhichirikkunnu	രോഗം ഇല്ലാത്തവർക്കും ഈ തൈലനസ്യംകൊണ്ട് ഗുണങ്ങൾ ലഭിക്കുമെന്ന് ആയുർവേദം വിധിച്ചിരിക്കുന്നു
+mahathmagandhiyude anuyayiyaya janaki addehatheppole khadi vasthrangal svayam neytheduthirunnu	മഹാത്മാഗാന്ധിയുടെ അനുയായിയായ ജാനകി അദ്ദേഹത്തെപ്പോലെ ഖാദി വസ്ത്രങ്ങൾ സ്വയം നെയ്തെടുത്തിരുന്നു
+henri oru cheriya koottam aalukalkoppam kanosaayil ethi	“ഹെൻറി ഒരു ചെറിയ കൂട്ടം ആളുകൾക്കൊപ്പം കനോസായിൽ എത്തി
+thiruvalla sreevallabhamahakshethram	തിരുവല്ല ശ്രീവല്ലഭമഹാക്ഷേത്രം
+kuvayuittile eyerfeeldil ninnum purapetta reepparine niyandrichath britteesh royal eyerforsile randu pilettumaaraayirunnu	കുവൈറ്റിലെ എയർഫീൽഡിൽ നിന്നും പുറപ്പെട്ട റീപ്പറിനെ നിയന്ത്രിച്ചത് ബ്രിട്ടീഷ് റോയൽ എയർഫോഴ്സിലെ രണ്ടു പൈലറ്റുമാരായിരുന്നു
+ttaroolam aazhathil kaanunnu	റ്ററോളം ആഴത്തിൽ കാണുന്നു
+naalu dhashaabdhakkaalam nilaninna sheeshmayude avasaanakhattathil maarpaappa sthaanathinu moonnu avakaashavaadhikalundaayi	നാലു ദശാബ്ദക്കാലം നിലനിന്ന ശീശ്മയുടെ അവസാനഘട്ടത്തിൽ മാർപ്പാപ്പാ സ്ഥാനത്തിന് മൂന്ന് അവകാശവാദികളുണ്ടായി
+panini enna perinu paninante makan ennanu artham	പാണിനി എന്ന പേരിന് പാണിനന്റെ മകൻ എന്നാണ് അർത്ഥം
+oru nalla chithram ivide kaanaam	ഒരു നല്ല ചിത്രം ഇവിടെ കാണാം
+sivajiyude kalath maharashtrayil ninnum dakshina canara akramikkan vanna oru kuttam padayalikaludeyum sadharanakkarudeyum pinmurakkarayirikkam marattikal ennorabhiprayamund	ശിവജിയുടെ കാലത്ത് മഹാരാഷ്ട്രയിൽ നിന്നും ദക്ഷിണ കാനറ ആക്രമിക്കാൻ വന്ന ഒരു കൂട്ടം പടയാളികളുടെയും സാധാരണകാരുടെയും പിന്മുറക്കാരായിരിക്കാം മറാഠികൾ എന്നൊരഭിപ്രായമുണ്ട്
+prathyushinu rant high performance computing h p c	പ്രത്യൂഷിന് രണ്ട് ഹൈ പെർഫോമൻസ് കമ്പ്യൂട്ടിംഗ് എച്ച് പി സി
+aparaavidhyaykku muntthookkamundennumathram	അപരാവിദ്യയ്ക്ക് മുൻതൂക്കമുണ്ടെന്നുമാത്രം
+basheerinte bhraanthum ente kirukkukalum basheerinte bhraanthinekurichulla thante kirukkan chintha ennu ee lekhanathe grandhakaaran visheshippikkunnu	ബഷീറിന്റെ ഭ്രാന്തും എന്റെ കിറുക്കുകളും ബഷീറിന്റെ ഭ്രാന്തിനെക്കുറിച്ചുള്ള തന്റെ കിറുക്കൻ ചിന്ത എന്ന് ഈ ലേഖനത്തെ ഗ്രന്ഥകാരൻ വിശേഷിപ്പിക്കുന്നു
+ashtamgasamgraham gadyapadyasammisramanu ashtamgasamgrahakarthavu veroru vagbhatan vriddha vagbhatan aanennum chilar parayunnund	അഷ്ടാംഗസംഗ്രഹം ഗദ്യപദ്യസമ്മിശ്രമാണ് അഷ്ടാംഗസംഗ്രഹകർത്താവ് വേറൊരു വാഗ്ഭടൻ വൃദ്ധ വാഗ്ഭടൻ ആണെന്നും ചിലർ പറയുന്നുണ്ട്
+ee aaregham aanu bhavthikathil valare pradhanamulla onnanu	ഈ ആരേഖം അണു ഭൗതികത്തിൽ വളരെ പ്രാധാന്യമുള്ള ഒന്നാണ്
+ben ennu perulla oru sahodaranum avarkkund	ബെൻ എന്നു പേരുള്ള ഒരു സഹോദരനും അവർക്കുണ്ട്
+yettu thokai anthology ennariyappedunna samaharathinte ulladakam thazhe parayunnavayanu varikalude ennam bracketil	എട്ടു തൊകൈ anthology എന്നറിയപ്പെടുന്ന സമാഹാരത്തിന്റെ ഉള്ളടക്കം താഴെ പറയുന്നവയാണ് വരികളുടെ എണ്ണം ബ്രാക്കറ്റിൽ
+kottiyur mahathmyam gurudevan enniva gana samaharangalil chilathanu	കൊട്ടിയൂർ മാഹാത്മ്യം ഗുരുദേവൻ എന്നിവ ഗാന സമാഹാരങ്ങളിൽ ചിലതാണ്
+vinod mehrayude nayikayayitu pathu chithrangalil abhinayichu	വിനോദ് മെഹ്‌റയുടെ നായികയായിട്ട് പത്തു ചിത്രങ്ങളിൽ അഭിനയിച്ചു
+pakshe theyyam aaroodasthaanangalilum madappurakalilum podikkalangalilum maathram kettiyaadikkum	പക്ഷെ തെയ്യം ആരൂഢസ്ഥാനങ്ങളിലും മടപ്പുരകളിലും പൊടിക്കലങ്ങളിലും മാത്രം കെട്ടിയാടിക്കും
+mattoru pazhaya kaala nadanaaya saumithra chaattarjiyumaayi baachji pathivaayi skool naadakathil gaayakanaayi avatharichu	മറ്റൊരു പഴയ കാല നടനായ സൗമിത്ര ചാറ്റർജിയുമായി ബാജ്ചി പതിവായി സ്കൂൾ നാടകത്തിൽ ഗായകനായി അവതരിച്ചു
+israyel pradhaanamandhri goldomeyr athu nirasichu	ഇസ്രയേൽ പ്രധാനമന്ത്രി ഗോൾഡോമെയ്ർ അത് നിരസിച്ചു
+ceylon pradhanamanthriyayirunna baron jayathilake eviduthe thenicha valarthalkarude oru yogathil pankeduthu	സിലോൺ പ്രധാനമന്ത്രിയായിരുന്ന ബാരൺ ജയതിലകെ ഇവിടുത്തെ തേനീച്ച വളർത്തൽകാരുടെ ഒരു യോഗത്തിൽ പങ്കെടുത്തു
+kottaram akkare yennu nadhi margam vannirunnavar paranjirunnu yennum athu lopichanu kottarakara undayathennum parayunnundu	കൊട്ടാരം അക്കരെ എന്ന് നദീ മാർഗ്ഗം വന്നിരുന്നവർ പറഞ്ഞിരുന്നു എന്നും അത് ലോപിച്ചാണ് കൊട്ടാരക്കര ഉണ്ടായതെന്നും പറയുന്നുണ്ട്
+oru action nayakante pariveshanamanu vijayakanthinu thamizh chalachithraramgath undayirunnath	ഒരു ആക്ഷൻ നായകന്റെ പരിവേഷമാണ് വിജയകാന്തിനു തമിഴ് ചലച്ചിത്രരംഗത്ത് ഉണ്ടായിരുന്നത്
+ramanattam valmiki ramayanathe aspadhamaki ramante avatharam vivaham vanaprastham seethapaharanam rama ravana yudham ravana vadham ramante pattabhishekam yenni sambhavangalayanu rachichirikkunnathu	രാമനാട്ടം വാല്മീകി രാമായണത്തെ ആസ്പദമാക്കി രാമന്റെ അവതാരം വിവാഹം വാനപ്രസ്ഥം സീതാപഹരണം രാമ രാവണ യുദ്ധം രാവണ വധം രാമന്റെ പട്ടാഭിഷേകം എന്നി സംഭവങ്ങളായാണ് രചിച്ചിരിക്കുന്നത്
+vakkam abdul khaadhar maulaviyum shaik hamadhaani thangalumellaam ee munnettathinu nethruthvam nalki	വക്കം അബ്ദുൽ ഖാദർ മൗലവിയും ശൈഖ് ഹമദാനി തങ്ങളുമെല്ലാം ഈ മുന്നേറ്റത്തിന് നേതൃത്വം നൽകി
+aakarathilum jeevithareethiyilum thikachum vibhinna svabhaavam pularthunna randu vibhagam pakshikal ulpedunna oru pakshigothram	ആകാരത്തിലും ജീവിതരീതിയിലും തികച്ചും വിഭിന്ന സ്വഭാവം പുലർത്തുന്ന രണ്ടു വിഭാഗം പക്ഷികൾ ഉൾപ്പെടുന്ന ഒരു പക്ഷിഗോത്രം
+ithinu thottadutha varsham chenkis khaan nerittu afganisthaanilethi	ഇതിനു തൊട്ടടുത്ത വർഷം ചെങ്കിസ് ഖാൻ നേരിട്ട് അഫ്ഗാനിസ്താനിലെത്തി
+rasool hasnante melnottathil keralam haidaraaliyudeyum tippu sulthaanteyum keezhil enna vishayathil gaveshana birudham nedi	റസൂൽ ഹസന്റെ മേൽനോട്ടത്തിൽ കേരളം ഹൈദരാലിയുടെയും ടിപ്പു സുൽത്താന്റെയും കീഴിൽ എന്ന വിഷയത്തിൽ ഗവേഷണ ബിരുദം നേടി
+edhehathinte amma parvathiyamma annathe thiru kochi mukhyamantriyayirunna c	ഇദ്ദേഹത്തിന്റെ അമ്മ പാർവ്വതിയമ്മ അന്നത്തെ തിരു കൊച്ചി മുഖ്യമന്ത്രിയായിരുന്ന സി
+keralathilengum saadhaaranayaayi kaanappedunna pakshikalaanu vaalukulukkikal	കേരളത്തിലെങ്ങും സാധാരണയായി കാണപ്പെടുന്ന പക്ഷികളാണ് വാലുകുലുക്കികൾ
+ningal islaminte adisthanapramanangalil visvasikkunnu	നിങ്ങൾ ഇസ്‌ലാമിന്റെ അടിസ്ഥാനപ്രമാണങ്ങളിൽ വിശ്വസിക്കുന്നു
+jeevagni beejagni parambarakal ekkalathethanu	ജീവാഗ്നി ബീജാഗ്നി പരമ്പരകൾ ഇക്കാലത്തേതാണ്
+yehudarude yettavum punyadinamaya yom kippur nalil minnalakramanam nadathi munneruka enna thandramanu arab rajyangal nadathiyathu	യഹൂദരുടെ ഏറ്റവും പുണ്യദിനമായ യോം കിപ്പൂർ നാളിൽ മിന്നലാക്രമണം നടത്തി മുന്നേറുക എന്ന തന്ത്രമാണ് അറബ് രാജ്യങ്ങൾ നടത്തിയത്
+svantham kutuma murichu kalanjathum mukkuva suhrutthinte kalyanatthil panketutthathum karanavarute roshatthinu karanamavukayum addhehatthe veettinu puratthakkukayum cheythu	സ്വന്തം കുടുമ മുറിച്ചു കളഞ്ഞതും മുക്കുവ സുഹൃത്തിന്റെ കല്യാണത്തിൽ പങ്കെടുത്തതും കാരണവരുടെ രോഷത്തിന് കാരണമാവുകയും അദ്ദേഹത്തെ വീട്ടിനു പുറത്താക്കുകയും ചെയ്തു
+india assault rifilum l m gyum indian sainyavum indian ardhasainyavum upayogikkunnu	ഇന്ത്യ അസ്സാൾട്ട് റൈഫിളും എൽ എം ജിയും ഇന്ത്യൻ സൈന്യവും ഇന്ത്യൻ അർദ്ധസൈന്യവും ഉപയോഗിക്കുന്നു
+punna north	പുന്ന നോർത്ത്
+manninte valakkuru vardhippikkanayi upayogikkunna prakrithidathamaya valamanu pachilavalam	മണ്ണിന്റെ വളക്കൂറ് വർദ്ധിപ്പാക്കാനായി ഉപയോഗിക്കുന്ന പ്രകൃതിദത്തമായ വളമാണ് പച്ചിലവളം
+js utility labhyamanu	ജെഎസ് യൂട്ടിലിറ്റി ലഭ്യമാണ്
+odawara fuji minami ashigara numazu yennivayanu yettavum aduthulla nagarangal	ഒഡാവാര ഫുജി മിനാമി അഷിഗാര നുമാസു എന്നിവയാണ് ഏറ്റവും അടുത്തുള്ള നഗരങ്ങൾ
+kalantharathil koorampakkav kulam ennath koonampakkav kulam ennum pinnid koonampayikkulam ayi mari ennum karuthunnu	കാലാന്തരത്തിൽ കൂരമ്പക്കാവ് കുളം എന്നത് കൂനമ്പക്കാവ് കുളം എന്നും പിന്നീട് കൂനമ്പായിക്കുളം ആയി മാറി എന്നും കരുതുന്നു
+othukkathilum krithyathaanishtayilum avar beejaganithasoothrangale anusmarippikkunnu	ഒതുക്കത്തിലും കൃത്യത്യാനിഷ്ഠയിലും അവ ബീജഗണിതസൂത്രങ്ങളെ അനുസ്മരിപ്പിക്കുന്നു
+swarakshaykkuvendiyulla oru upaayamathre ithu	സ്വരക്ഷയ്ക്കുവേണ്ടിയുള്ള ഒരു ഉപായംത്രേ ഇത്
+niravadhi toorist kendhrangalilek sarovar portikko jaippoorilninnum anaayaasam ethicheraam	നിരവധി ടൂറിസ്റ്റ് കേന്ദ്രങ്ങളിലേക്ക് സരോവർ പോർട്ടിക്കോ ജൈപൂരിൽനിന്നും അനായാസം എത്തിച്ചേരാം
+sarada mani devi jyothindra nadha deekshith	ശാരദാ മണി ദേവി ജ്യോതീന്ദ്ര നാഥ ദീക്ഷിത്
+samanila thetti thekkumayi panjadutha sergiyayil ninnum rekshathedi pavel manjilekku oodiyolikkunnu	സമനില തെറ്റി തോക്കുമായി പാഞ്ഞടുത്ത സെർജിയിൽ നിന്നും രക്ഷതേടി പാവെൽ മഞ്ഞിലേക്ക് ഓടിഒളിക്കുന്നു
+athinu karanam hider ayasine athraykadhikam eshnapettirunnu vishvasichirunnu yennanu	അതിന് കാരണം ഹൈദർ അയാസിനെ അത്രക്കധികം ഇഷ്ടപ്പെട്ടിരുന്നു വിശ്വസിച്ചിരുന്നു എന്നതാണ്
+mekhangalum kodamanjum chilappol kaazhchaye maraykkaarund	മേഘങ്ങളും കോടമഞ്ഞും ചിലപ്പോൾ കാഴ്ചയെ മറക്കാറുണ്ട്
+adheena vayovrudhanaaya upadheshtaavinte mentar roopam poond telimaachassinu vazhikaatti	അഥീന വയോവൃദ്ധനായ ഉപദേഷ്ടാവിന്റെ മെന്റർ രൂപം പൂണ്ട് ടെലിമാച്ചസിനു വഴികാട്ടി
+haiskool ponnaani valiya palli dharas thudangiyavayil padanam	ഹൈസ്കൂള് പൊന്നാനി വലിയ പള്ളി ദറസ് തുടങ്ങിയവയില് പഠനം
+aathmahathyabheeshani muzhakiya fermina dazayku vazhangathe lorenzo daza avaleyum kooti dooradheshatheku palayanam cheythu	ആത്മഹത്യാഭീഷണി മുഴക്കിയ ഫെർമിന ഡാസയ്ക്കു വഴങ്ങാതെ ലോറൻസോ ഡാസ അവളേയും കൂട്ടി ദൂരദേശത്തേയ്ക്ക് പലായനം ചെയ്തു
+beehaarile sabhaakendhrathile konvent skoolukalil adhyaapikayaayi	ബീഹാറിലെ സഭാകേന്ദ്രത്തിലെ കോൺവെന്റ് സ്കൂളുകളിൽ അദ്ധ്യാപികയായി
+akkalathe best seller ayirunnu athu	അക്കാലത്തെ ബെസ്ററ് സെല്ലെർ ആയിരുന്നു അത്
+niyamaanusruthamaaya vidhyaabhyaasavum dhandhachikilsayum ithode praaballyathil vannu	നിയമാനുസൃതമായ വിദ്യാഭ്യാസവും ദന്തചികിത്സയും ഇതോടെ പ്രാബല്യത്തിൽ വന്നു
+randu tharam ilakal kaanappedunnu	രണ്ടു തരം ഇലകൾ കാണപ്പെടുന്നു
+mattidangalil vazha chena chembu kachil thudangiya bhakshyavilakalum	മറ്റിടങ്ങളിൽ വാഴ ചേന ചേമ്പ് കാച്ചിൽ തുടങ്ങിയ ഭക്ഷ്യവിളകളും
+st john i t c myaldi	സെൻറ് ജോൺ ഐ ടി സി മൈലാടി
+chemancheri enna perilezhuthiyirunna c	ചേമഞ്ചേരി എന്ന പേരിലെഴുതിയിരുന്ന സി
+newyork nagarathile oru prashastha baale company shikovsiyude swan lake enna baale nirmikkunnathine chuttypattyanu kadha purogamikkunnathu	ന്യൂയോർക്ക് നഗരത്തിലെ ഒരു പ്രശസ്ത ബാലെ കമ്പനി ഷൈകോവ്സിയുടെ സ്വാൻ ലേക്ക് എന്ന ബാലെ നിർമ്മിക്കുന്നതിനെ ചുറ്റിപ്പറ്റിയാണ് കഥ പുരോഗമിക്കുന്നത്
+spainile spervumayi neritulla ashayavinimayam anuvadhikatha volttarukalum deerkhakaala sphere secrataryaya anmari kaipum thante kudumbhathinu sahayikanagrahikukayum chythu	സ്പെയിനിലെ സ്പെർവുമായി നേരിട്ടുള്ള ആശയവിനിമയം അനുവദിക്കാത്ത വോൾട്ടറുകളും ദീർഘകാല സ്പീയർ സെക്രട്ടറിയായ ആൻമറി കെംപും തന്റെ കുടുംബത്തിന് സഹായിക്കാനാഗ്രഹിക്കുകയും ചെയ്തു
+kannoor vayanaad kozhikkod jillakalile oru aadhivaasivibhaagamaanu karimpaalar	കണ്ണൂർ വയനാട് കോഴിക്കോട് ജില്ലകളിലെ ഒരു ആദിവാസിവിഭാഗമാണ് കരിമ്പാലർ
+namakvalant ennum ee pattanam ariyappedunnu	നമക്വാലാന്റ് എന്നും ഈ പട്ടണം അറിയപ്പെടുന്നു
+nirappaya samathalangalum budhanil kanappedunnu	നിരപ്പായ സമതലങ്ങളും ബുധനിൽ കാണപ്പെടുന്നു
+valyachan thamburatty thamburaan ennivar pradhana upadevathakalanu	വല്യച്ചൻ തമ്പുരാട്ടി തമ്പുരാൻ എന്നിവർ പ്രധാന ഉപദേവതകളാണ്
+•goal kamal ranjjith	•ഗോൾ കമൽ രഞ്ജിത്ത്
+mardam vyathyasappedumpol silakalude dravanamkathilundakunna etakkurachiline sambandhich vyakthamaya rupamilla prathyekich silicate silakalude karyathil	മർദം വ്യത്യാസപ്പെടുമ്പോൾ ശിലകളുടെ ദ്രവണാങ്കത്തിലുണ്ടാകുന്ന ഏറ്റക്കുറച്ചിലിനെ സംബന്ധിച്ച് വ്യക്തമായ രൂപമില്ല പ്രത്യേകിച്ച് സിലിക്കേറ്റ് ശിലകളുടെ കാര്യത്തിൽ
+keralathil upayogikkappettirunna pathadhyayathilulla oru pracheena jyothisha grandhamanu shukra keralam ethinu bhrigukeralamennum keralarahasyamennum keraleeyamennum koodi perundu	കേരളത്തിൽ ഉപയോഗിക്കപ്പെട്ടിരുന്ന പത്തധ്യായത്തിലുള്ള ഒരു പ്രാചീന ജ്യോതിഷ ഗ്രന്ഥമാണു് ശുക്ര കേരളം ഇതിനു ഭൃഗുകേരളമെന്നും കേരളരഹസ്യമെന്നും കേരളീയമെന്നും കൂടി പേരുണ്ട്
+veedu ennanu japanese bhashayil phurasato enna padathinte artham	വീട് എന്നാണ് ജപ്പാനീസ് ഭാഷയിൽ ഫുറസറ്റോ എന്ന പദത്തിന്റെ അർത്ഥം
+chaurichaura sambhavathethudarnnu nirasanaya gandhiji nissahakaranaprasthanam pinvalikkan theerumanikkukayayirunnu	ചൗരിചൗരാ സംഭവത്തെത്തുടർന്ന് നിരാശനായ ഗാന്ധിജി നിസ്സഹകരണപ്രസ്ഥാനം പിൻവലിക്കാൻ തീരുമാനിക്കുകയായിരുന്നു
+niraksharanaya velakaranum unnathanum dhanaattyanumaya ameerinte pithavum randu druvangalilanu nirkkunnathu yengilum aamirum hassanumee ee verthirivukalillatheyanu balyam chelavazhikkunnathu	നിരക്ഷരനായ വേലക്കാരനും ഉന്നതനും ധനാഢ്യനുമായ ആമിറിന്റെ പിതാവും രണ്ട് ധൃവങ്ങളിലാണ് നിൽക്കുന്നത് എങ്കിലും ആമിറും ഹസ്സനും ഈ വേർതിരിവുകളില്ലാതെയാണ് ബാല്യം ചെലവഴിക്കുന്നത്
+aduthakaalam vare keralathil kristheeya mathathilekku maarunnathinu maarggam koodal ennaanu ariyappettirunnathu	അടുത്തകാലം വരെ കേരളത്തിൽ ക്രിസ്തീയ മതത്തിലേക്ക് മാറുന്നതിനെ മാർഗ്ഗം കൂടൽ എന്നാണു അറിയപ്പെട്ടിരുന്നത്
+saambathikamaayulla swayam paryaapthatha saamoohika suraksha paristhithi samrakshanam ennivayaayirunnu furasatto prasthaanathinte pradhaanappetta lakshyangal	സാമ്പത്തികമായുള്ള സ്വയം പര്യാപ്തത സാമൂഹിക സുരക്ഷ പരിസ്ഥിതി സംരക്ഷണം എന്നിവയായിരുന്നു ഫുറസറ്റോ പ്രസ്ഥാനത്തിന്റെ പ്രധാനപ്പെട്ട ലക്ഷ്യങ്ങൾ
+naalambalathinu purathu padinjarottu darshanamayi ayyappanum kizhakottu darshanamayi ganapathiyum sthithi cheyyunnu	നാലമ്പലത്തിനു പുറത്ത് പടിഞ്ഞാറോട്ട് ദർശ്ശനമായി അയ്യപ്പനും കിഴക്കോട്ട് ദർശനമായി ഗണപതിയും സ്ഥിതി ചെയ്യുന്നു
+thaan ethrayadhikam peedippichittum monica thaniku vendi prarthikkunnath orikkal petritiasinte sradhayil pettu	താൻ ഇത്രയധികം പീഡിപ്പിച്ചിട്ടും മോനിക്ക തനിക്കു വേണ്ടി പ്രാർഥിക്കുന്നത് ഒരിക്കൽ പട്രീഷ്യസിന്റെ ശ്രദ്ധയിൽ പെട്ടു
+graamasabhakale adhava mahaline adisthaanakhadakamaayi nikuti nirnayikkunna sambhradhaayamaayirunnu ithu	ഗ്രാമസഭകളെ അഥവാ മഹലിനെ അടിസ്ഥാനഘടകമായി നികുതി നിർണ്ണയിക്കുന്ന സമ്പ്രദായമായിരുന്നു ഇത്
+kappalgathakatha vikasanathinu gaveshanathinum ethupole samithikalundu	കപ്പൽഗതാഗത വികസനത്തിനും ഗവേഷണത്തിനും ഇതുപോലെ സമിതികളുണ്ട്
+sadharanayayi avasadhashilastharangalile jaivamshangal valuthaya parivarthanangalkku vidheyamayirkkaanunilla	സാധാരണയായി അവസാദശിലാസ്തരങ്ങളിലെ ജൈവാംശങ്ങൾ വലുതായ പരിവർത്തനങ്ങൾക്കു വിധേയമായിക്കാണുന്നില്ല
+aadhyakaalangalil urdhuvilum pershyanilum kavithakalezhuthikkondirunnu	ആദ്യകാലങ്ങളിൽ ഉർദുവിലും പേർഷ്യനിലും കവിതകളെഴുതിക്കൊണ്ടിരുന്നു
+maappilapaattukalum kathupaattukalum dhaaraalam rachicha prashasthanaaya maappila saahithyakaaranaanu pulikkottil haidar	മാപ്പിലപ്പാട്ടുകളും കത്തുപാട്ടുകളും ധാരാളം രചിച്ച പ്രശസ്തനായ മാപ്പിള സാഹിത്യകാരനാണ് പുലിക്കോട്ടിൽ ഹൈദർ
+ee vasthuvidhyareethiyeyanu gothic shaili yennu vilikkunnathu	ഈ വാസ്തുവിദ്യാരീതിയെയാണ് ഗോത്തിക് ശൈലി എന്നു വിളിക്കുന്നത്
+mugal kaalakhattamaanu thabalaye kooduthal janakeeyamaakkiyathu	മുഗൾ കാലഘട്ടമാണു തബലയെ കൂടുതൽ ജനകീയമാക്കിയത്
+samakalika prasakthiyullavayanu addehathinte mikka rachanakalum	സമകാലിക പ്രസക്തിയുളളവയാണ് അദ്ദേഹത്തിന്റെ മിക്ക രചനകളും
+evayil pradhanyamarhikkunathu mono clonal antibody ulpadanamanu	ഇവയിൽ പ്രാധാന്യമർഹിക്കുന്നത് മോണോ ക്ലോണൽ ആന്റിബോഡി ഉത്പാദനമാണ്
+thrithala panchayat sampradayam gramapanchayat block panchayat jilla panchayat	ത്രിതല പഞ്ചായത്ത് സമ്പ്രദായം ഗ്രാമപഞ്ചായത്ത് ബ്ലോക്ക് പഞ്ചായത്ത് ജില്ലാ പഞ്ചായത്ത്
+siriyayile french aadhipathyathinethiraayi idheham samaram nayichu	സിറിയയിലെ ഫ്രഞ്ച് ആധിപത്യത്തിനെതിരായി ഇദ്ദേഹം സമരം നയിച്ചു
+barathante aaravam enna chithrathile vesham sradeyamayi	ഭരതന്റെ ആരവം എന്ന ചിത്രത്തിലെ വേഷം ശ്രദ്ധേയമായി
+british indiayil oru i	ബ്രിട്ടീഷ് ഇന്ത്യയിൽ ഒരു ഐ
+dubaiyile burj khalifayude samipath samgithathinte akampadiyodeyulla jaladhara	ദുബായിലെ ബുർജ് ഖലീഫയുടെ സമീപത്ത് സംഗീതത്തിന്റെ അകമ്പടിയോടെയുള്ള ജലധാര
+thirichu varan kazhiyatha shock	തിരിച്ചു വരാൻ കഴിയാത്ത ഷോക്ക്
+mathavu kunjibeevi sherefa	മാതാവ് കുഞ്ഞിബീവി ഷെരിഫ
+thanikathepatti chinthikkan neramillayirunnennum pakshe thante sahodharangal anganeyappennumayirunnu nepoleante abhimatham	തനിക്കതേപ്പറ്റി ചിന്തിക്കാൻ നേരമില്ലായിരുന്നെന്നും പക്ഷേ തന്റെ സഹോദരങ്ങൾ അങ്ങനെയല്ലെന്നുമായിരുന്നു നെപോളിയൻറെ അഭിമതം
+thrisurinte nagarapranthangalilonnaya pukunnathu sthithi cheyunna theevandi nilayamanu pukunnam theevandi nilayam	തൃശ്ശൂരിന്റെ നഗരപ്രാന്തങ്ങളിലൊന്നായ പൂങ്കുന്നത്ത് സ്ഥിതി ചെയ്യുന്ന തീവണ്ടി നിലയമാണ് പൂങ്കുന്നം തീവണ്ടി നിലയം
+ekadesam aradozenolam bankukal evide pravarthikkunnund	ഏകദേശം അരഡസനോളം ബാങ്കുകൾ ഇവിടെ പ്രവർത്തിക്കുന്നുണ്ട്
+pithaav oru hyskool hedmaaster aayirunnu	പിതാവ് ഒരു ഹൈസ്കൂൾ ഹെഡ്‌മാസ്റ്റർ ആയിരുന്നു
+osmiyam kazhinjaal ettavum saandhrathayeriya moolakamaanithu	ഓസ്മിയം കഴിഞ്ഞാൽ ഏറ്റവും സാന്ദ്രതയേറിയ മൂലകമാണിത്
+chavalaachi kariyilappidachi peenikkili chithala chaanakakkili umikkaada ennokkeyum ariyappedunnu	ചവലാച്ചി കരിയിലപ്പിടച്ചി പീണിക്കിളി ചിതല ചാണകക്കിളി ഉമിക്കാട എന്നൊക്കെയും അറിയപ്പെടുന്നു
+fu sang national park	ഫൂ സാംഗ് നാഷണൽ പാർക്ക്
+madhavi teacherude makan	മാധവി ടീച്ചറുടെയും മകൻ
+veethiyulla oru samathalapradheshamaanu	വീതിയുള്ള ഒരു സമതലപ്രദേശമാണ്
+football sanghatakarum kalikarumaya ke	ഫുട്‌ബോൾ സംഘാടകരും കളിക്കാരുമായ കെ
+jafthayude pithavinteb perum gileyad ennayirunnu	ജഫ്‌തായുടെ പിതാവിന്റെ പേരും ഗിലെയാദ് എന്നായിരുന്നു
+vayoming yoonivezhsittiyil kurachu kaalam padichirunnu	വയോമിങ്ങ് യൂണിവെർസിറ്റിയിൽ കുറച്ചു കാലം പഠിച്ചിരുന്നു
+sikhu chakravarthi ranjith singinte sainyathile vidheshapadayaaliyaayirunna jeen baaptists venchura panikazhippicha ee kettidam aadhyakaalathu venchura haws ennaayirunnu ariyappettirunnathu	സിഖ് ചക്രവർത്തി രഞ്ജിത് സിങ്ങിന്റെ സൈന്യത്തിലെ വിദേശപടയാളിയായിരുന്ന ജീൻ ബാപ്റ്റിസ്റ്റ് വെഞ്ചുറ പണികഴിപ്പിച്ച ഈ കെട്ടിടം ആദ്യകാലത്ത് വെഞ്ചുറ ഹൗസ് എന്നായിരുന്നു അറിയപ്പെട്ടിരുന്നത്
+nandhapuri naashanal paark	നന്തപുരി നാഷണൽ പാർക്ക്
+ithine cell line ennuparayunnu	ഇതിനെ സെൽ ലൈൻ എന്നുപറയുന്നു
+evide pravarthikkunna officukal	ഇവിടെ പ്രവർത്തിക്കുന്ന ഓഫീസുകൾ
+eeyavasarathil pingaamiye therenjedukkaanulla nirbhndhathinu neppoliyan vazhangikkoduthu	ഈയവസരത്തിൽ പിൻഗാമിയെ തെരഞ്ഞെടുക്കാനുള്ള നിർബന്ധത്തിനു നെപോളിയൻ വഴങ്ങിക്കൊടുത്തു
+vikasathil parasparavirudhangalaya randu prakriyakalanu sadharanayayi nadakkunnathu	വികാസത്തിൽ പരസ്പരവിരുദ്ധങ്ങളായ രണ്ടു പ്രക്രിയകളാണ് സാധാരണയായി നടക്കുന്നത്
+ee sassyathinte thadi silindar aakruthiyilaanu	ഈ സസ്യത്തിന്റെ തടി സിലിണ്ടർ ആകൃതിയിലാണ്
+ninavey nagarathile nivaasikalood avarude paapatheyum athumoolam varaanirikkunna daivasikshayeyum kurich presangikkaan yahova prevaachakanod aavishyappedunnu	നിനവേ നഗരത്തിലെ നിവാസികളോട് അവരുടെ പാപത്തേയും അതുമൂലം വരാനിരിക്കുന്ന ദൈവശിക്ഷയേയും കുറിച്ച് പ്രസംഗിക്കാൻ യഹോവ പ്രവാചകനോട് ആവശ്യപ്പെടുന്നു
+yogyathayum kazhivumallathe vyakthikal thammil mattu yathoru vidha vivechanavum padilla	യോഗ്യതയും കഴിവുമല്ലാതെ വ്യക്തികൾ തമ്മിൽ മറ്റു യാതൊരു വിധ വിവേചനവും പാടില്ല
+mumpum kshethrathilu aanayundaayirunnu	മുമ്പും ക്ഷേത്രത്തില് ആനയുണ്ടായുരുന്നു
+athodoppam vidhyaardhikalil moolyangalkkum dhaarmikathaykkum oonnal nalkunnu	അതോടൊപ്പം വിദ്യാർഥികളിൽ മൂല്യങ്ങൾക്കും ധാർമ്മികതക്കും ഊന്നൽ നൽകുന്നു
+ividuthe oru pradhaanappetta vidhyaabhyaasa sthaapanamaanu sree ayyappa kolej	ഇവിടുത്തെ ഒരു പ്രധാനപ്പെട്ട വിദ്യാഭ്യാസ സ്ഥാപനമാണ് ശ്രീ അയ്യപ്പ കോളേജ്
+raveendranadh ennivaranu	രവീന്ദ്രനാഥ് എന്നിവരാണ്
+ee vasthutha marachu vech austria samgathikal neettikondu poyi	ഈ വസ്തുത മറച്ചു വെച്ച് ഓസ്ട്രിയ സംഗതികൾ നീട്ടിക്കൊണ്ടു പോയി
+ee pravidhi vaidhyashasthrarangath rogangal krithyamayi nirnayikkunnathinum jaivashasthrathil janithaka nireekshanangalkkum valare prayojanam cheyunnu	ഈ പ്രവിധി വൈദ്യശാസ്ത്രരംഗത്ത് രോഗങ്ങൾ കൃത്യമായി നിർണയിക്കുന്നതിനും ജൈവശാസ്ത്രത്തിൽ ജനിതക നിരീക്ഷണങ്ങൾക്കും വളരെ പ്രയോജനം ചെയ്യുന്നു
+august muthal november vareyanu evayude pushpakaalam	ഓഗസ്റ്റ് മുതൽ നവംബർ വരെയാണ് ഇവയുടെ പുഷ്പകാലം
+dhambathyabandhathile avishwastha vivahamochanam thudangiyavayku facebook karanamakunnuvenna nilayilulla varthakalum undu	ദാമ്പത്യബന്ധത്തിലെ അവിശ്വസ്ത വിവാഹമോചനം തുടങ്ങിയവക്ക് ഫേസ്‌ബുക്ക് കാരണമാകുന്നുവെന്ന നിലയിലുള്ള വാർത്തകളും ഉണ്ട്
+aa chithrathile avarude kathapathramaya kunjathol valare adhikam shraddhikappetu	ആ ചിത്രത്തിലെ അവരുടെ കഥാപാത്രമായ കുഞ്ഞാത്തോൽ വളരെ അധികം ശ്രദ്ധിക്കപ്പെട്ടു
+aalfha aare oru neela mukhyadhaaraa nakshathramaanu	ആൽഫ ആരേ ഒരു നീല മുഖ്യധാരാ നക്ഷത്രമാണ്
+nagarapradeshangalil high beem light upayogikkuvaan padilla	നഗരപ്രദേശങ്ങളിൽ ഹൈ ബീം ലൈറ്റ് ഉപയോഗിക്കുവാൻ പാടില്ല
+mathramalla pinchirakil valumundu	മാത്രമല്ല പിൻചിറകിൽ വാലുമുണ്ട്
+k gopaalapillayaanu sthaapakan	കെ ഗോപാലപിള്ളയാണ് സ്ഥാപകൻ
+uchithamaya library chattangal niyamavyavasthakal pracharippikkukayum prothsahippikkukayum cheyyuka	ഉചിതമായ ലൈബ്രറി ചട്ടങ്ങൾ നിയമവ്യവസ്തകൾ പ്രചരിപ്പിക്കുകയും പ്രോത്സാഹിപ്പിക്കുകയും ചെയ്യുക
+cantagalo santana	കാൻറാഗാലോ സാൻറാന
+m gafoorinaayirunnu	എം ഗഫൂറിനായിരുന്നു
+pathonpatham nootandinushesham ee thuramukham upekshikkapetta nilayilayirunnu	പത്തൊൻപതാം നൂറ്റാണ്ടിനുശേഷം ഈ തുറമുഖം ഉപേക്ഷിക്കപ്പെട്ട നിലയിലായിരുന്നു
+mey joon maasangalil maatti nadunnathaanu uthamam	മെയ് ജൂൺ മാസങ്ങളിൽ മാറ്റി നടുന്നതാണ് ഉത്തമം
+samghadanayude adarsavum lakshyavum parichayappeduthukayum lokasambhavangale prasthanika kazhchappadilude vilayiruthukayum cheyyukayenna uddesyathodeyanu prabodhanam arambhichath	സംഘടനയുടെ ആദർശവും ലക്ഷ്യവും പരിചയപ്പെടുത്തുകയും ലോകസംഭവങ്ങളെ പ്രാസ്ഥാനിക കാഴ്ചപ്പാടിലൂടെ വിലയിരുത്തുകയും ചെയ്യുകയെന്ന ഉദ്ദേശ്യത്തോടെയാണ് പ്രബോധനം ആരംഭിച്ചത്
+sisttam nirmikkapetta reethi athile khadakabhaagangalude prevarthanam ennivaye sambhadhicha poorna vivarangal rekhapeduthyvaikkunath dokyumenreshaniloodeyaanu	സിസ്റ്റം നിർമ്മിക്കപ്പെട്ട രീതി അതിലെ ഘടകഭാഗങ്ങളുടെ പ്രവർത്തനം എന്നിവയെ സംബന്ധിച്ച പൂർണ വിവരങ്ങൾ രേഖപ്പെടുത്തിവയ്ക്കുന്നത് ഡോക്കുമെന്റേഷനിലൂടെയാണ്
+s vare vegatha airtel vagdanom cheyyunnu	എസ് വരെ വേഗത എയർടെൽ വാഗ്ദാനം ചെയ്യുന്നു
+madhu jayabharathi kalayam ramakrishnadas manavasan joseph yennivaranu pradhana veshangal cheythirunnathu	മധു ജയഭാരതി കല്ലയം കൃഷ്ണദാസ് മനവാസൻ ജോസഫ് എന്നിവരാണ് പ്രധാന വേഷങ്ങൾ ചെയ്തിരിക്കുന്നത്
+somiya bhoomishaasthram	സോമിയ ഭൂമിശാസ്ത്രം
+ithu abhadhathil sambhavichathaano atho inganethanne roopakalppana cheythathanoennurappilla	ഇത് അബദ്ധത്തിൽ സംഭവിച്ചതാണോ അതോ ഇങ്ങനെത്തന്നെ രൂപകൽപന ചെയ്തതാണൊഎന്നുറപ്പില്ല
+koodaathe mazhakkaalamaakunnathinu munpaayi ilakalkku thaazhe vare thandil bordo mishritham purattunnath thand cheeyal thadayaan valare nallathaanu	കൂടാതെ മഴക്കാലമാകുന്നതിനു മുൻപായി ഇലകൾക്ക് താഴെ വരെ തണ്ടിൽ ബോർഡോ മിശ്രിതം പുരട്ടുന്നത് തണ്ട് ചീയൽ തടയാൻ വളരെ നല്ലതാണ്
+kilimanoore kottaram rajaravivarmmayude jananam mulam prasiddhamanu	കിളിമാനൂർ കൊട്ടാരം രാജാരവിവർമ്മയുടെ ജനനം മൂലം പ്രസിദ്ധമാണ്
+thudarnnu innathe paakisthaante bhaagamaaya peshavaaril kolej adhyaapakanaayi joliyil praveshichu	തുടർന്ന് ഇന്നത്തെ പാകിസ്താന്റെ ഭാഗമായ പെഷവാറിൽ കോളജ് അധ്യാപകനായി ജോലിയിൽ പ്രവേശിച്ചു
+aazhamariya kidanginaal chuttapetta pradeshamayathukondu evidam mayilukalude samrakshanathinu pattiyathanu	ആഴമേറിയ കിടങ്ങിനാൽ ചുറ്റപ്പെട്ട പ്രദേശമായതുകൊണ്ട് ഇവിടം മയിലുകളുടെ സംരക്ഷണത്തിന് പറ്റിയതാണ്
+tharavattu peranu perinoppam cherthirikkunnathu	തറവാട്ടു പേരാണ് പേരിനൊപ്പം ചേർത്തിരിക്കുന്നത്
+maniprevaalakrithikalil pazhakkam kondum kavithwam kondum mikachathaanu ee krithi	മണിപ്രവാളകൃതികളിൽ പഴക്കം കൊണ്ടും കവിത്വം കൊണ്ടും മികച്ചതാണ് ഈ കൃതി
+pinneedu varunna upayokthavinu ee randu peril ninnum fayalikalude packetukal down load cheythu oru full copy thante systathilekku mattuvan sadhilkum	പിന്നിടു വരുന്ന ഉപയൊക്താവിനു ഈ രണ്ടു പേരിൽ നിന്നും ഫയലുകളുടെ പാക്കറ്റുകൾ ഡൌൺ ലോഡ് ചെയ്തു ഒരു ഫുൾ കോപ്പി തന്റെ സിസ്റ്റത്തിലേക്കു മാറ്റുവാൻ സാധിക്കും
+akkalathu karnatakayil english pathrangal ellayirunnu	അക്കാലത്ത് കർണാടകയിൽ ഇംഗ്ലീഷ് പത്രങ്ങൾ ഇല്ലായിരുന്നു
+indiayile ettavum pazhaya jutha devalayamanu mala juthappalli	ഇന്ത്യയിലെ ഏറ്റവും പഴയ ജൂത ദേവാലയമാണ് മാള ജൂതപ്പള്ളി
+adutha varsham sarkar sahayathode oru ashupathriyude nirmana pravarthanam aarambhichu	അടുത്ത വർഷം സർക്കാർ സഹായത്തോടെ ഒരു ആശുപത്രിയുടെ നിർമ്മാണ പ്രവർത്തനം ആരംഭിച്ചു
+mrigangalude svabhava padanavum ithil kanam	മൃഗങ്ങളൂടെ സ്വഭാവ പഠനവും ഇതിൽ കാണാം
+ithile vaayuniyandhrana samvidhaanam rotetting bolt ennivayakku a	ഇതിലെ വായുനിയന്ത്രണ സംവിധാനം റൊട്ടേറ്റിംഗ് ബോൾട് എന്നിവയ്ക്ക് എ
+shreedhaathumanjari enna krithiyum adheham prekaashapeduthukayundaayi	ശ്രീധാതുമജ്ഞരി എന്ന കൃതിയും അദ്ദേഹം പ്രകാശപ്പെടുത്തുകയുണ്ടായി
+jevan enna padathinu krithyamaya nirvachanam nalkuka ennath kureyere prayasamulla karyamanu	ജീവൻ എന്ന പദത്തിന് കൃത്യമായ നിർവചനം നൽകുക എന്നത് കുറേയേറെ പ്രയാസമുള്ള കാര്യമാണ്
+paurohithyathinte kantethalilo kausalathilo ennathinekkal manushyante jijnjasayilum bhayathilum arakshabodhathilum prathyasayilum ekanthathavyasanathilumanu mathathinte thudakkam	പൗരോഹിത്യത്തിന്റെ കണ്ടെത്തലിലോ കൗശലത്തിലോ എന്നതിനേക്കാൾ മനുഷ്യന്റെ ജിജ്ഞാസയിലും ഭയത്തിലും അരക്ഷാബോധത്തിലും പ്രത്യാശയിലും ഏകാന്തതാവ്യസനത്തിലുമാണ് മതത്തിന്റെ തുടക്കം
+ripporting nerathe thanne nirvachikkappettittulla ethoru hostinepattiyumulla riporttukal ithil labhyamaanu	റിപ്പോർട്ടിംഗ് നേരത്തെ തന്നെ നിർവചിക്കപ്പെട്ടിട്ടുള്ള ഏതൊരു ഹോസ്റ്റിനെപ്പറ്റിയുമുള്ള റിപ്പോർട്ടുകൾ ഇതിൽ ലഭ്യമാണ്
+pala speesheessukalum pashchimakhattathile prethyeeka meghalakalil thadheeshareeyaraanu	പല സ്പീഷീസുകളും പശ്ചിമഘട്ടത്തിലെ പ്രത്യേക മേഖലകളിൽ തദ്ദേശീയരാണ്
+ee sikashakalayalavilanu leninte jeevithathile sulradhanamaya rand sambhavangal nadannath	ഈ ശിക്ഷാകാലയളവിലാണ് ലെനിന്റെ ജീവിതത്തിലെ സുപ്രധാനമായ രണ്ട് സംഭവങ്ങൾ നടന്നത്
+eddehathinte nireekshanangal pinnidu dharanavikasathe sambandhicha oru siddhanthamayi rupappettu	ഇദ്ദേഹത്തിന്റെ നിരീക്ഷണങ്ങൾ പിന്നീട് ധാരണാവികാസത്തെ സംബന്ധിച്ച ഒരു സിദ്ധാന്തമായി രൂപപ്പെട്ടു
+keralathile gramapanchayathukalude pattika	കേരളത്തിലെ ഗ്രാമപഞ്ചായത്തുകളുടെ പട്ടിക
+athupokethanne governmentilninnulla maatta adavukal undu	അതുപോലെതന്നെ ഗവൺമെന്റിൽനിന്നുള്ള മാറ്റ അടവുകൾ ഉണ്ട്
+mattu bankukale apekshichu payments bankukalkku minimum balance venda yenna prethyekatha koodi undu	മറ്റ് ബാങ്കുകളെ അപേക്ഷിച്ച് പേയ്മെന്റ്‌സ് ബാങ്കുകൾക്ക് മിനിമം ബാലൻസ് വേണ്ട എന്ന പ്രത്യേക കൂടി ഉണ്ട്
+ith maarththaandhavarmmaye chodippichu	ഇത് മാർത്താണ്ഡവർമ്മയെ ചൊടിപ്പിച്ചു
+dental collegukalil birudhathinu anubandhamayi dvivarsha dental technitian dental hygenist dental assistant yennee coursukal nilavilvannu	ദന്തൽ കോളജുകളിൽ ബിരുദത്തിന് അനുബന്ധമായി ദ്വിവർഷ ദന്തൽ ടെക്നീഷ്യൻ ദന്തൽ ഹൈജീനിസ്റ്റ് ദന്തൽ അസിസ്റ്റന്റ് എന്നീ കോഴ്സുകൾ നിലവിൽവന്നു
+kaattaruvikalkku samepamulla parakalilum chullikkompukalilum eva sadharanayaayi erikkarundu	കാട്ടരുവികൾക്കു സമീപമുള്ള പാറകളിലും ചുള്ളിക്കൊമ്പുകളിലും ഇവ സാധാരണയായി ഇരിക്കാറുണ്ട്
+marthandavarmayude nirdeshaprakaram kottayam chavittuveliyil avar pinneedi sthirathamasavumakki	മാർത്താണ്ഡവർമ്മയുടെ നിർദ്ദേശപ്രകാരം കോട്ടയം ചവിട്ടുവേലിയിൽ അവർ പിന്നീട് സ്ഥിരതാമസവുമാക്കി
+hindumathathile oru devananu krishanan	ഹിന്ദുമതത്തിലെ ഒരു ദേവനാണ് കൃഷ്ണൻ
+presburgil vechu nadanna samaadhaana udambadiyiluude uroppinte bhoopadam thiruthapettu	പ്രസ്ബർഗിൽ വെച്ചു നടന്ന സമാധാന ഉടമ്പടിയിലൂടെ യൂറോപ്പിനറെ ഭൂപടം തിരുത്തപ്പെട്ടു
+swantham synikare aaveshabharitharaakkaanulla nepoliyante anitharasaadhaaranamaaya kazhivineppati vellington prabhuvum ere athbhudapettittund	സ്വന്തം സൈനികരെ ആവേശഭരിതരാക്കാനുള്ള നെപോളിയന്റെ അനിതരസാധാരണമായ കഴിവിനെപ്പറ്റി വെല്ലിംഗ്ടൺ പ്രഭുവും ഏറെ അത്ഭുതപ്പെട്ടിട്ടുണ്ട്
+chola kalaghattam venkala silpangngalkkum perukettathanu athu gambhira purnnakaya prathimakalilekk valarnnathinu nidarsanamanu thiruppathiyile devarayarudeyum matum prathima	ചോള കാലഘട്ടം വെങ്കല ശില്പങ്ങൾക്കും പേരുകേട്ടതാണ് അത് ഗംഭീര പൂർണകായ പ്രതിമകളിലേക്കു വളർന്നതിനു നിദർശനമാണ് തിരുപ്പതിയിലെ ദേവരായരുടെയും മറ്റും പ്രതിമ
+athinal niyamanangalude karyathil thanikku munpulla samrattukalkkundayirunna adhikaram than thudarnnu prayogikkumenna nilapadil hentry urachuninnu	അതിനാൽ നിയമനങ്ങളുടെ കാര്യത്തിൽ തനിക്കു മുൻപുള്ള സമ്രാട്ടുകൾക്കുണ്ടായിരുന്ന അധികാരം താൻ തുടർന്നു പ്രയോഗിക്കുമെന്ന നിലപാടിൽ ഹെൻറി ഉറച്ചുനിന്നു
+leyathvathinte thothanusarich ettavum kuranjath aadhyavum mattullava thudarnnum adiyunnu	ലേയത്വത്തിന്റെ തോതനുസരിച്ച് ഏറ്റവും കുറഞ്ഞത് ആദ്യവും മറ്റുള്ളവ തുടർന്നും അടിയുന്നു
+joseph ponnalical v	ജോസഫ് പൊന്നോലിക്കൽ വി
+vikrithiraaman kunjikkoonan andhagaayakan ennee krithikalkk hindhi thamizh paribhaashakal undaayittund	വികൃതിരാമൻ കുഞ്ഞിക്കൂനൻ അന്ധഗായകൻ എന്നീ കൃതികൾക്ക് ഹിന്ദി തമിഴ് പരിഭാഷകൾ ഉണ്ടായിട്ടുണ്ട്
+kaamapuram kshethrathile ulsavakaalathu ambalathile uruli moshticha oru pulayane devan kallaakkiyathaanathre	കാമപുരം ക്ഷേത്രത്തിലെ ഉത്സവകാലത്ത് അമ്പലത്തിലെ ഉരുളി മോഷ്ടിച്ച ഒരു പുലയനെ ദേവൻ കല്ലാക്കിയതാണത്രെ
+d purathuvittathu	ഡി പുറത്തുവിട്ടത്
+egyptukar ja yennathu ga yennanu ucharikkarullathu	ഈജിപ്തുകാർ ജ എന്നത് ഗ എന്നാണ് ഉച്ചരിക്കാറുള്ളത്
+veliyettam thadayaanaayum seyin nadhiyude irukarakalilum karinkallu paaki chiraketty	വേലിയേറ്റം തടയാനായും സെയിൻ നദിയുടെ ഇരുകരകളിലും കരിങ്കല്ലു പാകി ചിറകെട്ടി
+ottapalathinu kizhaku sadhanam kadhakali academyilum gandhi seva sadhanam krishnankutti kadhakali abhyasichu	ഒറ്റപ്പാലത്തിനു കിഴക്ക് സദനം കഥകളി അക്കാദമിയിലും ഗാന്ധി സേവാ സദനം കൃഷ്ണകുട്ടി കഥകളി അഭ്യസിച്ചു
+rachithavaya abul qasim firdowsi iranile mashadinaduthulla tus yenna sthalathanu edheham janichathu	രചയിതാവായ അബുൾ കാസിം ഫിർദോസി ഇറാനിലെ മശ്‌ഹദിനടുത്തുള്ള തുസ് എന്ന സ്ഥലത്താണ് ഇദ്ദേഹം ജനിച്ചത്
+nilavil unescoyil ninnum vinodasanchaarathil ninnum labhikkunna panam kshethram kedupaadukal theerthu parirakshikkan upayogikkunnundu	നിലവിൽ യുനസ്കോയിൽ നിന്നും വിനോദസഞ്ചാരത്തിൽ നിന്നും ലഭിക്കുന്ന പണം ക്ഷേത്രം കേടുപാടുകൾ തീർത്ത് പരിരക്ഷിക്കാൻ ഉപയോഗിക്കുന്നുണ്ട്
+vadakkan hsenvi rajakudumbathile savo nag heem khamne aanu vihavam cheythathu	വടക്കൻ ഹ്സെൻവി രാജകുടുംബത്തിലെ സവോ നാങ് ഹീം ഖാംനെ ആണ് വിവാഹം ചെയ്തത്
+lorans kaadhareen maansfeeld aandhre zheedh changampuzha thudangiyavare anusmarikkukayum changampuzhayude kalithozhi enna noval vishadhamaayi pariganikkukayum cheyyunnu	ലോറൻസ് കാഥറീൻ മാൻസ്ഫീൽഡ് ആന്ദ്രേ ഴീദ് ചങ്ങമ്പുഴ തുടങ്ങിയവരെ അനുസ്മരിക്കുകയും ചങ്ങമ്പുഴയുടെ കളിത്തോഴി എന്ന നോവൽ വിശദമായി പരിഗണിക്കുകയും ചെയ്യുന്നു
+chera samraajyathinte thuramukhangal keralavum puramlokavumaayi thammilulla vyaapaaram bandham valarthiyedukkunnathil oru pradhaana pankuvahichu	ചേര സാമ്രാജ്യത്തിന്റെ തുറമുഖങ്ങൾ കേരളവും പുറംലോകവുമായി തമ്മിലുള്ള വ്യാപാരം ബന്ധം വളർത്തിയെടുക്കുന്നതിൽ ഒരു പ്രധാന പങ്കുവഹിച്ചു
+athinusheshamaanu kongrass i yude chihnnamaayi kaippathi thiranjeduthathu ennu parayappedunnu	അതിനുശേഷമാണ് കോൺഗ്രസ് ഐ യുടെ ചിഹ്നമായി കൈപ്പത്തി തിരഞ്ഞെടുത്തത് എന്നു പറയപ്പെടുന്നു
+veemirinte guruvinekkurich aadhikarikamaya vivarangal onnum thanne labhyamalla	വെർമീറിന്റെ ഗുരുവിനെക്കുറിച്ച് ആധികാരികമായ വിവരങ്ങൾ ഒന്നും തന്നെ ലഭ്യമല്ല
+vadakkuparinjaaran bhaagath oru valiya deltta undaakkikond bombettookka ulkkadalileykozhukippokunnu	വടക്കുപടിഞ്ഞാറൻ ഭാഗത്ത് ഒരു വലിയ ഡെൽറ്റ ഉണ്ടാക്കിക്കൊണ്ട് ബോംബെട്ടോക്ക ഉൾക്കടലിലേയ്ക്കൊഴുകിപ്പോകുന്നു
+school vidyabhyasakalathu yes space yenna theatre companiyile angamayirunna coleman edinburg ulsavathil crystal clear yenna naadakathil abhinayichirunnu	സ്കൂൾ വിദ്യാഭ്യാസകാലത്ത് യെസ് സ്പേസ് എന്ന തീയേറ്റർ കമ്പനിയിലെ അംഗമായിരുന്ന കോൾമാൻ എഡിൻബർഗ് ഉത്സവത്തിൽ ക്രിസ്റ്റൽ ക്ലിയർ എന്ന നാടകത്തിൽ അഭിനയിച്ചിരുന്നു
+wadirahma english school	വാദിറഹ്മ ഇംഗ്ലീഷ് സ്കൂൾ
+oru ramgam avasanikkunnathu vare drawingil vyathyasam varuthukayum chithrikarikkukayum cheyyum	ഒരു രംഗം അവസാനിക്കുന്നതു വരെ ഡ്രോയിംഗിൽ വ്യത്യാസം വരുത്തുകയും ചിത്രീകരിക്കുകയും ചെയ്യും
+white river national forest vadakupadinjaran coloradoyile oru deshiya vanamanu	വൈറ്റ് റിവർ നാഷണൽ ഫോറസ്റ്റ് വടക്കുപടിഞ്ഞാറൻ കൊളറാഡോയിലെ ഒരു ദേശീയ വനമാണ്
+muthappane yeppozhum oru naya anugamikkunnu	മുത്തപ്പനെ എപ്പോഴും ഒരു നായ അനുഗമിക്കുന്നു
+english namavum churukkapperum onnuthanneyaya rand adhunika nakshathrarasikalil onnanith chingam leo rasiyanu randamatheth	ഇംഗ്ലീഷ് നാമവും ചുരുക്കപ്പേരും ഒന്നുതന്നെയായ രണ്ട് ആധുനിക നക്ഷത്രരാശികളിൽ ഒന്നാണിത് ചിങ്ങം Leo രാശിയാണ് രണ്ടാമത്തേത്
+naaraanathu thamburaan	നാറാണത്ത് തമ്പുരാൻ
+mathayiyude suvisesham markosinte suvisesham lukkayude suvisesham yohannante suvisesham ennivayanava	മത്തായിയുടെ സുവിശേഷം മർക്കോസിന്റെ സുവിശേഷം ലൂക്കായുടെ സുവിശേഷം യോഹന്നാന്റെ സുവിശേഷം എന്നിവയാണവ
+bhaumashilakalude moonnu pothuvibhaagangalil orinamaanu avasaadhashila	ഭൗമശിലകളുടെ മൂന്നു പൊതുവിഭാഗങ്ങളിൽ ഒരിനമാണ് അവസാദശില
+kadha ithuvare joshi mammootti suhaasini	കഥ ഇതുവരെ ജോഷി മമ്മൂട്ടി സുഹാസിനി
+pakshe ithu pinneedu pala thettidhaaranakalkkum vazhivechu	പക്ഷെ ഇതു പിന്നീട് പലേ തെറ്റിദ്ധാരണകൾക്കു വഴിവെച്ചു
+anne barkke aadyakaalathu oru grahaadhyaapikayaayirunnu	അന്നെ ബർക്കെ ആദ്യകാലത്ത് ഒരു ഗ്രഹാദ്ധ്യാപികയായിരുന്നു
+daridramayikkondirunna rashyakku ethu thangavunnathilereyayirunnu	ദരിദ്രമായിക്കൊണ്ടിരുന്ന റഷ്യക്ക് ഇത് താങ്ങാവുന്നതിലേറെയായിരുന്നു
+kadhakali kadhayude aarambhamkurikkunnathanu kadharambham	കഥകളി കഥയുടെ ആരംഭംകുറിക്കുന്നതാണ് കഥാരംഭം
+thilangunna kadutha neelanirathilullamukal bhaagavum nenjum	തിളങ്ങുന്ന ക്ടുത്ത നീലനിറത്തിലുളമുകൾ ഭാഗവും നെഞ്ചും
+karshaka samudayathinte avasyangalkkayulla porattathinu devegauda prasasthananu	കർഷക സമുദായത്തിന്റെ ആവശ്യങ്ങൾക്കായുള്ള പോരാട്ടത്തിന് ദേവെഗൗഡ പ്രശസ്തനാണ്
+ippol delhi sarvakalaashaalayil prafasaraayi joli cheyyunnu	ഇപ്പോൾ ഡെൽഹി സർവ്വകലാശാലയിൽ പ്രഫസറായി ജോലി ചെയ്യുന്നു
+grey dhaaraalam kadal ochukale vivarichitund avayil chilathu	ഗ്രേ ധാരാളം കടൽ ഒച്ചുകളെ വിവരിച്ചിട്ടുണ്ട് അവയിൽ ചിലത്
+ee sinimayil mikacha puthumukha nadikkulla filmfare puraskaram avarkk labhikkukayundayi	ഈ സിനിമയിൽ മികച്ച പുതുമുഖ നടിക്കുള്ള ഫിലിംഫെയർ പുരസ്കാരം അവർക്ക് ലഭിക്കുകയുണ്ടായി
+mittshi munshi ennee perukalilum ariyappedunnu	മിറ്റ്ഷി മുൻഷി എന്നീ പേരുകളിലും അറിയപ്പെടുന്നു
+prasthutha sambathika varshathile kanakkeduppil guruthara veezhchakal kandethiyathai c	പ്രസ്തുത സാമ്പത്തിക വർഷത്തിലെ കണക്കെടുപ്പിൽ ഗുരതര വീഴ്ചകൾ കണ്ടെത്തിയതായി സി
+ithine joodha vishwaasathil urachu ninnavar ethirthu	ഇതിനെ ജൂത വിശ്വാസത്തിൽ ഉറച്ചു നിന്നവർ എതിർത്തു
+oru vyakthiyude valarchayile vyathyasthakhattangalil ayalil undakunna shaareerikavum manasikavumaya vyathiyanangalekurichu nireekshanam nadathukayum saidhandhikanigamanangal rupavathkarikkukayum cheyyunna manashastrashakhayanu vikasa manashastram	ഒരു വ്യക്തിയുടെ വളർച്ചയിലെ വ്യത്യസ്തഘട്ടങ്ങളിൽ അയാളിൽ ഉണ്ടാകുന്ന ശാരീരികവും മാനസികവുമായ വ്യതിയാനങ്ങളെക്കുറിച്ചു നിരീക്ഷണം നടത്തുകയും സൈദ്ധാന്തികനിഗമനങ്ങൾ രൂപവത്കരിക്കുകയും ചെയ്യുന്ന മനഃശാസ്ത്രശാഖയാണ് വികാസ മനഃശാസ്ത്രം
+taiwanile hokkien pathipinu kwansala shangsala vakabhedhangalumayanu kooduthal samyam	തായ്‌വാനിലെ ഹൊക്കീൻ പതിപ്പിന് ക്വാൻസാഉ ശാൻങ്‌സാഉ വകഭേദങ്ങളുമായാണ് കൂടുതൽ സാമ്യം
+avayil chilathu thazhe kodukkunnu	അവയിൽ ചിലത് താഴെ കൊടുക്കുന്നു
+gramathilevideyenkilum wayanadukulavan daiwam kettunnundengil athu kazhiyunna divasam vare pooja nadatharilla	ഗ്രാമത്ത്തിലെവിടെയെങ്കിലും വയനാട്ടുകുലവൻ ദൈവം കേട്ടുന്നുണ്ടെങ്കിൽ അതു കഴിയുന്ന ദിവസം വരെ പൂജ നടത്താറില്ല
+phil birudadhari	ഫിൽ ബിരുദധാരി
+pelejiyanisathinum donatisathinum mattum ethiraayulla grandhakaarante charithra praadhaanyamulla aashaya samarangalude kaalavum kanfeshassinte rachanaykku sheshamaanu	പെലേജിയനിസത്തിനും ഡോണറ്റിസത്തിനും മറ്റും എതിരായുള്ള ഗ്രന്ഥകാരന്റെ ചരിത്ര പ്രാധാന്യമുള്ള ആശയ സമരങ്ങളുടെ കാലവും കൺഫെഷൻസിന്റെ രചനയ്ക്കു ശേഷമാണ്
+novel storej services n s s	നോവെൽ സ്റ്റോറേജ് സെർവീസെസ് എൻ എസ് എസ്
+sabarigiri jalavaidyuthipathathiyude bhagamayi nirmicha concrete gravity anakettanith	ശബരിഗിരി ജലവൈദ്യുതപദ്ധതിയുടെ ഭാഗമായി നിർമ്മിച്ച കോൺക്രീറ്റ് ഗ്രാവിറ്റി അണക്കെട്ടാണിത്
+durithamanubhavikkunna janavibhagangale sahayikkunnathinulla karmaparipadikalkku jamayathinte yella chathurvarsha paripadikalilum mukhyamaya edam labhichittundu	ദുരിതമനുഭവിക്കുന്ന ജനവിഭാഗങ്ങളെ സഹായിക്കുന്നതിനുള്ള കർമപരിപാടികൾക്ക് ജമാഅത്തിന്റെ എല്ലാ ചതുർവർഷ പരിപാടികളിലും മുഖ്യമായ ഇടം ലഭിച്ചിട്ടുണ്ട്
+lamiyeshya enna familyilanu ethulppedunnath	ലാമിയേഷ്യേ എന്ന ഫാമിലിയിലാണ് ഇതുൾപ്പെടുന്നത്
+rajendra prasad jawaharlal nehru yennee puthu thalamura nethakkalkkoppam gandhijiyude adutha anuyayiyayirunna sardhar vallabhbhai patelanu nisahakaranaprakshobham munnil ninnu nayichathu	രാജേന്ദ്ര പ്രസാദ് ജവഹർലാൽ നെഹ്രു എന്നീ പുതു തലമുറ നേതാക്കൾക്കൊപ്പം ഗാന്ധിജിയുടെ അടുത്ത അനുയായിയായിരുന്ന സർദ്ദാർ വല്ലഭായ് പട്ടേലാണ് നിസ്സഹകരണപ്രക്ഷോഭം മുന്നിൽ നിന്നു നയിച്ചത്
+thaniyaavarthanam oru kalaakaarante dhishanayeyum kriyaathmakatheyum pradharshippikunna onnanu	തനിയാവർത്തനം ഒരു കലാകാരന്റെ ധിഷണയേയും ക്രിയാത്മകതയേയും പ്രദർശിപ്പിക്കുന്ന ഒന്നാണ്
+eth kottukali adhava nirakali ennum ariyappedunnu	ഇത് കൊട്ടുകളി അഥവാ നിരകളി എന്നും അറിയപ്പെടുന്നു
+itharam bacteriakalkku vellathil valareyadhikam neram jevikkunnathinu kazhivullathinal itharam rogam pakaran vazhiyorukkunnu	ഇത്തരം ബാക്റ്റീരിയകൾക്ക് വെള്ളത്തിൽ വളരെയധികം നേരം ജീവിക്കുന്നതിന് കഴിവുള്ളതിനാൽ ഇത്തരം രോഗം പകരാൻ വഴിയൊരുക്കുന്നു
+yenkilum oro rajyathilum desheeyanilavarathil thanne anekam sanghatanakal ippozhum pravarthikunnundu	എങ്കിലും ഓരോ രാജ്യത്തിലും ദേശീയനിലവാരത്തിൽ തന്നെ അനേകം സംഘടനകൾ ഇപ്പോഴും പ്രവർത്തിക്കുന്നുണ്ട്
+arabi senaanaayakan abd al rahmaan bin samurayude nethuthvathil veendum munnottu neengiya arabikal kure vadakkulla kaaboolum kurachukaalathe kaikkalaakkiyirunnu	അറബി സേനാനായകൻ അബ്ദ് അൽ റഹ്മാൻ ബിൻ സമുരയുടെ നേതൃത്വത്തിൽ വീണ്ടും മുന്നോട്ടു നീങ്ങിയ അറബികൾ കുറേ വടക്കുള്ള കാബൂളും കുറച്ചുകാലത്തേ കൈക്കലാക്കിയിരുന്നു
+bombeyil ninnulla paazhsi narthakiyaaya shirin vajifdhaarine aanandh vivaaham cheythu	ബോംബെയിൽ നിന്ന്നുള്ള പാഴ്സി നർത്തകിയായ ഷിറിൻ വജിഫ്ദാറിനെ ആനന്ദ് വിവാഹം ചെയ്തു
+manas bhaaratheeyachindhayil	മനസ് ഭാരതീയചിന്തയിൽ
+dumaddhandakam sihavikraandhamaakum	ടുമദ്ദണ്ഡകം സിംഹവിക്രാന്തമാകും
+madhyakaalazhattathinte thudakkathil youropilninn ee rangath kaaryamaaya sambhaavanakalonnum undaayittilla	മധ്യകാലഘട്ടത്തിന്റെ തുടക്കത്തിൽ യൂറോപ്പിൽനിന്ന് ഈ രംഗത്ത് കാര്യമായ സംഭാവനകളൊന്നും ഉണ്ടായിട്ടില്ല
+desiyodyanathinte kizhakkn bhagam kuduthalum new south walesinodoppam australiayude thalasthanapradesathinte padinjaran athirthiyude bhagamanu	ദേശീയോദ്യാനത്തിന്റെ കിഴക്കൻ ഭാഗം കൂടുതലും ന്യൂ സൗത്ത് വെയിൽസിനോടൊപ്പം ആസ്ത്രേലിയയുടെ തലസ്ഥാനപ്രദേശത്തിന്റെ പടിഞ്ഞാറൻ അതിർത്തിയുടെ ഭാഗമാണ്
+vaayuvil ninnum naitrajaneyum oxijaneyum muzhuvanaayi verthirikkaan nadathiya oru pareekshanathilaanu avar aargon kandethiyathu	വായുവിൽ നിന്നും നൈട്രജനേയും ഓക്സിജനേയും മുഴുവനായി വേർതിരിക്കാൻ നടത്തിയ ഒരു പരീക്ഷണത്തിലാണ് അവർ ആർഗോൺ കണ്ടെത്തിയത്
+idukki jillayile oru thalukkanu indiayile yetavum valiya kamana dam idukki dam sthithi cheyyunnath ee thalukkilanu	ഇടുക്കി ജില്ലയിലെ ഒരു താലൂക്കാണ് ഇന്ത്യയിലെ ഏറ്റവും വലിയ കമാന ഡാം ഇടുക്കി ഡാം സ്ഥിതി ചെയ്യുന്നത് ഈ താലൂക്കിലാണ്
+ethinte shastra namam heviya braseliyasis yennanu	ഇതിന്റെ ശാസ്ത്ര നാമം ഹെവിയ ബ്രസീലിയാസിസ് എന്നാണ്
+ponnani thaluk grain purchasing officilum kozhikodan premier hosiyari worksilum jolicheythu	പൊന്നാനി താലൂക്ക് ഗ്രെയ്ൻ പർച്ചേസിംഗ് ആപീസിലും കൊഴിക്കോട് പ്രീമിയർ ഹോസിയറി വർക്സിലും ജോലിചെയ്തു
+ana thumbikaiyil jalam yeduthu abhishekam cheyyum	ആന തുമ്പികൈയിൽ ജലം ഏടുത്ത് അഭിഷേകം ചെയ്യും
+kannur cherukunnu swadeshiyaya athmeeyarajan tamizh cinemayiloodeyanu abhinayarangathu arangettam kurikkunnathu	കണ്ണൂർ ചെറുകുന്ന് സ്വദേശിയായ ആത്മീയാരാജൻ തമിഴ് സിനിമയിലൂടെയാണ് അഭിനയരംഗത്ത് അരങ്ങേറ്റം കുറിക്കുന്നത്
+nalu desiya pradanyamulla udyanangal kudicherunnathanu ee sanchayam	നാല് ദേശീയ പ്രധാന്യമുള്ള ഉദ്യാനങ്ങൾ കൂടിചേരുന്നതാണ് ഈ സഞ്ചയം
+balyathil thanne makane nanmayude vazhiye nayikkuvan monica theerumanichu	ബാല്യത്തിൽ തന്നെ മകനെ നന്മയുടെ വഴിയെ നയിക്കുവാൻ മോനിക്ക തീരുമാനിച്ചു
+bhahiraakaasha vinodhasanchaaram	ബഹിരാകാശ വിനോദസഞ്ചാരം
+thirakkeriya shornnur kochin harbour sectionile thrisure theevandi nilayathinum mulamkunnathukav theevandi nilayathinum idaykkulla theevandi nilayamanith	തിരക്കേറിയ ഷൊർണ്ണൂർ കൊച്ചിൻ ഹാർബർ സെക്ഷനിലെ തൃശ്ശൂർ തീവണ്ടി നിലയത്തിനും മുളംകുന്നത്തുകാവ് തീവണ്ടി നിലയത്തിനും ഇടയ്ക്കുള്ള തീവണ്ടി നിലയമാണിത്
+ee raashiyile nakshathrangal thaarathamyeena prekaasham kuranjavayaanu beyar aalfa muthal theetta vare ettu nakshathrangalku maathramee perukal nirdheshichirunullu	ഈ രാശിയിലെ നക്ഷത്രങ്ങൾ താരതമ്യേന പ്രകാശം കുറഞ്ഞവയാണ് ബെയർ ആൽഫ മുതൽ തീറ്റ വരെ എട്ടു നക്ഷത്രങ്ങൾക്കു മാത്രമേ പേരുകൾ നിർദ്ദേശിച്ചിരുന്നുള്ളു
+chila parasya chithrangalil amitaabh bachan prasidha cricket thaaramaaya krishnamaachaari sreekaanth ennivarodoppam abhinayichu	ചില പരസ്യ ചിത്രങ്ങളിൽ അമിതാഭ് ബച്ചൻ പ്രസിദ്ധ ക്രിക്കറ്റ് താരമായ കൃഷ്ണമാചാരി ശ്രീകാന്ത് എന്നിവരോടൊപ്പം അഭിനയിച്ചു
+kaithikkelama enna perum angane labhichu	കൈതിക്കെലമ്മ എന്ന പേരും അങ്ങനെ ലഭിച്ചു
+aikyanadukalile abhyantharayudhathinte thudakathinu pathu varsham munbu velicham kanda ee krithi adimavyavasthakethirayi pothujanabhiprayam roopikarichu yudhathinu vazhiyorukkunnathil valiya pankuvahichu	ഐക്യനാടുകളിലെ ആഭ്യന്തരയുദ്ധത്തിന്റെ തുടക്കത്തിനു പത്തു വർഷം മുൻപു വെളിച്ചം കണ്ട ഈ കൃതി അടിമവ്യവസ്ഥക്കെതിരായി പൊതുജനാഭിപ്രായം രൂപീകരിച്ച് യുദ്ധത്തിനു വഴിയൊരുക്കുന്നതിൽ വലിയ പങ്കുവഹിച്ചു
+krushnan naayar kaanjirakkaattu v	കൃഷ്ണൻ നായർ കാഞ്ഞിരക്കാട്ട് വി
+ith sooperhittaayirunnu	ഇത് സൂപ്പർഹിറ്റായിരുന്നു
+shanthivila dinesh samvidhanamcheytha banglavil outha yenna chithrathil double rollil abhinayicha lalinte vrudha kadhapathram ere shradhikkappettu	ശാന്തിവിള ദിനേശ് സംവിധാനംചെയ്ത ബംഗ്ലാവിൽ ഔത എന്ന ചിത്രത്തിൽ ഡബിൾ റോളിൽ അഭിനയിച്ച ലാലിന്റെ വൃദ്ധ കഥാപാത്രം ഏറെ ശ്രദ്ധിക്കപ്പെട്ടു
+kuduthal alukal koha projectil sahakarikkanum thudangi	കൂടുതൽ ആളുകൾ കോഹ പ്രൊജക്ടിൽ സഹകരിക്കാനും തുടങ്ങി
+ulvashathu muzhachukaanunna quarts paralukalundaavym apoorvamaayi kaalsytt dolamytt thudangiyavayude paralukalum	ഉൾവശത്തു മുഴച്ചുകാണുന്ന ക്വാർട്ട്സ് പരലുകളുണ്ടാവും അപൂർവമായി കാൽസൈറ്റ് ഡോളമൈറ്റ് തുടങ്ങിയവയുടെ പരലുകളും
+germanyil peedam rasi udikkathathu kond ee rasi kanatheyanu addeham perukal nirddesichath	ജർമ്മനിയിൽ പീഠം രാശി ഉദിക്കാത്തതു കൊണ്ട് ഈ രാശി കാണാതെയാണ് അദ്ദേഹം പേരുകൾ നിർദ്ദേശിച്ചത്
+prathyeka tharathilulla manomudrakalude roupeekaranamanu padanam yennum evar vishadeekarikkukayundayi	പ്രത്യേക തരത്തിലുള്ള മനോമുദ്രകളുടെ രൂപീകരണമാണ് പഠനം എന്നും ഇവർ വിശദീകരിക്കുകയുണ്ടായി
+yohannante athmavinte irunda rathri enna rachanayude peru athmiyaprathisandhikale suchippikkan innu parakke upayogikkappedarund	യോഹന്നാന്റെ ആത്മാവിന്റെ ഇരുണ്ട രാത്രി എന്ന രചനയുടെ പേര് ആത്മീയപ്രതിസന്ധികളെ സൂചിപ്പിക്കാൻ ഇന്ന് പരക്കെ ഉപയോഗിക്കപ്പെടാറുണ്ട്
+anna aloominiyam kambani thudangi ettu varshangalkku sheshamaanu saaraas enna peril karppodikal vipaniyilirakkiyathu	അന്നാ അലുമിനിയം കമ്പനി തുടങ്ങി എട്ടു വർഷങ്ങൾക്ക് ശേഷമാണ് സാറാസ് എന്ന പേരിൽ കറിപ്പൊടികൾ വിപണിയിലിറക്കിയത്
+ennaal pothusamoohaththin gunaparamallaaththa reethiyilulla sankhadikkalukalkkum fesbukk vazhiyorukkiyittund	എന്നാൽ പൊതുസമൂഹത്തിന് ഗുണപരമല്ലാത്ത രീതിയിലുള്ള സംഘടിക്കലുകൾക്കും ഫേസ്‌ബുക്ക് വഴിയൊരുക്കിയിട്ടുണ്ട്
+mediaoen channel	മീഡിയാവൺ ചാനൽ
+pavizhaputtukalude mukalil ulla manal niranja cheru dweepukaleyanu kay yennu vilikkunnathu	പവിഴപ്പുറ്റുകളുടെ മുകളിൽ ഉള്ള മണൽ നിറഞ്ഞ ചെറു ദ്വീപുകളെയാണ് കേ എന്ന് വിളിക്കുന്നത്
+negrokale novelist pukazhthunnathu kshama bheeruthwam alasasobhavam yennee gunangal yeduthuparanjaanu	നീഗ്രോകളെ നോവലിസ്റ്റ് പുകഴ്ത്തുന്നത് ക്ഷമ ഭീരുത്വം അലസസ്വഭാവം എന്നീ ഗുണങ്ങൾ എടുത്തുപറഞ്ഞാണ്
+ekkalathu thanne tibetanmar pamirinu kurukeyulla pala churangaludeyum niyanthranavum swanthamaki	ഇക്കാലത്തു തന്നെ ടിബറ്റന്മാർ പാമിറിനു കുറുകെയുള്ള പല ചുരങ്ങളുടേയും നിയന്ത്രണവും സ്വന്തമാക്കി
+balachandhrarinte puthu puthu ardhangal enna chithramaanu rahmaane thamizhile thirakkulla thaaramaakkiyathu	ബാലചന്ദ്രറിന്റെ പുതു പുതു അർത്ഥങ്ങൾ എന്ന ചിത്രമാണ് റഹ്മാനെ തമിഴിലെ തിരക്കുള്ള താരമാക്കിയത്
+thudarnnu adheham oru pankaliyodoppam thadikachavadathil yerpedukayum athu valiya sambathika nashttam varuthivekkukayum cheythu	തുടർന്ന് അദ്ദേഹം ഒരു പങ്കാളിയോടൊപ്പം തടിക്കച്ചവടത്തിൽ ഏർപ്പെടുകയും അത് വലിയ സാമ്പത്തിക നഷ്ടം വരുത്തിവെക്കുകയും ചെയ്തു
+valiya nagarangalaya chiang rai uttaradit phi pan nam ranginte vadakku thekku yennividangalile paridhikk sameepamanu	വലിയ നഗരങ്ങളായ ചിയാങ് റായി ഉത്തരാദിറ്റ് ഫൈ പാൻ നോം റേഞ്ചിന്റെ വടക്ക് തെക്ക് എന്നിവിടങ്ങളിലെ പരിധിക്ക് സമീപമാണ്
+kalluvazhi vasu	കല്ലുവഴി വാസു
+upayokthakkal adhyam o	ഉപയോക്താക്കൾ ആദ്യം ഓ
+oru pattaala yoonittinte audhyogika utharavukal purappeduvikkunnathu adjuttantaanu	ഒരു പട്ടാള യൂണിറ്റിന്റെ ഔദ്യോഗിക ഉത്തരവുകൾ പുറപ്പെടുവിക്കുന്നത് അഡ്ജുറ്റന്റാണ്
+smarakasamithy angam kanhangad art forum member yennee nilakalil pravarthichittundu	സ്മാരകസമിതി അംഗം കാഞ്ഞങ്ങാട് ആർട്ട് ഫോറം മെമ്പർ എന്നീ നിലകളിൽ പ്രവർത്തിച്ചിട്ടുണ്ട്
+indyan raashtreeyathil van chalanangal srishticha adiyantharaavastha kaalakhattathil indhiragaandhi sweekaricha nilapaadukalil nirnaayaka pankuvahikkuvaan idhehathinu kazhinju	ഇന്ത്യൻ രാഷ്ട്രീയത്തിൽ വൻ ചലനങ്ങൾ സൃഷ്ടിച്ച അടിയന്തരാവസ്ഥ കാലഘട്ടത്തിൽ ഇന്ദിരാഗാന്ധി സ്വീകരിച്ച നിലപാടുകളിൽ നിർണായക പങ്കുവഹിക്കുവാൻ ഇദ്ദേഹത്തിനു കഴിഞ്ഞു
+ethil aakrushtanaya chidhambaram pilla thilakante shishyanai maari	ഇതിൽ ആകൃഷ്ടനായ ചിദംബരം പിള്ള തിലകന്റെ ശിഷ്യനായി മാറി
+keralathile muvattupuzha thalukile oru gramamanu prayipra poyali mala ulkollunna charithra pradhanamaya pradeshamanithu	കേരളത്തിലെ മൂവാറ്റുപുഴ താലൂക്കിലെ ഒരു ഗ്രാമമാണ് പായിപ്ര പൊയാലി മല ഉൾക്കൊള്ളുന്ന ചരിത്ര പ്രധാനമയ പ്രദേശമാണിത്
+kooduthal kaaryakshyamamaayi indhanam upayogikkunnathinaal kooduthal kshamathayode pravarthikkaan ivaykku kazhiyum	കൂടുതൽ കാര്യക്ഷമമായി ഇന്ധനം ഉപയോഗിക്കുന്നതിനാൽ കൂടുതൽ ക്ഷമതയോടെ പ്രവർത്തിക്കാൻ ഇവയ്ക്കു കഴിയും
+aruvikalude theerathum veenukidakkunna elakalude adiyilum evaye kanduvarunnu	അരുവികളുടെ തീരത്തുയ്ം വീണുകിടക്കുന്ന ഇലകളുടെ അടിയിലും ഇവയെ കണ്ടുവരുന്നു
+vellathilninnum prathyekayinam kakkakale badhikkuvanum ava vazhi manushyarilekk ethanum ee roganuvinu sadhikkum	വെള്ളത്തിൽനിന്നും പ്രത്യേകയിനം കക്കകളെ ബാധിക്കാനും അവ വഴി മനുഷ്യരിലേക്ക് ഏതാനും ഈ രോഗാണുവിനു സാധിക്കും
+aashirvaadh sinimaasinte baanaril aantani perumpavooraanu ee chithram nirmichathu	ആശീർവാദ് സിനിമാസിന്റെ ബാനറിൽ ആന്റണി പെരുമ്പാവൂരാണ് ഈ ചിത്രം നിർമ്മിച്ചത്
+novelile chithreekaranathil athishayokthi theereyillennum tominteyum elisayudeyum legriyudeyum emmalinteyum mattum thanipakarppukal sadharanajeevithathil thanikkum mattullavarkkum parichayamullathanennumanu avarude nilapadu	നോവലിലെ ചിത്രീകരണത്തിൽ അതിശയോക്തി തീരെയില്ലെന്നും ടോമിന്റേയും എലിസയുടേയും ലെഗ്രിയുടേയും എമ്മലീന്റേയും മറ്റും തനിപ്പകർപ്പുകൾ സാധാരണജീവിതത്തിൽ തനിക്കും മറ്റുള്ളവർക്കും പരിചയമുള്ളതാണെന്നുമാണ് അവരുടെ നിലപാട്
+theruvil valarunnavanaanu aayisha ummaante punnaara mon ennu swayam paadi theruvil thendunna kadhaapathram	തെരുവിൽ വളരുന്നവനാണ് ആയിശ ഉമ്മാന്റെ പുന്നാര മോൻ എന്ന് സ്വയം പാടി തെരുവിൽ തെണ്ടുന്ന കഥാപാത്രം
+koshangalude nilambana suspension culture undakkiyeduthu avayilekku roganuvine kadathi ava ulpadhippikkunna vishavasthukkal koshangalil kadakkumbol avaye nirveeryamakki vaccinukal vikasipikkunnu	കോശങ്ങളുടെ നിലംബന suspension കൾച്ചർ ഉണ്ടാക്കിയെടുത്ത് അവയിലേക്ക് രോഗാണുവിനെ കടത്തി അവ ഉത്പാദിപ്പിക്കുന്ന വിഷവസ്തുക്കൾ കോശങ്ങളിൽ കടക്കുമ്പോൾ അവയെ നിർവീര്യമാക്കി വാക്സിനുകൾ വികസിപ്പിക്കുന്നു
+sadharanayayi kanduvarunna oru prathibhasamanu oligopoly	സാധാരണയായി കണ്ടുവരുന്ന ഒരു പ്രതിഭാസമാണ് ഒലിഗോപൊളി
+pinnedu vishakham thirunal maharajavu divan sthanathekku nanupillaye veendum avarodhikkanulla nadapadi thudangiyengilum falam kandilla	പിന്നീട് വിശാഖം തിരുനാൾ മഹാരാജാവ് ദിവാൻ സ്ഥാനത്തേക്ക് നാണുപിള്ളയെ വീണ്ടും അവരോധിക്കാനുള്ള നടപടി തുടങ്ങിയെങ്കിലും ഫലം കണ്ടില്ല
+outdoor neenthalkulam	ഔട്ട്‌ഡോർ നീന്തൽക്കുളം
+lavo ennoru kappal kudi company svanthamakki	ലാവോ എന്നൊരു കപ്പൽ കൂടി കമ്പനി സ്വന്തമാക്കി
+manavaalan josaf	മണവാളൻ ജോസഫ്
+oru manikurolam oru kochu yudhathinte pratheethi janipikunna vidham chaattavum nirthavum munnottum pinnottumulla neekavumellam chernnu nayanandhakaramaya oru drishyamanu avatharipikkunnathu	ഒരു മണിക്കൂറോളം ഒരു കൊച്ചു യുദ്ധത്തിൻറെ പ്രതീതി ജനിപ്പിക്കുന്ന വിധം ചാട്ടവും നൃത്തവും മുന്നോട്ടും പിന്നോട്ടുമുള്ള നീക്കവുമെല്ലാം ചേർന്ന് നയനാന്ദകരമായ ഒരു ദൃശ്യമാണ് അവതരിപ്പിക്കുന്നത്
+probukal krithrimopagrahangal yenniva manushyarillaatha yathrakalkudhaharanangalanu	പ്രോബുകൾ കൃത്രിമോപഗ്രഹങ്ങൾ എന്നിവ മനുഷ്യരില്ലാത്ത യാത്രകൾക്കുദാഹരണങ്ങളാണ്
+keralathile ernakulam jillayile sthithicheyunna oru niyamasabhamandalamanu paravoor niyamasabhamandalam	കേരളത്തിലെ എറണാകുളം ജില്ലയിൽ സ്ഥിതിചെയ്യുന്ന ഒരു നിയമസഭാമണ്ഡലമാണ് പറവൂർ നിയമസഭാമണ്ഡലം
+vykthavine nokki gunadhoshaniroopanam cheyyunathu sheriyalla aaru parajuvennalla enthu paraju ennanu nokkendathu	വക്താവിനെ നോക്കി ഗുണദോഷനിരൂപണം ചെയ്യുന്നതു ശരിയല്ല ആരു പറഞ്ഞുവെന്നല്ല എന്തു പറഞ്ഞു എന്നാണ് നോക്കേണ്ടത്
+malayalasahithyathile oru pradhana shakha koodiyanu aattakadhakal	മലയാളസാഹിത്യത്തിലെ ഒരു പ്രധാന ശാഖ കൂടിയാണ് ആട്ടക്കഥകൾ
+bhakthamahaayaanikalkk avarude swantham satha valiya onnil aprakaaram punasthaapichu kittukayum cheyyunnu	ഭക്തമഹായാനികൾക്ക് അവരുടെ സ്വന്തം സത്ത വലിയ ഒന്നിൽ അപ്രകാരം പുനഃസ്ഥാപിച്ചു കിട്ടുകയും ചെയ്യുന്നു
+appozhekkum rejiment vaalanssil ninnu oksonilekku maariyirunnu	അപ്പോഴേക്കും റെജിമെന്റ് വാലൻസിൽ നിന്ന് ഓക്സോണിലേക്ക് മാറിയിരുന്നു
+manushyasparshamelkkaatha vanangalilaanu ivayude vaasam	മനുഷ്യസ്പർശമേൽക്കാത്ത വനങ്ങളിലാണ് ഇവയുടെ വാസം
+pothushuchithvanilavarathinte kuravanu colara varan ulla pradhana karanam	പൊതുശുചിത്വനിലവാരത്തിൻറെ കുറവാണു കോളറ വരാൻ ഉള്ള പ്രധാന കാരണം
+alankarappanikal kuduthal nadathi modi vardippikkanulla udyamamanu pandyasailiyil pothuve kanappedunnath	അലങ്കാരപ്പണികൾ കൂടുതൽ നടത്തി മോടി വർധിപ്പിക്കാനുള്ള ഉദ്യമമാണ് പാണ്ഡ്യശൈലിയിൽ പൊതുവേ കാണപ്പെടുന്നത്
+ethenkilum reethiyilulla bhoochalanathinte bhalamaayum samhananam sambhavikkaam	ഏതെങ്കിലും രീതിയിലുള്ള ഭൂചലനത്തിന്റെ ഫലമായും സംഹനനം സംഭവിക്കാം
+saampathikamaayi ere njerukkathilaayirunna franchu rippablikk nottamittathu inglandinte sambhannavum vipulavumaaya paurasthya kolanikaleyaayirunnu	സാമ്പത്തികമായി ഏറെ ഞെരുക്കത്തിലായിരുന്ന ഫ്രഞ്ചു റിപബ്ലിക് നോട്ടമിട്ടത് ഇംഗ്ലണ്ടിന്റെ സമ്പന്നവും വിപുലവുമായ പൗരസ്ത്യ കോളനികളേയായിരുന്നു
+vasudevayani vedalinayi	വാസുദേവയനി വെഡലിനയീ
+romileyum avinjonileyum marpapamare oresamayam sthanathyagam cheyyichu prasnam pariharikkanulla sramangal vijayichilla	റോമിലേയും അവിഞ്ഞോണിലേയും മാർപ്പാപ്പമാരെ ഒരേസമയം സ്ഥാനത്യാഗം ചെയ്യിച്ചു പ്രശ്നം പരിഹരിക്കാനുള്ള ശ്രമങ്ങൾ വിജയിച്ചില്ല
+achan chindan nambiar amma madhaviyamma	അച്ഛൻ ചിണ്ടൻ നമ്പ്യാർ അമ്മ മാധവിയമ്മ
+dakshina keralathil prachaaramulla villadichaan paattu puraana kadhaapaaraayanamaaya harikadhaakaalakshepam oru paridhivare chaakyaarkoothu thudangiyava kadhaaprasangathinte munkaalaroopangalaayi kanakkaakkaavunnathaanu	ദക്ഷിണ കേരളത്തിൽ പ്രചാരമുള്ള വില്ലടിച്ചാൺ പാട്ട് പുരാണ കഥാപാരായണമായ ഹരികഥാകാലക്ഷേപം ഒരു പരിധിവരെ ചാക്യാർകൂത്ത് തുടങ്ങിയവ കഥാപ്രസംഗത്തിന്റെ മുൻകാലരൂപങ്ങളായി കണക്കാക്കാവുന്നതാണ്
+adheham swakaarya swathavakaasham radhaakki krushibhoomi karshakarkku vittu koduthu	അദ്ദേഹം സ്വകാര്യ സ്വത്തവകാശം റദ്ദാക്കി കൃഷിഭൂമി കർഷകർക്ക് വിട്ടു കൊടുത്തു
+eyosinofil kanikamayakosam adhava eyosinofil adhava eyosinofailukal ennath bahukosa paradajeevikalkkethireyum chilatharam samkramikarogangalkkethireyum poradunna orukuttam svetharakthanukkale parayunna peranu	ഇയോസിനോഫിൽ കണികാമയകോശം അഥവാ ഇയോസിനോഫിൽ അഥവാ ഇയോസിനോഫൈലുകൾ എന്നത് ബഹുകോശ പരാദജീവികൾക്കെതിരെയും ചിലതരം സാംക്രമികരോഗങ്ങൾക്കെതിരെയും പോരാടുന്ന ഒരുകൂട്ടം ശ്വേതരക്താണുക്കളെ പറയുന്ന പേരാണ്
+keralathinte charithrarachanayil savarnapaksham undenna vaadhakkaaranaayirunnu adheham	കേരളത്തിന്റെ ചരിത്രരചനയിൽ സവർണപക്ഷം ഉണ്ടെന്ന വാദക്കാരനായിരുന്നു അദ്ദേഹം
+athaayathu swathudamakal	അതായത് സ്വത്തുടമകൾ
+sadharanayayi sasyangalude sravamanu evayude bhakshanam	സാധാരണയായി സസ്യങ്ങളുടെ സ്രവമാണ് ഇവയുടെ ഭക്ഷണം
+bheeshanippeduthiyaal iva shareeram churutty vaaya thurann avayude vishappallukal purath kaanikkunnu	ഭീഷണിപ്പെടുത്തിയാൽ ഇവ ശരീരം ചുരുട്ടി വായ തുറന്ൻ അവയുടെ വിഷപ്പല്ലുകൾ പുറത്ത് കാണിക്കുന്നു
+oru index fundinte pracharanarthamanu ethu sdhapichathu	ഒരു ഇൻഡക്സ് ഫണ്ടിന്റെ പ്രചരണാർത്ഥമാണ് ഇത് സ്ഥാപിച്ചത്
+thanuppu kalathu indian upabhookhandam australia padinjaran europe padinjaran africa yennividanglil kanunnu	തണുപ്പു കാലത്ത് ഇന്ത്യൻ ഉപഭൂഖണ്ഡം ആസ്ട്രേലിയ പടിഞ്ഞാറൻ യൂറോപ്പ് പടിഞ്ഞാറൻ ആഫ്രിക്ക എന്നിവിടങ്ങ്ലിൽ കാണുന്നു
+supreme kodathiyum highkodathikalum keezhkodathikalku nalkunna nirodhana utharavukalanu prohibishan rit	സുപ്രീം കോടതിയും ഹൈക്കോടതികളും കീഴ്ക്കോടതികൾക്ക് നൽകുന്ന നിരോധന ഉത്തരവുകളാണ് പ്രൊഹിബിഷൻ റിട്ട്
+oruvaakyathe azhichu nokkiyaal sarvasaadhaaranamaayittu randubhaagam kaanum aakhyayum aakhyaathavum	ഒരുവാക്യത്തെ അഴിച്ചു നോക്കിയാൽ സർവ്വസാധാരണമായിട്ട് രണ്ടുഭാഗം കാണും ആഖ്യയും ആഖ്യാതവും
+adhyaapakan vidhyaardhiye vivaaham kazhikkunnathu niyamaanusruthamallaathirunnathinaal eriyalile vivaaham kazhikkunnathinaayi duraant adhyaapaka joli raaji vachu	അദ്ധ്യാപകൻ വിദ്യാർത്ഥിയെ വിവാഹം കഴിക്കുന്നത് നിയമാനുസൃതമല്ലാതിരുന്നതിനാൽ ഏരിയലിലെ വിവാഹം കഴിക്കുന്നതിനായി ഡുറാന്റ് അദ്ധ്യാപക ജോലി രാജി വച്ചു
+aval veetile vadake muriyil karagrahathilennathupole kazhinju	അവൾ വീട്ടീലെ വടക്കേ മുറിയിൽ കാരാഗ്രഹത്തിലെന്നതുപോലെ കഴിഞ്ഞു
+janaadhipathyathilepole bhooripaksham aalukalude apakwatheerumaanangalkko raajavaazhchayileppole oraaludemaathram dhikkaaramniranja nadapadikalkko ivide sthaanamilla	ജനാധിപത്യത്തിലെപ്പോലെ ഭൂരിപക്ഷം ആളുകളുടെ അപക്വതീരുമാനങ്ങൾക്കോ രാജവാഴ്ചയിലെപ്പോലെ ഒരാളുടെമാത്രം ധിക്കാരംനിറഞ്ഞ നടപടികൾക്കോ ഇവിടെ സ്ഥാനമില്ല
+thadakangal nadikal chathupp nilangal ennivayanu evayude aavasa sthaanangal	തടാകങ്ങൾ നദികൾ ചതുപ്പ് നിലങ്ങൾ എന്നിവയാണ് ഇവയുടെ ആവാസ സ്ഥാനങ്ങൾ
+mahdiyude niryanathinu sesham acharya pramukhayi sthanameteduththa ahmd sarif al sanusiyude kalathanu sanusi sufikalile mukhya sthanathekk umer uyarnnu varunnath	മഹ്ദിയുടെ നിര്യാണത്തിനു ശേഷം ആചാര്യ പ്രമുഖായ് സ്ഥാനമേറ്റെടുത്ത അഹ്മദ് ശരീഫ് അൽ സനൂസിയുടെ കാലത്താണ് സനൂസി സൂഫികളിലെ മുഖ്യ സ്ഥാനത്തേക്ക് ഉമർ ഉയർന്നു വരുന്നത്
+filippeens le mikacha vyevasaaya sthaapanangalil palathum ee dweepilaan	ഫിലിപ്പീൻസ് ലെ മികച്ച വ്യവസായ സ്ഥാപനങ്ങളിൽ പലതും ഈ ദ്വീപിലാണ്
+kuttambuzha panchaayathile piravoorkkudi traibal kolanikku sameepathuninnu ethaandu noottimoonnu muttakalumaayi adayirikkunna vidhathil iruthalamooriye kandethiyathaanu ee avakaashathinu aadhaaram	കുട്ടമ്പുഴ പഞ്ചായത്തിലെ പിറവൂർകുടി ട്രൈബൽ കോളനിക്കു സമീപത്തുനിന്ന് ഏതാണ്ട് നൂറ്റിമൂന്നു മുട്ടകളുമായി അടയിരിക്കുന്ന വിധത്തിൽ ഇരുതലമൂരിയെ കണ്ടെത്തിയതാണ് ഈ അവകാശത്തിന് ആധാരം
+ed jernalisathil diploma enniva nediyitund	എഡ് ജേർണലിസത്തിൽ ഡിപ്ലോമ എന്നിവ നേടിയിട്ടുണ്ട്
+sainika jevitham	സൈനിക ജീവിതം
+himachal pradesh sikkim assam paschimaghattamalanirakal yennividangalil dharalam kanapedunna oru aushadham aanu chemmaram	ഹിമാചൽ പ്രദേശ് സിക്കിം ആസാം പശ്ചിമഘട്ടമലനിരകൾ എന്നിവിടങ്ങളിൽ ധാരാളം കാണപ്പെടുന്ന ഒരു ഔഷധം ആണ് ചെമ്മരം
+quran lalithasaaram	ഖുർആൻ ലളിതസാരം
+d thomasaanu shradheyanaaya mattoru chikisakan	ഡി തോമസാണ് ശ്രദ്ധേയനായ മറ്റൊരു ചികിത്സകൻ
+amasayathile amlathvam roganuvine kollan sahayikkunnathinal amlanivarini gulikakal kazhikkunnathu rogam varanulla sadhyatha kuttunnu	ആമാശയത്തിലെ അമ്ലത്വം രോഗാണുവിനെ കൊല്ലാൻ സഹായിക്കുന്നതിനാൽ അമ്ലനിവാരിണി ഗുളികകൾ കഴിക്കുന്നത് രോഗം വരാനുള്ള സാധ്യത കൂട്ടുന്നു
+telifon layin ithil bandhichirikkum	ടെലിഫോൺ ലൈൻ ഇതിൽ ബന്ധിച്ചിരിക്കും
+amerikkayile masaachusets instityoot of teknolajiyil maanavika vishayangalile profasaraayum niravadhi vidhesha kalaashaalakalil adhyaapikayaayum dheshaayi sevanamanushtichittund	അമേരിക്കയില മസ്സാചുസെറ്റ്സ് ഇൻസ്റ്റിറ്റ്യൂട്ട് ഓഫ് ടെക്നോളജിയിൽ മാനവിക വിഷയങ്ങളിലെ പ്രൊഫസറായും നിരവധി വിദേശ കലാശാലകളിൽ അധ്യാപികയായും ദേശായി സേവനമനുഷ്ടിച്ചിട്ടുണ്ട്
+adheham pinneed orkidukalil thaalparyam kaanikkukayum adhehathinte sahodhari ava varaykkukayum cheythu	അദ്ദേഹം പിന്നീട് ഓർക്കിഡുകളിൽ താൽപ്പര്യം കാണിക്കുകയും അദ്ദേഹത്തിന്റെ സഹോദരി അവ വരയ്ക്കുകയും ചെയ്തു
+kalyana divasam penninte veettil brahmanan vannu thalikettal chadanginu aarambham kurikkunnu	കല്യാണ ദിവസം പെണ്ണിന്റെ വീട്ടിൽ ബ്രാഹ്മണൻ വന്ന് താലികെട്ടൽ ചടങ്ങിനു ആരംഭം കുറിക്കുന്നു
+innu lokathe etavum prasasthamaya pallikalil onnanith	ഇന്ന് ലോകത്തെ ഏറ്റവും പ്രശസ്തമായ പള്ളികളിൽ ഒന്നാണിത്
+sangeethakalaanidhi t	സംഗീതകലാനിധി ടി
+chinthayude vyathystha ghatakangal iprakaram asthithvathinte adisthanarupangalayi thirunnu	ചിന്തയുടെ വ്യത്യസ്ത ഘടകങ്ങൾ ഇപ്രകാരം അസ്തിത്വത്തിന്റെ അടിസ്ഥാനരൂപങ്ങളായി ത്തീരുന്നു
+ava ilayude muzhuvan bhagathum kaanappedaam allenkil chila bhaagathu maathram kaanappedaavunnathaanu	അവ ഇലയുടെ മുഴുവൻ ഭാഗത്തും കാണപ്പെടാം അല്ലെങ്കിൽ ചില ഭാഗത്തു മാത്രം കാണപ്പെടാവുന്നതാണ്
+deccan samathalathil sambhavicha vilanasamanu e bhakshyakshamathinu pradhanakaranamayi chundikkanikkappetunnath	ഡക്കാൺ സമതലത്തിൽ സംഭവിച്ച വിളനാശമാണ് ഈ ഭക്ഷ്യക്ഷാമത്തിനു പ്രധാനകാരണമായി ചൂണ്ടിക്കാണിക്കപ്പെടുന്നത്
+maaskd dais enna kadhaasamaahaaramaanu fyavandhassinte aadhya kruthi	മാസ്‌ക്ഡ് ഡെയ്‌സ് എന്ന കഥാസമാഹാരമാണ് ഫ്യവന്തസ്സിന്റെ ആദ്യ കൃതി
+nagarathil or yakshan yenna perilulla kavithasamaharathilanu ee kavitha ulpeduthiyittullathu	നഗരത്തിൽ ഒരു യക്ഷൻ എന്ന പേരിലുള്ള കവിതാസമാഹാരത്തിലാങണ് ഈ കവിത ഉൾപ്പെടുത്തിയിട്ടുള്ളത്
+ikkaaranam kondu pinneedu chainakkaar dhakshinamadhyeshyayile kaaryangalil kaaryamaaya idapedalukal nadathiyilla	ഇക്കാരണം കൊണ്ട് പിന്നീട് ചൈനക്കാർ ദക്ഷിണമദ്ധ്യേഷ്യയിലെ കാര്യങ്ങളിൽ കാര്യമായ ഇടപെടലുകൾ നടത്തിയില്ല
+british engineerku ee vazhi kaanichu koduthathu thadhesheeyaraya aadhivaasikalayirunnu	ബ്രിട്ടീഷ് എഞ്ചിനീയർക്ക് ഈ വഴി കാണിച്ച് കൊടുത്തത് തദ്ദേശീയരായ ആദിവാസികളായിരുന്നു
+sahacharyangal nimitham avarku avide varshangalayi poottikkidanna palliyile vikaarimarayi veshamidendi varunnu	സാഹചര്യങ്ങൾ നിമിത്തം അവർക്ക് അവിടെ വർഷങ്ങളായി പൂട്ടിക്കിടന്ന പള്ളിയിലെ വികാരിമാരായി വേഷമിടേണ്ടി വരുന്നു
+ottappalam enna perinu karanam ividuthe kacheri valappil ottakku nilkkunna oru pala maramanu	ഒറ്റപ്പാലം എന്ന പേരിന്നു കാരണം ഇവിടത്തെ കച്ചേരി വളപ്പിൽ ഒറ്റക്കു നിൽക്കുന്ന ഒരു പാല മരമാണ്
+enkilum kooduthal garbhachidrangalum niyamavidhaayamaayalla nadakkunnath	എങ്കിലും കൂടുതൽ ഗർഭച്ഛിദ്രങ്ങളും നിയമവിധായമായല്ല നടക്കുന്നത്
+bheeshanikalum azhimathiyum ellaatha niyamaanushrithamaaya bharanam nadathumenna urappu nalkiyathil aashwaasam konda vyaapaarikalum bankkudamakalum sarkaarinu vaayppa nalkaan thyyaraayi	ഭീഷണികളും അഴിമതിയും ഇല്ലാത്ത നിയമാനുസൃതമായ ഭരണം നടത്തുമെന്ന ഉറപ്പു നല്കിയതിൽ ആശ്വാസം കൊണ്ട വ്യാപാരികളും ബാങ്കുടമകളും സർക്കാരിന് വായ്പ നല്കാൻ തയ്യാറായി
+thudakkam odukkam	തുടക്കം ഒടുക്കം
+kacheri nadakunna sadasil kacherikar alpam uyarnna vediyil irunnanu kacheri nadathunnathu	കച്ചേരി നടക്കുന്ന സദസ്സിൽ കച്ചേരിക്കാർ അല്പം ഉയർന്ന വേദിയിൽ ഇരുന്നാണ് കച്ചേരി നടത്തുന്നത്
+aanthumbiyum penthumbium kazhchayil valare vyathyasapettirikkunnu	ആൺതുമ്പിയും പെൺതുമ്പിയും കാഴ്ച്ചയിൽ വളരെ വ്യത്യാസപ്പെട്ടിരിക്കുന്നു
+kunjine orikkalum vilkilennu elisec emily nerathe urappu koduthirunnu	കുഞ്ഞിനെ ഒരിക്കലും വിൽക്കില്ലെന്ന് എലിസക്ക് എമിലി നേരത്തേ ഉറപ്പു കൊടുത്തിരുന്നു
+internetilude filukal kaimaran upayogikkunna sankethikavidyayanu torrent	ഇന്റർനെറ്റിലുടെ ഫയലുകൾ കൈമാറാൻ ഉപയോഗിക്കുന്ന സാങ്കേതികവിദ്യയാണ് ടോറന്റ്
+v harshakumar	വി ഹർഷകുമാർ
+sthapikkappettathinu oru varshathinu sesham athinte prathivara magazinaya the listeneril sahithyasambandhiyaya editarayi niyamikkappettirunnu	സ്ഥാപിക്കപ്പെട്ടതിന് ഒരു വർഷത്തിനു ശേഷം അതിൻറെ പ്രതിവാര മാഗസിനായ “ദ ലിസണറിൽ” സാഹിത്യസംബന്ധിയായ എഡിറ്ററായി നിയമിക്കപ്പെട്ടിരുന്നു
+avar shree kalamozhi krishna menonte shishyayayirunnu	അവർ ശ്രീ കലമൊഴി കൃഷ്ണ മേനോന്റെ ശിഷ്യയായിരുന്നു
+swanthamaayi veedu illaatha firosinu veedu vekkaanulla panam jiddhayile pravaasikal nalkiyirunnu	സ്വന്തമായി വീട് ഇല്ലാത്ത ഫിറോസിന് വീട് വെക്കാനുള്ള പണം ജിദ്ദയിലെ പ്രവാസികൾ നൽികിയിരുന്നു
+thilakkamulla kurippu niramanu pandan vezhambalinullathu	തിളക്കമുള്ള കറുപ്പ് നിറമാണ് പാണ്ടൻ വേഴാമ്പലിനുള്ളത്
+oru ghattathile vikasathmaka karththavyam vijayakaramayi purthiyakkunnath adutha ghattathile karththavyam niravetunnathinu sahayakamakunnu	ഒരു ഘട്ടത്തിലെ വികാസാത്മക കർത്തവ്യം വിജയകരമായി പൂർത്തിയാക്കുന്നത് അടുത്ത ഘട്ടത്തിലെ കർത്തവ്യം നിറവേറ്റുന്നതിനു സഹായകമാകുന്നു
+stharanathalathiloode aduthaduthulla randu adarukal polichumaatti chervillalukalude lakshanathilninnum prasaktha shilaastharangalude charithram grahikkaavunnathaanu	സ്തരണതലത്തിലൂടെ അടുത്തടുത്തുള്ള രണ്ട് അടരുകൾ പൊളിച്ചുമാറ്റി ചേർവിള്ളലുകളുടെ ലക്ഷണത്തിൽനിന്നും പ്രസക്ത ശിലാസ്തരങ്ങളുടെ ചരിത്രം ഗ്രഹിക്കാവുന്നതാണ്
+mattu charithrakaranmarum nirikshakarumaya bipin chandra sumith sarkkar irphan habeeb r	മറ്റു ചരിത്രകാരന്മാരും നിരീക്ഷകരുമായ ബിപിൻ ചന്ദ്ര സുമിത് സർക്കാർ ഇർഫാൻ ഹബീബ് ആർ
+vibhajanathinushesham addheham bangurayil yethi haura silla schoolil praveshanam nedi	വിഭജനത്തിനുശേഷം അദ്ദേഹം ബാങ്കുരയിൽ എത്തി ഹൗറ സില്ലാ സ്കൂളിൽ പ്രവേശനം നേടി
+harishchandracharitham aattakadha	ഹരിശ്ചന്ദ്രചരിതം ആട്ടക്കഥ
+athinushesham veedinakathu devikku oru poovanum pidakozhiyum aruthu njandum chorum mattuvibhavangalum vilambunnu	അതിനുശേഷം വീടിനകത്ത് ദേവിക്ക് ഒരു പൂവനും പിടക്കോഴിയും അറുത്ത് ഞണ്ടും ചോറും മറ്റുവിഭവങ്ങളും വിളമ്പുന്നു
+purathekku ozhukivarunna erumbu adangiya jalam anthareekshathile oxygenumayi pravarthikumpol undavunna thurumpanu ee pravahathinu rakthathinte niram nalkunnathu	പുറത്തേക്ക് ഒഴുകിവരുന്ന ഇരുമ്പ് അടങ്ങിയ ജലം അന്തരീക്ഷത്തിലെ ഓക്സിജനുമായി പ്രവർത്തിക്കുമ്പോൾ ഉണ്ടാവുന്ന തുരുമ്പാണ് ഈ പ്രവാഹത്തിന് രക്തത്തിന്റെ നിറം നൽകുന്നത്
+jorj vassaufinte baayi his dhauni enna valiya myoosikk veediyo samvidhaanam cheythu	ജോർജ് വസ്സൗഫിന്റെ ബായി ഹിസ് ദൗനി എന്ന വലിയ മ്യൂസിക് വീഡിയോ സംവിധാനം ചെയ്തു
+kannur jillayile kannur talukile thaliparambu block paridhiyil ulpedunna oru gramapanchayathanu narath gramapanchayathu	കണ്ണൂർ ജില്ലയിലെ കണ്ണൂർ താലൂക്കിലെ തളിപ്പറമ്പ് ബ്ളോക്ക് പരിധിയിൽ ഉൾപ്പെടുന്ന ഒരു ഗ്രാമപഞ്ചായത്താണ് നാറാത്ത് ഗ്രാമപഞ്ചായത്ത്
+kaikkulangara raamavaariyar amarakoshathinu rachichittulla baalapriya enna vyakyaanathil panchikaye aapaadhachoodam upajeevichittund	കൈക്കുളങ്ങര രാമവാരിയർ അമരകോശത്തിനു രചിച്ചിട്ടുള്ള ബാലപ്രിയ എന്ന വ്യാഖ്യാനത്തിൽ പഞ്ചികയെ ആപാദചൂഡം ഉപജീവിച്ചിട്ടുണ്ടു്
+jayamohan aanu kathayachathu	ജയമോഹൻ ആണ് കത്തയച്ചത്
+prathifalamayi nalpathu rupa kitty	പ്രതിഫലമായി നാൽപ്പതു രൂപ കിട്ടി
+idhehathinte moonnu puthranmaarum vaasthuvidhyaavidhagthanmaaraayirunnu	ഇദ്ദേഹത്തിന്റെ മൂന്നു പുത്രൻമാരും വാസ്തുവിദ്യാവിദഗ്ദ്ധന്മാരായിരുന്നു
+intarnet moovi daattabesil ninnu kristafar doyal	ഇന്റർനെറ്റ് മൂവി ഡാറ്റാബേസിൽ നിന്ന് ക്രിസ്റ്റഫർ ഡോയൽ
+ee pattanam kendrapara jillayude bharanakendravum koodiyanu	ഈ പട്ടണം കേന്ദ്രപ്പാറ ജില്ലയുടെ ഭരണകേന്ദ്രവും കൂടിയാണ്
+ezhuthilum kaartoon chithrarachanayilum akkaalathu thanne vijayan thaalparyam prakadamaakiyirunnu	എഴുത്തിലും കാർട്ടുൺ ചിത്രരചനയിലും അക്കാലത്ത് തന്നെ വിജയൻ താല്പര്യം പ്രകടമാക്കിയിരുന്നു
+karmaadikkuttan oru jainaprathimayaanennu k	കരുമാടിക്കുട്ടൻ ഒരു ജൈനപ്രതിമയാണെന്നു കെ
+manushyarod aduthu jeevikkunna pakshiyaanu	മനുഷ്യരോട് അടുത്ത് ജീവിക്കുന്ന പക്ഷിയാണ്
+saamoothiriyude melkooymayil ninnum raksha nedaan paalakkaad raajaavu maisoorile haidharaliyude sahaayam thedi	സമൂതിരിയുടെ മേൽക്കൊയ്മയിൽ നിന്നും രക്ഷ നേടാൻ പാലക്കാട് രാജാവ് മൈസൂരിലെ ഹൈദരലിയുടെ സഹായം തേടി
+muttayilninnum purathu varumbolthanne kunju mannattakal kaazhchayil poornajeevikalumaayi saadhrushyam pularthum	മുട്ടയിൽനിന്നും പുറത്തു വരുമ്പോൾതന്നെ കുഞ്ഞു മണ്ണട്ടകൾ കാഴ്ചയിൽ പൂർണ്ണജീവികളുമായി സാദൃശ്യം പുലർത്തും
+ethu gamma kiranangale purathuvidunnilla	ഇത് ഗാമ കിരണങ്ങളെ പുറത്തുവിടുന്നില്ല
+nicortinte vishaveeryam nannaye prakadamavan veyil avashyamanu	നിക്കോട്ടിന്റെ വിഷവീര്യം നന്നായി പ്രകടമാവാൻ വെയിൽ ആവശ്യമാണ്
+yennanu ethu ariyapedunnathu	എന്നാണ് ഇത് അറിയപ്പെടുന്നത്
+malayalathilum tamilumanu prathanamayum abhnayichitullathu	മലയാളത്തിലും തമിഴിലുമാണ് പ്രധാനമായും അഭിനയിച്ചിട്ടുള്ളത്
+islaamika soofisathile oru dhaarayaanu chishthiyya thwareekhathu	ഇസ്ലാമിക സൂഫിസത്തിലെ ഒരു ധാരയാണ് ചിശ്തിയ്യ ത്വരീഖത്ത്
+aadiyomeettarinu randu pradhaana niyanthrakangal und aavruthiniyanthrakam shravananiyanthrakam	ആഡിയോമീറ്ററിന് രണ്ടു പ്രധാന നിയന്ത്രകങ്ങൾ ഉണ്ട് ആവൃത്തിനിയന്ത്രകം ശ്രവണനിയന്ത്രകം
+vadakku paampaadi	വടക്ക് പാമ്പാടി
+bathiglipttas emboloforas enna perilum ithu ariyappe dunnu	ബത്തിഗ്ലിപ്ടസ് എംബോലോഫോറസ് എന്ന പേരിലും ഇത് അറിയപ്പെ ടുന്നു
+kalampasha vadam kelkkum ennariyichu	കലാംപാഷ വാദം കേൾക്കും എന്നറിയിച്ചു
+samskaarathinte pazhama nirnayikkunnathinu naanayangaleppoleyulla avitharkkithasaakshyangal apoorvamaanu	സംസ്കാരത്തിന്റെ പഴമ നിർണയിക്കുന്നതിന് നാണയങ്ങളെപ്പോലെയുള്ള അവിതർക്കിതസാക്ഷ്യങ്ങൾ അപൂർവമാണ്
+asimetric digital sabscriber linanu yettacum kooduthalayi upayogikkapedunna dsl sangethikatha	അസിമെട്രിക് ഡിജിറ്റൽ സബ്സ്ക്രൈബർ ലൈനാണ് ഏറ്റവും കുടുതലായി ഉപയോഗിക്കപ്പെടുന്ന ഡിഎസ്എൽ സാങ്കേതികത
+ividuthe thiranjedutha niyamanirmaanasabhayaanu bharanam nadathunnathu	ഇവിടുത്തെ തിരഞ്ഞെടുത്ത നിയമനിർമ്മാണസഭയാണ് ഭരണം നടത്തുന്നത്
+brittanile kaardif abdherdeen ennee sthalangalil janichuvalarnnu pinneed siriyayile islaamik stet samghadanayil chernna reyaad khaan ruhul ameen ennivareyaanu vadhichathu	ബ്രിട്ടനിലെ കാർഡിഫ് അബ്ദെർഡീൻ എന്നീ സ്ഥലങ്ങളിൽ ജനിച്ചുവളർന്ന് പിന്നീട് സിറിയയിലെ ഇസ്ലാമിക് സ്റ്റേറ്റ് സംഘടനയിൽ ചേർന്ന റെയാദ് ഖാൻ റുഹുൾ അമീൻ എന്നിവരെയാണ് വധിച്ചത്
+thavoyisathinte darsanikarupangalil addeham vivekiyaya oru sadharana manushyanayanu karuthappedunnathenkilum thavo mathathil addeham daivamayi kanakkakkappedunnu	താവോയിസത്തിന്റെ ദാർശനികരൂപങ്ങളിൽ അദ്ദേഹം വിവേകിയായ ഒരു സാധാരണ മനുഷ്യനായാണ് കരുതപ്പെടുന്നതെങ്കിലും താവോ മതത്തിൽ അദ്ദേഹം ദൈവമായി കണക്കാക്കപ്പെടുന്നു
+tharathamyapeduthiyal ethin aikyanadukalile samsthanamaya rhode islandinte randiratti valippamundu	താരതമ്യപ്പെടുത്തിയാല് ഇതിന് ഐക്യനാടുകളിലെ സംസ്ഥാനമായ റോഡ് ഐലൻഡിൻറെ രണ്ടിരട്ടി വലിപ്പമുണ്ട്
+a poorthiyaakkiyennaanu paranjirikunnathu	എ പൂർത്തിയാക്കിയെന്നാണ് പറഞ്ഞിരുന്നത്
+jammu kashmeer panchaab hariyaana uthar predesh utharaanchal ennivayaanu ayal samsthaanangal	ജമ്മു കാശ്മീർ പഞ്ചാബ് ഹരിയാന ഉത്തർ പ്രദേശ് ഉത്തരാഞ്ചൽ എന്നിവയാണ് അയൽ സംസ്ഥാനങ്ങൾ
+bakavadham aattakkatha	ബകവധം ആട്ടക്കഥ
+povanum pidayum kazhchayil orupoleyanu	പൂവനും പിടയും കാഴ്ചയിൽ ഒരുപോലെയാണ്
+jyothi prasad agarvala indiayile vadakkukizhakan samdhanmaaya assamile swathandriyasamarasenaniyum kaviyum nadakakrithum sangeetha samvidayakanumanu rupkanvar ennu vilikunna	ജ്യോതി പ്രസാദ് അഗർവാല ഇന്ത്യയിലെ വടക്കുകിഴക്കൻ സംസ്ഥാനമായ ആസ്സമിലെ സ്വാതന്ത്ര്യസമരസേനാനിയും കവിയും നാടകൃത്തും സംഗീത സംവിധായകനുമാണ് രൂപ്കൺവർ എന്ന് വിളിക്കുന്ന
+muzhuvan per dattatreya kondo ghate yennan	മുഴുവൻ പേര് ദത്താത്രേയ കൊണ്ടോ ഘാട്ടേ എന്നാണ്
+khuranum sunnathum arabi bhashayum janangale padippikuka	ഖുറാനും സുന്നത്തും അറബി ഭാഷയും ജനങ്ങളെ പഠിപ്പിക്കുക
+devi ivide maathrubhaavathilaanu kudikollunnathu	ദേവി ഇവിടെ മാതൃഭാവത്തിലാണു കുടികൊള്ളുന്നത്
+odikkondirikkunna vaahanangalil vachu nadakkunna jananavum maranavum rajisttar cheyyenda vidham	ഓടിക്കൊണ്ടിരിക്കുന്ന വാഹനങ്ങളിൽ വച്ച് നടക്കുന്ന ജനനവും മരണവും രജിസ്റ്റർ ചെയ്യേണ്ട വിധം
+padalangalaayi avasthithamaayikaanunnu ennathaanu avasaadhashilaastharangalude mukhya savisheshatha	പടലങ്ങളായി അവസ്ഥിതമായിക്കാണുന്നു എന്നതാണ് അവസാദശിലാസ്തരങ്ങളുടെ മുഖ്യ സവിശേഷത
+kallekuthu karinkuthu	കല്ലേക്കുത്തു കരിങ്കുത്ത്
+jeevaanunaashanam randu vidhathilaanu saadhyamaakkunnathu	ജീവാണുനാശനം രണ്ടു വിധത്തിലാണ് സാധ്യമാക്കുന്നത്
+eliotinte bibliographical index to the historians of mohammedan india enna krithi	എലിയറ്റിന്റെ ബിബ്ലിയോഗ്രഫിക്കൽ ഇൻഡെക്സ് റ്റു ദ ഹിസ്റ്റോറിയൻസ് ഓഫ് മൊഹമ്മദൻ ഇന്ത്യ എന്ന കൃതി
+thudarethudare apasmaaram varukayum idaykkonnum rogi bodham kaivarikkaathirikkukayum cheyyunna avasthayaanu staatus epilepticus	തുടരെത്തുടരെ അപസ്മാരം വരുകയും ഇടയ്‌ക്കൊന്നും രോഗി ബോധം കൈവരിക്കാതിരിക്കുകയും ചെയ്യുന്ന അവസ്ഥയാണ് സ്റ്റാറ്റസ് എപ്പിലെപ്റ്റിക്കസ്
+peraambra niyamasabhaa mandalathil ninnum c	പേരാമ്പ്ര നിയമസഭാ മണ്ഡലത്തിൽ നിന്നും സി
+ivide ninnum kandethiya paarakalil bhooribhaagavum manalkkallaanu	ഇവിടെ നിന്നും കണ്ടെത്തിയ പാറകളിൽ ഭൂരിഭാഗവും മണൽക്കല്ലാണ്
+nilathodu chernnu parakkunna eva iruttiyathinu sesham adyathe chila manikkurukalil erapidikathe veruthe parakkunnu	നിലത്തോട് ചേർന്ന് പറക്കുന്ന ഇവ ഇരുട്ടിയതിനു ശേഷം ആദ്യത്തെ ചില മണിക്കൂറുകളിൽ ഇരപിടിക്കാതെ വെറുതെ പറക്കുന്നു
+athumoolam shareerathil ninnum dharalam jalam nashttapedukayum rogi ksheenikkukayum cheythu	അതുമൂലം ശരീരത്തിൽ നിന്നും ധാരാളം ജലം നഷ്ടപ്പെടുകയും രോഗി ക്ഷീണിക്കുകയും ചെയ്യും
+muzhappilangatu enna ti	മുഴപ്പിലങ്ങാട് എന്ന ടി
+sandhyaykku mumpanu kelikottu	സന്ധ്യയ്ക്ക് മുമ്പാണ് കേളികൊട്ട്
+rajesh khannaykopanulla bhola bhala prem bandhan khar pariwar yenniva vijayachithrangalayirunnu	രാജേഷ് ഖന്നയ്ക്കൊപ്പമുള്ള ഭോലാ ഭാലാ പ്രേം ബന്ധൻ ഘർ പരിവാർ എന്നിവ വിജയചിത്രങ്ങളായിരുന്നു
+karthika thirunnal thiruvithamkurinte avasanathe maharajavayirunna sree chithira thirunal balaramavarmmayude eka sahodari ayirunnu	കാർത്തിക തിരുനാൾ തിരുവിതാംകൂറിന്റെ അവസാനത്തെ മഹാരാജാവായിരുന്ന ശ്രീ ചിത്തിര തിരുനാൾ ബാലരാമവർമ്മയുടെ ഏക സഹോദരി ആയിരുന്നു
+mathavu poothambili parukuttiyamma	മാതാവ് പൂത്തമ്പള്ളി പാറുക്കുട്ടിയമ്മ
+beehtha danapoor punpun phulwari naubathpur yennee sthalangalilanu eva ullathu	ബീഹ്ത ദാനാപൂർ പുൻപുൻ ഫുല്വാരി നൗബത്പൂർ എന്നീ സ്ഥലങ്ങളിലാണ് ഇവ ഉള്ളത്
+samoohyapankalitham urappu varuthal	സാമൂഹ്യപങ്കാളിത്തം ഉറപ്പ് വരുത്തൽ
+rashyan senayumaayi eppol venamenkilum urasal nadakkaamenna sthithi samjaathamaayi	റഷ്യൻ സേനയുമായി എപ്പോൾ വേണമെങ്കിലും ഉരസൽ നടക്കാമെന്ന സ്ഥിതി സംജാതമായി
+yennal ee layanathil pangu cherathirunna avashesha vibhagamanu keralathile eppozhathe anglikan sabha	എന്നാൽ ഈ ലയനത്തിൽ പങ്ക് ചേരാതിരുന്ന അവശേഷ വിഭാഗമാണ് കേരളത്തിലെ ഇപ്പോഴത്തെ ആംഗ്ലിക്കൻ സഭ
+madhyamam dinapathram	മാധ്യമം ദിനപത്രം
+anushdanathinte bhagamayi manushyamamsam bhakshikkunna anthrapofagikal europilum mattumundayirunnathayi parayappedunnu	അനുഷ്ഠാനത്തിന്റെ ഭാഗമായി മനുഷ്യമാംസം ഭക്ഷിക്കുന്ന ആന്ത്രപോഫാഗികൾ യൂറോപ്പിലും മറ്റുമുണ്ടായിരുന്നതായി പറയപ്പെടുന്നു
+aanthumpiyude chirakukalude niravinnyaasam shabarimala theerthaadakarude vasthradhaaranathe anusmarippikkunnathinaalaanu ivaye swaamithumpi ennu vilikkunnathu	ആൺതുമ്പിയുടെ ചിറകുകളുടെ നിറവിന്യാസം ശബരിമല തീർത്ഥാടകരുടെ വസ്ത്രധാരണത്തെ അനുസ്മരിപ്പിക്കുന്നതിനാലാണ് ഇവയെ സ്വാമിത്തുമ്പി എന്ന് വിളിക്കുന്നത്
+masikayayittayirunnu thudakkam	മാസികയായിട്ടായിരുന്നു തുടക്കം
+tokugava rajavamsam eado innathe tokyo kendramayanu bharichirunnath	ടോകുഗവ രാജവംശം ഈഡോ ഇന്നത്തെ ടോക്യോ കേന്ദ്രമായാണ് ഭരിച്ചിരുന്നത്
+naksalbaari kalaapam	നക്സൽബാരി കലാപം
+kshethrathile kuvalathil pathivayi oru nagam untavarund	ക്ഷേത്രത്തിലെ കൂവളത്തിൽ പതിവായി ഒരു നാഗം ഉണ്ടാവാറുണ്ട്
+lalbhai dalpatbhai museum ahemedabad	ലാൽഭായ് ദൾപത്ഭായ് മ്യൂസിയം അഹമ്മദാബാദ്
+ithara raajyangalil maarpappaamaarude swaatheenam kshayikkaan ithu idayaaki	ഇതര രാജ്യങ്ങളിൽ മാർപ്പാപ്പാമാരുടെ സ്വാധീനം ക്ഷയിക്കാൻ ഇത് ഇടയാക്കി
+allenkil formamaidum pottaasyam hydrooksydumaayi pravarthipichum	അല്ലെങ്കിൽ ഫോർമമൈഡും പൊട്ടാസ്യം ഹൈഡ്രോക്സൈഡുമായി പ്രവർത്തിപ്പിച്ചും
+a bhirudavum nedi	എ ബിരുദവും നേടി
+manushyante bhoothakalathe thathvachinthaaparamayi nokkikanaan agrahicha durantinu aa pusthakam ishtapettu	മനുഷ്യന്റെ ഭൂതകാലത്തെ തത്ത്വചിന്താപരമായി നോക്കിക്കാണാൻ ആഗ്രഹിച്ച ഡുറാന്റിന് ആ പുസ്തകം ഇഷ്ടപ്പെട്ടു
+jwaram chuma vaatha kafajanyavikaarangal ennivaye shamippikkunna aayurvedha aushadhayogamaanu dhashamoolakaduthrayam	ജ്വരം ചുമ വാത കഫജന്യവികാരങ്ങൾ എന്നിവയെ ശമിപ്പിക്കുന്ന ആയുർവേദ ഔഷധയോഗമാണ് ദശമൂലകടുത്രയം
+ilahiya college thiroorkad	ഇലാഹിയാ കോളേജ് തിരൂർക്കാട്
+onnam rankodukudiyanu addheham birudha padanam purthiyakkiyath	ഒന്നാം റാങ്കോടുകൂടിയാണ് അദ്ദേഹം ബിരുദ പഠനം പൂർത്തിയാക്കിയത്
+vividhatharam shasthrakriyakaleppattiyum dhanvantharikk arivundaayirunnu	വിവിധതരം ശസ്‌ത്രക്രിയകളെപ്പറ്റിയും ധന്വന്തരിക്ക് അറിവുണ്ടായിരുന്നു
+idukkiyil mazhakkaalathu vellathil mungipoya oru ayyappakshethrathil oru vanchiyilirunnu poojanadathunna poojaariyude chithram edukkuvan viktar shramichu	ഇടുക്കിയിൽ മഴക്കാലത്ത് വെള്ളത്തിൽ മുങ്ങിപ്പോയ ഒരു അയ്യപ്പക്ഷേത്രത്തിൽ ഒരു വഞ്ചിയിലിരുന്ന് പൂജനടത്തുന്ന പൂജാരിയുടെ ചിത്രം എടുക്കുവാൻ വിക്ടർ ശ്രമിച്ചു
+abdulahyude pithavayirunna abdul muthalib ayirunnu akkalathe kabayude paripalana chumathala nirvahichuponnirunnathu	അബ്ദുള്ളയുടെ പിതാവായിരുന്ന അബ്ദുൽ മുത്തലിബ് ആയിരുന്നു അക്കാലത്തെ കഅബയുടെ പരിപാലന ചുമതല നിർവഹിച്ചുപോന്നിരുന്നത്
+yennal dooravyapakadoshangalullathinal ee vazhikulla pareekshanangal aashasyamalla	എന്നാൽ ദൂരവ്യാപകദോഷങ്ങളുള്ളതിനാൽ ഈ വഴിക്കുള്ള പരീക്ഷണങ്ങൾ ആശാസ്യമല്ല
+ee chithrathinte kadha yesudasintethanu	ഈ ചിത്രത്തിന്റെ കഥ യേശുദാസിന്റേതാണ്
+thekum kizhakum africayil svabhavikamayithanne valarunnu	തെക്കും കിഴക്കും ആഫ്രിക്കയിൽ സ്വാഭാവികമായിത്തന്നെ വളരുന്നു
+pazhaya town pensulayude hridayabhagathayanu ethu sidhithicheyunathu	പഴയ ടൗൺ പെനിൻസുലയുടെ ഹൃദയഭാഗത്തായാണ് ഇത് സ്ഥിതിചെയ്യുന്നത്
+aadhyalakkangalude chithreekkaranachumathala kaartoonist b	ആദ്യലക്കങ്ങളുടെ ചിത്രീകരണച്ചുമതല കാർട്ടൂണിസ്റ് ബി
+kookath koovuka	കൂകാത് കൂവുക
+indo anglican kadhayude munnira yezhuthukaranaya adheham r	ഇന്തോ ആഗ്ലിക്കൻ കഥയുടെ മുൻനിര എഴുത്തുകാരനായ അദ്ദേഹം ആർ
+oru valiya vettakkaranayirunna muthappan than konna kattumrigangalude tholurinju vasthramaya udukkumayirunnu	ഒരു വലിയ വേട്ടക്കാരനായിരുന്ന മുത്തപ്പൻ താൻ കൊന്ന കാട്ടുമൃഗങ്ങളുടെ തോലുരിഞ്ഞ് വസ്ത്രമായി ഉടുക്കുമായിരുന്നു
+yadharthathil avidevechanu odisiyas trojan kuthirayudeyum	യഥാർത്ഥത്തിൽ അവിടെവെച്ചാണ് ഒഡീസിയസ്സ് ട്രോജൻ കുതിരയുടേയും
+pinneedu aa shiksha jeevaparyandhamaakki maatti	പിന്നീട് ആ ശിക്ഷ ജീവപര്യന്തമാക്കി മാറ്റി
+alpine parvathanirayil italiyude ullilayanu eee rajyam sthidi cheyyunnathu	ആൽപൈൻ പർവതനിരയിൽ ഇറ്റലിയുടെ ഉള്ളിലായാണ് ഈ രാജ്യം സ്ഥിതി ചെയ്യുന്നത്
+vathsyayanante kamasuthrathil etheppati paramarsamund	വാൽസ്യായനന്റെ കാമസൂത്രത്തിൽ ഇതെപ്പറ്റി പരാമർശമുണ്ട്
+makarinte makalayirunnu agamide lesbosile oru sthalamaya agamideyilninnanu ee peru labhichathennu visvasikkappedunnu	മകാറിന്റെ മകളായിരുന്നു അഗമിദെ ലെസ്ബോസിലെ ഒരു സ്ഥലമായ അഗമിദെയിൽനിന്നാണ് ഈ പേര് ലഭിച്ചതെന്ന് വിശ്വസിക്കപ്പെടുന്നു
+marubhoomiyil oru pradhaana kadhaapaathramaakunnu	മരുഭൂമിയും ഒരു പ്രധാന കഥാപാത്രമാകുന്നു
+athupolethanne sainikamedhavikal kuleenathvam svayathamaki bharanabharameteduthitullathinu udaharanangalum kuravalla	അതുപോലെതന്നെ സൈനികമേധാവികൾ കുലീനത്വം സ്വായത്തമാക്കി ഭരണഭാരമേറ്റെടുത്തിട്ടുള്ളതിന് ഉദാഹരണങ്ങളും കുറവല്ല
+keralathile kozhikkodu nagarathile oru pradhaana vyaapaara kendhramaanu valiyangaadi	കേരളത്തിലെ കോഴിക്കോട് നഗരത്തിലെ ഒരു പ്രധാന വ്യാപര കേന്ദ്രമാണ് വലിയങ്ങാടി
+valare sindaranayirunna abdulahye vivaham cheyyan akkalathu niravadhi sthreekal sameepichirunenkilum aminayayirunnu abdulah vivaham cheythathu	വളരെ സുന്ദരനായിരുന്ന അബ്ദുള്ളയെ വിവാഹം ചെയ്യാൻ അക്കാലത്ത് നിരവധി സ്ത്രീകൾ സമീപിച്ചിരുന്നെങ്കിലും ആമിനെയായിരുന്നു അബ്ദുള്ള വിവാഹം ചെയ്തത്
+enthayalum sadiril ninnum bharathanatyathilethi ninnirunna dasinrithathinum thevidissiyattathilude mohiniyattamaya kairaliyude svantham lasyanrithathinum ore mathrikayilulla avatharanarithi kaivannath thikachum yadrischikamakan nivarthiyilla	എന്തായാലും സദിരിൽ നിന്നും ഭരതനാട്യത്തിലെത്തി നിന്നിരുന്ന ദാസിനൃത്തത്തിനും തേവിടിശ്ശിയാട്ടത്തിലൂടെ മോഹിനിയാട്ടമായ കൈരളിയുടെ സ്വന്തം ലാസ്യനൃത്തത്തിനും ഒരേ മാതൃകയിലുള്ള അവതരണരീതി കൈവന്നത് തികച്ചും യാദൃച്ഛികമാകാൻ നിവൃത്തിയില്ല
+niravadi kodunkatukalum bhukampangalum varshangalayi valiya alavil evide aghathamelppikkunnathayi kanappedunnu	നിരവധി കൊടുങ്കാറ്റുകളും ഭൂകമ്പങ്ങളും വർഷങ്ങളായി വലിയ അളവിൽ ഇവിടെ ആഘാതമേൽപ്പിക്കുന്നതായി കാണപ്പെടുന്നു
+narendramodikum b	നരേന്ദ്രമോദിക്കും ബി
+kunju virinju purathu varunnathi vare thalla pakshikkum kunjungalkkum bhakshanam yethikkunna chumathala aan pakshikkullathanu	കുഞ്ഞു വിരിഞ്ഞു പുറത്തു വരുന്നത് വരെ തള്ള പക്ഷിക്കും കുഞ്ഞുങ്ങൾക്കും ഭക്ഷണം എത്തിക്കുന്ന ചുമതല ആൺ പക്ഷിക്കുള്ളതാണ്
+swamithumbi yenna jeevavargavumai bandhamulla vivarangal wikispeciesil	സ്വാമിത്തുമ്പി എന്ന ജീവവർഗ്ഗവുമായി ബന്ധമുള്ള വിവരങ്ങൾ വിക്കിസ്പീഷിസിൽ
+saint helenayil vechu nepolean josphinepatti engane paranju	സെന്റ് ഹെലേനയിൽ വെച്ച് നെപോളിയൻ ജോസ്ഫൈനെപ്പറ്റി ഇങ്ങനെ പറഞ്ഞു
+athukondu sathyamaya arivum sheriyayaveekshanavum neduka yennathanu adyapadi	അതുകൊണ്ട് സത്യമായ അറിവും ശരിയായവീഷണവും നേടുക എന്നതാണ് ആദ്യപടി
+pandu purathana kalamthottuthanne pala athbhutha kathakalkkum peruketta kshethramanu thrikapaleshvaram kshethram	പണ്ടു പുരാതന കാലംതൊട്ടുതന്നെ പല അത്ഭുത കഥകൾക്കും പേരുകേട്ട ക്ഷേത്രമാണ് തൃക്കപാലീശ്വരം ക്ഷേത്രം
+uthpaathanavyavasaayangalilum ananvathi andhaaraashtra praadhaanyamulla sanghadanakalundu	ഉത്പാദനവ്യവസായങ്ങളിലും അനവധി അന്താരാഷ്ട്ര പ്രാധാന്യമുള്ള സംഘടനകളുണ്ട്
+avide speekkar oofeessile sahaayiyaayi hruswamaayi prevarthichchu	അവിടെ സ്പീക്കർ ഓഫീസിലെ സഹായിയായി ഹ്രസ്വമായി പ്രവർത്തിച്ചു
+punnapravayalaar swathadhrasamara senaaniyum c	പുന്നപ്രവയലാർ സ്വതന്ത്ര്യസമര സേനാനിയും സി
+sasyangal sooryaprekaashathil ninnum ulpaadhippikkunna fhalangal manushyanulppedeyulla matt jeevikal bhakshanamaakkunnu	സസ്യങ്ങൾ സൂര്യപ്രകാശത്തിൽ നിന്നും ഉൽപാദിപ്പിക്കുന്ന ഫലങ്ങൾ മനുഷ്യനുൾപ്പെടെയുള്ള മറ്റ് ജീവികൾ ഭക്ഷണമാക്കുന്നു
+peerinte rileesinu sheesham sowhridham saavadhaanathilaakki volters ethirthu joothanmaarude hoolookasttum randaam lokamahaayudhavum hitlarudeyum mattu naasikaludeyum speekarudey aaroopanaththe sakthamaayi ethirthu	സ്പീറിന്റെ റിലീസിനു ശേഷം സൗഹൃദം സാവധാനത്തിലാക്കി വോൾട്ടേഴ്സ് എതിർത്തു ജൂതന്മാരുടെ ഹോളോകസ്റ്റും രണ്ടാം ലോകമഹായുദ്ധവും ഹിറ്റ്ലറുടെയും മറ്റു നാസികളുടെയും സ്പീക്കറുടെ ആരോപണത്തെ ശക്തമായി എതിർത്തു
+yuddhakkeduthimulam palayanam cheyyendivanna abhayarthikalude ormmakalunarthunnathanu bharamenthiya nizhal rupangal	യുദ്ധക്കെടുതിമൂലം പലായനം ചെയ്യേണ്ടിവന്ന അഭയാർത്ഥികളുടെ ഓർമ്മകളുണർത്തുന്നതാണ് ഭാരമേന്തിയ നിഴൽ രൂപങ്ങൾ
+saga of dharmapuri dharmapuranam	സാഗ ഓഫ് ധർമപുരി ധർമപുരാണം
+sayyid jaabir thangal	സയ്യിദ് ജാബിർ തങ്ങൾ
+vienna sarvakalashalayilum manaveeyavadhathinte kendramayirunna basel sarvakalashalayilum adheham padichu	വിയന്ന സർവകലാശാലയിലും മാനവീയവാദത്തിന്റെ കേന്ദ്രമായിരുന്ന ബേസൽ സർവകലാശാലയിലും അദ്ദേഹം പഠിച്ചു
+gorikalanu ghaznikale paripurnnamayi parajayapeduthiyath	ഗോറികളാണ് ഗസ്നവികളെ പരിപൂർണമായി പരാജയപ്പെടുത്തിയത്
+eva koodathe oru kendravartha offisumundu	ഇവ കൂടാതെ ഒരു കേന്ദ്രവാർത്താ ഓഫീസുമുണ്ട്
+chanamp vanpayaru kilukki sesbeniya thudangiya chedikalanu ethinayi upayogichirunnath	ചണമ്പ് വൻപയറ് കിലുക്കി സെസ്ബേനിയ തുടങ്ങിയ ചെടികളാണ് ഇതിനായി ഉപയോഗിച്ചിരുന്നത്
+unnineeliyude thozhiyaya cheriyathinte bharthavanu kavyam rachichathennanu mattorabhiprayam sahithyapanjananan sri p k narayanapillayanu ee pakshakaril pramughan	ഉണ്ണുനീലിയുടെ തോഴിയായ ചെറിയതിന്റെ ഭർത്താവാണ് കാവ്യം രചിച്ചതെന്നാണ് മറ്റൊരഭിപ്രായം സാഹിത്യപഞ്ചാനനൻ ശ്രീ പി കെ നാരായണപിള്ളയാണ് ഈ പക്ഷക്കാരിൽ പ്രമുഖൻ
+thalayile thoppiyil karutha paadu kanaam	തലയിലെ തൊപ്പിയിൽ കറുത്ത പാട് കാണാം
+chitthabhramam bhaadhicha muthachanodum muthashiyodum oppamaayirunnu baalyakaalam	ചിത്തഭ്രമം ബാധിച്ച മുത്തച്ഛനോടും മുത്തശ്ശിയോടും ഒപ്പമായിരുന്നു ബാല്യകാലം
+apoorvamaayi urukkum upayoogikkaarund	അപൂർവമായി ഉരുക്കും ഉപയോഗിക്കാറുണ്ട്
+akasha niramulla vellam yennarthamulla dakota vaakkil ninnanu samsthanathinuu ee peru labhichathu	ആകാശ നിറമുള്ള വെള്ളം എന്നർത്ഥമുള്ള ഡക്കോട്ട വാക്കിൽ നിന്നാണ് സംസ്ഥാനത്തിന് ഈ പേര് ലഭിച്ചത്
+ivarkku randu makkalundu	ഇവർക്ക് രണ്ട് മക്കളുണ്ട്
+itharam padhaarthangaludeyellaam upayogatheyum prayogareethikaleyum kurichulla patanangal dentistriyude pradhaana vishayamaanu	ഇത്തരം പദാർഥങ്ങളുടെയെല്ലാം ഉപയോഗത്തെയും പ്രയോഗരീതികളെയും കുറിച്ചുള്ള പഠനങ്ങൾ ഡെന്റിസ്ട്രിയുടെ പ്രധാന വിഷയമാണ്
+indharappura sulthaanettile minankkabaahu raajavamshathile oru raajnjiyude pinmurakkaarayirunnu fathmaavathi	ഇന്ദറപുര സുൽത്താനേറ്റിലെ മിനങ്ക്കബാഹു രാജവംശത്തിലെ ഒരു രാജ്ഞിയുടെ പിന്മുറക്കാരായിരുന്നു ഫത്മാവതി
+ee naalu varsham swayam diferanshyal jyaamithiyum saamaanyamaaya aapekshikathayum padichu	ഈ നാലു വർഷം സ്വയം ഡിഫറൻഷ്യൽ ജ്യാമിതിയും സാമാന്യമായ ആപേക്ഷികതയും പഠിച്ചു
+ee sambhavathethudarnnu pattalakarkku puthiya perumattachattangal nilavil vannu	ഈ സംഭവത്തെത്തുടർന്ന് പട്ടാളക്കാർക്ക് പുതിയ പെരുമാറ്റച്ചട്ടങ്ങൾ നിലവിൽ വന്നു
+vananasikaranapravarthanavum pradesika mekhalakale karyamayi badhichu	വനനശീകരണപ്രവർത്തനവും പ്രദേശിക മേഖലകളെ കാര്യമായി ബാധിച്ചു
+murugabhoopathi palakad reghu umayalpuram shivaraman t	മുരുഗഭൂപതി പാലക്കാട് രഘു ഉമയല്പുരം ശിവരാമൻ ടി
+bonavandhurayude kazhivukalkku angeekaaramennonam moonnu varsham munp adheham pramukha madhyakaala chinthakanaaya peettar lombaardinte naalu bhaagangalulla sentansukal enna grandhasamuchayatheppatty prabhaashanam nadathaan kshanikkappettirunnu	ബൊനവന്തുരയുടെ കഴിവുകൾക്ക് അംഗീകാരമെന്നോണം മൂന്നു വർഷം മുൻപ് അദ്ദേഹം പ്രമുഖ മദ്ധ്യകാല ചിന്തകനായ പീറ്റർ ലൊംബാർഡിന്റെ നാലു ഭാഗങ്ങളുള്ള സെന്റൻസുകൾ എന്ന ഗ്രന്ഥസമുച്ചയത്തെപ്പറ്റി പ്രഭാഷണം നടത്താൻ ക്ഷണിക്കപ്പെട്ടിരുന്നു
+items technology	ഐറ്റംസ് ടെക്നോളജി
+prakruthivaathakathil ithu dhaaraalam kaanappedunnu	പ്രകൃതിവാതകത്തിൽ ഇത് ധാരാളം കാണപ്പെടുന്നു
+veluppu thavittu yennee nirangalil kanappedunnu	വെളുപ്പ് തവിട്ട് എന്നീ നിറങ്ങളിൽ കാണപ്പെടുന്നു
+mi yom national park	മി യോം നാഷണൽ പാർക്ക്
+europe asia africa america ennividangalil kanunnu	യൂറോപ്പ് ഏഷ്യ ആഫ്രിക്ക അമേരിക്ക എന്നിവിടങ്ങളിൽ കാണുന്നു
+ee chithrangal oru prathyeka nimishathil camerayil pakarthiya chithram aayirikamennaanu chila vyakhyathakkal vilayiruthunathu	ഈ ചിത്രങ്ങൾ ഒരു പ്രത്യേക നിമിഷത്തിൽ ക്യാമറയിൽ പകർത്തിയ ചിത്രം ആയിരിക്കാമെന്നാണ് ചില വ്യാഖ്യാതാക്കൾ വിലയിരുത്തുന്നത്
+kottakkal sivaraman	കോട്ടക്കൽ ശിവരാമൻ
+internet movie databasil ninnu kanmadam	ഇന്റർനെറ്റ് മൂവി ഡാറ്റാബേസിൽ നിന്ന് കന്മദം
+kaalakremathil tiobe soochikayil listucheythittullava boldaayi eduthu kaanichirikkunnu	കാലക്രമത്തിൽ TIOBE സൂചികയിൽ ലിസ്റ്റുചെയ്തിട്ടുള്ളവ ബോൾഡായി എടുത്തു കാണിച്ചിരിക്കുന്നു
+athaay shudhasapthakamaaya bilaaval dhaattile oro swarangalilum ee randu shruthikal veetham kootiyaal vikruthaswarangalum avayude kramasankhyayum labhikkum	അതായ് ശുദ്ധസപ്തകമായ ബിലാവൽ ഥാട്ടിലെ ഓരോ സ്വരങ്ങളിലും ഈ രണ്ട് ശ്രുതികൾ വീതം കൂട്ടിയാൽ വികൃതസ്വരങ്ങളും അവയുടെ ക്രമസംഖ്യയും ലഭിക്കും
+charithrathil andhakaaraavruthamaayirunna pala konukalum ee naanayangalude sahaayathaal prakaashamanamaayi theernnirikkunnu	ചരിത്രത്തിൽ അന്ധകാരാവൃതമായിരുന്ന പല കോണുകളും ഈ നാണയങ്ങളുടെ സഹായത്താൽ പ്രകാശമാനമായി തീർന്നിരിക്കുന്നു
+yennal ee balam bhoomiyude vividhabhagangalil lakhuvayi vyathyasappedunnu	എന്നാൽ ഈ ബലം ഭൂമിയുടെ വിവിധഭാഗങ്ങളിൽ ലഘുവായി വ്യത്യാസപ്പെടുന്നു
+neppoliyan porthugal keezhadakki	നെപോളിയൻ പോർത്തുഗൽ കീഴടക്കി
+brannan kolejil ninnu malayaala saahithyathil m	ബ്രണ്ണൻ കോളേജിൽ നിന്ന് മലയാള സാഹിത്യത്തിൽ എം
+kaayika rangathe paramonnatha bhahumathiyaaya raajeev gandhi kheelrekna puraskaaram nalki raajyam vijay kumaarine aadharichitund	കായിക രംഗത്തെ പരമോന്നത ബഹുമതിയായ രാജീവ് ഗാന്ധി ഖേൽരത്ന പുരസ്കാരം നൽകി രാജ്യം വിജയ് കുമാറിനെ ആദരിച്ചിട്ടുണ്ട്
+ithreyum uyarnna thaapanila budhante uparithalathile paarakaleyum mattum bhaashpeekarichu kalayukayum ee bhaashpangale saurakkaattu vazhi vahichu kondupoyirikkukayumaavaam sambhavichathu	ഇത്രയും ഉയർന്ന താപനില ബുധന്റെ ഉപരിതലത്തിലെ പാറകളേയും മറ്റും ബാഷ്പീകരിച്ചു കളയുകയും ഈ ബാഷ്പങ്ങളെ സൗരക്കാറ്റ് വഴി വഹിച്ചു കൊണ്ടുപോയിരിക്കുകയുമാവാം സംഭവിച്ചത്
+idukki jillayile udumbanchola thaalookkil sthithi cheyyunna oru panchaayathaanu konnathadi graamapanchaayathu	ഇടുക്കി ജില്ലയിലെ ഉടുമ്പൻചോല താലൂക്കിൽ സ്ഥിതി ചെയ്യുന്ന ഒരു പഞ്ചായത്താണ് കൊന്നത്തടി ഗ്രാമപഞ്ചായത്ത്
+kaalkulasile oru pradhaanappetta sidhaanthamaanu rols thiyaram	കാൽകുലസിലെ ഒരു പ്രധാനപ്പെട്ട സിദ്ധാന്തമാണു് റോൾസ് തിയറം
+svanthamayi bhoomi ullavarum yennal veedu nirmmikkaan sheshiyillathavarumaya arharaya vyakthikale pradeshika thalathil kandethiyanu veedu nirmichu nalkunnathu	സ്വന്തമായി ഭൂമി ഉള്ളവരും എന്നാൽ വീട് നിർമ്മിക്കാൻ ശേഷിയില്ലാത്തവരുമായ അർഹരായ വ്യക്തികളെ പ്രാദേശിക തലത്തിൽ കണ്ടെത്തിയാണ് വീട് നിർമിച്ച് നൽകുന്നത്
+sudheeshinte pala kadhasamaahaarangalum vividha sarvakalaashaalakalil paadyapadhathiyil ulpeduthiyitund	സുധീഷിൻറെ പല കഥാസമാഹാരങ്ങളും വിവിധ സർവ്വകലാശാലകളിൽ പാഠ്യപദ്ധതിയിൽ ഉൾപ്പെടുത്തിയിട്ടുണ്ട്
+randu niyamasabhakalilum sadhaa ulpporukal nadannu	രണ്ടു നിയമസഭകളിലും സദാ ഉൾപ്പോരുകൾ നടന്നു
+dubayil ninnu prasidhikarikunna english patramanu gulf news	ദുബൈയിൽ നിന്ന് പ്രസിദ്ധീകരിക്കുന്ന ഇംഗ്ലീഷ് പത്രമാണ് ഗൾഫ് ന്യൂസ്
+indian sivil sarveesinte pithaavu ennariyappedunnathu idhehamaanu	ഇന്ത്യൻ സിവിൽ സർവീസിന്റെ പിതാവ് എന്നറിയപ്പെടുന്നത് ഇദ്ദേഹമാണ്
+marayillathe nadathiya vishudhivilppana simony polum thelloru vishamam undaakkiyenkilaayi	മറയില്ലാതെ നടത്തിയ വിശുദ്ധിവില്പന simony പോലും തെല്ലൊരു വിഷമം ഉണ്ടാക്കിയെങ്കിലായി
+moonnaaloka pattaalam maanathe kottaaram	മൂന്നാലോക പട്ടാളം മാനത്തെ കൊട്ടാരം
+edheham vibhavanam cheythathu draveekritha endhanamupayogikkunna rocketil nossilukalupayogichu golantharayathraykku venda balam srishttikamennayirunnu	ഇദ്ദേഹം വിഭാവനം ചെയ്തത് ദ്രവീകൃത ഇന്ധനമുപയോഗിക്കുന്ന റോക്കറ്റിൽ നോസിലുകളുപയോഗിച്ച് ഗോളാന്തരയാത്രയ്ക്കു വേണ്ട ബലം സൃഷ്ടിക്കാമെന്നായിരുന്നു
+sajjikaranathinum paripalanathinum vidagddhasevanam avasyamayirunna netwareine apekshich theere lalithamayirunna windows networkukalilekk upayokthakkal samkramikkukayum netware serverukale srimkhalayil ninnu purathakkukayum cheythu	സജ്ജീകരണത്തിനും പരിപാലനത്തിനും വിദഗ്ദ്ധസേവനം ആവശ്യമായിരുന്ന നെറ്റ്വെയറിനെ അപേക്ഷിച്ച് തീരെ ലളിതമായിരുന്ന വിൻഡോസ് നെറ്റ്വർക്കുകളിലേക്ക് ഉപയോക്താക്കൾ സംക്രമിക്കുകയും നെറ്റ്വെയർ സെർവറുകളെ ശൃംഖലയിൽ നിന്ന് പുറത്താക്കുകയും ചെയ്തു
+thalipparamp highschool padanathinusesham madras universityil ninnum bhauthikasasthrathil birudham nedi	തളിപ്പറമ്പ് ഹൈസ്കൂൾ പഠനത്തിനുശേഷം മദ്രാസ് യൂണിവേഴ്സിറ്റിയിൽ നിന്നും ഭൗതികശാസ്ത്രത്തിൽ ബിരുദം നേടി
+iprakaaram thalamurakalaayi oresthalathu thanne kazhiyunna pala pakshikkoottangaleyum kandethaavunnathaanu	ഇപ്രകാരം തലമുറകളായി ഒരേസ്ഥലത്തു തന്നെ കഴിയുന്ന പല പക്ഷികൂട്ടങ്ങളെയും കണ്ടെത്താവുന്നതാണ്
+kalashodbhavaanwitha mahendhra thrikoodavaramalayaachalendhra vinutham	കലശോദ്ഭവാന്വിത മഹേന്ദ്ര ത്രികൂടവരമലയാചലേന്ദ്ര വിനുതം
+jamaat islamiyumayittu ennevareyulla edapedalukalvachu nokkumpol avaroru bheekaravada theevravadha prasthanamayi yenikku thinniyittilla	ജമാഅത്തെ ഇസ്‌ലാമിയുമായിട്ട് ഇന്നേവരെയുള്ള ഇടപെടലുകൾവച്ച് നോക്കുമ്പോൾ അവരൊരു ഭീകരവാദ തീവ്രവാദ പ്രസ്ഥാനമായി എനിക്ക് തോന്നിയിട്ടില്ല
+ennu malaysia indonesia thailand srilanka brasil vietnam nigeria liberia combodia congo phillepines ghana nuginiya burma china india ennivadagalil rubberkrishiundu	ഇന്ന് മലേഷ്യ ഇന്തോനേഷ്യ തായ്‌ലന്റ് ശ്രീലങ്ക ബ്രസീൽ വിയറ്റ്നാം നൈജീരിയ ലൈബീരിയ കംബോഡിയ കോംഗോ ഫിലിപ്പൈൻസ് ഘാന ന്യൂഗിനിയ ബർമ്മ ചൈന ഇന്ത്യ എന്നിവിടങ്ങളിൽ റബ്ബർകൃഷിയുണ്ട്
+idheham barmmayude aadhya prasidantaayappol saavo myaanmaarile aadhyavanithayaayi	ഇദ്ദേഹം ബർമ്മയുടെ ആദ്യ പ്രസിഡന്റായപ്പോൾ സാവോ മ്യാൻമാറിലെ ആദ്യവനിതയായി
+uchithapadangalude vinyasathilude v	ഉചിതപദങ്ങളുടെ വിന്യസനത്തിലൂടെ വി
+achar wine ennivayundakkanum uthamamanu ith	അച്ചാർ വൈൻ എന്നിവയുണ്ടാക്കാനും ഉത്തമമാണ് ഇത്
+ingane thante computerilekk download cheyyappetta filukal matullavare anuvadikkunna upayokthakkaleyanu seaders ennu parayunnath	ഇങ്ങനെ തന്റെ കമ്പ്യൂട്ടറിലേക്ക് ഡൌൺലോഡ് ചെയ്യപ്പെട്ട ഫയലുകൾ മറ്റുള്ളവരെ അനുവദിക്കുന്ന ഉപയോക്താക്കളെയാണ് സീഡേഴ്സ് എന്നു പറയുന്നത്
+dhivaakaran ulppetta k	ദിവാകരൻ ഉൾപ്പെട്ട കെ
+jafersan devis paarish kizhakku	ജഫേർസൺ ഡേവിസ് പാരിഷ് കിഴക്ക്
+nellaayi reyilvey steyshan steyshan kode nyi thrishur jillayile shoranoor kochin haarbar sekshanil puthukkaad rayilvey steyshanum erinjaalakkuda rayilvey steyshanum edayilaanu	നെല്ലായി റെയിൽവേ സ്റ്റേഷൻ സ്റ്റേഷൻ കോഡ് NYI തൃശ്ശൂർ ജില്ലയിലെ ഷൊറണൂർ കൊച്ചിൻ ഹാർബർ സെക്ഷനിൽ പുതുക്കാട് റയിൽവേ സ്റ്റേഷനും ഇരിങ്ങാലക്കുട റെയിൽവേ സ്റ്റേഷനും ഇടയിലാണ്
+pittyoottari dwaarfisam ozhike mattoru dwaarfisavum valarchaahormon nalki pariharikkaanaavukayilla	പിറ്റ്യൂറ്ററി ഡ്വാർഫിസം ഒഴികെ മറ്റൊരു ഡ്വാർഫിസവും വളർച്ചാഹോർമോൺ നൽകി പരിഹരിക്കാനാവുകയില്ല
+budhamatham keralathil	ബുദ്ധമതം കേരളത്തിൽ
+vivahangal kappalilum theevandiyilum odichu kayatti kondupokunna samvidhanathinanu roll on roll off yennu parayunnath	വാഹനങ്ങൾ കപ്പലിലും തീവണ്ടിയിലും ഓടിച്ച് കയറ്റി കൊണ്ടുപോകുന്ന സംവിധാനത്തിനാണ് റോൾ ഓൺ റോൾ ഓഫ് എന്നു പറയുന്നത്
+etharam ganangale keerthanam adhava krithi ennu parayunnu	ഇത്തരം ഗാനങ്ങളെ കീർത്തനം അഥവാ കൃതി എന്ന് പറയുന്നു
+chavaykumbol kshathamundakatha reethiyil pallukale punarvinyasikendathanu	ചവയ്ക്കുമ്പോൾ ക്ഷതമുണ്ടാകാത്ത രീതിയിൽ പല്ലുകളെ പുനർവിന്യസിക്കേണ്ടതാണ്
+randu thunikalku edayil vechu iron cheyyuka	രണ്ടു തുണികൾക്ക് ഇടയിൽ വെച്ച് അയൺ ചെയ്യുക
+nammekurichu chinthikkunnathinu munbu mattullavare kurichu chinthikkan daiwamanu namme padippikkunnath	നമ്മെക്കുറിച്ചു ചിന്തിക്കുന്നതിനു മുൻപ് മറ്റുള്ളവരെ കുറിച്ചു ചിന്തിക്കാൻ ദൈവമാണ് നമ്മെ പഠിപ്പിക്കുന്നത്
+persiayude padinjaran pravishyakalokkeyum pollandinte simhabhagavum nepoleante adheenathayilayi	പ്രഷ്യയുടെ പടിഞ്ഞാറൻ പ്രവിശ്യകളൊക്കെയും പോളണ്ടിന്റെ സിംഹഭാഗവും നെപോളിയന്റെ അധീനതയിലായി
+stemminte valathuvashathu varaykkunna oru valanja adayaalamaanu flaag	സ്റ്റെമ്മിന്റെ വലതുവശത്ത് വരയ്ക്കുന്ന ഒരു വളഞ്ഞ അടയാളമാണ് ഫ്ലാഗ്
+ee nadhi chathuppil chuttapettukidakunnu	ഈ നദി ചതുപ്പിൽ ചുറ്റപ്പെട്ടുകിടക്കുന്നു
+adya chakravarthi kvin shi huvandiyute maranathinusesham rajyam asanthulithamayi	ആദ്യ ചക്രവർത്തി ക്വിൻ ഷി ഹുവാൻഡിയുടെ മരണത്തിനുശേഷം രാജ്യം അസന്തുലിതമായി
+nagaland indiayile pathinaramath samsthanamayi nilavil vannu	നാഗാലാന്റ് ഇന്ത്യയിലെ പതിനാറാമത് സംസ്ഥാനമായി നിലവിൽ വന്നു
+parampilum vayalilum matum e kazhivulla chedikale nattuvalarthi ava pookkan thudangunna samayath manninodu uzhuthchethanu evaye valamakkiyirunnath	പറമ്പിലും വയലിലും മറ്റും ഈ കഴിവുള്ള ചെടികളെ നട്ടുവളർത്തി അവ പൂക്കാൻ തുടങ്ങുന്ന സമയത്ത് മണ്ണിനോട് ഉഴുത്ചേർത്താണ് ഇവയെ വളമാക്കിയിരുന്നത്
+san francisco upadvipile vadakkupadinjaran bhagathanu ith sthithi cheyyunnath	സാൻ ഫ്രാൻസിസ്കോ ഉപദ്വീപിലെ വടക്കുപടിഞ്ഞാറൻ ഭാഗത്താണ് ഇത് സ്ഥിതി ചെയ്യുന്നത്
+chaathannoor kochunaaraayanapilla	ചാത്തന്നൂർ കൊച്ചുനാരായണപിള്ള
+kooduthal vegatha aavashyamullidathu thudarchayaayi urukki cherthaanu upayogikkunnathu	കൂടുതൽ വേഗത ആവശ്യമുള്ളിടത്ത് തുടർച്ചയായി ഉരുക്കി ചേർത്താണ് ഉപയോഗിക്കുന്നത്
+rogam oru vairal pani allanekil chikkunguniyayude allenkil denkipaniyude oru anandharafalamaano enna kaaryathil tharkkamund	രോഗം ഒരു വൈറൽ പനി അല്ലെങ്കിൽ ചിക്കുൻഗുനിയയുടെ അല്ലെങ്കിൽ ഡെങ്കിപ്പനിയുടെ ഒരു അനന്തരഫലമാണോ എന്ന കാര്യത്തിൽ തർക്കമുണ്ട്
+ee aavegangal anumasthishka aavruthiyile gremattaril ethukayum avideninnum danrettu nyookliyassilekku kadakkukayum cheyyum	ഈ ആവേഗങ്ങൾ അനുമസ്തിഷ്ക ആവൃതിയിലെ ഗ്രേമാറ്ററിൽ എത്തുകയും അവിടെനിന്നും ഡന്റേറ്റ് ന്യൂക്ളിയസ്സിലേക്കു കടക്കുകയും ചെയ്യും
+baariyude dhi admayarabil krichdan enna naadakathiloodeyaan shredheyanaayath	ബാരിയുടെ ദി അഡ്മയറബിൾ ക്രിച്ടൻ എന്ന നാടകത്തിലൂടെയാണ് ശ്രദ്ധേയനായത്
+culcutta theses amgikarichcha communist party randam partti congressile prathinidhiyayirunnu p	കൽക്കത്താ തീസിസ്സ് അഗീകരിച്ച കമ്മ്യൂണിസ്റ്റ് പാർട്ടി രണ്ടാം പാർട്ടി കോൺഗ്രസ്സിലെ പ്രതിനിധിയായിരുന്നു പി
+masthishkathile ormashakthiye niyadhrikkunna bhaagathekkulla rekthayottam nilaikunnathu vazhi undaakunna dimenshyayaan vaaskulaar dimenshyaa	മസ്തിഷ്കത്തിലെ ഓർമ്മശക്തിയെ നിയന്ത്രിക്കുന്ന ഭാഗത്തേക്കുള്ള രക്തയോട്ടം നിലക്കുന്നതു വഴി ഉണ്ടാകുന്ന ഡിമെൻഷ്യയാണ് വാസ്‌കുലാർ ഡിമെൻഷ്യ
+bhaarathiya ithihasangaladakkamulla loka ithihasa kathapathrangalil palarum kunthadharikalayi chithrikarikkappettirikkunnu	ഭാരതീയ ഇതിഹാസങ്ങളടക്കമുള്ള ലോക ഇതിഹാസ കഥാപാത്രങ്ങളിൽ പലരും കുന്തധാരികളായി ചിത്രീകരിക്കപ്പെട്ടിരിക്കുന്നു
+kadhakaliyile veshangale pradhanamayum pacha kathi kari thadi minukk enningane anchayi thirichirikkunnu	കഥകളിയിലെ വേഷങ്ങളെ പ്രധാനമായും പച്ച കത്തി കരി താടി മിനുക്ക് എന്നിങ്ങനെ അഞ്ചായി തിരിച്ചിരിക്കുന്നു
+pathinezhu prasthaavangalundaayirunna pramaanathil russokkum adhehathinte rachana saamoohya udampadikkumulla swadheenam suvyakthamaayirunnu	പതിനേഴു പ്രസ്താവങ്ങളുണ്ടായിരുന്ന പ്രമാണത്തിൽ റുസ്സോക്കും അദ്ദേഹത്തിന്റെ രചന സാമൂഹ്യ ഉടമ്പടിക്കുമുള്ള സ്വാധീനം സുവ്യക്തമായിരുന്നു
+ponnaani m	പൊന്നാനി എം
+m s vazhiyo ariyikkanulla samvidhanam naagiyos nalkunundu	എം എസ് വഴിയോ അറിയിക്കാനുള്ള സംവിധാനവും നാജിയോസ് നൽകുന്നുണ്ട്
+ramaadha risort khaavo lak	രമാദ റിസോർട്ട് ഖാവോ ലക്
+kudashanaad mahaadhevar kshethram	കുടശ്ശനാട് മഹാദേവർ ക്ഷേത്രം
+ulippallukal kompallukal charvarnakangal ennee moonnu tharathilulla pallukalum daimetrodonukalkkundaayirunnu	ഉളിപ്പല്ലുകൾ കോമ്പല്ലുകൾ ചർവണകങ്ങൾ എന്നീ മൂന്നു തരത്തിലുള്ള പല്ലുകളും ഡൈമെട്രോഡോണുകൾക്കുണ്ടായിരുന്നു
+pinneed chaavakkaad koottanaad vettathunaad thaalookkukalude bhaagangal kootticherthu ponnaani thaalookk roopavathkarichu	പിന്നീട് ചാവക്കാട് കൂറ്റനാട് വെട്ടത്തുനാട് താലൂക്കുകളുടെ ഭാഗങ്ങൾ കൂട്ടിച്ചേർത്ത് പൊന്നാനി താലൂക്ക് രൂപവത്കരിച്ചു
+aanakkara graamapanchaayath	ആനക്കര ഗ്രാമപഞ്ചായത്ത്
+spaanish vishudhan igneshyan layola aduthakaalathu sthaapicha oru puthiya prasthaanamaayirunnu eeshosabha annu	സ്പാനിഷ് വിശുദ്ധൻ ഇഗ്നേഷ്യൻ ലയോള അടുത്തകാലത്ത് സ്ഥാപിച്ച ഒരു പുതിയ പ്രസ്ഥാനമായിരുന്നു ഈശോസഭ അന്ന്
+italyil lambarde rajavamshathinte parambaragathavum athipurathanavumaya sharlimeyn kireedam aniyave nepolean eprakaram paranjathre ee kireedam yenikku daiwadathamayi labhichathanu	ഇറ്റലിയിലെ ലോംബാർഡി രാജവംശത്തിന്റെ പരമ്പരാഗതവും അതിപുരാതനവുമായ ഷാർളിമെയ്ൻ കിരീടം അണിയവേ നെപോളിയൻ ഇപ്രകാരം പറഞ്ഞത്രെ ഈ കിരീടം എനിക്കു ദൈവദത്തമായി ലഭിച്ചതാണ്
+ekalathu niravadhi kalakaranmarum sahithyakaranmarum chinthakarum karakaushalavidhagddharum horathileku akarshikappetu	ഇക്കാലത്ത് നിരവധി കലാകാരന്മാരും സാഹിത്യകാരന്മാരും ചിന്തകരും കരകൗശലവിധഗ്ദ്ധരും ഹെറാത്തിലേക്ക് ആകർഷിക്കപ്പെട്ടു
+america thangalude manushya bahirakashathethikkunna shuttle polulla pathathikal nirthivachirikkukayanu	അമേരിക്ക തങ്ങളുടെ മനുഷ്യനെ ബഹിരാകാശത്തെത്തിക്കുന്ന ഷട്ടിൽ പോലുള്ള പദ്ധതികൾ നിർത്തിവച്ചിരിക്കുകയാണ്

@@ -7,7 +7,7 @@ dependencies = ["mlengine", "numpy>=2"]
 
 [dependency-groups]
 dev = ["pytest>=8"]
-train = ["torch>=2.5"]
+train = ["torch>=2.5", "sentencepiece>=0.2"]
 spike = ["coremltools>=8"]
 
 [tool.uv.sources]
