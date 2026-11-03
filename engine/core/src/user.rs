@@ -151,6 +151,14 @@ impl UserStore {
             .collect()
     }
 
+    /// Every learned word, as shown, in no particular order.
+    pub fn learned(&self) -> impl Iterator<Item = &str> {
+        self.entries
+            .values()
+            .filter(|e| e.learned)
+            .map(|e| e.display.as_str())
+    }
+
     pub fn forget_all(&mut self) {
         self.entries.clear();
         self.removed.clear();

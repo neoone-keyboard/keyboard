@@ -178,6 +178,24 @@ fn english_user_reports() {
     }
 }
 
+/// A learned email is in the bar from its first letters, though they begin common English
+/// words (reported: `neo` hid sam.2024@example.com behind neon and never).
+#[test]
+fn a_learned_email_beats_english_completions() {
+    for engine in engines() {
+        engine.note_committed("sam.2024@example.com");
+        engine.note_committed("sam.2024@example.com");
+        for context in ["n", "ne", "neo", "Neo", "neo.", "neo.9", "hi neo.98"] {
+            let bar = texts(&engine, context);
+            assert!(
+                bar.contains(&"sam.2024@example.com".to_string()),
+                "{context}: {bar:?}"
+            );
+        }
+        assert_eq!(middle(&engine, "neo").0, "neo");
+    }
+}
+
 /// Manglish words are not completed or corrected into English by the long-word search.
 #[test]
 fn manglish_words_are_not_made_english() {

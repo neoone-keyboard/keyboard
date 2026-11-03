@@ -196,6 +196,19 @@ impl Engine {
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
 
+    /// The learned addresses (`text::is_address`), as shown, sorted. The keyboard reads
+    /// letters that begin one as one word too, as `current_word` does.
+    pub fn learned_addresses(&self) -> Vec<String> {
+        let mut found: Vec<String> = self
+            .user()
+            .learned()
+            .filter(|w| text::is_address(w))
+            .map(str::to_string)
+            .collect();
+        found.sort();
+        found
+    }
+
     /// Forgets learned words and words removed from the bar.
     pub fn forget_learned(&self) {
         self.user().forget_all();
@@ -234,7 +247,7 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
     ) -> Suggestions {
-        let typed = text::current_word(context_before);
+        let (typed, address) = self.current_word(context_before);
         if typed.is_empty() {
             return Suggestions {
                 candidates: self.next_words(context_before),
@@ -243,7 +256,7 @@ impl Engine {
         }
         // Classify and search the normal form (`don’` → `don'`); show the word as typed.
         let typed_n = normalize(typed);
-        if text::is_address(typed) {
+        if address {
             return Suggestions {
                 typed: typed.to_string(),
                 candidates: self.suggest_address(typed, &typed_n),
@@ -276,6 +289,32 @@ impl Engine {
             candidates: suggestions,
             vowel_signs: self.vowel_signs(context_before, typed),
         }
+    }
+
+    /// The word being typed (`text::current_word`), and whether it is an address. Letters
+    /// and punctuation that begin a learned address are one too (`neo.9` of
+    /// sam.2024@example.com), back to the whitespace: their full stop is no word break.
+    fn current_word<'a>(&self, context_before: &'a str) -> (&'a str, bool) {
+        let word = text::current_word(context_before);
+        if text::is_address(word) {
+            return (word, true);
+        }
+        let token = text::last_token(context_before);
+        if token != word && self.begins_learned_address(token) {
+            (token, true)
+        } else {
+            (word, false)
+        }
+    }
+
+    /// Whether `token`, two characters or more, begins a learned address (ASCII
+    /// case-insensitive, as the store is).
+    fn begins_learned_address(&self, token: &str) -> bool {
+        token.chars().nth(1).is_some()
+            && self
+                .user()
+                .learned()
+                .any(|w| text::is_address(w) && starts_with_ignoring_case(w, token))
     }
 
     fn is_known(&self, word: &str) -> bool {
@@ -529,21 +568,34 @@ impl Engine {
                 }
             }
         }
-        for word in self.user().completions(typed_n, 2) {
+        // The latest learned address the letters begin takes the first side slot, shown as
+        // learned (`Neo` → sam.2024@example.com): it is one thing typed before, not letters to
+        // finish, so its length costs nothing. It never replaces, nor holds back a correction.
+        let (addresses, words): (Vec<String>, Vec<String>) = self
+            .user()
+            .completions(typed_n, usize::MAX)
+            .into_iter()
+            .partition(|w| text::is_address(w));
+        let mut address: Vec<Candidate> = addresses
+            .into_iter()
+            .take(1)
+            .map(|word| Candidate {
+                text: word,
+                kind: Kind::Completion,
+                score: rank::LEARNED_COMPLETION,
+            })
+            .collect();
+        for word in words.into_iter().take(2) {
             let extra = word.len().saturating_sub(typed_n.len()) as f32;
             completions.push(Candidate {
-                // An address is shown as learned: `Jishnu@example.com` is no capitalised word.
-                text: if text::is_address(&word) {
-                    word.clone()
-                } else {
-                    show(&word)
-                },
+                text: show(&word),
                 kind: Kind::Completion,
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
         // Removed words take no part (Manglish ones are taken out in `manglish`).
         self.drop_removed(&mut completions);
+        self.drop_removed(&mut address);
         {
             let user = self.user();
             corrections.retain(|(c, _)| !user.is_removed(&c.text));
@@ -690,7 +742,8 @@ impl Engine {
         others.extend(case_fix);
         others.extend(manglish.exact.into_iter().map(|(c, _)| c));
         others.extend(manglish.side);
-        arrange(typed_c, typed_n, others, replacement, first_sides)
+        address.extend(first_sides);
+        arrange(typed_c, typed_n, others, replacement, address)
     }
 
     /// Log-probability of all English words that start with `typed` and are
@@ -1032,8 +1085,8 @@ impl Engine {
             .completions(typed_n, 2)
             .into_iter()
             .map(|word| Candidate {
-                score: rank::LEARNED_COMPLETION
-                    - rank::COMPLETION_PER_CHAR * word.len().saturating_sub(typed_n.len()) as f32,
+                // One thing typed before: its length costs nothing (`suggest_latin`).
+                score: rank::LEARNED_COMPLETION,
                 text: word,
                 kind: Kind::Completion,
             })

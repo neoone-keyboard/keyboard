@@ -24,14 +24,19 @@ pub fn current_word(context_before: &str) -> &str {
     if word.chars().any(char::is_alphanumeric) { word } else { "" }
 }
 
-/// The address being typed at the end of `context_before`: the text after the last
-/// whitespace, less opening brackets and quotes, if it `is_address`.
+/// The address being typed at the end of `context_before`, if `last_token` is one.
 fn address_at_end(context_before: &str) -> Option<&str> {
+    let token = last_token(context_before);
+    is_address(token).then_some(token)
+}
+
+/// The text after the last whitespace in `context_before`, less opening brackets and
+/// quotes: what an address being typed would be (`neo.9` of a learned sam.2024@example.com).
+pub fn last_token(context_before: &str) -> &str {
     let start = context_before
         .trim_end_matches(|c: char| !c.is_whitespace())
         .len();
-    let token = context_before[start..].trim_start_matches(is_opening);
-    is_address(token).then_some(token)
+    context_before[start..].trim_start_matches(is_opening)
 }
 
 fn is_opening(c: char) -> bool {
@@ -279,6 +284,14 @@ mod tests {
         assert_eq!(current_word("hello."), "");
         assert_eq!(current_word("@"), "");
         assert_eq!(current_word("me @"), "");
+    }
+
+    #[test]
+    fn last_token_runs_to_the_whitespace() {
+        assert_eq!(last_token("hi neo.9"), "neo.9");
+        assert_eq!(last_token("(neo."), "neo.");
+        assert_eq!(last_token("a\nb.c"), "b.c");
+        assert_eq!(last_token("hi "), "");
     }
 
     #[test]

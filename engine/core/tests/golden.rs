@@ -27,6 +27,9 @@ const ENGLISH: &[(&str, u64)] = &[
     // Long words and their neighbours.
     ("preference", 20_000), ("preferences", 8_000), ("definitely", 50_000),
     ("also", 1_500_000), ("apostle", 5_000), ("apostrophe", 2_000), ("apostrophes", 500),
+    // Words that begin like a learned email (`sam.2024@example.com`).
+    ("new", 2_000_000), ("need", 900_000), ("never", 800_000), ("next", 700_000),
+    ("neo", 5_000), ("neon", 10_000), ("neoliberal", 2_000),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -377,4 +380,58 @@ fn a_full_stop_still_ends_an_ordinary_word() {
         middle(&engine, "hello. teh"),
         ("The".into(), Kind::Correction)
     );
+}
+
+#[test]
+fn a_learned_email_is_offered_from_its_first_letters() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    engine.note_committed("sam.2024@example.con");
+    engine.note_committed("sam.2024@example.con");
+    engine.note_committed("sam.2024@example.com");
+    engine.note_committed("sam.2024@example.com");
+    for typed in [
+        "n",
+        "ne",
+        "neo",
+        "Neo",
+        "neo.",
+        "neo.9",
+        "sam.2024@g",
+        "hi neo.98",
+        "It rains. Neo.9",
+    ] {
+        let s = engine.suggest(typed, Layout::Latin, true);
+        assert!(
+            s.candidates
+                .iter()
+                .any(|c| c.text == "sam.2024@example.com" && c.kind == Kind::Completion),
+            "{typed}: {s:?}"
+        );
+    }
+    // What was typed so far is one word: the full stop in it is no word break.
+    assert_eq!(
+        engine.suggest("hi neo.9", Layout::Latin, true).typed,
+        "neo.9"
+    );
+    assert_eq!(engine.suggest("Neo.", Layout::Latin, true).typed, "Neo.");
+    // It is offered, never put in for what was typed.
+    for typed in ["neo", "neo.", "neo.9"] {
+        assert_eq!(middle(&engine, typed), (typed.into(), Kind::Verbatim));
+    }
+    // Letters it doesn't begin are ordinary words again.
+    assert_eq!(engine.suggest("neon.", Layout::Latin, true).typed, "");
+    assert_eq!(engine.suggest("n.", Layout::Latin, true).typed, "");
+    assert_eq!(
+        engine.learned_addresses(),
+        ["sam.2024@example.com", "sam.2024@example.con"]
+    );
+}
+
+#[test]
+fn without_a_learned_address_punctuation_ends_a_word() {
+    let engine = engine();
+    assert_eq!(engine.suggest("neo.", Layout::Latin, true).typed, "");
+    assert_eq!(engine.suggest("x.com", Layout::Latin, true).typed, "com");
+    assert!(engine.learned_addresses().is_empty());
 }

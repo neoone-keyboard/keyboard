@@ -353,6 +353,42 @@ struct InputControllerTests {
         #expect(output.text == "mail priya@example.com ")
     }
 
+    @Test func lettersThatBeginALearnedAddressAreOneWord() {
+        input.learnedAddresses = ["sam.2024@example.com"]
+        let reported = events {
+            output.text = "hi neo"
+            input.updateSuggestions(SuggestionResult(typed: "neo", candidates: [Suggestion("new", kind: .correction)]))
+            typeText(".")
+            #expect(output.text == "hi neo.")
+            #expect(input.currentWord == "neo.")
+            input.updateSuggestions(SuggestionResult(typed: "neo.", candidates: [Suggestion("neo", kind: .correction)]))
+            typeText("9")
+            #expect(input.currentWord == "neo.9")
+            #expect(SuggestionResult(typed: "neo.9", candidates: []).isFor(word: input.currentWord))
+        }
+        #expect(reported.isEmpty)
+        input.commitSuggestion("sam.2024@example.com")
+        #expect(output.text == "hi sam.2024@example.com ")
+    }
+
+    @Test func aLearnedAddressIsMatchedInAnyCase() {
+        input.learnedAddresses = ["sam.2024@example.com"]
+        output.text = "Neo.9"
+        #expect(input.currentWord == "Neo.9")
+    }
+
+    @Test func otherLettersStillEndAtPunctuation() {
+        input.learnedAddresses = ["sam.2024@example.com"]
+        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("x.com", "com")] {
+            output.text = text
+            #expect(input.currentWord == word, "\(text)")
+        }
+        output.text = "hello"
+        input.updateSuggestions(SuggestionResult(typed: "hello", candidates: [Suggestion("help", kind: .correction)]))
+        typeText(".")
+        #expect(output.text == "help.")
+    }
+
     @Test func noCapitalAfterAFullStopInsideAnAddress() {
         output.text = "Mail priya@example."
         input.applyAutoCapitalization(.sentences)
