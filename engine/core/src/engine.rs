@@ -4,6 +4,7 @@
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
@@ -85,6 +86,36 @@ pub struct Sources {
     /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
     /// ranking is M3a's: the previous word sets the Manglish bias, `next.fst` the next words.
     pub lm: Option<Lm>,
+}
+
+/// When each optional stage of a suggest must stop (design §4), measured from the start of the
+/// suggest by `elapsed`; None lets the stage run to the end. The keyboard passes one; the eval
+/// and tests pass none and run every stage to the end, so their results don't depend on the
+/// machine.
+pub struct Timing<'a> {
+    pub elapsed: &'a dyn Fn() -> Duration,
+    /// The transliterator (M3a's `model_deadline_ms`).
+    pub translit: Option<Duration>,
+    /// Context prefill while a word is being typed.
+    pub lm_prefill: Option<Duration>,
+    /// Everything the LM does after a space.
+    pub lm_after_space: Option<Duration>,
+    /// Tier-1 rows while a word is being typed (Task 15).
+    pub lm_deadline: Option<Duration>,
+}
+
+impl<'a> Timing<'a> {
+    /// The keyboard's cutoffs, as `EngineSuggestionProvider` sets them: transliterator 8 ms,
+    /// prefill 3 ms while typing and 10 ms after a space, tier-1 rows 11 ms.
+    pub fn keyboard(elapsed: &'a dyn Fn() -> Duration) -> Self {
+        Self {
+            elapsed,
+            translit: Some(Duration::from_millis(8)),
+            lm_prefill: Some(Duration::from_millis(3)),
+            lm_after_space: Some(Duration::from_millis(10)),
+            lm_deadline: Some(Duration::from_millis(11)),
+        }
+    }
 }
 
 /// File paths handed over by the platform. Any of them may be missing.
@@ -312,13 +343,76 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
     ) -> Suggestions {
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &|_| true)
+    }
+
+    /// `suggest`, with each optional stage held to its cutoff in `timing` (design §4). The
+    /// transliterator's deadline is built from it as `suggest_until` takes it. Until the LM's
+    /// context has caught up, the suggest is M3a's, and the next one resumes the prefill.
+    pub fn suggest_timed(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        timing: Option<&Timing<'_>>,
+    ) -> Suggestions {
+        let Some(t) = timing else {
+            return self.suggest_until(context_before, layout, autocorrect, None);
+        };
+        let budget = t.translit.unwrap_or_default();
+        let left = || budget.saturating_sub((t.elapsed)());
+        let deadline = t.translit.map(|budget| Deadline {
+            budget,
+            left: &left,
+        });
+        let more = |after_space: bool| {
+            let cutoff = if after_space {
+                t.lm_after_space
+            } else {
+                t.lm_prefill
+            };
+            cutoff.is_none_or(|c| (t.elapsed)() < c)
+        };
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &more)
+    }
+
+    /// Fills the LM's context for the text before the cursor ahead of typing (when the
+    /// keyboard appears), for at most `budget`; what is left is resumed by the next suggest.
+    pub fn prepare(&self, context_before: &str, budget: Option<Duration>) {
+        let Some(lm) = &self.sources.lm else {
+            return;
+        };
+        let start = Instant::now();
+        let (typed, _) = self.current_word(context_before);
+        let before = &context_before[..context_before.len() - typed.len()];
+        let more = || budget.is_none_or(|b| start.elapsed() < b);
+        self.lm_context().sync(lm, &lm_words(before), &more);
+    }
+
+    /// Whether the LM is loaded and its context caught up with the last text it was given:
+    /// for tests and diagnostics.
+    pub fn lm_ready(&self) -> bool {
+        self.sources.lm.is_some() && self.lm_context().is_ready()
+    }
+
+    /// Syncs the LM's context, while `more(after_space)` allows, then suggests with it if it
+    /// caught up.
+    fn suggest_lm(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        deadline: Option<Deadline<'_>>,
+        more: &dyn Fn(bool) -> bool,
+    ) -> Suggestions {
         let Some(lm) = &self.sources.lm else {
             return self.suggest_with(context_before, layout, autocorrect, deadline, None);
         };
         let (typed, _) = self.current_word(context_before);
         let before = &context_before[..context_before.len() - typed.len()];
+        let after_space = typed.is_empty();
         let mut lm_ctx = self.lm_context();
-        let ready = lm_ctx.sync(lm, &lm_words(before), &|| true);
+        let ready = lm_ctx.sync(lm, &lm_words(before), &|| more(after_space));
         let view = ready.then(|| LmView {
             lm,
             ctx: &lm_ctx,
@@ -1604,7 +1698,11 @@ mod tests {
     }
 
     fn engine() -> Engine {
-        let sources = Sources {
+        Engine::new(engine_sources(), UserStore::in_memory())
+    }
+
+    fn engine_sources() -> Sources {
+        Sources {
             english: lex(&[
                 ("the", 1000),
                 ("then", 50),
@@ -1629,8 +1727,68 @@ mod tests {
                 ("i\0was", 10),
                 ("i\0will", 5),
             ]),
+        }
+    }
+
+    /// The tiny fixture LM (`tests/fixtures/lm-tiny.mlkbnn`). A `Sources` built in code skips
+    /// the fingerprint check that `Sources::open` makes.
+    fn tiny_lm() -> Option<Lm> {
+        Lm::open(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn"),
+        )
+        .ok()
+    }
+
+    fn engine_with_lm(lm: Lm) -> Engine {
+        let sources = Sources {
+            lm: Some(lm),
+            ..engine_sources()
         };
         Engine::new(sources, UserStore::in_memory())
+    }
+
+    #[test]
+    fn an_expired_prefill_gives_the_m3a_bar_and_resumes_later() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        assert!(engine.loaded_sources().contains(&"lm"));
+        let late = || Duration::from_millis(100);
+        let timing = Timing::keyboard(&late); // every cutoff already passed
+        let expired = engine.suggest_timed("I ", Layout::Latin, true, Some(&timing));
+        assert!(!engine.lm_ready());
+        assert_eq!(
+            expired,
+            engine_without_lm().suggest("I ", Layout::Latin, true)
+        );
+        engine.suggest("I ", Layout::Latin, true);
+        assert!(engine.lm_ready());
+    }
+
+    #[test]
+    fn prefill_after_a_space_may_run_longer_than_mid_word() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        let five = || Duration::from_millis(5);
+        let timing = Timing::keyboard(&five); // past the 3 ms prefill, within the 10 ms
+        engine.suggest_timed("hello there wo", Layout::Latin, true, Some(&timing));
+        assert!(!engine.lm_ready());
+        engine.suggest_timed("hello there ", Layout::Latin, true, Some(&timing));
+        assert!(engine.lm_ready());
+    }
+
+    #[test]
+    fn prepare_fills_the_context_ahead_of_typing() {
+        let Some(lm) = tiny_lm() else { return };
+        let engine = engine_with_lm(lm);
+        engine.prepare("hello there ", None);
+        assert!(engine.lm_ready());
+        engine.prepare("and now something else ", Some(Duration::ZERO));
+        assert!(!engine.lm_ready(), "no time: nothing fed");
+        assert!(!engine_without_lm().lm_ready());
+    }
+
+    fn engine_without_lm() -> Engine {
+        engine()
     }
 
     fn texts(s: &Suggestions) -> Vec<&str> {

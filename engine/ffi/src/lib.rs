@@ -72,6 +72,22 @@ pub struct EngineConfig {
     /// finished spellings are used (`mlengine_core::nn::Deadline`); nil lets it run to the end.
     #[uniffi(default = None)]
     pub model_deadline_ms: Option<u32>,
+    /// LM cutoffs in milliseconds from the start of a suggest (`mlengine_core::Timing`): the
+    /// context prefill while a word is typed, everything the LM does after a space, and
+    /// tier-1 rows. Nil lets that stage run to the end.
+    #[uniffi(default = None)]
+    pub lm_prefill_ms: Option<u32>,
+    #[uniffi(default = None)]
+    pub lm_after_space_ms: Option<u32>,
+    #[uniffi(default = None)]
+    pub lm_deadline_ms: Option<u32>,
+    /// How long `prepare` may fill the LM's context; nil, until it is done.
+    #[uniffi(default = None)]
+    pub lm_prepare_ms: Option<u32>,
+}
+
+fn millis(ms: Option<u32>) -> Option<std::time::Duration> {
+    ms.map(|ms| std::time::Duration::from_millis(ms.into()))
 }
 
 impl From<&EngineConfig> for mlengine_core::Paths {
@@ -106,6 +122,10 @@ impl From<mlengine_core::Kind> for CandidateKind {
 pub struct Engine {
     inner: mlengine_core::Engine,
     model_deadline: Option<std::time::Duration>,
+    lm_prefill: Option<std::time::Duration>,
+    lm_after_space: Option<std::time::Duration>,
+    lm_deadline: Option<std::time::Duration>,
+    lm_prepare: Option<std::time::Duration>,
 }
 
 #[uniffi::export]
@@ -117,9 +137,11 @@ impl Engine {
         guarded(|| {
             Arc::new(Self {
                 inner: mlengine_core::Engine::open(&(&config).into()),
-                model_deadline: config
-                    .model_deadline_ms
-                    .map(|ms| std::time::Duration::from_millis(ms.into())),
+                model_deadline: millis(config.model_deadline_ms),
+                lm_prefill: millis(config.lm_prefill_ms),
+                lm_after_space: millis(config.lm_after_space_ms),
+                lm_deadline: millis(config.lm_deadline_ms),
+                lm_prepare: millis(config.lm_prepare_ms),
             })
         })
     }
@@ -136,12 +158,15 @@ impl Engine {
                 InputLayout::Malayalam => mlengine_core::Layout::Malayalam,
             };
             let start = std::time::Instant::now();
-            let budget = self.model_deadline.unwrap_or_default();
-            let left = || budget.saturating_sub(start.elapsed());
-            let deadline = self
-                .model_deadline
-                .map(|budget| mlengine_core::nn::Deadline { budget, left: &left });
-            let s = self.inner.suggest_until(&context_before, layout, autocorrect, deadline);
+            let elapsed = || start.elapsed();
+            let timing = mlengine_core::Timing {
+                elapsed: &elapsed,
+                translit: self.model_deadline,
+                lm_prefill: self.lm_prefill,
+                lm_after_space: self.lm_after_space,
+                lm_deadline: self.lm_deadline,
+            };
+            let s = self.inner.suggest_timed(&context_before, layout, autocorrect, Some(&timing));
             Suggestions {
                 typed: s.typed,
                 candidates: s
@@ -152,6 +177,12 @@ impl Engine {
                 vowel_signs: s.vowel_signs.into_iter().map(String::from).collect(),
             }
         })
+    }
+
+    /// Fills the LM's context for the text before the cursor, within `lm_prepare_ms`, so the
+    /// first suggest in a field already has it. Call when the keyboard appears.
+    pub fn prepare(&self, context_before: String) -> Result<(), EngineError> {
+        guarded(|| self.inner.prepare(&context_before, self.lm_prepare))
     }
 
     /// The user undid an autocorrect or tapped what they typed: never replace this word.
@@ -405,6 +436,26 @@ mod tests {
         assert_eq!(s.typed, "wor");
         assert_eq!(s.candidates, vec![Candidate { text: "wor".into(), kind: CandidateKind::Verbatim }]);
         assert!(engine.loaded_sources().unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_lm_and_its_cutoffs_cross_ffi() {
+        let fixtures = concat!(env!("CARGO_MANIFEST_DIR"), "/../core/tests/fixtures");
+        let config = EngineConfig {
+            lm: Some(format!("{fixtures}/lm-tiny.mlkbnn")),
+            model_deadline_ms: Some(8),
+            lm_prefill_ms: Some(3),
+            lm_after_space_ms: Some(10),
+            lm_deadline_ms: Some(11),
+            lm_prepare_ms: Some(6),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        // No lexicons: the LM was built against others, so it is not loaded.
+        assert!(!engine.loaded_sources().unwrap().contains(&"lm".to_string()));
+        engine.prepare("hello there ".into()).unwrap();
+        let s = engine.suggest("hello th".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(s.typed, "th");
     }
 
     #[test]

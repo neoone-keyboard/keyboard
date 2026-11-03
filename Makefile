@@ -49,11 +49,14 @@ test-training:
 	cd training && uv run --quiet --group train pytest -q
 
 # Transliteration accuracy and English no-harm on data/eval, against data/eval/baselines.json,
-# with the bundled transliterator. Fails on a regression past the recorded baseline. Needs only
-# committed files (the lexicons, the model and the eval sets), not the training data.
+# with the bundled transliterator, and the bundled LM once it is there. Fails on a regression
+# past the recorded baseline. Needs only committed files (the lexicons, the models and the eval
+# sets), not the training data.
 TRANSLIT_MODEL := apps/ios/KeyboardExtension/Models/translit.mlkbnn
+LM_MODEL := apps/ios/KeyboardExtension/Models/lm.mlkbnn
 eval:
-	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL)
+	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
+	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:

@@ -17,4 +17,4 @@ pub mod text;
 pub mod translit;
 pub mod user;
 
-pub use engine::{Candidate, Engine, Kind, Layout, Paths, Sources, Suggestions};
+pub use engine::{Candidate, Engine, Kind, Layout, Paths, Sources, Suggestions, Timing};

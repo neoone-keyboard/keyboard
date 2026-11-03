@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::nn::{Deadline, Translit, Transliteration};
-use mlengine_core::{Engine, Kind, Layout, Paths, rank, suffix};
+use mlengine_core::{Engine, Kind, Layout, Paths, Timing, rank, suffix};
 
 fn bundle_dir() -> PathBuf {
     std::env::var_os("MLENGINE_BUNDLE")
@@ -739,14 +739,33 @@ fn the_model_deadline_falls_back_to_the_lexicons() {
     }
 }
 
-/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included.
+/// p99 of a suggestion request must stay under 8 ms on the Mac (spec M2 §6), model included,
+/// and the LM too when it is built (after-space and mid-word requests printed apart).
 /// Run in release: `make bench`.
 #[test]
 #[ignore = "timing: run with `make bench` (release build)"]
 fn latency() {
     // With the transliterator: that is what the keyboard runs.
     let engine = model_engine().expect("the latency gate needs the bundled transliterator");
-    println!("sources: {:?}", engine.loaded_sources());
+    let inputs = latency_inputs();
+    time_suggests("without the LM", &engine, &inputs);
+    let Some(engine) = lm_engine() else {
+        println!("no lm.mlkbnn: the LM latency is skipped");
+        return;
+    };
+    time_suggests("with the LM", &engine, &inputs);
+    // As the keyboard runs it: with its cutoffs, the LM stops early on a slow request.
+    let keyboard = |context: &str, layout| {
+        let start = Instant::now();
+        let elapsed = || start.elapsed();
+        let _ = engine.suggest_timed(context, layout, true, Some(&Timing::keyboard(&elapsed)));
+    };
+    time_with("with the LM, keyboard cutoffs", &engine, &inputs, &keyboard);
+}
+
+/// Words typed letter by letter after "I said ", each then followed by a space, and Malayalam
+/// words letter by letter.
+fn latency_inputs() -> Vec<(String, Layout)> {
     let words = [
         "the",
         "because",
@@ -790,35 +809,64 @@ fn latency() {
             inputs.push((chars[..end].iter().collect(), Layout::Malayalam));
         }
     }
-    for (context, layout) in &inputs {
-        let _ = engine.suggest(context, *layout, true); // warm the page cache
+    inputs
+}
+
+/// Times every input with `suggest` and no cutoffs.
+fn time_suggests(label: &str, engine: &Engine, inputs: &[(String, Layout)]) {
+    time_with(label, engine, inputs, &|context, layout| {
+        let _ = engine.suggest(context, layout, true);
+    });
+}
+
+/// Times every input 20 times in order (so the LM context moves as when typing), prints p50
+/// and p99 overall, after a space and mid-word, and checks the overall p99.
+fn time_with(
+    label: &str,
+    engine: &Engine,
+    inputs: &[(String, Layout)],
+    suggest: &dyn Fn(&str, Layout),
+) {
+    println!("{label}: sources {:?}", engine.loaded_sources());
+    for (context, layout) in inputs {
+        suggest(context, *layout); // warm the page cache
     }
     let mut samples: Vec<(Duration, &str)> = Vec::new();
     for _ in 0..20 {
-        for (context, layout) in &inputs {
+        for (context, layout) in inputs {
             let start = Instant::now();
-            let _ = engine.suggest(context, *layout, true);
+            suggest(context, *layout);
             samples.push((start.elapsed(), context.as_str()));
         }
     }
+    let after_space: Vec<_> = samples.iter().filter(|s| s.1.ends_with(' ')).copied().collect();
+    let mid_word: Vec<_> = samples.iter().filter(|s| !s.1.ends_with(' ')).copied().collect();
+    report(&format!("{label}, after a space"), after_space);
+    report(&format!("{label}, mid-word"), mid_word);
+    let p99 = report(&format!("{label}, all"), samples);
+    assert!(
+        p99.0 < Duration::from_millis(8),
+        "{label}: p99 {:?} on {:?}",
+        p99.0,
+        p99.1
+    );
+}
+
+/// Prints p50, p99 and the slowest request; returns the p99 one.
+fn report<'a>(label: &str, mut samples: Vec<(Duration, &'a str)>) -> (Duration, &'a str) {
     samples.sort();
     let p50 = samples[samples.len() / 2].0;
     let p99 = samples[samples.len() * 99 / 100];
     let worst = samples[samples.len() - 1];
     println!(
-        "suggest latency over {} requests: p50 {p50:?}, p99 {:?} ({:?}), max {:?} ({:?})",
+        "{label}: {} requests, p50 {p50:?}, p99 {:?} ({:?}), max {:?} ({:?})",
         samples.len(),
         p99.0,
         p99.1,
         worst.0,
         worst.1
     );
-    assert!(
-        p99.0 < Duration::from_millis(8),
-        "p99 {:?} on {:?}",
-        p99.0,
-        p99.1
-    );
+    p99
 }
 
 fn trained_translit() -> Option<Translit> {
