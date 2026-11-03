@@ -305,7 +305,7 @@ fn a_removed_learned_word_is_forgotten() {
     assert_eq!(
         middle(&engine, "Anu").0,
         "And",
-        "typing it does not bring it back"
+        "typing it does not bring it back while autocorrect replaces it"
     );
     assert!(!texts(&engine, "An").contains(&"Anu".to_string()));
 }

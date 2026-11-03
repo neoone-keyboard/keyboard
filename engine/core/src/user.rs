@@ -125,9 +125,10 @@ impl UserStore {
     }
 
     /// Records that a word not in any lexicon was typed; learns it the second time.
-    /// A removed word is not recorded: only an explicit `learn` restores it.
+    /// A removed word starts counting again from zero: typed `TIMES_TO_LEARN` more times,
+    /// it is learned and no longer removed (the user re-adds it by using it).
     pub fn note_typed(&mut self, word: &str) {
-        if !acceptable(word) || self.is_learned(word) || self.is_removed(word) {
+        if !acceptable(word) || self.is_learned(word) {
             return;
         }
         self.apply_seen(word);
@@ -189,6 +190,7 @@ impl UserStore {
         entry.seen = entry.seen.saturating_add(1);
         if entry.seen >= TIMES_TO_LEARN {
             entry.learned = true;
+            self.removed.remove(&key(word));
         }
     }
 
@@ -476,13 +478,23 @@ mod tests {
     }
 
     #[test]
-    fn typing_a_removed_word_does_not_learn_or_restore_it() {
-        let mut store = UserStore::in_memory();
-        store.remove("Jishnu");
-        store.note_typed("Jishnu");
-        store.note_typed("Jishnu");
-        assert!(store.is_removed("Jishnu"));
-        assert!(!store.is_learned("Jishnu"));
+    fn a_removed_word_typed_twice_more_is_learned_again() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.note_typed("Sam.2024@example.com");
+            store.note_typed("Sam.2024@example.com");
+            store.remove("sam.2024@example.com");
+            store.note_typed("sam.2024@example.com");
+            assert!(store.is_removed("sam.2024@example.com"), "once is not enough");
+            store.note_typed("sam.2024@example.com");
+            assert!(!store.is_removed("sam.2024@example.com"));
+            assert!(store.is_learned("sam.2024@example.com"));
+            assert_eq!(store.completions("neo", 1), ["sam.2024@example.com"], "as re-typed");
+        }
+        let store = UserStore::open(dir.path());
+        assert!(!store.is_removed("sam.2024@example.com"), "the log replays in order");
+        assert!(store.is_learned("sam.2024@example.com"));
     }
 
     #[test]
