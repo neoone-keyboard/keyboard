@@ -1,9 +1,12 @@
 //! Python access to the production engine, for the evaluation harness only.
 //! Never shipped: what the harness measures is exactly what the keyboard runs.
 
+use std::fs::File;
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 use mlengine_core::lexicon::Lexicon;
+use mlengine_core::nn::tokenizer::BOS;
 use mlengine_core::{Engine as Core, Kind, Layout, Paths};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -89,8 +92,69 @@ fn malayalam_words(path: PathBuf, limit: usize) -> PyResult<Vec<(String, u64)>> 
     Ok(words)
 }
 
+/// The LM's tokeniser over SentencePiece pieces and scores (in id order), exactly as the
+/// engine runs it. Training text is tokenised through this, so the model sees the ids the
+/// phone produces.
+#[pyclass(frozen)]
+struct Tokenizer(mlengine_core::nn::Tokenizer);
+
+#[pymethods]
+impl Tokenizer {
+    #[new]
+    fn new(pieces: Vec<String>, scores: Vec<f32>) -> PyResult<Self> {
+        mlengine_core::nn::Tokenizer::new(pieces, scores)
+            .map(Tokenizer)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Token ids of `text` (after `lm_normalize`).
+    fn encode(&self, text: &str) -> Vec<u32> {
+        self.0.encode(text)
+    }
+
+    /// The text of piece `id`.
+    fn piece(&self, id: u32) -> String {
+        self.0.piece(id).to_owned()
+    }
+
+    /// Writes, for each non-empty line of `src`, `BOS` then the line's tokens to `dst` as
+    /// little-endian `u16`, and returns the number of ids written. Runs without the GIL.
+    fn encode_file(&self, py: Python<'_>, src: PathBuf, dst: PathBuf) -> PyResult<u64> {
+        if self.0.len() > 65_536 {
+            return Err(PyValueError::new_err("vocabulary too large for u16 ids"));
+        }
+        py.detach(|| -> std::io::Result<u64> {
+            let reader = BufReader::with_capacity(1 << 20, File::open(&src)?);
+            let mut out = BufWriter::with_capacity(1 << 20, File::create(&dst)?);
+            let mut count = 0u64;
+            for line in reader.lines() {
+                let line = line?;
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let ids = self.0.encode(&line);
+                for id in std::iter::once(BOS).chain(ids) {
+                    out.write_all(&(id as u16).to_le_bytes())?;
+                    count += 1;
+                }
+            }
+            out.flush()?;
+            Ok(count)
+        })
+        .map_err(|e| PyValueError::new_err(format!("{}: {e}", src.display())))
+    }
+}
+
+/// The text form the LM is trained and run on (see `mlengine_core::nn::lm_normalize`).
+#[pyfunction]
+fn lm_normalize(text: &str) -> String {
+    mlengine_core::nn::lm_normalize(text)
+}
+
 #[pymodule]
 fn mlengine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Engine>()?;
+    m.add_class::<Tokenizer>()?;
+    m.add_function(wrap_pyfunction!(lm_normalize, m)?)?;
     m.add_function(wrap_pyfunction!(malayalam_words, m)?)
 }
