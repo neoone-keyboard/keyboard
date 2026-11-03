@@ -3,8 +3,12 @@
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Returns the word being typed at the end of `context_before`, or "" if the
-/// text ends in a space or punctuation.
+/// text ends in a space or punctuation. An address (`is_address`) is one word back
+/// to the whitespace before it, punctuation and all.
 pub fn current_word(context_before: &str) -> &str {
+    if let Some(address) = address_at_end(context_before) {
+        return address;
+    }
     // Walk grapheme clusters backwards so combining marks, virama, ZWJ and ZWNJ
     // stay attached to their base character.
     let start = context_before
@@ -18,6 +22,54 @@ pub fn current_word(context_before: &str) -> &str {
         None => return "",
     };
     if word.chars().any(char::is_alphanumeric) { word } else { "" }
+}
+
+/// The address being typed at the end of `context_before`: the text after the last
+/// whitespace, less opening brackets and quotes, if it `is_address`.
+fn address_at_end(context_before: &str) -> Option<&str> {
+    let start = context_before
+        .trim_end_matches(|c: char| !c.is_whitespace())
+        .len();
+    let token = context_before[start..].trim_start_matches(is_opening);
+    is_address(token).then_some(token)
+}
+
+fn is_opening(c: char) -> bool {
+    matches!(
+        c,
+        '(' | '[' | '{' | '<' | '"' | '\'' | '\u{201C}' | '\u{2018}'
+    )
+}
+
+fn is_closing(c: char) -> bool {
+    matches!(
+        c,
+        ')' | ']' | '}' | '>' | '"' | '\'' | '\u{201D}' | '\u{2019}'
+    )
+}
+
+/// An email or handle (it has an `@`) or a URL (it starts with `http://`, `https://` or
+/// `www.`, in any case), with a letter or digit. Typed as one word: never corrected,
+/// and learned whole.
+pub fn is_address(token: &str) -> bool {
+    let starts = |prefix: &str| {
+        token
+            .get(..prefix.len())
+            .is_some_and(|s| s.eq_ignore_ascii_case(prefix))
+    };
+    (token.contains('@') || starts("http://") || starts("https://") || starts("www."))
+        && token.chars().any(char::is_alphanumeric)
+}
+
+/// An address as it is learned, without the brackets, quotes and punctuation typed
+/// around it (`(priya@example.com),`); None for a word that is no address.
+pub fn learnable_address(word: &str) -> Option<&str> {
+    let trimmed = word
+        .trim_start_matches(is_opening)
+        .trim_end_matches(|c: char| {
+            matches!(c, '.' | ',' | ';' | ':' | '?' | '!') || is_closing(c)
+        });
+    is_address(trimmed).then_some(trimmed)
 }
 
 fn is_apostrophe(c: char) -> bool {
@@ -206,6 +258,51 @@ mod tests {
         assert_eq!(previous_word("I am"), None);
         assert_eq!(previous_word(" "), None);
         assert_eq!(previous_word(""), None);
+    }
+
+    #[test]
+    fn an_address_is_one_word() {
+        assert_eq!(current_word("mail priya@example.com"), "priya@example.com");
+        assert_eq!(current_word("mail priya@example."), "priya@example.");
+        assert_eq!(current_word("mail jishnu@"), "jishnu@");
+        assert_eq!(current_word("see https://x.com/a-b"), "https://x.com/a-b");
+        assert_eq!(current_word("see http://x"), "http://x");
+        assert_eq!(current_word("Www.x.com"), "Www.x.com");
+        assert_eq!(current_word("(priya@example.com"), "priya@example.com");
+        assert_eq!(current_word("a\npriya@example.com"), "priya@example.com");
+    }
+
+    #[test]
+    fn other_punctuation_still_ends_a_word() {
+        assert_eq!(current_word("x.com"), "com");
+        assert_eq!(current_word("wwwx.com"), "com");
+        assert_eq!(current_word("hello."), "");
+        assert_eq!(current_word("@"), "");
+        assert_eq!(current_word("me @"), "");
+    }
+
+    #[test]
+    fn addresses() {
+        assert!(is_address("priya@example.com"));
+        assert!(is_address("@jishnu"));
+        assert!(is_address("HTTPS://x"));
+        assert!(is_address("www.x"));
+        assert!(!is_address("@"));
+        assert!(!is_address("x.com"));
+        assert!(!is_address("hello"));
+    }
+
+    #[test]
+    fn previous_word_after_an_address() {
+        assert_eq!(
+            previous_word("mail priya@example.com "),
+            Some(("priya@example.com", false))
+        );
+        assert_eq!(previous_word("at x@y.com. "), Some(("x@y.com", true)));
+        assert_eq!(
+            previous_word("(see www.x.com) "),
+            Some(("www.x.com", false))
+        );
     }
 
     proptest::proptest! {

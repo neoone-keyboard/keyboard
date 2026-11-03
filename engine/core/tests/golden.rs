@@ -306,3 +306,75 @@ fn a_removed_learned_word_is_forgotten() {
     );
     assert!(!texts(&engine, "An").contains(&"Anu".to_string()));
 }
+
+#[test]
+fn an_email_committed_twice_is_learned_whole_and_completed() {
+    let dir = tempfile::tempdir().unwrap();
+    let engine = engine_in(dir.path());
+    engine.note_committed("priya@example.com");
+    assert!(!texts(&engine, "jis").contains(&"priya@example.com".to_string()));
+    engine.note_committed("priya@example.com");
+    drop(engine);
+    let engine = engine_in(dir.path());
+    for typed in [
+        "jis",
+        "jishnu",
+        "jishnu@",
+        "mail me at priya@e",
+        "It rains. jis",
+    ] {
+        let s = engine.suggest(typed, Layout::Latin, true);
+        if typed.contains('@') {
+            assert_eq!(s.candidates[0].kind, Kind::Verbatim, "{typed}: {s:?}");
+        }
+        assert!(
+            s.candidates
+                .iter()
+                .any(|c| c.text == "priya@example.com" && c.kind == Kind::Completion),
+            "{typed}: {s:?}"
+        );
+    }
+    // Shown as learned: an address is not recased after a capital or at a sentence start.
+    assert!(texts(&engine, "Jishnu@").contains(&"priya@example.com".to_string()));
+}
+
+#[test]
+fn punctuation_around_an_address_is_not_learned() {
+    let engine = engine();
+    engine.note_committed("priya@example.com.");
+    engine.note_committed("priya@example.com,");
+    assert!(texts(&engine, "jis").contains(&"priya@example.com".to_string()));
+    engine.learn("(www.example.com)");
+    assert!(texts(&engine, "www.ex").contains(&"www.example.com".to_string()));
+}
+
+#[test]
+fn an_address_is_never_corrected() {
+    let engine = engine();
+    for typed in [
+        "priya@exmaple.com",
+        "teh@teh",
+        "https://teh",
+        "www.teh",
+        "me@hellp.",
+    ] {
+        let s = engine.suggest(typed, Layout::Latin, true);
+        assert_eq!(s.typed, typed);
+        let bar: Vec<(&str, Kind)> = s
+            .candidates
+            .iter()
+            .map(|c| (c.text.as_str(), c.kind))
+            .collect();
+        assert_eq!(bar, [(typed, Kind::Verbatim)], "only what was typed");
+    }
+}
+
+#[test]
+fn a_full_stop_still_ends_an_ordinary_word() {
+    let engine = engine();
+    assert_eq!(engine.suggest("hello.", Layout::Latin, true).typed, "");
+    assert_eq!(
+        middle(&engine, "hello. teh"),
+        ("The".into(), Kind::Correction)
+    );
+}

@@ -258,6 +258,7 @@ final class KeyboardViewController: UIInputViewController {
         default: fieldAllows = proxy.autocorrectionType != .no
         }
         input.autocorrectEnabled = settings.autocorrect && fieldAllows
+        input.secureTextEntry = proxy.isSecureTextEntry ?? false
     }
 
     private var autoCapitalization: AutoCapitalization {

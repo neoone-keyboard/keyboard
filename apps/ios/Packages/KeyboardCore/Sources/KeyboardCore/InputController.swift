@@ -46,6 +46,8 @@ public final class InputController {
     /// Whether space and punctuation may replace the word. The extension sets
     /// this from the user's setting and the host field's traits.
     public var autocorrectEnabled = true
+    /// A password field: nothing typed is reported for learning.
+    public var secureTextEntry = false
 
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
@@ -81,7 +83,7 @@ public final class InputController {
         let undoable = lastReplacement
         lastReplacement = nil
         switch action {
-        case .character(let c) where Self.committingPunctuation.contains(c):
+        case .character(let c) where Self.committingPunctuation.contains(c) && !continuesAddress(with: c):
             if !commitMiddle(separator: c) {
                 noteCommittedWord()
                 type(c)
@@ -172,7 +174,7 @@ public final class InputController {
 
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
     public func commitSuggestion(_ slot: SuggestionSlot) {
-        if slot.quoted { onLearningEvent?(.learn(slot.suggestion.text)) }
+        if slot.quoted { report(.learn(slot.suggestion.text)) }
         insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted)
     }
 
@@ -190,7 +192,7 @@ public final class InputController {
         output.insertText(text + " ")
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
-        if reportsCommit { onLearningEvent?(.committed(text)) }
+        if reportsCommit { report(.committed(text)) }
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
@@ -266,6 +268,7 @@ public final class InputController {
               Self.straight(suggestions.typed) == Self.straight(word),
               keptWord.map({ Self.straight($0) != Self.straight(word) }) ?? true,
               !Self.containsMalayalam(word),
+              !Self.isAddress(word[...]),
               !Self.looksLikeCodeOrAddress(before: context.dropLast(word.count)),
               let middle = suggestions.middle,
               middle.kind == .correction || middle.kind == .manglish,
@@ -298,6 +301,33 @@ public final class InputController {
         return "@./:_#\\".contains(last) || last.isNumber
     }
 
+    /// An email or handle (it has an `@`) or a URL (`http://`, `https://`, `www.`)
+    /// with a letter or digit: one word up to the whitespace before it, never
+    /// corrected. Matches the engine's `text::is_address`.
+    private static func isAddress(_ token: Substring) -> Bool {
+        guard token.contains(where: { $0.isLetter || $0.isNumber }) else { return false }
+        let lower = token.lowercased()
+        return token.contains("@") || ["http://", "https://", "www."].contains { lower.hasPrefix($0) }
+    }
+
+    /// The text after the last whitespace in `context`, less opening brackets and quotes.
+    private static func token(endingAt context: String) -> Substring {
+        let start = context.lastIndex(where: \.isWhitespace).map { context.index(after: $0) } ?? context.startIndex
+        return context[start...].drop { "([{<\"'\u{201C}\u{2018}".contains($0) }
+    }
+
+    /// Whether typing `mark` keeps or makes an address (`priya@example` + `.`, `www` + `.`):
+    /// then it is part of the word, not punctuation that ends it.
+    private func continuesAddress(with mark: String) -> Bool {
+        Self.isAddress(Self.token(endingAt: (output.contextBefore ?? "") + mark))
+    }
+
+    /// Learning events go to the engine, except from a password field.
+    private func report(_ event: LearningEvent) {
+        guard !secureTextEntry else { return }
+        onLearningEvent?(event)
+    }
+
     /// Backspace straight after a replacement puts back what was typed and learns it.
     private func undo(_ replacement: Replacement) -> Bool {
         let context = output.contextBefore ?? ""
@@ -307,17 +337,20 @@ public final class InputController {
         output.insertText(replacement.typed)
         keptWord = replacement.typed
         suggestions = .empty
-        onLearningEvent?(.learn(replacement.typed))
+        report(.learn(replacement.typed))
         return true
     }
 
     /// Reports a word committed as typed, but only one autocorrect looked at
     /// and left alone: with autocorrect off, or before the word's result
-    /// arrived, a typo (`thnaks` in a search field) would be learned.
+    /// arrived, a typo (`thnaks` in a search field) would be learned. An address
+    /// is never corrected, so it is reported anyway (an email field has no autocorrect).
     private func noteCommittedWord() {
         let word = currentWord
-        guard !word.isEmpty, autocorrectEnabled, suggestions.isFor(word: word) else { return }
-        onLearningEvent?(.committed(word))
+        guard !word.isEmpty,
+              Self.isAddress(word[...]) || (autocorrectEnabled && suggestions.isFor(word: word))
+        else { return }
+        report(.committed(word))
     }
 
     private func type(_ text: String) {
@@ -355,8 +388,10 @@ public final class InputController {
 
     /// The word being typed at the end of `context`, without leading
     /// apostrophes (an opening quote), and "" when it has no letter or digit.
-    /// Matches the engine's `text::current_word`.
+    /// An address is the whole `token`. Matches the engine's `text::current_word`.
     private static func word(endingAt context: String) -> Substring {
+        let token = token(endingAt: context)
+        if isAddress(token) { return token }
         let word = wordSuffix(of: context, includingSpaces: false).drop { isApostrophe($0) }
         return word.contains { $0.isLetter || $0.isNumber } ? word : word.suffix(0)
     }

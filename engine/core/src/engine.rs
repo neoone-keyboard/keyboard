@@ -167,15 +167,21 @@ impl Engine {
     }
 
     pub fn learn(&self, word: &str) {
-        self.user().learn(&normalize(word));
+        let word = normalize(word);
+        let word = text::learnable_address(&word).unwrap_or(&word);
+        self.user().learn(word);
     }
 
     /// A word was committed as typed. Unknown words are learned the second
     /// time, unless autocorrect would replace them: a typo committed where
     /// autocorrect couldn't run (`thnaks` in a search field) stays a typo.
+    /// An address (`text::is_address`) is learned the second time, without the
+    /// punctuation typed after it.
     pub fn note_committed(&self, word: &str) {
         let word = normalize(word);
-        if !self.is_known(&word) && !self.would_replace(&word) {
+        if let Some(address) = text::learnable_address(&word) {
+            self.user().note_typed(address);
+        } else if !self.is_known(&word) && !self.would_replace(&word) {
             self.user().note_typed(&word);
         }
     }
@@ -237,6 +243,13 @@ impl Engine {
         }
         // Classify and search the normal form (`don’` → `don'`); show the word as typed.
         let typed_n = normalize(typed);
+        if text::is_address(typed) {
+            return Suggestions {
+                typed: typed.to_string(),
+                candidates: self.suggest_address(typed, &typed_n),
+                vowel_signs: Vec::new(),
+            };
+        }
         let mut suggestions = match (layout, text::script(&typed_n)) {
             (Layout::Latin, Script::Latin) => {
                 let before = &context_before[..context_before.len() - typed.len()];
@@ -519,7 +532,12 @@ impl Engine {
         for word in self.user().completions(typed_n, 2) {
             let extra = word.len().saturating_sub(typed_n.len()) as f32;
             completions.push(Candidate {
-                text: show(&word),
+                // An address is shown as learned: `Jishnu@example.com` is no capitalised word.
+                text: if text::is_address(&word) {
+                    word.clone()
+                } else {
+                    show(&word)
+                },
                 kind: Kind::Completion,
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
@@ -1004,6 +1022,24 @@ impl Engine {
             );
         }
         free
+    }
+
+    /// An address is never corrected or read as words: what was typed stays in the
+    /// middle, beside learned words it begins (`priya@e` → priya@example.com), shown as learned.
+    fn suggest_address(&self, typed: &str, typed_n: &str) -> Vec<Candidate> {
+        let mut others: Vec<Candidate> = self
+            .user()
+            .completions(typed_n, 2)
+            .into_iter()
+            .map(|word| Candidate {
+                score: rank::LEARNED_COMPLETION
+                    - rank::COMPLETION_PER_CHAR * word.len().saturating_sub(typed_n.len()) as f32,
+                text: word,
+                kind: Kind::Completion,
+            })
+            .collect();
+        self.drop_removed(&mut others);
+        arrange(verbatim(typed, 0.0), typed_n, others, None, Vec::new())
     }
 
     fn suggest_malayalam(&self, typed: &str) -> Vec<Candidate> {
