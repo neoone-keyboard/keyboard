@@ -46,6 +46,8 @@ public final class EmojiRenderer {
     /// Prefetched, in the order asked.
     private var ahead: [String] = []
     private var drawing = false
+    /// Sent to be drawn and not back yet.
+    private var inFlight: Set<String> = []
     private var pumpQueued = false
     private var closed = false
     private var timings = EmojiTimings()
@@ -98,6 +100,14 @@ public final class EmojiRenderer {
     /// `emoji`'s image if it's kept, without asking for it.
     public func kept(_ emoji: String) -> CGImage? {
         cache.object(forKey: emoji as NSString)?.image
+    }
+
+    /// Where `emoji` is, for the log: "kept", "drawing", "waiting", "ahead" or "not asked".
+    public func state(of emoji: String) -> String {
+        if kept(emoji) != nil { return "kept" }
+        if inFlight.contains(emoji) { return "drawing" }
+        if waiting[emoji] != nil { return askOrder.contains(emoji) ? "waiting" : "waiting, not queued" }
+        return ahead.contains(emoji) ? "ahead" : "not asked"
     }
 
     /// Starts drawing emoji that are about to show.
@@ -175,6 +185,7 @@ public final class EmojiRenderer {
                                    limit: Self.batchSize)
         guard !batch.isEmpty else { return }
         let sent = Set(batch)
+        inFlight.formUnion(sent)
         ahead.removeAll { sent.contains($0) }
         askOrder.removeAll { sent.contains($0) }
         // Off screen and long ago: the cell has gone (or asks again when it shows).
@@ -192,10 +203,13 @@ public final class EmojiRenderer {
             let made = painter.prepare()
             if let made { DispatchQueue.main.async { MainActor.assumeIsolated { self?.noteFont(made) } } }
             let fresh = painter.isFresh
-            painter.draw(batch) { emoji, image, milliseconds in
+            painter.draw(batch) { emoji, image, milliseconds, blank in
                 let picture = image.map(Picture.init)
                 DispatchQueue.main.async {
-                    MainActor.assumeIsolated { self?.finish(emoji, picture, milliseconds: milliseconds, fresh: fresh) }
+                    MainActor.assumeIsolated {
+                        if let blank { self?.onLog?("Emoji \(emoji) drawn blank; \(blank)") }
+                        self?.finish(emoji, picture, milliseconds: milliseconds, fresh: fresh)
+                    }
                 }
             }
             let dropped = painter.endBatch()
@@ -242,6 +256,7 @@ public final class EmojiRenderer {
 
     private func finish(_ emoji: String, _ picture: Picture?, milliseconds: Double, fresh: Bool) {
         guard !closed else { return }
+        inFlight.remove(emoji)
         drawn += 1
         timings.add(draw: milliseconds, withNewFont: fresh)
         if let asked = askedAt.removeValue(forKey: emoji) { timings.waits.append(EmojiTimings.milliseconds(.now - asked)) }
@@ -258,7 +273,7 @@ public final class EmojiRenderer {
         nonisolated(unsafe) var image: CGImage?
         painter.thread.sync {
             _ = painter.prepare()
-            painter.draw([emoji]) { _, drawn, _ in image = drawn }
+            painter.draw([emoji]) { _, drawn, _, _ in image = drawn }
         }
         painter.stop()
         return image
@@ -470,7 +485,9 @@ private final class Painter: @unchecked Sendable {
     /// Draws `emoji` with the font, half on each thread (CoreText's fonts are thread-safe),
     /// handing each image over as it is drawn, with the milliseconds it took. Stops early
     /// once stopped.
-    func draw(_ emoji: [String], each: @escaping @Sendable (String, CGImage?, Double) -> Void) {
+    /// An emoji drawn blank is drawn again with the same font, then with the system's; `each`
+    /// gets what happened to it.
+    func draw(_ emoji: [String], each: @escaping @Sendable (String, CGImage?, Double, String?) -> Void) {
         guard let font else { return }
         nonisolated(unsafe) let shared = font
         let lane: @Sendable (Int) -> Void = { [self] first in
@@ -478,8 +495,18 @@ private final class Painter: @unchecked Sendable {
                 if stopped.load(ordering: .relaxed) { return }
                 let start = ContinuousClock.now
                 // What CoreText autoreleases holds on to the font: let go of it with each emoji.
-                let image = autoreleasepool { render(emoji[index], font: shared) }
-                each(emoji[index], image, EmojiTimings.milliseconds(.now - start))
+                var (image, blank) = autoreleasepool { render(emoji[index], font: shared) }
+                var redrawn: String?
+                if blank {
+                    (image, blank) = autoreleasepool { render(emoji[index], font: shared) }
+                    redrawn = blank ? nil : "drawn again with the same font, fine"
+                }
+                if blank {
+                    let system = CTFontCreateWithName("AppleColorEmoji" as CFString, CGFloat(side), nil)
+                    (image, blank) = autoreleasepool { render(emoji[index], font: system) }
+                    redrawn = blank ? "blank again with the same font and the system's" : "fine with the system font"
+                }
+                each(emoji[index], image, EmojiTimings.milliseconds(.now - start), redrawn)
             }
         }
         let other = DispatchSemaphore(value: 0)
@@ -528,14 +555,15 @@ private final class Painter: @unchecked Sendable {
 
     private func flush() {
         let system = CTFontCreateUIFontForLanguage(.system, 1, nil) ?? CTFontCreateWithName("Helvetica" as CFString, 1, nil)
-        _ = render(" ", font: system)
+        _ = render(" ", font: system).image
     }
 
-    private func render(_ emoji: String, font: CTFont) -> CGImage? {
+    /// The picture, and whether nothing was drawn in it.
+    private func render(_ emoji: String, font: CTFont) -> (image: CGImage?, blank: Bool) {
         guard let context = CGContext(
             data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0, space: Self.colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
-        else { return nil }
+        else { return (nil, true) }
         let text = NSAttributedString(string: emoji, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])
         let line = CTLineCreateWithAttributedString(text)
         // An emoji's picture fills a square the font's size; centred, and made smaller in
@@ -547,6 +575,19 @@ private final class Painter: @unchecked Sendable {
         context.scaleBy(x: fit, y: fit)
         context.textPosition = CGPoint(x: -ink.midX, y: -ink.midY)
         CTLineDraw(line, context)
-        return context.makeImage()
+        return (context.makeImage(), Self.isEmpty(context))
+    }
+
+    /// No pixel drawn: every alpha byte (the 4th of each BGRA pixel) is 0.
+    private static func isEmpty(_ context: CGContext) -> Bool {
+        guard let data = context.data else { return true }
+        let bytes = data.assumingMemoryBound(to: UInt8.self)
+        for row in 0..<context.height {
+            let start = row * context.bytesPerRow
+            for alpha in stride(from: start + 3, to: start + context.width * 4, by: 4) where bytes[alpha] != 0 {
+                return false
+            }
+        }
+        return true
     }
 }

@@ -193,6 +193,31 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         // The first screen's cells ask for their pictures now, not at the next layout.
         superview?.layoutIfNeeded()
         noteFirstScreen()
+        checkScreen(after: 1.5, "opening")
+    }
+
+    /// Logs the cells on screen still without a picture `seconds` after `event`, and where
+    /// their emoji are in the renderer.
+    private func checkScreen(after seconds: Double, _ event: String) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
+            guard let self, let renderer, window != nil else { return }
+            let empty = grid.indexPathsForVisibleItems.sorted().compactMap { path -> String? in
+                guard let cell = grid.cellForItem(at: path) as? EmojiCell, !cell.hasPicture else { return nil }
+                let emoji = shown(sections[path.section].items[path.item])
+                return "\(emoji) \(renderer.state(of: emoji))"
+            }
+            guard !empty.isEmpty else { return }
+            log.warning("Emoji panel: \(empty.count) of \(grid.indexPathsForVisibleItems.count) cells on screen without a "
+                        + "picture \(seconds) s after \(event): \(empty.prefix(16).joined(separator: ", "))")
+        }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        checkScreen(after: 0.5, "a scroll")
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate { checkScreen(after: 0.5, "a scroll") }
     }
 
     /// Once, when the grid first has cells on screen: the emoji to wait for before logging
@@ -365,6 +390,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         let maxY = max(0, grid.contentSize.height - grid.bounds.height)
         grid.setContentOffset(CGPoint(x: 0, y: min(header.frame.minY, maxY)), animated: false)
         select(section)
+        checkScreen(after: 0.5, "a jump")
     }
 
     private func select(_ section: Int) {
