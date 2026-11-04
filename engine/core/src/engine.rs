@@ -14,6 +14,7 @@ use crate::malayalam;
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
+use crate::personal::{FOLLOWERS_PER_CONTEXT, Habit};
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
 use crate::text::{self, Script};
@@ -249,6 +250,108 @@ impl Engine {
         self.user().learn(word);
     }
 
+    /// A word was committed after `context_before`, typed, corrected or tapped (the keyboard
+    /// never reports one from a password field). Its use is counted if it is known or
+    /// learned (`rank::USE_WEIGHT`); it continues the words before it in the sentence
+    /// (`text::phrase_words`), for next words and in-word bias (`rank::OWN_NEXT_WORDS`); and
+    /// from the Latin keyboard its script says which language the user writes
+    /// (`rank::HABIT_WEIGHT`). Addresses and numbers are never part of a phrase.
+    pub fn note_used(&self, context_before: &str, word: &str, layout: Layout) {
+        let word = normalize(word);
+        if !phrase_word(&word) {
+            return;
+        }
+        let (previous, earlier) = text::phrase_words(context_before);
+        let previous = previous.map(normalize).filter(|w| phrase_word(w));
+        let earlier = earlier.map(normalize).filter(|w| phrase_word(w));
+        let counted = self.is_known_or_learned(&word);
+        let habit = match (layout, text::script(&word)) {
+            (Layout::Latin, Script::Malayalam) => Some(Habit::Malayalam),
+            (Layout::Latin, Script::Latin) if self.english_count(&word).is_some() => {
+                Some(Habit::English)
+            }
+            _ => None,
+        };
+        self.user().note_used(
+            &word,
+            previous.as_deref(),
+            earlier.as_deref(),
+            counted,
+            habit,
+        );
+    }
+
+    /// The user tapped `chosen` for the Latin letters `typed`, though the bar's default (its
+    /// middle) was something else: `chosen` is offered first for those letters from now on
+    /// (`suggest_latin`), until another is chosen or the word is removed or forgotten.
+    pub fn note_choice(&self, typed: &str, chosen: &str) {
+        let (typed, chosen) = (normalize(typed), normalize(chosen));
+        if text::script(&typed) != Script::Latin || typed.len() < 2 || !phrase_word(&chosen) {
+            return;
+        }
+        self.user().note_choice(&typed, &chosen);
+    }
+
+    fn is_known_or_learned(&self, word: &str) -> bool {
+        self.is_known(word) || self.user().is_learned(word)
+    }
+
+    /// The user's own continuations of the words before the cursor (`UserStore::followers`),
+    /// best first, at most `limit`: only words known or learned, never removed ones, and
+    /// after a word in no lexicon only a pair seen `rank::OWN_PAIR_AFTER_UNKNOWN` times.
+    fn own_followers(&self, before: &str, limit: usize) -> Vec<String> {
+        let (Some(previous), earlier) = text::phrase_words(before) else {
+            return Vec::new();
+        };
+        let previous = normalize(previous);
+        let earlier = earlier.map(normalize);
+        let found = self
+            .user()
+            .followers(earlier.as_deref(), &previous, FOLLOWERS_PER_CONTEXT);
+        if found.is_empty() {
+            return Vec::new();
+        }
+        let known_previous = self.is_known_or_learned(&previous);
+        found
+            .into_iter()
+            .filter(|f| known_previous || f.score >= rank::OWN_PAIR_AFTER_UNKNOWN)
+            .filter(|f| self.is_known_or_learned(&f.word) && !self.user().is_removed(&f.word))
+            .map(|f| f.word)
+            .take(limit)
+            .collect()
+    }
+
+    /// What the user's habits add to a candidate's score: its uses (`rank::USE_WEIGHT`), and
+    /// `rank::OWN_PHRASE_BONUS` if it is one of `own` (`own_followers`). 0 for an empty store.
+    fn own_term(&self, own: &[String], text: &str) -> f32 {
+        let phrase = if own.iter().any(|w| w.eq_ignore_ascii_case(text)) {
+            rank::OWN_PHRASE_BONUS
+        } else {
+            0.0
+        };
+        phrase + self.use_bonus(text)
+    }
+
+    /// `rank::USE_WEIGHT` × ln(1 + uses), at most `rank::USE_MAX`.
+    fn use_bonus(&self, text: &str) -> f32 {
+        match self.user().uses(text) {
+            0 => 0.0,
+            n => (rank::USE_WEIGHT * (1.0 + n as f32).ln()).min(rank::USE_MAX),
+        }
+    }
+
+    /// The language habit (`UserStore::habit`) as a Manglish bias: `rank::HABIT_WEIGHT` ×
+    /// ln((Malayalam + 1) / (English + 1)), within ±`rank::HABIT_MAX`, and nothing until
+    /// `rank::HABIT_MIN_WORDS` words were counted.
+    fn habit_bias(&self) -> f32 {
+        let (ml, en) = self.user().habit();
+        if ml + en < rank::HABIT_MIN_WORDS {
+            return 0.0;
+        }
+        let ratio = (ml as f32 + 1.0) / (en as f32 + 1.0);
+        (rank::HABIT_WEIGHT * ratio.ln()).clamp(-rank::HABIT_MAX, rank::HABIT_MAX)
+    }
+
     /// A word was committed as typed. Unknown words are learned the second
     /// time, unless autocorrect would replace them: a typo committed where
     /// autocorrect couldn't run (`thnaks` in a search field) stays a typo.
@@ -268,7 +371,7 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, false, 0.0, None, None)
+                .suggest_latin(word, word, true, false, false, false, 0.0, None, None, &[])
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -465,9 +568,10 @@ impl Engine {
                 vowel_signs: Vec::new(),
             };
         }
+        let before = &context_before[..context_before.len() - typed.len()];
+        let own = self.own_followers(before, FOLLOWERS_PER_CONTEXT);
         let mut suggestions = match (layout, text::script(&typed_n)) {
             (Layout::Latin, Script::Latin) => {
-                let before = &context_before[..context_before.len() - typed.len()];
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
@@ -480,13 +584,14 @@ impl Engine {
                     sentence_start,
                     mid_sentence,
                     previous_bias <= rank::CONTEXT_AFTER_ENGLISH,
-                    bias,
+                    with_habit(bias, self.habit_bias()),
                     deadline,
                     scores,
+                    &own,
                 )
             }
             (_, Script::Malayalam) | (Layout::Malayalam, _) => {
-                self.suggest_malayalam(typed, scores)
+                self.suggest_malayalam(typed, scores, &own)
             }
             _ => vec![verbatim(typed, 0.0)],
         };
@@ -583,6 +688,7 @@ impl Engine {
     /// before it is English.
     /// `manglish_bias` comes from the previous word's language (`manglish_bias`), or from
     /// the LM. `scores`: the LM's in-context corrections (design §6), when it is ready.
+    /// `own`: the user's own continuations of the words before it (`own_followers`).
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
@@ -595,6 +701,7 @@ impl Engine {
         manglish_bias: f32,
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
+        own: &[String],
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -822,6 +929,17 @@ impl Engine {
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
+        // The user's own continuations that the letters begin lead the side slots
+        // (`hello h` → how), even from one letter.
+        for word in own {
+            if word.len() > typed_n.len() && starts_with_ignoring_case(word, typed_n) {
+                completions.push(Candidate {
+                    text: show(word),
+                    kind: Kind::Completion,
+                    score: rank::OWN_COMPLETION,
+                });
+            }
+        }
         // Removed words take no part (Manglish ones are taken out in `manglish`).
         self.drop_removed(&mut completions);
         self.drop_removed(&mut address);
@@ -900,6 +1018,28 @@ impl Engine {
                     c.score = c.score.max(rare + offset);
                 }
             }
+        }
+        // The user's habits (`own_term`), likewise on every pool and taken out for the floor:
+        // they choose between candidates, never make a guess good enough to replace.
+        let own_term = |text: &str| self.own_term(own, text);
+        if !own.is_empty() || self.user().has_uses() {
+            let corrections = corrections.iter_mut().map(|(c, _)| c);
+            for c in corrections.chain(manglish.exact.iter_mut().map(|(c, _)| c)) {
+                c.score += own_term(&c.text);
+            }
+            for c in completions
+                .iter_mut()
+                .chain(&mut manglish.completions)
+                .chain(&mut manglish.side)
+                .chain(
+                    [&mut case_fix, &mut contraction, &mut dominant]
+                        .into_iter()
+                        .flatten(),
+                )
+            {
+                c.score += own_term(&c.text);
+            }
+            known_score = known_score.map(|s| s + own_term(typed_n));
         }
 
         let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
@@ -1026,7 +1166,7 @@ impl Engine {
             }
             .filter(|best| {
                 best.score >= typed_c.score + rank::MARGIN
-                    && best.score - lm_term(&best.text) >= rank::MIN_REPLACE
+                    && best.score - lm_term(&best.text) - own_term(&best.text) >= rank::MIN_REPLACE
             })
             .or_else(|| {
                 // Kept as a prefix where no Malayalam word fits the letters: the best
@@ -1038,6 +1178,31 @@ impl Engine {
             })
         } else {
             None
+        };
+        // What the user chose for these letters before (`note_choice`) goes in the middle
+        // where a replacement may (not for a word in the lexicon, a learned one, or a name),
+        // else in the first side slot.
+        let chosen = self.user().choice(typed_n).map(str::to_string);
+        let replacement = match chosen.filter(|c| !self.user().is_removed(c)) {
+            Some(text) => {
+                let malayalam = text::script(&text) == Script::Malayalam;
+                let chosen = Candidate {
+                    text: if malayalam { text } else { show(&text) },
+                    kind: if malayalam {
+                        Kind::Manglish
+                    } else {
+                        Kind::Correction
+                    },
+                    score: typed_c.score + rank::MARGIN,
+                };
+                if may_replace && known_score.is_none() && !capitals.deliberate {
+                    Some(chosen)
+                } else {
+                    first_sides.insert(0, chosen);
+                    replacement
+                }
+            }
+            None => replacement,
         };
         let mut others: Vec<Candidate> = corrections.into_iter().map(|(c, _)| c).collect();
         others.extend(completions);
@@ -1403,8 +1568,13 @@ impl Engine {
         arrange(verbatim(typed, 0.0), typed_n, others, None, Vec::new())
     }
 
-    /// `scores`: as in `suggest_latin`, on the completions.
-    fn suggest_malayalam(&self, typed: &str, scores: Option<&dyn ContextScores>) -> Vec<Candidate> {
+    /// `scores` and `own`: as in `suggest_latin`, on the completions.
+    fn suggest_malayalam(
+        &self,
+        typed: &str,
+        scores: Option<&dyn ContextScores>,
+        own: &[String],
+    ) -> Vec<Candidate> {
         let typed_n = normalize(typed);
         let mut others = Vec::new();
         if let Some(lex) = &self.sources.malayalam {
@@ -1435,14 +1605,57 @@ impl Engine {
                 score,
             });
         }
+        // The user's own continuations the letters begin, and habits, as in `suggest_latin`.
+        for word in own {
+            if word.len() > typed_n.len() && word.starts_with(typed_n.as_str()) {
+                others.push(Candidate {
+                    text: word.clone(),
+                    kind: Kind::Completion,
+                    score: rank::OWN_COMPLETION,
+                });
+            }
+        }
+        if !own.is_empty() || self.user().has_uses() {
+            for c in &mut others {
+                c.score += self.own_term(own, &c.text);
+            }
+        }
         self.drop_removed(&mut others);
         // Native Malayalam is never replaced: the typed word always stays in the middle.
         arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
     }
 
-    /// Next words after a space: the LM's when it is ready and offers any, else `next.fst`'s.
-    /// Neither at the very start of the text.
+    /// Next words after a space: the user's own continuations of the words before
+    /// (`own_followers`), at most `rank::OWN_NEXT_WORDS`, then the LM's when it is ready and
+    /// offers any, else `next.fst`'s. Neither at the very start of the text.
     fn next_words(
+        &self,
+        context_before: &str,
+        scores: Option<&dyn ContextScores>,
+    ) -> Vec<Candidate> {
+        let own = self.own_followers(context_before, rank::OWN_NEXT_WORDS);
+        let found = self.model_next_words(context_before, scores);
+        if own.is_empty() {
+            return found;
+        }
+        let mut out: Vec<Candidate> = own
+            .into_iter()
+            .map(|text| Candidate {
+                text,
+                kind: Kind::NextWord,
+                score: 0.0,
+            })
+            .collect();
+        let rest = found
+            .into_iter()
+            .filter(|c| !out.iter().any(|o| o.text.eq_ignore_ascii_case(&c.text)));
+        out.extend(rest.collect::<Vec<_>>());
+        out.truncate(SHOWN);
+        out
+    }
+
+    /// The LM's next words when it is ready and offers any, else `next.fst`'s.
+    fn model_next_words(
         &self,
         context_before: &str,
         scores: Option<&dyn ContextScores>,
@@ -1526,6 +1739,12 @@ impl Engine {
         {
             let user = self.user();
             found.retain(|c| !user.is_removed(&c.text));
+        }
+        // Words the user often uses rank higher (`rank::USE_WEIGHT`).
+        if self.user().has_uses() {
+            for c in &mut found {
+                c.score += self.use_bonus(&c.text);
+            }
         }
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
@@ -1618,6 +1837,12 @@ impl Engine {
             });
         }
         self.drop_removed(&mut found);
+        // Scores are counts here: the use bonus scales them as it adds to a log probability.
+        if self.user().has_uses() {
+            for c in &mut found {
+                c.score *= self.use_bonus(&c.text).exp();
+            }
+        }
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
         found
@@ -1773,6 +1998,23 @@ fn only_apostrophes_missing(word: &str, typed: &str) -> bool {
 fn starts_with_ignoring_case(word: &str, prefix: &str) -> bool {
     word.len() >= prefix.len()
         && word.as_bytes()[..prefix.len()].eq_ignore_ascii_case(prefix.as_bytes())
+}
+
+/// The Manglish bias with the language habit (`Engine::habit_bias`) added, never carried
+/// across `rank::CONTEXT_AFTER_ENGLISH`: below it English is likely (the model keeps its
+/// distance penalty, a spelled word gets no bonus), and a prior must not decide that.
+fn with_habit(bias: f32, habit: f32) -> f32 {
+    let english = rank::CONTEXT_AFTER_ENGLISH;
+    if habit == 0.0 || bias <= english {
+        bias
+    } else {
+        (bias + habit).max(english + 0.01)
+    }
+}
+
+/// A word that may be part of a phrase: English or Malayalam, not an address or a number.
+fn phrase_word(word: &str) -> bool {
+    text::script(word) != Script::Other && !text::is_address(word)
 }
 
 fn verbatim(typed: &str, score: f32) -> Candidate {
@@ -2433,5 +2675,330 @@ mod tests {
             engine.suggest("thw", Layout::Latin, true).candidates[0].text,
             "the"
         );
+    }
+
+    /// The words of the user report, with `next.fst` (and the fake LM, `hello_lm`) offering
+    /// "kitty" after "hello".
+    fn hello_sources() -> Sources {
+        Sources {
+            english: lex(&[
+                ("hello", 40),
+                ("how", 300),
+                ("are", 400),
+                ("you", 500),
+                ("kitty", 30),
+                ("there", 80),
+                ("help", 60),
+                ("the", 1000),
+                ("then", 50),
+                ("ten", 5),
+                ("mail", 20),
+                ("please", 20),
+            ]),
+            malayalam: lex(&[("എന്റെ", 100), ("കാര്യം", 10), ("കിളി", 5)]),
+            next_words: lex(&[
+                ("hello\0kitty", 50),
+                ("hello\0there", 20),
+                ("hello\0world", 10),
+            ]),
+            ..Sources::default()
+        }
+    }
+
+    fn hello_engine() -> Engine {
+        Engine::new(hello_sources(), UserStore::in_memory())
+    }
+
+    fn hello_lm() -> Fake {
+        Fake {
+            next: vec![
+                piece("kitty", true, -0.5, -3.0),
+                piece("there", true, -1.0, -3.0),
+                piece("you", true, -2.0, -3.0),
+            ],
+            ..Fake::default()
+        }
+    }
+
+    /// Commits the words of `text` one by one, as the keyboard reports them.
+    fn commit(engine: &Engine, text: &str, layout: Layout) {
+        let mut before = String::new();
+        for word in text.split(' ') {
+            engine.note_used(&before, word, layout);
+            before.push_str(word);
+            before.push(' ');
+        }
+    }
+
+    fn bar(engine: &Engine, context: &str) -> Vec<String> {
+        let s = engine.suggest(context, Layout::Latin, true);
+        s.candidates.into_iter().map(|c| c.text).collect()
+    }
+
+    #[test]
+    fn a_phrase_typed_once_leads_the_next_words() {
+        let engine = hello_engine();
+        assert_eq!(bar(&engine, "hello "), ["kitty", "there", "world"]);
+        commit(&engine, "hello how are you", Layout::Latin);
+        assert_eq!(bar(&engine, "hello "), ["how", "kitty", "there"]);
+        commit(&engine, "hello how are you", Layout::Latin);
+        assert_eq!(bar(&engine, "hello "), ["how", "kitty", "there"]);
+        assert_eq!(bar(&engine, "Hello "), ["how", "kitty", "there"]);
+        assert_eq!(bar(&engine, "so hello, "), ["how", "kitty", "there"]);
+        assert_eq!(bar(&engine, "hello how ")[0], "are");
+        assert_eq!(bar(&engine, "hello how are ")[0], "you");
+        // With the LM ready, the rest of the bar is still the LM's.
+        let fresh = hello_engine().suggest_scored("hello ", Layout::Latin, true, &hello_lm());
+        assert_eq!(texts(&fresh), ["you", "kitty", "there"]);
+        let s = engine.suggest_scored("hello ", Layout::Latin, true, &hello_lm());
+        assert_eq!(texts(&s), ["how", "you", "kitty"]);
+        assert!(s.candidates.iter().all(|c| c.kind == Kind::NextWord));
+        // Not across a sentence end.
+        assert_eq!(bar(&engine, "hello. "), ["Kitty", "There", "World"]);
+        assert_eq!(bar(&engine, "hello\n"), ["Kitty", "There", "World"]);
+    }
+
+    #[test]
+    fn at_most_two_own_words_lead_and_the_commonest_comes_first() {
+        let engine = hello_engine();
+        commit(&engine, "hello you", Layout::Latin);
+        commit(&engine, "hello are", Layout::Latin);
+        commit(&engine, "hello how", Layout::Latin);
+        commit(&engine, "hello you", Layout::Latin);
+        assert_eq!(bar(&engine, "hello "), ["you", "how", "kitty"]);
+    }
+
+    #[test]
+    fn the_two_previous_words_choose_between_continuations() {
+        let engine = hello_engine();
+        commit(&engine, "you are there", Layout::Latin);
+        commit(&engine, "you are there", Layout::Latin);
+        commit(&engine, "how are you", Layout::Latin);
+        assert_eq!(bar(&engine, "so are ")[0], "there");
+        assert_eq!(bar(&engine, "how are ")[0], "you");
+    }
+
+    #[test]
+    fn own_continuations_lean_the_word_being_typed() {
+        let engine = hello_engine();
+        assert_eq!(bar(&engine, "hello h"), ["h"]);
+        commit(&engine, "hello how are you", Layout::Latin);
+        assert_eq!(bar(&engine, "hello h"), ["h", "how"]);
+        assert_eq!(bar(&engine, "hello H"), ["H", "How"]);
+        assert_eq!(bar(&engine, "hello ho")[..2], ["ho", "how"]);
+        assert_eq!(
+            bar(&engine, "so h"),
+            ["h"],
+            "only after the words it followed"
+        );
+        // A correction that continues the phrase gains a little (`hpw` → how).
+        let s = engine.suggest("hello hpw", Layout::Latin, true);
+        assert_eq!(s.candidates[0].text, "how");
+    }
+
+    #[test]
+    fn a_continuation_must_be_a_word_and_follow_one() {
+        let engine = hello_engine();
+        // A typo committed where autocorrect couldn't run: never offered.
+        commit(&engine, "hello thnaks", Layout::Latin);
+        commit(&engine, "hello thnaks", Layout::Latin);
+        assert!(!bar(&engine, "hello ").contains(&"thnaks".to_string()));
+        // After a word in no lexicon, a pair must be seen twice.
+        commit(&engine, "Jishnu how", Layout::Latin);
+        assert!(bar(&engine, "Jishnu ").is_empty());
+        commit(&engine, "Jishnu how", Layout::Latin);
+        assert_eq!(bar(&engine, "Jishnu "), ["how"]);
+        // A learned word may follow, and be followed.
+        commit(&engine, "hello Thomasina", Layout::Latin);
+        assert!(!bar(&engine, "hello ").contains(&"Thomasina".to_string()));
+        engine.learn("Thomasina");
+        assert_eq!(bar(&engine, "hello ")[0], "Thomasina");
+    }
+
+    #[test]
+    fn addresses_and_numbers_are_never_part_of_a_phrase() {
+        let engine = hello_engine();
+        commit(&engine, "mail priya@example.com please", Layout::Latin);
+        commit(&engine, "mail www.example.com please", Layout::Latin);
+        commit(&engine, "mail 5 please", Layout::Latin);
+        let user = engine.user();
+        assert!(user.followers(None, "mail", 5).is_empty());
+        assert!(user.followers(None, "priya@example.com", 5).is_empty());
+        assert!(user.followers(None, "5", 5).is_empty());
+        assert_eq!(user.uses("priya@example.com"), 0);
+        assert_eq!(user.uses("please"), 3, "the word itself still counts");
+    }
+
+    #[test]
+    fn often_used_words_rank_higher_within_bounds() {
+        let engine = hello_engine();
+        let position = |context: &str, word: &str| {
+            bar(&engine, context)
+                .iter()
+                .position(|w| w == word)
+                .unwrap()
+        };
+        assert!(position("hel", "help") < position("hel", "hello"));
+        // help is 1.5 times as common and a letter shorter, and a one-edit correction too:
+        // 0.8 ahead.
+        for _ in 0..20 {
+            commit(&engine, "hello", Layout::Latin);
+        }
+        assert!(position("hel", "help") < position("hel", "hello"), "+0.76");
+        for _ in 0..10 {
+            commit(&engine, "hello", Layout::Latin);
+        }
+        assert!(position("hel", "hello") < position("hel", "help"), "+0.86");
+        assert_eq!(engine.user().uses("hello"), 30);
+        // Never over a clear correction, nor over a known word as typed.
+        for _ in 0..100 {
+            commit(&engine, "ten", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "teh")[0], "the");
+        for _ in 0..100 {
+            commit(&engine, "the", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "then")[0], "then");
+        // Only words of a lexicon (or learned) are counted.
+        commit(&engine, "Thomasina", Layout::Latin);
+        assert_eq!(engine.user().uses("Thomasina"), 0);
+    }
+
+    #[test]
+    fn uses_reorder_next_words_after_the_own_ones() {
+        let engine = hello_engine();
+        // `next.fst` has kitty 2.5 times as often: at most e^`USE_MAX` = 2.7 times.
+        for _ in 0..30 {
+            commit(&engine, "there", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "hello "), ["kitty", "there", "world"]);
+        for _ in 0..30 {
+            commit(&engine, "there", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "hello "), ["there", "kitty", "world"]);
+        let s = engine.suggest_scored("hello ", Layout::Latin, true, &hello_lm());
+        assert_eq!(texts(&s)[0], "there");
+    }
+
+    #[test]
+    fn a_chosen_suggestion_is_offered_first_next_time() {
+        let engine = manglish_engine();
+        let middle = |context: &str| bar(&engine, context)[0].clone();
+        assert_eq!(middle("pani"), "പണി");
+        engine.note_choice("pani", "pain");
+        assert_eq!(middle("pani"), "pain");
+        assert_eq!(middle("Pani"), "Pain", "the typed form ignores case");
+        assert_eq!(
+            bar(&engine, "pani")[1],
+            "pani",
+            "the typed word stays beside it"
+        );
+        // A word in the lexicon stays as typed; the choice takes the first side slot.
+        engine.note_choice("help", "പണി");
+        assert_eq!(bar(&engine, "help")[..2], ["help", "പണി"]);
+        // The latest choice wins; removing the chosen word drops it.
+        engine.note_choice("pani", "കിളി");
+        assert_eq!(middle("pani"), "കിളി");
+        engine.note_choice("pani", "pain");
+        engine.remove_word("pain");
+        assert_eq!(middle("pani"), "പണി");
+        assert!(engine.user().choice("pani").is_none());
+        // Malayalam typed forms, one letter and addresses are not choices.
+        engine.note_choice("എ", "എന്റെ");
+        engine.note_choice("p", "പണി");
+        engine.note_choice("pa", "a@b.com");
+        let user = engine.user();
+        assert!(user.choice("എ").is_none() && user.choice("p").is_none());
+        assert!(user.choice("pa").is_none());
+    }
+
+    #[test]
+    fn a_choice_does_not_replace_without_autocorrect_or_a_learned_word() {
+        let engine = manglish_engine();
+        engine.note_choice("pani", "പണി");
+        let s = engine.suggest("pani", Layout::Latin, false);
+        assert_eq!(texts(&s)[..2], ["pani", "പണി"]);
+        engine.learn("pani");
+        assert_eq!(bar(&engine, "pani")[..2], ["pani", "പണി"]);
+    }
+
+    #[test]
+    fn removing_or_forgetting_a_word_drops_its_phrases() {
+        let engine = hello_engine();
+        commit(&engine, "hello how are you", Layout::Latin);
+        engine.remove_word("how");
+        assert_eq!(bar(&engine, "hello "), ["kitty", "there", "world"]);
+        assert_eq!(bar(&engine, "hello h"), ["h"]);
+        engine.restore_word("how");
+        assert_eq!(
+            bar(&engine, "hello "),
+            ["kitty", "there", "world"],
+            "restored, not relearned"
+        );
+        // Forgetting a word of the lexicon forgets its phrases too.
+        assert_eq!(bar(&engine, "how are ")[0], "you");
+        engine.forget_word("are");
+        assert!(bar(&engine, "how are ").is_empty());
+        assert!(bar(&engine, "how ").is_empty());
+        commit(&engine, "hello how", Layout::Latin);
+        engine.forget_learned();
+        assert_eq!(bar(&engine, "hello "), ["kitty", "there", "world"]);
+    }
+
+    #[test]
+    fn phrases_survive_a_restart() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let engine = Engine::new(hello_sources(), UserStore::open(dir.path()));
+            commit(&engine, "hello how are you", Layout::Latin);
+            engine.note_choice("hpw", "how");
+        }
+        let engine = Engine::new(hello_sources(), UserStore::open(dir.path()));
+        assert_eq!(bar(&engine, "hello ")[0], "how");
+        assert_eq!(bar(&engine, "hpw")[0], "how");
+    }
+
+    #[test]
+    fn malayalam_typing_learns_phrases_too() {
+        let engine = hello_engine();
+        let malayalam = |context: &str| {
+            let s = engine.suggest(context, Layout::Malayalam, true);
+            s.candidates.into_iter().map(|c| c.text).collect::<Vec<_>>()
+        };
+        assert_eq!(malayalam("എന്റെ ക"), ["ക", "കാര്യം", "കിളി"]);
+        commit(&engine, "എന്റെ കിളി", Layout::Malayalam);
+        assert_eq!(malayalam("എന്റെ ക"), ["ക", "കിളി", "കാര്യം"]);
+        assert_eq!(malayalam("എന്റെ "), ["കിളി"]);
+        assert_eq!(
+            engine.user().habit(),
+            (0, 0),
+            "no habit from the Malayalam keyboard"
+        );
+    }
+
+    #[test]
+    fn the_language_habit_leans_the_manglish_bias_within_bounds() {
+        let engine = hello_engine();
+        assert_eq!(engine.habit_bias(), 0.0);
+        for _ in 0..rank::HABIT_MIN_WORDS - 1 {
+            commit(&engine, "എന്റെ", Layout::Latin);
+        }
+        assert_eq!(engine.habit_bias(), 0.0, "too few words yet");
+        commit(&engine, "എന്റെ", Layout::Latin);
+        assert_eq!(engine.habit_bias(), rank::HABIT_MAX);
+        for _ in 0..1000 {
+            commit(&engine, "hello", Layout::Latin);
+        }
+        assert_eq!(engine.habit_bias(), -rank::HABIT_MAX);
+        // Words in no lexicon say nothing of the language (`sheri` left as typed).
+        let before = engine.user().habit();
+        commit(&engine, "sheri", Layout::Latin);
+        assert_eq!(engine.user().habit(), before);
+        // The habit never carries the bias across the English threshold.
+        let english = rank::CONTEXT_AFTER_ENGLISH;
+        assert_eq!(with_habit(english, rank::HABIT_MAX), english);
+        assert_eq!(with_habit(english + 0.1, -rank::HABIT_MAX), english + 0.01);
+        assert_eq!(with_habit(0.0, 0.5), 0.5);
+        assert_eq!(with_habit(1.0, 0.0), 1.0);
     }
 }

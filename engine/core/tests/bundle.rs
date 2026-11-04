@@ -763,40 +763,77 @@ fn latency() {
     time_with("with the LM, keyboard cutoffs", &engine, &inputs, &keyboard);
 }
 
+/// The latency gate with every table of the learned-word store full (`personal`): phrases
+/// after "said" and after each typed word, uses, and a choice for the first letters of each.
+#[test]
+#[ignore = "timing: run with `make bench` (release build)"]
+fn latency_with_a_full_store() {
+    use mlengine_core::personal::PAIR_CAPACITY;
+    use mlengine_core::user::CAPACITY;
+    let fill = |engine: &Engine| {
+        for i in 0..CAPACITY {
+            engine.learn(&format!("zw{i}"));
+        }
+        for i in 0..PAIR_CAPACITY {
+            let before = format!("zw{} zw{} ", i % CAPACITY, (i + 1) % CAPACITY);
+            engine.note_used(&before, &format!("zw{}", (i + 2) % CAPACITY), Layout::Latin);
+        }
+        for w in LATENCY_WORDS {
+            for _ in 0..3 {
+                engine.note_used("I said ", w, Layout::Latin);
+                engine.note_used(&format!("I said {w} "), "the", Layout::Latin);
+            }
+            engine.note_choice(&w[..w.len().min(3)], w);
+        }
+    };
+    let inputs = latency_inputs();
+    let engine = model_engine().expect("the latency gate needs the bundled transliterator");
+    fill(&engine);
+    time_suggests("full store, without the LM", &engine, &inputs);
+    let Some(engine) = lm_engine() else {
+        println!("no lm.mlkbnn: the LM latency is skipped");
+        return;
+    };
+    fill(&engine);
+    time_suggests("full store, with the LM", &engine, &inputs);
+}
+
+/// The English and Manglish words of `latency_inputs`.
+const LATENCY_WORDS: [&str; 27] = [
+    "the",
+    "because",
+    "tomorrow",
+    "hello",
+    "keyboard",
+    "beautiful",
+    "wonderful",
+    "together",
+    "ente",
+    "njan",
+    "veettil",
+    "malayalam",
+    "sukhamano",
+    "varunnundo",
+    "kazhichille",
+    "enikku",
+    "thank",
+    "something",
+    "Jishnu",
+    "teh",
+    "becuase",
+    "helo",
+    "preference",
+    "apostrophe",
+    "definitely",
+    "enthu",
+    "avishyam",
+];
+
 /// Words typed letter by letter after "I said ", each then followed by a space, and Malayalam
 /// words letter by letter.
 fn latency_inputs() -> Vec<(String, Layout)> {
-    let words = [
-        "the",
-        "because",
-        "tomorrow",
-        "hello",
-        "keyboard",
-        "beautiful",
-        "wonderful",
-        "together",
-        "ente",
-        "njan",
-        "veettil",
-        "malayalam",
-        "sukhamano",
-        "varunnundo",
-        "kazhichille",
-        "enikku",
-        "thank",
-        "something",
-        "Jishnu",
-        "teh",
-        "becuase",
-        "helo",
-        "preference",
-        "apostrophe",
-        "definitely",
-        "enthu",
-        "avishyam",
-    ];
     let mut inputs: Vec<(String, Layout)> = Vec::new();
-    for w in words {
+    for w in LATENCY_WORDS {
         for end in 1..=w.len() {
             inputs.push((format!("I said {}", &w[..end]), Layout::Latin));
         }

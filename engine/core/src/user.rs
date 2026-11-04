@@ -6,11 +6,22 @@
 //!
 //! Log lines: `L` learned, `S` seen (typed once), `R` removed from the bar, `F` one
 //! word forgotten (not blocked), `U` a removed word restored (not learned).
+//!
+//! The store also keeps what `personal` learns from use, in lines of tab-separated fields,
+//! each with an optional count at the end (1 when absent; compaction writes it): `N word`
+//! a use of a known or learned word, `P previous word` a word after another in one
+//! sentence, `T before previous word` after two, `C typed chosen` a suggestion chosen
+//! over the default for a typed form, `H m` or `H e` a word from the Latin keyboard that
+//! ended up Malayalam or English. Removing or forgetting a word (`R`, `F`) drops all of
+//! these that hold it. A log from before these lines loads as it did; an older build
+//! skips them.
 
 use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use crate::personal::{Followed, Habit, Personal};
 
 /// Most words kept; the least recently used are evicted beyond this.
 pub const CAPACITY: usize = 5_000;
@@ -40,6 +51,8 @@ pub struct UserStore {
     log_lines: usize,
     /// The log ended mid-line and could not be truncated; the next append starts a fresh line.
     dirty_tail: bool,
+    /// Phrases, uses, choices and the language habit (`personal`).
+    personal: Personal,
 }
 
 /// Lookups ignore ASCII case, so "Thom" typed at a sentence start is still the learned "Thom".
@@ -78,14 +91,7 @@ impl UserStore {
             let Ok(line) = std::str::from_utf8(raw) else {
                 continue;
             };
-            match line.split_once('\t') {
-                Some(("L", word)) if acceptable(word) => store.apply_learn(word),
-                Some(("S", word)) if acceptable(word) => store.apply_seen(word),
-                Some(("R", word)) if acceptable(word) => store.apply_remove(word),
-                Some(("F", word)) if acceptable(word) => store.apply_forget(word),
-                Some(("U", word)) if acceptable(word) => store.apply_restore(word),
-                _ => {}
-            }
+            store.replay(line);
         }
         store.log_lines = bytes[..end].iter().filter(|&&b| b == b'\n').count();
         if end < bytes.len() {
@@ -96,6 +102,50 @@ impl UserStore {
             store.dirty_tail = truncated.is_err();
         }
         store
+    }
+
+    /// Applies one log line; a malformed one is skipped.
+    fn replay(&mut self, line: &str) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        let ok = |words: &[&str]| words.iter().all(|w| acceptable(w));
+        match fields.as_slice() {
+            ["L", word] if acceptable(word) => self.apply_learn(word),
+            ["S", word] if acceptable(word) => self.apply_seen(word),
+            ["R", word] if acceptable(word) => self.apply_remove(word),
+            ["F", word] if acceptable(word) => self.apply_forget(word),
+            ["U", word] if acceptable(word) => self.apply_restore(word),
+            ["N", word, n @ ..] if ok(&[word]) => {
+                if let Some(n) = count(n) {
+                    self.personal.apply_use(word, n);
+                }
+            }
+            ["P", previous, word, n @ ..] if ok(&[previous, word]) => {
+                if let Some(n) = count(n) {
+                    self.personal.apply_pair(previous, word, n);
+                }
+            }
+            ["T", before, previous, word, n @ ..] if ok(&[before, previous, word]) => {
+                if let Some(n) = count(n) {
+                    self.personal.apply_trigram(before, previous, word, n);
+                }
+            }
+            ["C", typed, chosen, n @ ..] if ok(&[typed, chosen]) => {
+                if let Some(n) = count(n) {
+                    self.personal.apply_choice(typed, chosen, n);
+                }
+            }
+            ["H", language, n @ ..] => {
+                let habit = match *language {
+                    "m" => Some(Habit::Malayalam),
+                    "e" => Some(Habit::English),
+                    _ => None,
+                };
+                if let (Some(habit), Some(n)) = (habit, count(n)) {
+                    self.personal.apply_habit(habit, n);
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn is_learned(&self, word: &str) -> bool {
@@ -120,10 +170,89 @@ impl UserStore {
         self.append("R", word);
     }
 
+    /// A word was used: committed after `previous` (and `before_previous` before that), in
+    /// the same sentence. `counted`: count this use (a word known or learned). `habit`: the
+    /// language a word from the Latin keyboard ended up in. One write for all of it.
+    pub fn note_used(
+        &mut self,
+        word: &str,
+        previous: Option<&str>,
+        before_previous: Option<&str>,
+        counted: bool,
+        habit: Option<Habit>,
+    ) {
+        if !acceptable(word) {
+            return;
+        }
+        let previous = previous.filter(|w| acceptable(w));
+        let before_previous = before_previous.filter(|w| acceptable(w) && previous.is_some());
+        let mut lines = Vec::new();
+        if counted {
+            self.personal.apply_use(word, 1);
+            lines.push(format!("N\t{word}"));
+        }
+        if let Some(previous) = previous {
+            self.personal.apply_pair(previous, word, 1);
+            lines.push(format!("P\t{previous}\t{word}"));
+            if let Some(before) = before_previous {
+                self.personal.apply_trigram(before, previous, word, 1);
+                lines.push(format!("T\t{before}\t{previous}\t{word}"));
+            }
+        }
+        if let Some(habit) = habit {
+            self.personal.apply_habit(habit, 1);
+            let tag = if habit == Habit::Malayalam { "m" } else { "e" };
+            lines.push(format!("H\t{tag}"));
+        }
+        self.append_lines(&lines);
+    }
+
+    /// The user chose `chosen` over the default suggestion for `typed`: it is offered first
+    /// for `typed` from now on, until another is chosen.
+    pub fn note_choice(&mut self, typed: &str, chosen: &str) {
+        if !acceptable(typed) || !acceptable(chosen) || typed.eq_ignore_ascii_case(chosen) {
+            return;
+        }
+        self.personal.apply_choice(typed, chosen, 1);
+        self.append_lines(&[format!("C\t{typed}\t{chosen}")]);
+    }
+
+    /// See `Personal::followers`.
+    pub fn followers(
+        &self,
+        before_previous: Option<&str>,
+        previous: &str,
+        limit: usize,
+    ) -> Vec<Followed> {
+        self.personal.followers(before_previous, previous, limit)
+    }
+
+    /// How many times `word` was used (`note_used` with `counted`).
+    pub fn uses(&self, word: &str) -> u32 {
+        self.personal.uses(word)
+    }
+
+    /// Whether any use is counted: when none is, `uses` need not be asked.
+    pub fn has_uses(&self) -> bool {
+        self.personal.has_uses()
+    }
+
+    /// The suggestion last chosen for `typed` (`note_choice`).
+    pub fn choice(&self, typed: &str) -> Option<&str> {
+        self.personal.choice(typed)
+    }
+
+    /// Recent Latin-keyboard words that ended up Malayalam, and English (`Personal::habit`).
+    pub fn habit(&self) -> (u32, u32) {
+        self.personal.habit()
+    }
+
     /// Forgets one word (learned or seen once) without blocking it: typed again, it is
-    /// learned again. Writes nothing for a word the store doesn't hold.
+    /// learned again. Its phrases, uses and choices go too. Writes nothing for a word the
+    /// store doesn't hold.
     pub fn forget(&mut self, word: &str) {
-        if !acceptable(word) || !self.entries.contains_key(&key(word)) {
+        let held = self.entries.contains_key(&key(word)) || self.personal.mentions(word);
+        if !acceptable(word) || !held {
             return;
         }
         self.apply_forget(word);
@@ -203,6 +332,7 @@ impl UserStore {
     pub fn forget_all(&mut self) {
         self.entries.clear();
         self.removed.clear();
+        self.personal.clear();
         self.log_lines = 0;
         self.dirty_tail = false;
         if let Some(path) = &self.path {
@@ -218,10 +348,12 @@ impl UserStore {
         let k = key(word);
         self.entries.remove(&k);
         self.removed.insert(k, self.clock);
+        self.personal.purge(word);
     }
 
     fn apply_forget(&mut self, word: &str) {
         self.entries.remove(&key(word));
+        self.personal.purge(word);
     }
 
     fn apply_restore(&mut self, word: &str) {
@@ -273,27 +405,44 @@ impl UserStore {
     }
 
     fn append(&mut self, tag: &str, word: &str) {
+        self.append_lines(&[format!("{tag}\t{word}")]);
+    }
+
+    /// Appends one event's lines (given without their newlines).
+    fn append_lines(&mut self, lines: &[String]) {
         let Some(path) = self.path.clone() else {
             return;
         };
-        // One write call per event, so a kill can leave at worst a partial tail.
-        let mut line = String::new();
-        if self.dirty_tail {
-            line.push('\n');
+        if lines.is_empty() {
+            return;
         }
-        line.push_str(&format!("{tag}\t{word}\n"));
+        // One write call per event, so a kill can leave at worst a partial tail.
+        let mut text = String::new();
+        if self.dirty_tail {
+            text.push('\n');
+        }
+        for line in lines {
+            text.push_str(line);
+            text.push('\n');
+        }
         if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
-            if file.write_all(line.as_bytes()).is_ok() {
+            if file.write_all(text.as_bytes()).is_ok() {
                 self.dirty_tail = false;
-                self.log_lines += 1;
+                self.log_lines += lines.len();
             } else {
                 // A failed write (e.g. a full disk) may have left part of the line.
                 self.dirty_tail = true;
             }
         }
-        if self.log_lines > CAPACITY * 4 {
+        // Past what compaction would write by a margin, so that it runs once in many events.
+        if self.log_lines > self.state_lines() + CAPACITY * 4 {
             self.compact(&path);
         }
+    }
+
+    /// About as many lines as `compact` writes.
+    fn state_lines(&self) -> usize {
+        self.entries.len() + self.removed.len() + self.personal.len()
     }
 
     /// Rewrites the log from the map so it never grows without bound.
@@ -322,6 +471,10 @@ impl UserStore {
                 }
             }
         }
+        // After the words: replaying an `R` or `F` drops the phrases of its word.
+        let personal = self.personal.lines();
+        lines += personal.lines().count();
+        text.push_str(&personal);
         let tmp = path.with_extension("tmp");
         if fs::write(&tmp, text).is_ok() && fs::rename(&tmp, path).is_ok() {
             self.log_lines = lines;
@@ -331,6 +484,15 @@ impl UserStore {
             let _ = fs::remove_file(&tmp);
             self.log_lines = 0;
         }
+    }
+}
+
+/// The count at the end of a `personal` line: 1 when absent, and never 0.
+fn count(field: &[&str]) -> Option<u32> {
+    match field {
+        [] => Some(1),
+        [n] => n.parse().ok().filter(|&n| n > 0),
+        _ => None,
     }
 }
 
@@ -753,5 +915,198 @@ mod tests {
         let mut store = UserStore::open(Path::new("/nonexistent-root/x"));
         store.learn("still");
         assert!(store.is_learned("still"));
+    }
+
+    fn followers(store: &UserStore, before: Option<&str>, previous: &str) -> Vec<String> {
+        store
+            .followers(before, previous, 5)
+            .into_iter()
+            .map(|f| f.word)
+            .collect()
+    }
+
+    /// "hello how are you", committed word by word as the engine notes it.
+    fn type_hello_how_are_you(store: &mut UserStore) {
+        store.note_used("hello", None, None, true, Some(Habit::English));
+        store.note_used("how", Some("hello"), None, true, Some(Habit::English));
+        store.note_used(
+            "are",
+            Some("how"),
+            Some("hello"),
+            true,
+            Some(Habit::English),
+        );
+        store.note_used("you", Some("are"), Some("how"), true, Some(Habit::English));
+    }
+
+    #[test]
+    fn phrases_uses_choices_and_habit_persist() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            type_hello_how_are_you(&mut store);
+            store.note_used("ഇന്ന്", Some("you"), None, true, Some(Habit::Malayalam));
+            store.note_choice("innu", "ഇന്ന്");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.starts_with("N\thello\nH\te\nN\thow\nP\thello\thow\nH\te\n"));
+        assert!(text.contains("T\thow\tare\tyou\n"));
+        assert!(text.ends_with("C\tinnu\tഇന്ന്\n"));
+        let store = UserStore::open(dir.path());
+        assert_eq!(followers(&store, None, "Hello"), ["how"]);
+        assert_eq!(followers(&store, Some("how"), "are"), ["you"]);
+        assert_eq!(store.uses("HOW"), 1);
+        assert_eq!(store.choice("Innu"), Some("ഇന്ന്"));
+        assert_eq!(store.habit(), (1, 4));
+        assert_eq!(store.learned_count(), 0, "using known words learns no word");
+    }
+
+    #[test]
+    fn nothing_is_noted_for_unacceptable_words() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        store.note_used("two words", Some("hello"), None, true, None);
+        store.note_used("hello", None, None, false, None);
+        store.note_choice("same", "Same");
+        store.note_choice("", "x");
+        assert!(!dir.path().join(LOG_NAME).exists());
+        // An unacceptable previous word only loses the phrase.
+        store.note_used("how", Some("a\tb"), Some("x"), false, None);
+        assert!(store.followers(None, "a\tb", 5).is_empty());
+        assert!(store.personal.is_empty());
+    }
+
+    #[test]
+    fn counts_in_lines_are_optional_and_malformed_ones_are_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = "N\thow\t3\nN\tbad\t0\nN\tbad\tx\nP\thello\thow\t2\nP\thello\n\
+                   P\thello\tkitty\t1\t9\nT\thow\tare\tyou\nC\tinnu\tഇന്ന്\t4\nH\tm\t7\nH\tq\nH\te\n";
+        fs::write(dir.path().join(LOG_NAME), log).unwrap();
+        let store = UserStore::open(dir.path());
+        assert_eq!(store.uses("how"), 3);
+        assert_eq!(store.uses("bad"), 0);
+        assert_eq!(
+            store.followers(None, "hello", 5),
+            [Followed {
+                word: "how".into(),
+                score: 2
+            }]
+        );
+        assert_eq!(followers(&store, Some("how"), "are"), ["you"]);
+        assert_eq!(store.choice("innu"), Some("ഇന്ന്"));
+        assert_eq!(store.habit(), (7, 1));
+    }
+
+    #[test]
+    fn a_log_from_before_phrases_loads_as_before() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(LOG_NAME),
+            "L\tThom\nS\tAnu\nR\thello\nL\tKochi\nF\tkochi\nU\thello\n",
+        )
+        .unwrap();
+        let mut store = UserStore::open(dir.path());
+        assert_eq!(store.learned_words(), ["Thom"]);
+        assert!(!store.is_removed("hello"));
+        store.note_typed("Anu");
+        assert!(store.is_learned("Anu"));
+        assert!(store.personal.is_empty());
+    }
+
+    #[test]
+    fn removing_or_forgetting_a_word_drops_its_phrases_and_choices_for_good() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            type_hello_how_are_you(&mut store);
+            store.note_used("kitty", Some("hello"), None, true, None);
+            store.note_choice("kity", "kitty");
+            store.note_choice("hw", "how");
+            store.remove("kitty");
+            store.learn("Thom");
+            store.note_used("Thom", Some("hello"), None, true, None);
+            store.forget("thom");
+            assert_eq!(followers(&store, None, "hello"), ["how"]);
+            assert_eq!(store.choice("kity"), None);
+            assert_eq!(store.choice("hw"), Some("how"));
+            assert_eq!(store.uses("kitty"), 0);
+        }
+        let store = UserStore::open(dir.path());
+        assert_eq!(
+            followers(&store, None, "hello"),
+            ["how"],
+            "the log replays the cascade"
+        );
+        assert_eq!(store.choice("kity"), None);
+        assert_eq!(store.uses("thom"), 0);
+        assert_eq!(store.uses("hello"), 1);
+    }
+
+    #[test]
+    fn forget_all_clears_phrases_uses_choices_and_habit() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        type_hello_how_are_you(&mut store);
+        store.note_choice("innu", "ഇന്ന്");
+        store.forget_all();
+        assert!(store.personal.is_empty());
+        assert_eq!(store.habit(), (0, 0));
+        let reopened = UserStore::open(dir.path());
+        assert!(reopened.personal.is_empty());
+        assert!(reopened.followers(None, "hello", 5).is_empty());
+    }
+
+    #[test]
+    fn compaction_keeps_phrases_counts_recency_and_cascades() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        type_hello_how_are_you(&mut store);
+        type_hello_how_are_you(&mut store);
+        store.note_used("kitty", Some("hello"), None, true, None);
+        store.note_used("there", Some("hello"), None, true, None);
+        store.note_choice("innu", "ഇന്ന്");
+        store.remove("there");
+        for _ in 0..(CAPACITY * 4 + 10) {
+            store.note_used("ok", None, None, true, None);
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.lines().count() < 100, "log was compacted");
+        assert!(text.contains("P\thello\thow\t2\n"));
+        let reopened = UserStore::open(dir.path());
+        assert_eq!(followers(&reopened, None, "hello"), ["how", "kitty"]);
+        assert_eq!(followers(&reopened, Some("how"), "are"), ["you"]);
+        assert_eq!(reopened.uses("how"), 2);
+        assert!(reopened.uses("ok") > CAPACITY as u32 * 4);
+        assert_eq!(reopened.choice("innu"), Some("ഇന്ന്"));
+        assert_eq!(reopened.habit(), (0, 8));
+        assert!(reopened.is_removed("there"));
+    }
+
+    #[test]
+    fn a_full_store_stays_small_on_disk() {
+        use crate::personal::{CHOICE_CAPACITY, PAIR_CAPACITY};
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        let size = |dir: &Path| fs::metadata(dir.join(LOG_NAME)).unwrap().len();
+        let mut largest = 0;
+        // Every table past its cap, with words of a typical length, through compactions.
+        for i in 0..CAPACITY + 100 {
+            store.learn(&format!("learned{i}"));
+        }
+        for round in 0..3 {
+            for i in 0..PAIR_CAPACITY + 100 {
+                let (a, b) = (format!("first{round}x{i}"), format!("second{i}"));
+                let c = format!("third{i}");
+                store.note_used(&c, Some(&b), Some(&a), true, Some(Habit::English));
+                largest = largest.max(size(dir.path()));
+            }
+        }
+        for i in 0..CHOICE_CAPACITY + 10 {
+            store.note_choice(&format!("typed{i}"), &format!("chosen{i}"));
+        }
+        assert!(largest < 1_000_000, "{largest} bytes");
+        let reopened = UserStore::open(dir.path());
+        assert_eq!(reopened.learned_count(), CAPACITY);
+        assert_eq!(reopened.personal.len(), store.personal.len());
     }
 }

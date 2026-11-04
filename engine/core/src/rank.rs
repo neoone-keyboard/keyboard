@@ -262,6 +262,44 @@ pub const NEXT_PIECES: usize = 64;
 /// gate top-3 fell below M3a's (6 hits of 436 against 7): the bigram's followers are few.
 pub const NEXT_BIGRAM_WEIGHT: f32 = 0.3;
 
+/// Personal learning (`personal.rs`; the eval runs with an empty store, so none of these
+/// moves it). Next words: at most this many of the user's own continuations of the previous
+/// words lead the bar, best first (`personal::Followed::score`, then the most recent), and
+/// the LM's fill the rest: one slot always shows what the model expects.
+///
+/// Between two words in a lexicon (or learned), one sighting is enough. User report: after
+/// typing "hello how are you" twice the bar still offered "kitty" after "hello". A next word
+/// is never put in on its own, so a wrong guess costs a glance; waiting for two sightings
+/// would miss most phrases, which are typed a few times at most.
+pub const OWN_NEXT_WORDS: usize = 2;
+/// After a word in no lexicon (and not learned: often a typo, `thnaks`), a pair must be seen
+/// this often first, as a new word must be typed twice to be learned (`user::TIMES_TO_LEARN`).
+/// The word offered next must always be known or learned.
+pub const OWN_PAIR_AFTER_UNKNOWN: u32 = crate::user::TIMES_TO_LEARN;
+/// Score of an own continuation that the typed letters begin (`hello h` → how): ahead of
+/// lexicon and learned completions (`LEARNED_COMPLETION`) in the side slots, even after one
+/// letter. A completion never takes the middle, and with one this likely the letters are
+/// an unfinished word rather than a typo, so it holds back a correction too.
+pub const OWN_COMPLETION: f32 = LEARNED_COMPLETION + 1.0;
+/// Added to a correction or Malayalam word that is one of the user's continuations of the
+/// previous words: a slight lean, half of `MARGIN`. It is taken out again for `MIN_REPLACE`.
+pub const OWN_PHRASE_BONUS: f32 = 1.0;
+/// Word uses: + this × ln(1 + uses), at most `USE_MAX` (reached at 54 uses), on every
+/// candidate and the typed word itself. At most below one half-edit (`EDIT_PENALTY`), so it
+/// never outweighs a slip between words equally common, and a typo's clear correction
+/// (`teh` → the) stays; taken out for `MIN_REPLACE`, so it never makes a rare guess replace.
+/// Used words are words the user committed: an English word kept as typed gains as much as
+/// any candidate, so it is no likelier to be replaced.
+pub const USE_WEIGHT: f32 = 0.25;
+pub const USE_MAX: f32 = 1.0;
+/// The language habit (`personal::Habit`): + this × ln((Malayalam + 1) / (English + 1)) to
+/// the Manglish bias, within ±`HABIT_MAX`, once `HABIT_MIN_WORDS` words were counted. A
+/// quarter of the previous-word constants' range: context (the LM, the previous word) says
+/// more than habit. Never across `CONTEXT_AFTER_ENGLISH` (`engine::with_habit`).
+pub const HABIT_WEIGHT: f32 = 0.25;
+pub const HABIT_MAX: f32 = 0.5;
+pub const HABIT_MIN_WORDS: u32 = 20;
+
 /// Makes a suggestion follow the case of what was typed: `Hel` → `Hello`,
 /// `HEL` → `HELLO`. Words stored with capitals (London, I, NASA) keep them.
 pub fn apply_case(typed: &str, candidate: &str) -> String {

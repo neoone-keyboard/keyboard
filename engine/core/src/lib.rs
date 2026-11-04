@@ -10,6 +10,7 @@ pub mod malayalam;
 pub mod manglish;
 pub mod nn;
 pub mod normalize;
+pub mod personal;
 pub mod rank;
 pub mod romanize;
 pub mod suffix;
