@@ -33,10 +33,17 @@
     "n": 1576
   },
   "next_ml": {
+    "top1": 0.0424,
+    "top3": 0.0791,
+    "ks": 0.2766,
+    "n": 7737
+  },
+  "next_ml_smc_436": {
     "top1": 0.0069,
     "top3": 0.0161,
     "ks": 0.2044,
-    "n": 436
+    "n": 436,
+    "note": "Frozen M3a numbers on the old next_ml gate set (the 203 SMC conversation sentences, 436 positions); kept for reference, not gated."
   },
   "next_manglish": {
     "top1": 0.0462,

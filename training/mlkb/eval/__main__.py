@@ -37,10 +37,11 @@ BASELINES_M3A = EVAL / "baselines-m3a.json"
 ACCURACY_TOLERANCE = 0.005
 WRONG_RATE_TOLERANCE = 0.001
 
-NEXT_SETS = {  # name: (gate file, tune file, layout)
-    "next_en": ("english-sentences.txt", "next-en.tune.txt", "latin"),
-    "next_ml": ("next-ml.txt", "next-ml.tune.txt", "malayalam"),
-    "next_manglish": ("next-manglish.tsv", "next-manglish.tune.tsv", "latin"),
+NEXT_SETS = {  # name: (gate files, tune file, layout)
+    "next_en": (("english-sentences.txt",), "next-en.tune.txt", "latin"),
+    # The SMC conversations and held-out Malayalam Wikipedia and Wikisource sentences.
+    "next_ml": (("next-ml.txt", "next-ml.heldout.txt"), "next-ml.tune.txt", "malayalam"),
+    "next_manglish": (("next-manglish.tsv",), "next-manglish.tune.tsv", "latin"),
 }
 CONTEXT_SETS = {  # scored like chat_golden: name: (gate file, tune file)
     "english_typos_context": ("english-typos-context.tsv", "english-typos-context.tune.tsv"),
@@ -117,12 +118,14 @@ def load_sentences(path: Path) -> list[nextword.Sentence]:
     return [nextword.plain(line) for line in lines if line.strip() and not line.startswith("#")]
 
 
-def run_next(engine, name: str, path: Path, layout: str) -> dict | None:
-    """Next-word top-1/top-3 and keystroke savings on one set; None if the file is missing."""
-    if not path.exists():
-        print(f"{name}: {path.name} missing, skipped")
+def run_next(engine, name: str, paths: Path | list[Path], layout: str) -> dict | None:
+    """Next-word top-1/top-3 and keystroke savings on one set (one file or several); None if a
+    file is missing."""
+    paths = [paths] if isinstance(paths, Path) else paths
+    if missing := [p.name for p in paths if not p.exists()]:
+        print(f"{name}: {', '.join(missing)} missing, skipped")
         return None
-    sentences = load_sentences(path)
+    sentences = [s for p in paths for s in load_sentences(p)]
     s = nextword.next_word(engine, sentences, layout)
     ks = nextword.keystroke_savings(engine, sentences, layout)
     print(f"{name}: top1 {s.top1:.4f}  top3 {s.top3:.4f}  ks {ks:.4f}  n {s.n}")
@@ -185,8 +188,8 @@ def main(argv: list[str] | None = None) -> int:
     }
     for name, (gate, _) in CONTEXT_SETS.items():
         current[name] = run_translit(engine, name, EVAL / gate) if (EVAL / gate).exists() else None
-    for name, (gate, _, layout) in NEXT_SETS.items():
-        current[name] = run_next(engine, name, EVAL / gate, layout)
+    for name, (gates, _, layout) in NEXT_SETS.items():
+        current[name] = run_next(engine, name, [EVAL / g for g in gates], layout)
     current["engine"] = "m3b" if args.lm else "m3a" if args.translit else "m2"
 
     if args.record:

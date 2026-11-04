@@ -2,7 +2,9 @@
 
     uv run python -m mlkb.eval.next_sets
 
-- `data/eval/next-ml.txt`: the 203 SMC conversation sentences (eval only).
+- `data/eval/next-ml.txt`: the 203 SMC conversation sentences (eval only). The next_ml gate
+  also reads `next-ml.heldout.txt`, held-out Wikipedia and Wikisource sentences that
+  `mlkb.lm.corpus` writes.
 - `data/eval/next-manglish.tsv` (1,000 rows) and `next-manglish.tune.tsv` (500 rows):
   `roman<TAB>native` from the Dakshina romanised dev sentences (`rejoined` files). The dev
   sentences are shuffled with `SEED` and split into disjoint halves, the gate set taken from the

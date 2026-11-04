@@ -13,16 +13,21 @@ Reads data/raw/text/ (see `mlkb.lm.sources` and data/build-lexicons.sh) and writ
 | `mixed-{0,1}.txt` | `ml.txt` through `mix_sentence`, `frac` ~ U(0.2, 0.8) per sentence, `p_loan` 0.3 |
 | `valid-<bucket>.txt` | the held-out paragraphs of each source, with the same transforms |
 
-Rules (design §5): paragraphs are deduplicated exactly after masking numbers (Gutenberg's
-consecutive dialogue copies excepted); every sentence that is in an eval set, or is a Dakshina
-romanised dev or test sentence, is cut out of its paragraph (`is_leak`); 1/`VALID_EVERY` of the
+Rules (design §5, §10): paragraphs are deduplicated exactly after masking numbers (Gutenberg's
+consecutive dialogue copies excepted); training paragraphs lose runs of one repeated unit past
+`MAX_RUN` characters (`cut_runs`) and every sentence of `TEMPLATE_MIN_WORDS` or more words past
+the first `TEMPLATE_CAP` with its digits-masked key (`keep_template`); every sentence that is in
+an eval set, or is a Dakshina romanised dev or test sentence, is cut out of its paragraph
+(`is_leak`); 1/`VALID_EVERY` of the
 paragraphs of every source is held out by a hash of its first 64 characters; and 30% of the
 paragraphs of every bucket lose their punctuation (chat register).
 
 Also writes `heldout-en.txt` and `heldout-ml.txt` (2,000 held-out sentences each, for
-perplexity) next to the output directory, and the tune splits `data/eval/next-en.tune.txt`
-(Simple Wikipedia and Wikinews) and `data/eval/next-ml.tune.txt` (Malayalam Wikipedia and
-Wikisource): 500 short held-out sentences each, never trained on.
+perplexity) next to the output directory, the tune splits `data/eval/next-en.tune.txt` (Simple
+Wikipedia and Wikinews, 500 short held-out sentences) and `data/eval/next-ml.tune.txt`
+(Malayalam Wikipedia and Wikisource, `TUNE_SENTENCES_ML`), and the next_ml gate's held-out half
+`data/eval/next-ml.heldout.txt` (`GATE_SENTENCES_ML`): never trained on, and no Malayalam one
+is a sentence of the training text.
 """
 import argparse
 import hashlib
@@ -66,6 +71,11 @@ MANGLISH_PASSES, MANGLISH_P_LOAN = 4, 0.7
 MIXED_PASSES, MIXED_P_LOAN, MIXED_FRAC = 2, 0.3, (0.2, 0.8)
 HELDOUT_SENTENCES = 2000
 TUNE_SENTENCES, TUNE_WORDS = 500, (4, 20)
+# Malayalam held-out sentences are split by a hash into the tune half (`TUNE_SENTENCES_ML`, for
+# the weight sweep) and the gate half (`GATE_SENTENCES_ML`, `next-ml.heldout.txt`, which the
+# next_ml gate reads with the SMC conversations): together about 7,000 next-word positions each,
+# so that one row no longer decides a ship gate (the SMC set alone has 436).
+TUNE_SENTENCES_ML, GATE_SENTENCES_ML = 1000, 950
 # Aksharantar sources that are mined text (CC0): their Latin side is how the word is written.
 LOANWORD_SOURCES = frozenset({"IndicCorp", "Samanantar"})
 LOANWORD_MIN_LOG_PROB = -14.0
@@ -75,6 +85,22 @@ TRANSLITERATED_WORDS = 60_000  # most frequent English words run through the tra
 LOANWORD_ENDINGS = ("ും", "ിൽ", "ന്റെ", "ുടെ", "ിനെ", "ിന്", "ിനു", "ക്ക്", "ാണ്", "ായി", "ിലെ", "ോട്", "ോടെ")
 # Sources whose consecutive identical paragraphs are kept: Gutenberg writes dialogue three times.
 REPEATS_KEPT = frozenset({"en-gutenberg"})
+# Templated sentences (design §10): a training sentence of at least `TEMPLATE_MIN_WORDS` words
+# is kept only while fewer than `TEMPLATE_CAP` sentences with its key (digits masked) have been,
+# across all sources. Wikipedia's place articles repeat their census sentences thousands of times
+# with only the numbers changed ("for every 100 females there were 0 males", 4,864 times), and
+# the v1 model recited 53-60 tokens of them. How often a sequence is duplicated is what drives
+# memorisation; three copies in about one epoch is a handful of sightings, and still teaches the
+# model the wording, which one copy might not. Shorter sentences ("he retired in 0.", or "c." left by the
+# sentence split) can't make up a long run, and capping them would cut ordinary text.
+TEMPLATE_CAP, TEMPLATE_MIN_WORDS = 3, 6
+# Runs of one unit (design §10): a unit of up to 8 characters repeated 4 or more times in a run
+# longer than `MAX_RUN` characters ("1000000000000000", ". . . . . .", "൦൦൦൦൦൦") is cut to the
+# whole units that fit in `MAX_RUN`, and to no fewer than 3. Digits and these marks are one
+# token each, so no 16-token window of training text is one loop, and a model that loops
+# can't match a long run of it. `MAX_RUN` keeps every number up to 10^12.
+MAX_RUN = 12
+_RUN = re.compile(r"(.{1,8}?)\1{3,}")
 
 # (bucket, raw file, word cap)
 ENGLISH = (
@@ -124,6 +150,31 @@ def is_leak(sentence: str, leaks: set[int]) -> bool:
     return dedupe_key(sentence) in leaks or dedupe_key(bare) in leaks
 
 
+def _cut_run(m: re.Match) -> str:
+    unit, run = m.group(1), m.group()
+    if len(run) <= MAX_RUN:
+        return run
+    return unit * max(3, MAX_RUN // len(unit))
+
+
+def cut_runs(text: str) -> str:
+    """The text with every run of one unit longer than `MAX_RUN` characters cut short."""
+    return _RUN.sub(_cut_run, text)
+
+
+def keep_template(sentence: str, counts: dict[int, int]) -> bool:
+    """Whether a training sentence (`lm_normalize`d) stays: fewer than `TEMPLATE_MIN_WORDS`
+    words, or fewer than `TEMPLATE_CAP` kept before it with the same key. Counts what it keeps."""
+    if len(sentence.split()) < TEMPLATE_MIN_WORDS:
+        return True
+    key = _key(sentence)
+    n = counts.get(key, 0)
+    if n >= TEMPLATE_CAP:
+        return False
+    counts[key] = n + 1
+    return True
+
+
 def _eval_strings(path: Path) -> Iterator[str]:
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.startswith("#"):
@@ -142,7 +193,7 @@ def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED) -> set
     """Keys of every string in every eval set (each column, each context with its word, each
     sentence), and of every Dakshina romanised dev and test sentence, in both scripts, with and
     without punctuation. The tune splits this module writes come from held-out text already."""
-    own = {"next-en.tune.txt", "next-ml.tune.txt"}
+    own = {"next-en.tune.txt", "next-ml.tune.txt", "next-ml.heldout.txt"}
     strings: list[str] = []
     for path in sorted(eval_dir.iterdir()):
         if path.suffix in (".txt", ".tsv") and path.name not in own:
@@ -308,16 +359,38 @@ def _lines(path: Path) -> Iterator[str]:
                 yield line.rstrip("\n")
 
 
+def _filter_training(norm: str, templates: dict[int, int], stats: dict) -> str:
+    """`cut_runs`, then `keep_template` on each sentence; counts what goes into `stats`."""
+    cut = cut_runs(norm)
+    if len(cut) < len(norm):
+        stats["runs_cut"] += sum(len(m.group()) > MAX_RUN for m in _RUN.finditer(norm))
+        stats["run_chars"] += len(norm) - len(cut)
+    parts = sentences(cut)
+    kept = [s for s in parts if keep_template(s, templates)]
+    if len(kept) < len(parts):
+        stats["template_sentences"] += len(parts) - len(kept)
+        stats["template_words"] += sum(len(s.split()) for s in parts) - sum(len(s.split()) for s in kept)
+        return " ".join(kept)
+    return cut
+
+
 def clean_source(
     bucket: str, path: Path, cap: int | None, seen: set[int], leaks: set[int], rng: random.Random,
     train_out, valid_out, on_valid: Callable[[str, str], None] | None = None,
+    templates: dict[int, int] | None = None,
 ) -> dict:
     """Dedupes, cuts leaks, splits off validation and applies the chat transform for one source.
-    `train_out` / `valid_out` get the cleaned paragraph (with its punctuation) and the bucket's
-    transformed text. Returns the bucket's counts."""
+    Training paragraphs then lose long runs (`cut_runs`) and templated sentences past the cap
+    (`keep_template`, counted in `templates`, shared across sources); held-out ones stay as they
+    were, so validation losses compare across corpus versions. `train_out` / `valid_out` get the
+    cleaned paragraph (with its punctuation) and the bucket's transformed text. Returns the
+    bucket's counts."""
     stats = {"paragraphs": 0, "words": 0, "valid_paragraphs": 0, "valid_words": 0,
-             "duplicates": 0, "leaks_removed": 0, "raw_words": 0}
+             "duplicates": 0, "leaks_removed": 0, "raw_words": 0, "runs_cut": 0, "run_chars": 0,
+             "template_sentences": 0, "template_words": 0, "template_paragraphs": 0}
+    templates = {} if templates is None else templates
     previous = None
+    repeat: tuple[int, str] | None = None  # the last training paragraph's key and filtered text
     for raw in _lines(path):
         if cap is not None and stats["raw_words"] >= cap:
             break
@@ -340,6 +413,16 @@ def clean_source(
                 continue
             norm = " ".join(kept)
         valid = _is_valid(norm)
+        if not valid:
+            if repeat is not None and repeat[0] == key:  # a kept repeat (`REPEATS_KEPT`) stays a copy
+                norm = repeat[1]
+            else:
+                norm = _filter_training(norm, templates, stats)
+                repeat = (key, norm)
+            if not norm:
+                stats["template_paragraphs"] += 1
+                rng.random()  # the draw `_chat` would have made, so the held-out samples don't move
+                continue
         (valid_out if valid else train_out)(norm, _chat(norm, rng))
         prefix = "valid_" if valid else ""
         stats[prefix + "paragraphs"] += 1
@@ -404,6 +487,26 @@ def synthesise(job: tuple[str, str, str, int]) -> tuple[str, dict]:
     return Path(dst).name, stats
 
 
+def is_tune_half(sentence: str) -> bool:
+    """Which half of the held-out Malayalam sentences `sentence` belongs to: tune, else gate."""
+    return hashlib.blake2b(sentence.encode("utf-8"), digest_size=8).digest()[0] % 2 == 0
+
+
+def sentence_keys(paragraphs: Iterable[str]) -> set[int]:
+    """Keys of every sentence of some `lm_normalize`d paragraphs, with and without punctuation."""
+    keys = set()
+    for para in paragraphs:
+        for s in sentences(para):
+            keys.add(_key(s))
+            keys.add(_key(strip_punct(s)))
+    return keys
+
+
+def not_in(candidates: list[str], keys: set[int]) -> list[str]:
+    """The candidates whose sentence, with or without punctuation, has no key in `keys`."""
+    return [s for s in candidates if dedupe_key(s) not in keys and dedupe_key(strip_punct(s)) not in keys]
+
+
 def _tune_candidates(raw: str, pattern: re.Pattern, leaks: set[int]) -> Iterator[str]:
     for s in sentences(raw):
         n = len(s.split())
@@ -421,6 +524,12 @@ TUNE_ML_HEADER = """# Next-word eval set, Malayalam (tune split, for weight swee
 # {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
 # Malayalam Wikipedia and Malayalam Wikisource (CC BY-SA 4.0, by their contributors,
 # https://ml.wikipedia.org/, https://ml.wikisource.org/). Built by training/mlkb/lm/corpus.py.
+"""
+GATE_ML_HEADER = """# Next-word eval set, Malayalam (gate split, held-out half; read with next-ml.txt): one sentence per line.
+# {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
+# Malayalam Wikipedia and Malayalam Wikisource (CC BY-SA 4.0, by their contributors,
+# https://ml.wikipedia.org/, https://ml.wikisource.org/), disjoint from the tune split, and none of
+# them a sentence of the training text. Built by training/mlkb/lm/corpus.py.
 """
 
 
@@ -442,22 +551,36 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(loanwords):,} loanwords", file=sys.stderr)
     summary: dict[str, dict] = {}
     seen: set[int] = set()
+    templates: dict[int, int] = {}
+    # memorise.py's record of where Wikisource begins in ml.txt: the paragraph count moves.
+    (out / "sources.tsv").unlink(missing_ok=True)
 
     # Malayalam first: the synthetic buckets are built from its clean text while English runs.
     rng = random.Random(args.seed)
-    heldout_ml, tune_ml = Reservoir(HELDOUT_SENTENCES, rng), Reservoir(TUNE_SENTENCES, random.Random(args.seed + 1))
+    heldout_ml = Reservoir(HELDOUT_SENTENCES, rng)
+    tune_ml = Reservoir(TUNE_SENTENCES_ML, random.Random(args.seed + 1))
+    gate_ml = Reservoir(GATE_SENTENCES_ML, random.Random(args.seed + 3))
 
     def on_valid_ml(raw: str, norm: str) -> None:
         for s in sentences(norm):
             heldout_ml.add(s)
         for s in _tune_candidates(human.normalize(raw), _TUNE_ML, leaks):
-            tune_ml.add(s)
+            (tune_ml if is_tune_half(s) else gate_ml).add(s)
 
     train, valid = _Writer(out / "ml.txt", work / "ml-clean.txt"), _Writer(out / "valid-ml.txt", work / "valid-ml-clean.txt")
-    summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml)
+    summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml,
+                                 templates)
     train.close()
     valid.close()
     print(f"ml: {summary['ml']}  ({time.time() - start:.0f}s)", file=sys.stderr)
+    # A held-out paragraph can share a sentence with a training one: those sentences go.
+    with open(work / "ml-clean.txt", encoding="utf-8") as f:
+        trained = sentence_keys(line.rstrip("\n") for line in f)
+    for r in (tune_ml, gate_ml):
+        before = len(r.items)
+        r.items = not_in(r.items, trained)
+        summary.setdefault("next_ml_sets", {})[f"in_training_{'tune' if r is tune_ml else 'gate'}"] = before - len(r.items)
+    del trained
 
     jobs = [("manglish", str(work / "ml-clean.txt"), str(out / f"manglish-{i}.txt"), args.seed * 10 + i)
             for i in range(MANGLISH_PASSES)]
@@ -479,7 +602,8 @@ def main(argv: list[str] | None = None) -> int:
                         tune_en.add(s)
 
             train, valid = _Writer(out / f"{bucket}.txt"), _Writer(out / f"valid-{bucket}.txt")
-            summary[bucket] = clean_source(bucket, RAW_TEXT / name, cap, seen, leaks, rng, train, valid, on_valid_en)
+            summary[bucket] = clean_source(bucket, RAW_TEXT / name, cap, seen, leaks, rng, train, valid,
+                                           on_valid_en, templates)
             train.close()
             valid.close()
             print(f"{bucket}: {summary[bucket]}  ({time.time() - start:.0f}s)", file=sys.stderr)
@@ -494,6 +618,8 @@ def main(argv: list[str] | None = None) -> int:
         TUNE_EN_HEADER.format(n=len(tune_en.items), seed=args.seed + 2) + "\n".join(tune_en.items) + "\n", encoding="utf-8")
     (EVAL / "next-ml.tune.txt").write_text(
         TUNE_ML_HEADER.format(n=len(tune_ml.items), seed=args.seed + 1) + "\n".join(tune_ml.items) + "\n", encoding="utf-8")
+    (EVAL / "next-ml.heldout.txt").write_text(
+        GATE_ML_HEADER.format(n=len(gate_ml.items), seed=args.seed + 3) + "\n".join(gate_ml.items) + "\n", encoding="utf-8")
     summary["loanwords"] = {"count": len(loanwords)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"done in {time.time() - start:.0f}s; summary in {out / 'summary.json'}", file=sys.stderr)
