@@ -83,10 +83,187 @@ fn without_trailing_punctuation(word: &str) -> &str {
 
 /// An address as it is learned, without the brackets, quotes and punctuation typed
 /// around it (`(priya@example.com),`); None for a word that is no address, or one without
-/// a letter (`3.14`: numbers are never learned).
+/// a letter (`3.14`: a number is learned only as a phone number, `phone_number_at_end`).
 pub fn learnable_address(word: &str) -> Option<&str> {
     let trimmed = without_trailing_punctuation(word.trim_start_matches(is_opening));
     (is_address(trimmed) && trimmed.chars().any(char::is_alphabetic)).then_some(trimmed)
+}
+
+/// Most digit groups a phone number is typed in with a space between each
+/// (`+44 20 7946 0958`).
+pub const MAX_NUMBER_GROUPS: usize = 4;
+
+/// A word that may be (part of) a phone number: digits, `+`, `-`, `.`, `(` and `)`, with a
+/// digit (`55501`, `+91`, `(0484)`, `55501-1`).
+fn is_number_word(word: &str) -> bool {
+    word.bytes().any(|b| b.is_ascii_digit())
+        && word
+            .chars()
+            .all(|c| c.is_ascii_digit() || matches!(c, '+' | '-' | '.' | '(' | ')'))
+}
+
+/// The ends of `context_before` that may be a phone number or its start, longest first: its
+/// last `is_number_word`s back over single spaces, at most `MAX_NUMBER_GROUPS` (`call +91 98`
+/// → `+91 98`, `98`). The space is the word break, so a number typed in groups arrives as
+/// several words. An opening quote before the first is no part of it, as in `last_token`.
+/// None when the text ends in whitespace.
+pub fn number_tails(context_before: &str) -> impl Iterator<Item = &str> {
+    let mut starts = Vec::new();
+    let mut end = context_before.len();
+    while starts.len() < MAX_NUMBER_GROUPS {
+        let start = context_before[..end]
+            .trim_end_matches(|c: char| !c.is_whitespace())
+            .len();
+        let token = &context_before[start..end];
+        let word = token.trim_start_matches(|c| is_opening(c) && c != '(');
+        if !is_number_word(word) {
+            break;
+        }
+        starts.push(end - word.len());
+        // One space before it, and a word before that.
+        let before = &context_before[..start];
+        let Some(rest) = before.strip_suffix(' ') else {
+            break;
+        };
+        if word.len() != token.len() || rest.is_empty() || rest.ends_with(char::is_whitespace) {
+            break;
+        }
+        end = rest.len();
+    }
+    starts.into_iter().rev().map(|s| &context_before[s..])
+}
+
+/// The phone number (`is_phone_number`) that ends `text`, less the punctuation, brackets
+/// and quotes around it, over as many of its `number_tails` as make one: `call +91 55501
+/// 12345.` → `+91 55501 12345`. None when the text ends in whitespace.
+pub fn phone_number_at_end(text: &str) -> Option<&str> {
+    number_tails(without_trailing_punctuation(text)).find_map(|tail| {
+        [tail, tail.trim_start_matches('(')]
+            .into_iter()
+            .find(|t| is_phone_number(t))
+    })
+}
+
+/// A phone number as it is learned, typed as one word or in groups with a single space
+/// between them. E.164 allows at most 15 digits; with fewer than 7 it is a year, an amount
+/// or a code, not a number to call.
+///
+/// One word: an optional `+`, an optional area code in brackets, then digits with single
+/// `-` or `.` between groups (`+91-55501-12345`, `(0484)5550123`, `98.470.12345`), 7 to 15
+/// digits. Bare digits need 10 (a mobile number with its prefix), as 7 digits alone are as
+/// likely an amount (`1000000`). One `.` is a decimal point (`1234567.89`).
+///
+/// In groups (`+91 55501 12345`, `(415) 555-0123`): 2 to `MAX_NUMBER_GROUPS` words of 2 to 5
+/// digits (a `+` country code first has 1 to 3, and the national number after it any), 10 to
+/// 15 digits in all. A lone digit begins no number (`I have 2 kids 3 dogs`), and the total
+/// keeps two ordinary numbers apart (`in 2024 2025`).
+///
+/// Without a `+`, what reads as another kind of number is none: thousands (`1.234.567`,
+/// `123 456 789 012`), dates (`12-05-2026`, `2026.05.12`) and two short groups (`2020-2024`).
+pub fn is_phone_number(text: &str) -> bool {
+    let words: Vec<&str> = text.split(' ').collect();
+    if words.len() > MAX_NUMBER_GROUPS {
+        return false;
+    }
+    let plus = text.starts_with('+');
+    let mut groups: Vec<&str> = Vec::new();
+    for (i, word) in words.iter().enumerate() {
+        let Some(found) = number_groups(word, i == 0) else {
+            return false;
+        };
+        if words.len() > 1 {
+            let short = |g: &&str| (2..=5).contains(&g.len());
+            let fits = match i {
+                0 => match found.groups.as_slice() {
+                    [code] if plus => code.len() <= 3,
+                    [group] => short(group),
+                    _ => false,
+                },
+                _ => {
+                    found.separator.is_none_or(|s| s == '-')
+                        && (plus || found.groups.iter().all(short))
+                }
+            };
+            if !fits {
+                return false;
+            }
+        } else {
+            let bare = !plus && !found.bracketed && found.separator.is_none();
+            let dots = found.separator == Some('.');
+            if bare && digits(&found.groups) < 10 || dots && found.groups.len() < 3 {
+                return false;
+            }
+        }
+        groups.extend(found.groups);
+    }
+    let range = if words.len() > 1 { 10..=15 } else { 7..=15 };
+    range.contains(&digits(&groups)) && (plus || !reads_as_another_number(&groups))
+}
+
+fn digits(groups: &[&str]) -> usize {
+    groups.iter().map(|g| g.len()).sum()
+}
+
+/// Thousands, a date, or two short groups (`is_phone_number`).
+fn reads_as_another_number(groups: &[&str]) -> bool {
+    let lens: Vec<usize> = groups.iter().map(|g| g.len()).collect();
+    let thousands = lens.len() >= 2 && lens[0] <= 3 && lens[1..].iter().all(|&n| n == 3);
+    let date = matches!(lens.as_slice(), [a, b, 2 | 4] if *a <= 2 && *b <= 2)
+        || matches!(lens.as_slice(), [4, b, c] if *b <= 2 && *c <= 2);
+    let two_short = matches!(lens.as_slice(), [a, b] if *a <= 4 && *b <= 4);
+    thousands || date || two_short
+}
+
+/// The digit groups of one word of a phone number, and what separates them.
+struct NumberGroups<'a> {
+    groups: Vec<&'a str>,
+    separator: Option<char>,
+    bracketed: bool,
+}
+
+/// `word` as digit groups: a `+` and a bracketed area code may begin the first word
+/// (`+1(415)555-0123`), then digits with one kind of separator, `-` or `.`, single.
+fn number_groups(word: &str, first: bool) -> Option<NumberGroups<'_>> {
+    let all_digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    let mut rest = if first {
+        word.strip_prefix('+').unwrap_or(word)
+    } else {
+        word
+    };
+    let mut groups = Vec::new();
+    let mut bracketed = false;
+    // A country code straight before the brackets: `+1(415)`.
+    if rest.len() < word.len()
+        && let Some((code, _)) = rest.split_once('(')
+        && (1..=3).contains(&code.len())
+        && all_digits(code)
+    {
+        groups.push(code);
+        rest = &rest[code.len()..];
+    }
+    if first && let Some(inner) = rest.strip_prefix('(') {
+        let (code, after) = inner.split_once(')')?;
+        if !all_digits(code) || code.len() > 5 {
+            return None;
+        }
+        groups.push(code);
+        bracketed = true;
+        rest = after;
+    }
+    let separator = rest.chars().find(|&c| c == '-' || c == '.');
+    if !rest.is_empty() {
+        for group in rest.split(separator.unwrap_or(' ')) {
+            if !all_digits(group) {
+                return None;
+            }
+            groups.push(group);
+        }
+    }
+    (!groups.is_empty()).then_some(NumberGroups {
+        groups,
+        separator,
+        bracketed,
+    })
 }
 
 fn is_apostrophe(c: char) -> bool {
@@ -396,10 +573,123 @@ mod tests {
         );
     }
 
+    #[test]
+    fn phone_numbers() {
+        for number in [
+            "5550112345",
+            "+915550112345",
+            "55501-12345",
+            "+91-55501-12345",
+            "98.470.12345",
+            "(0484)5550123",
+            "+1(415)555-0123",
+            "1-800-555-0199",
+            "55501 12345",
+            "+91 55501 12345",
+            "+91 5550112345",
+            "+44 20 7946 0958",
+            "020 7946 0958",
+            "(415) 555-0123",
+            "+1 415-555-0123",
+        ] {
+            assert!(is_phone_number(number), "{number}");
+        }
+    }
+
+    #[test]
+    fn other_numbers_are_no_phone_numbers() {
+        for number in [
+            "",
+            "100",
+            "2024",
+            "100000",
+            "1000000", // a bare number needs the 10 digits of a mobile
+            "3.14",
+            "1234567.89", // one full stop is a decimal point
+            "1.234.567",  // thousands
+            "123 456 789 012",
+            "1,000,000",
+            "12/05/2026",
+            "12.05.2026", // dates
+            "12-05-2026",
+            "2026-05-12",
+            "2020-2024", // a range: two short groups
+            "555-0123",
+            "10:30",
+            "$5550112345",
+            "5550112345%",
+            "+91",
+            "+91 98",
+            "55501  12345",
+            " 55501 12345",
+            "55501 12345 ",
+            "2 5550112345", // a group of one digit begins no spaced number
+            "0484 5550123", // spaced groups are short, but after a country code
+            "55501 12345 67890 12345 1",
+            "5550112345678901", // past E.164's 15
+            "++915550112345",
+            "55501--12345",
+            "55501-12345.",
+            "-5550112345",
+            "55501-123.45",
+            "()5550112345",
+            "(55501)",
+            "55501 +12345",
+        ] {
+            assert!(!is_phone_number(number), "{number}");
+        }
+    }
+
+    #[test]
+    fn the_phone_number_at_the_end_runs_back_over_its_groups() {
+        assert_eq!(phone_number_at_end("call 55501 12345"), Some("55501 12345"));
+        assert_eq!(
+            phone_number_at_end("call +91 55501 12345."),
+            Some("+91 55501 12345")
+        );
+        assert_eq!(phone_number_at_end("5550112345"), Some("5550112345"));
+        assert_eq!(phone_number_at_end("(55501-12345),"), Some("55501-12345"));
+        assert_eq!(phone_number_at_end("\"55501 12345\""), Some("55501 12345"));
+        assert_eq!(phone_number_at_end("(0484)5550123"), Some("(0484)5550123"));
+        assert_eq!(phone_number_at_end("room 2 5550112345"), Some("5550112345"));
+        assert_eq!(phone_number_at_end("call +91 55501"), None);
+        assert_eq!(phone_number_at_end("I have 2 kids 3 dogs"), None);
+        assert_eq!(phone_number_at_end("in 2024 2025"), None);
+        assert_eq!(phone_number_at_end("call 55501\n12345"), None);
+        assert_eq!(phone_number_at_end("call 55501  12345"), None);
+        assert_eq!(phone_number_at_end("pay $5550112345"), None);
+        assert_eq!(phone_number_at_end("call 55501 12345 "), None);
+    }
+
+    #[test]
+    fn number_tails_are_longest_first() {
+        let tails: Vec<&str> = number_tails("call +91 98").collect();
+        assert_eq!(tails, ["+91 98", "98"]);
+        let tails: Vec<&str> = number_tails("a 1 2 3 4 5").collect();
+        assert_eq!(tails, ["2 3 4 5", "3 4 5", "4 5", "5"], "four groups at most");
+        let tails: Vec<&str> = number_tails("x  55501-1").collect();
+        assert_eq!(tails, ["55501-1"]);
+        let tails: Vec<&str> = number_tails("(0484) 23").collect();
+        assert_eq!(tails, ["(0484) 23", "23"]);
+        assert_eq!(number_tails("hi 98a").count(), 0);
+        assert_eq!(number_tails("98 ").count(), 0);
+        let tails: Vec<&str> = number_tails("\"98 76").collect();
+        assert_eq!(tails, ["98 76", "76"], "an opening quote is no part of it");
+        assert_eq!(number_tails("+").count(), 0);
+        assert_eq!(number_tails("").count(), 0);
+    }
+
     proptest::proptest! {
         #[test]
         fn current_word_is_always_a_suffix(s in "\\PC{0,30}") {
             proptest::prop_assert!(s.ends_with(current_word(&s)));
+        }
+
+        #[test]
+        fn number_tails_are_suffixes(s in "[0-9+() .a-]{0,30}") {
+            for tail in number_tails(&s) {
+                proptest::prop_assert!(s.ends_with(tail));
+            }
         }
     }
 }
