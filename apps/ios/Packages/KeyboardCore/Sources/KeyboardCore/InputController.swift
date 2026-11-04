@@ -66,7 +66,8 @@ public final class InputController {
     /// Reports words to learn. The extension forwards these to the engine off the main thread.
     public var onLearningEvent: (@MainActor (LearningEvent) -> Void)?
     /// Reports every word that goes into the text (never from a password field, never an
-    /// address). Forwarded to the engine like `onLearningEvent`.
+    /// email or URL). The engine learns phone numbers from these, with the groups typed
+    /// before them. Forwarded to the engine like `onLearningEvent`.
     public var onWordUsed: (@MainActor (WordUse) -> Void)?
     /// The latest suggestions; space and punctuation commit their middle slot.
     public private(set) var suggestions: SuggestionResult = .empty
@@ -75,8 +76,9 @@ public final class InputController {
     public var autocorrectEnabled = true
     /// A password field: nothing typed is reported for learning or use.
     public var secureTextEntry = false
-    /// The engine's learned emails and URLs. Letters that begin one are one word with
-    /// their punctuation (`neo.9` of sam.2024@example.com), as in the engine. May be a little stale.
+    /// The engine's learned emails, URLs and phone numbers. Letters that begin one are one
+    /// word with their punctuation (`neo.9` of sam.2024@example.com), and digits that begin a
+    /// number with its spaces (`+91 98` of +91 55501 12345), as in the engine. May be a little stale.
     public var learnedAddresses: [String] = []
 
     private let output: TextOutput
@@ -434,15 +436,66 @@ public final class InputController {
         address(endingAt: (output.contextBefore ?? "") + mark) != nil
     }
 
-    /// The address at the end of `context`: a `token` that `isAddress`, or one of two
-    /// characters or more that begins a learned address and runs past the plain word
-    /// (`neo.9`). Matches the engine's `Engine::current_word`.
+    /// The address at the end of `context`: digits that begin a learned phone number
+    /// (`learnedNumber`), a `token` that `isAddress`, or one of two characters or more that
+    /// begins a learned address and runs past the plain word (`neo.9`). Matches the engine's
+    /// `Engine::current_word`.
     private func address(endingAt context: String) -> Substring? {
+        if let number = learnedNumber(endingAt: context) { return number }
         let token = Self.token(endingAt: context)
         if Self.isAddress(token) { return token }
         guard token.count >= 2, token != Self.plainWord(endingAt: context) else { return nil }
         let lower = token.lowercased()
-        return learnedAddresses.contains { $0.lowercased().hasPrefix(lower) } ? token : nil
+        // A phone number only when it is dotted (`98.470.12345`), as in the engine.
+        return learnedAddresses.contains { Self.isAddress(Substring($0)) && $0.lowercased().hasPrefix(lower) } ? token : nil
+    }
+
+    /// Digits typed before a learned phone number they begin is one word. Matches the
+    /// engine's `NUMBER_PREFIX_DIGITS`.
+    private static let numberPrefixDigits = 3
+    /// Matches the engine's `text::MAX_NUMBER_GROUPS`.
+    private static let maxNumberGroups = 4
+
+    /// The longest end of `context` (`numberTails`) with `numberPrefixDigits` or more that
+    /// begins a learned phone number (`+91 98` of +91 55501 12345). Matches the engine's
+    /// `Engine::begun_number`. Of the learned addresses, the phone numbers are those all
+    /// digits, spaces and `+-.()`: an email or URL learned has a letter.
+    private func learnedNumber(endingAt context: String) -> Substring? {
+        let numbers = learnedAddresses.filter { Self.isNumber($0) }
+        guard !numbers.isEmpty else { return nil }
+        return Self.numberTails(endingAt: context).first { tail in
+            tail.filter { $0.isASCII && $0.isNumber }.count >= Self.numberPrefixDigits
+                && numbers.contains { $0.hasPrefix(tail) }
+        }
+    }
+
+    /// The ends of `context` that may be a phone number or its start, longest first: its last
+    /// words of digits and `+-.()` back over single spaces, at most `maxNumberGroups`
+    /// (`call +91 98` → `+91 98`, `98`). An opening quote before the first is no part of it.
+    /// Matches the engine's `text::number_tails`.
+    private static func numberTails(endingAt context: String) -> [Substring] {
+        var tails: [Substring] = []
+        var end = context.endIndex
+        while tails.count < maxNumberGroups {
+            let start = context[..<end].lastIndex(where: \.isWhitespace).map { context.index(after: $0) } ?? context.startIndex
+            let token = context[start..<end]
+            let word = token.drop { "[{<\"'\u{201C}\u{2018}".contains($0) }
+            guard !word.contains(" "), isNumber(word) else { break }
+            tails.append(context[word.startIndex...])
+            // One space before it, and a word before that.
+            guard word.startIndex == token.startIndex, start > context.startIndex else { break }
+            let space = context.index(before: start)
+            guard context[space] == " ", space > context.startIndex,
+                  !context[context.index(before: space)].isWhitespace
+            else { break }
+            end = space
+        }
+        return tails.reversed()
+    }
+
+    /// Digits, spaces and `+-.()` only, with a digit: a phone number or part of one.
+    private static func isNumber(_ text: some StringProtocol) -> Bool {
+        text.contains { $0.isASCII && $0.isNumber } && text.allSatisfy { "0123456789+-.() ".contains($0) }
     }
 
     /// Learning events go to the engine, except from a password field.
@@ -476,10 +529,11 @@ public final class InputController {
     }
 
     /// Reports a word that went into the text after `before`, except from a password field
-    /// and except an address: an email or URL is no part of a phrase. Unlike `.committed`,
-    /// with autocorrect off too: the engine counts only words it knows or learned.
+    /// and except an address: an email or URL is no part of a phrase. A number is reported,
+    /// dotted too (`98.470.12345`), for the engine to learn phone numbers from. Unlike
+    /// `.committed`, with autocorrect off too: the engine counts only words it knows or learned.
     private func reportUse(_ word: String, before: String, chosenFor: String? = nil) {
-        guard !secureTextEntry, !word.isEmpty, !Self.isAddress(Substring(word)) else { return }
+        guard !secureTextEntry, !word.isEmpty, Self.isNumber(word) || !Self.isAddress(Substring(word)) else { return }
         let use = WordUse(word: word, before: String(before.suffix(WordUse.contextLength)), language: language, chosenFor: chosenFor)
         onWordUsed?(use)
     }

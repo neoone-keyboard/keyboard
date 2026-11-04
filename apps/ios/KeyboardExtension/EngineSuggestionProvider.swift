@@ -180,7 +180,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
-    /// The learned emails and URLs, for `InputController.learnedAddresses`. Asked after the
+    /// The learned emails, URLs and phone numbers, for `InputController.learnedAddresses`. Asked after the
     /// engine opens and after each learning, removal or forget; while the engine is shed or
     /// not yet open, the last list read.
     func learnedAddresses() -> [String] {
