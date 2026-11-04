@@ -105,6 +105,15 @@ impl From<&EngineConfig> for mlengine_core::Paths {
     }
 }
 
+impl From<InputLayout> for mlengine_core::Layout {
+    fn from(layout: InputLayout) -> Self {
+        match layout {
+            InputLayout::Latin => Self::Latin,
+            InputLayout::Malayalam => Self::Malayalam,
+        }
+    }
+}
+
 impl From<mlengine_core::Kind> for CandidateKind {
     fn from(kind: mlengine_core::Kind) -> Self {
         use mlengine_core::Kind;
@@ -153,10 +162,7 @@ impl Engine {
         autocorrect: bool,
     ) -> Result<Suggestions, EngineError> {
         guarded(|| {
-            let layout = match layout {
-                InputLayout::Latin => mlengine_core::Layout::Latin,
-                InputLayout::Malayalam => mlengine_core::Layout::Malayalam,
-            };
+            let layout = layout.into();
             let start = std::time::Instant::now();
             let elapsed = || start.elapsed();
             let timing = mlengine_core::Timing {
@@ -193,6 +199,23 @@ impl Engine {
     /// A word was committed as typed; an unknown word is learned the second time.
     pub fn note_committed(&self, word: String) -> Result<(), EngineError> {
         guarded(|| self.inner.note_committed(&word))
+    }
+
+    /// A word was committed after `context_before` (typed, corrected or tapped), from
+    /// `layout`: learns its use, the phrase it continues and the language habit. Never call
+    /// it for a password field.
+    pub fn note_used(
+        &self,
+        context_before: String,
+        word: String,
+        layout: InputLayout,
+    ) -> Result<(), EngineError> {
+        guarded(|| self.inner.note_used(&context_before, &word, layout.into()))
+    }
+
+    /// The user tapped `chosen` for `typed` though the bar's middle was something else.
+    pub fn note_choice(&self, typed: String, chosen: String) -> Result<(), EngineError> {
+        guarded(|| self.inner.note_choice(&typed, &chosen))
     }
 
     /// Forgets learned words and words removed from the bar.
@@ -476,6 +499,30 @@ mod tests {
         assert_eq!(engine.learned_addresses().unwrap(), ["sam@example.com"]);
         engine.forget_learned().unwrap();
         assert!(engine.learned_addresses().unwrap().is_empty());
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn phrases_and_choices_cross_ffi_and_persist() {
+        let dir = std::env::temp_dir().join(format!("mlengine-ffi-phrase-test-{}", std::process::id()));
+        let config = EngineConfig { user_dir: Some(dir.to_string_lossy().into_owned()), ..EngineConfig::default() };
+        let texts = |engine: &Engine, context: &str| -> Vec<String> {
+            let s = engine.suggest(context.into(), InputLayout::Latin, true).unwrap();
+            s.candidates.into_iter().map(|c| c.text).collect()
+        };
+        let engine = Engine::new(config.clone()).unwrap();
+        engine.learn("Thom".into()).unwrap();
+        engine.learn("Anu".into()).unwrap();
+        engine.note_used("".into(), "Thom".into(), InputLayout::Latin).unwrap();
+        engine.note_used("Thom ".into(), "Anu".into(), InputLayout::Latin).unwrap();
+        engine.note_choice("thmo".into(), "Thom".into()).unwrap();
+        drop(engine);
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(texts(&engine, "Thom "), ["Anu"]);
+        assert_eq!(texts(&engine, "thmo")[0], "Thom");
+        engine.forget_learned().unwrap();
+        assert!(texts(&engine, "Thom ").is_empty());
         drop(engine);
         let _ = std::fs::remove_dir_all(dir);
     }
