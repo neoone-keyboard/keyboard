@@ -21,8 +21,7 @@ private struct Manifest: Decodable {
     /// lists in data/) has no one else to credit.
     var isShipped: Bool { verdict != "eval only" && verdict != "own work" && status == nil }
 
-    /// Text for the M3b language model. The model ships later, but its sources are credited
-    /// from the moment they are fetched for training.
+    /// Text for the M3b language model, which ships in the keyboard (Models/lm.mlkbnn).
     var isM3bTraining: Bool { used_for?.contains("M3b LM text (training)") ?? false }
 }
 
@@ -37,12 +36,12 @@ private struct Manifest: Decodable {
         let credit = Credits.dataSources.first { $0.id == manifest.id }
         #expect(credit?.licence == manifest.licence, "\(manifest.id) is not credited with \(manifest.licence)")
     }
-    let training = all.filter { $0.isM3bTraining && !$0.isShipped }
+    let training = all.filter(\.isM3bTraining)
     #expect(!training.isEmpty, "no manifest is marked as M3b LM training text")
     for manifest in training {
-        #expect(Credits.dataSources.contains { $0.id == manifest.id }, "\(manifest.id) trains the M3b LM but has no credit")
+        #expect(manifest.isShipped, "\(manifest.id) trains the shipped LM but is not marked as shipped")
     }
-    #expect(Set((manifests + training).map(\.id)) == Set(Credits.dataSources.map(\.id)), "a credit has no manifest")
+    #expect(Set(manifests.map(\.id)) == Set(Credits.dataSources.map(\.id)), "a credit has no manifest")
 }
 
 /// engine/shipped-crates.txt is generated from `cargo tree -p mlengine-ffi` and kept fresh by

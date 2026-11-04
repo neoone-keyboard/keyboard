@@ -1,14 +1,14 @@
 import SwiftUI
 import KeyboardCore
 
-/// Credits every word-list source and library, with its licence.
+/// Credits every source of the word lists and models, and every library, with its licence.
 struct AboutView: View {
     var body: some View {
         List {
             Section {
-                Text("Suggestions, autocorrect and Manglish run entirely on your iPhone from word lists built from the sources below. Nothing you type leaves your phone.")
+                Text("Suggestions, autocorrect and Manglish run entirely on your iPhone from word lists and models built from, and modified from, the sources below. Nothing you type leaves your phone.")
             }
-            Section("Word lists") {
+            Section("Sources") {
                 ForEach(Credits.dataSources) { CreditRow(credit: $0) }
             }
             Section("Software") {

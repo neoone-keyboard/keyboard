@@ -1,4 +1,4 @@
-/// Where the keyboard's word lists come from, and the software inside it.
+/// Where the keyboard's word lists and models come from, and the software inside it.
 /// The app's About screen lists these. `CreditsTests` checks that every
 /// manifest in data/manifests/ is credited here with the same licence, and that
 /// every crate in engine/shipped-crates.txt (generated from `cargo tree`) is
@@ -25,17 +25,17 @@ public enum Credits {
         Credit(
             id: "enwiki", name: "English Wikipedia", licence: "CC BY-SA 4.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
-            attribution: "Text of English Wikipedia articles by Wikipedia contributors."
+            attribution: "Text of English Wikipedia articles by Wikipedia contributors, used for the word lists and to train the language model."
         ),
         Credit(
             id: "mlwiki", name: "Malayalam Wikipedia", licence: "CC BY-SA 4.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
-            attribution: "Text of Malayalam Wikipedia articles by Wikipedia contributors."
+            attribution: "Text of Malayalam Wikipedia articles by Wikipedia contributors, used for the word lists and to train the language model, also romanised as Manglish."
         ),
         Credit(
             id: "mlwikisource", name: "Malayalam Wikisource", licence: "CC BY-SA 4.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
-            attribution: "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0."
+            attribution: "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0. Used for the word lists and to train the language model."
         ),
         Credit(
             id: "scowl", name: "SCOWL (Spell Checker Oriented Word Lists) 2020.12.07", licence: "SCOWL licence (MIT-like)",
@@ -45,32 +45,32 @@ public enum Credits {
         Credit(
             id: "smc-words", name: "SMC Malayalam word lists", licence: "CC BY-SA 3.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/3.0/",
-            attribution: "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project."
+            attribution: "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project. Its list of English borrowings marks loanwords in the language model's Manglish text."
         ),
         Credit(
             id: "dakshina", name: "Dakshina dataset (Google Research)", licence: "CC BY-SA 4.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
-            attribution: "Malayalam romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator. https://github.com/google-research-datasets/dakshina"
+            attribution: "Malayalam romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator and to romanise the language model's Manglish text. https://github.com/google-research-datasets/dakshina"
         ),
         Credit(
             id: "aksharantar", name: "Aksharantar (AI4Bharat)", licence: "CC BY and CC0 1.0",
             licenceURL: "https://creativecommons.org/publicdomain/zero/1.0/",
-            attribution: "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator. https://huggingface.co/datasets/ai4bharat/Aksharantar"
+            attribution: "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator and to find English loanwords for the language model. https://huggingface.co/datasets/ai4bharat/Aksharantar"
         ),
         Credit(
             id: "simplewiki", name: "Simple English Wikipedia", licence: "CC BY-SA 4.0",
             licenceURL: "https://creativecommons.org/licenses/by-sa/4.0/",
-            attribution: "Text of Simple English Wikipedia articles by Wikipedia contributors. https://simple.wikipedia.org/"
+            attribution: "Text of Simple English Wikipedia articles by Wikipedia contributors, used to train the language model. https://simple.wikipedia.org/"
         ),
         Credit(
             id: "enwikinews", name: "English Wikinews", licence: "CC BY 2.5 and CC BY 4.0",
             licenceURL: "https://creativecommons.org/licenses/by/4.0/",
-            attribution: "News articles from English Wikinews, by Wikinews contributors. This work may be attributed to 'Wikinews'. https://en.wikinews.org/"
+            attribution: "News articles from English Wikinews, by Wikinews contributors. This work may be attributed to 'Wikinews'. Used to train the language model. https://en.wikinews.org/"
         ),
         Credit(
             id: "gutenberg", name: "Project Gutenberg", licence: "Public domain",
             licenceURL: "https://www.gutenberg.org/",
-            attribution: "Public-domain texts from Project Gutenberg. https://www.gutenberg.org/"
+            attribution: "Public-domain texts from Project Gutenberg, used to train the language model. https://www.gutenberg.org/"
         ),
     ]
 

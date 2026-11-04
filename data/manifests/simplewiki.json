@@ -11,7 +11,6 @@
   "verdict_reason": "Same terms as English Wikipedia, which we already use, and plainer, shorter sentences that are closer to what people type.",
   "used_for": "M3b LM text (training): main namespace articles, extracted to data/raw/text/simplewiki.txt by training/mlkb/lm/sources.py.",
   "retrieved": "2026-11-03",
-  "status": "fetched",
   "notes": "The 2026-11 dump is 360,149,050 bytes, over the 50 MB limit for this audit. SHA-1 from the dump's simplewiki-20261101-sha1sums.txt.",
   "mirrors": [
     "https://dumps.wikimedia.your.org/",

@@ -51,7 +51,7 @@ targets:
       - path: KeyboardExtension/Lexicon
         type: folder
         buildPhase: resources
-      # The int8 transliterator (`make models`), in the bundle under Models/.
+      # The int8 transliterator and the LM (`make models`), in the bundle under Models/.
       - path: KeyboardExtension/Models
         type: folder
         buildPhase: resources
