@@ -282,6 +282,7 @@ final class KeyboardViewController: UIInputViewController {
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
+        emojiPanel?.releaseMemory()
         if gate.memoryWarning(now: ProcessInfo.processInfo.systemUptime) == .off {
             log.warning("Memory warning (\(Diagnostics.footprint())); prediction off for now")
             shedPrediction()

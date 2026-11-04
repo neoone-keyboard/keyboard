@@ -5,9 +5,11 @@ import KeyboardCore
 /// grid that scrolls down, and along the bottom ABC (back to the letters), a symbol per group
 /// that jumps the grid to it, and backspace (repeats while held). Holding an emoji that takes
 /// skin tones shows them in the alternates popup; sliding picks one. The grid's cells are
-/// reused labels, so only the emoji on screen are drawn. Made when opened and dropped on close,
-/// with the catalog.
-final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionViewDelegate {
+/// reused and show pictures from `EmojiRenderer`, drawn off the main thread, not text: text
+/// would keep every emoji ever shown in the system font's cache. Made when opened and dropped
+/// on close, with the catalog and the pictures.
+final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionViewDataSourcePrefetching,
+    UICollectionViewDelegate {
     /// An emoji was picked: `emoji` as inserted, and its `base` when a tone was chosen for it.
     var onEmoji: (@MainActor (_ emoji: String, _ toneFor: String?) -> Void)?
     var onBackspace: (@MainActor () -> Void)?
@@ -21,6 +23,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
 
     private var sections: [Section] = []
     private var catalog: EmojiCatalog?
+    private var renderer: EmojiRenderer?
     /// For each emoji's tone; the recents shown are those of when the panel opened.
     private var history = EmojiHistory()
     private var theme: KeyboardTheme?
@@ -38,6 +41,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     private var popupCellWidth: CGFloat = 0
     private var backspaceRepeat: Timer?
 
+    /// How big an emoji is drawn, in points: 96 pixels at 3x, the size of one of the emoji
+    /// font's own pictures, so it is drawn as it is, not scaled.
+    static let emojiSize: CGFloat = 32
     private static let columns: CGFloat = 8
     private static let rowHeight: CGFloat = 44
     private static let stripHeight: CGFloat = 40
@@ -67,6 +73,8 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         grid.delegate = self
         grid.backgroundColor = .clear
         grid.showsVerticalScrollIndicator = false
+        // Starts drawing the next row's emoji before it scrolls in.
+        grid.prefetchDataSource = self
         grid.register(EmojiCell.self, forCellWithReuseIdentifier: Self.cellID)
         grid.register(EmojiHeader.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
                       withReuseIdentifier: Self.headerID)
@@ -117,6 +125,8 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     func show(catalog: EmojiCatalog, history: EmojiHistory, lettersTitle: String) {
         self.catalog = catalog
         self.history = history
+        let scale = window?.windowScene?.screen.scale ?? traitCollection.displayScale
+        renderer = EmojiRenderer(pixelSide: Int((Self.emojiSize * max(scale, 1)).rounded(.up)))
         let recents = history.recents.map { EmojiItem(emoji: $0, tones: catalog.tones(of: $0)) }
         sections = (recents.isEmpty ? [] : [Section(name: "Recently used", symbol: Self.recentsSymbol, items: recents)])
             + catalog.categories.map { Section(name: $0.name, symbol: Self.symbols[$0.name] ?? "circle", items: $0.items) }
@@ -185,9 +195,20 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.cellID, for: indexPath)
         if let cell = cell as? EmojiCell {
-            cell.show(shown(sections[indexPath.section].items[indexPath.item]), theme: theme)
+            let emoji = shown(sections[indexPath.section].items[indexPath.item])
+            let image = renderer?.image(for: emoji) { [weak cell] image in cell?.drawn(image, for: emoji) }
+            cell.show(emoji, image: image, theme: theme)
         }
         return cell
+    }
+
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        renderer?.prefetch(indexPaths.map { shown(sections[$0.section].items[$0.item]) })
+    }
+
+    /// On a memory warning: the pictures kept off screen and the font's cache.
+    func releaseMemory() {
+        renderer?.empty()
     }
 
     func collectionView(
@@ -297,32 +318,69 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     }
 }
 
-/// One emoji in the grid: a label, lit while pressed.
+/// One emoji in the grid, lit while pressed: its picture, once drawn.
 private final class EmojiCell: UICollectionViewCell {
-    private let label = UILabel()
+    private let picture = EmojiPicture()
+    private var emoji = ""
     private var theme: KeyboardTheme?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        label.font = .systemFont(ofSize: 32)
-        label.textAlignment = .center
-        label.frame = contentView.bounds
-        label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        contentView.addSubview(label)
+        contentView.addSubview(picture)
         contentView.layer.cornerRadius = 6
+        isAccessibilityElement = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    func show(_ emoji: String, theme: KeyboardTheme?) {
-        label.text = emoji
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let side = EmojiPanelView.emojiSize
+        // On whole points, so the picture's pixels land on the screen's.
+        picture.frame = CGRect(x: ((bounds.width - side) / 2).rounded(), y: ((bounds.height - side) / 2).rounded(),
+                               width: side, height: side)
+    }
+
+    func show(_ emoji: String, image: CGImage?, theme: KeyboardTheme?) {
+        self.emoji = emoji
+        picture.image = image
         accessibilityLabel = emoji
         self.theme = theme
         isHighlighted = false
     }
 
+    /// A picture that was still being drawn when the cell was filled.
+    func drawn(_ image: CGImage, for emoji: String) {
+        if emoji == self.emoji { picture.image = image }
+    }
+
     override var isHighlighted: Bool {
         didSet { contentView.backgroundColor = isHighlighted ? theme?.specialKey : .clear }
+    }
+}
+
+/// Draws its picture into its own layer, which the cell keeps and reuses: one backing store
+/// per cell, whatever the pictures kept.
+final class EmojiPicture: UIView {
+    var image: CGImage? {
+        didSet { if image !== oldValue { setNeedsDisplay() } }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func draw(_ rect: CGRect) {
+        guard let image, let context = UIGraphicsGetCurrentContext() else { return }
+        // Core Graphics draws upside down in UIKit's coordinates.
+        context.translateBy(x: 0, y: bounds.height)
+        context.scaleBy(x: 1, y: -1)
+        context.draw(image, in: bounds)
     }
 }
 
