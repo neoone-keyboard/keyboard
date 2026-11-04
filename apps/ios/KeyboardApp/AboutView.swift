@@ -12,7 +12,6 @@ struct AboutView: View {
                 ForEach(Credits.dataSources) { CreditRow(credit: $0) }
             }
             Section("Software") {
-                ForEach(Credits.portedCode) { CreditRow(credit: $0) }
                 ForEach(Credits.software) { CreditRow(credit: $0) }
             }
             #if DEBUG
