@@ -160,8 +160,8 @@ public final class InputController {
             shiftIsAutomatic = false
             manualShiftPending = true
             manualShiftContext = output.contextBefore
-        case .nextKeyboard:
-            break // The host view controller switches keyboards.
+        case .nextKeyboard, .emoji:
+            break // The host view controller switches keyboards, or shows the emoji panel.
         case .page(let target):
             // The text is unchanged, so the result still describes the word:
             // `teh`, 123, `,` gives `the,`, as the bar showed.
@@ -304,6 +304,7 @@ public final class InputController {
         case .page(.malayalamMore): "ശഷ"
         case .page(.malayalamVowels): "അആ"
         case .toggleLanguage: language == .english ? "മ" : "EN"
+        case .emoji: "☺︎" // Drawn as a symbol; this is the fallback.
         }
     }
 

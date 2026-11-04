@@ -10,6 +10,8 @@ public enum KeyAction: Hashable, Sendable {
     case page(KeyboardPage)
     /// Switch between English and Malayalam.
     case toggleLanguage
+    /// Show the emoji panel in place of the keys.
+    case emoji
 }
 
 public enum KeyboardPage: Hashable, Sendable, CaseIterable {

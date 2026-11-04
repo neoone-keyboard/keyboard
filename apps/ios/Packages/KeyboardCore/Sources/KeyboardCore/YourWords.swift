@@ -55,7 +55,7 @@ public struct YourWords: Equatable, Sendable {
             return .edited
         case .page, .toggleLanguage, .nextKeyboard:
             return .passThrough
-        case .space, .returnKey, .shift:
+        case .space, .returnKey, .shift, .emoji:
             return .ignored
         }
     }
