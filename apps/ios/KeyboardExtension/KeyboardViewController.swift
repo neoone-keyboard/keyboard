@@ -428,6 +428,7 @@ final class KeyboardViewController: UIInputViewController {
 
     /// Covers the keys and the top bar, with the catalog read from the bundle.
     private func showEmojiPanel() {
+        let start = ContinuousClock.now
         guard emojiPanel == nil,
               let url = Bundle.main.url(forResource: "emoji", withExtension: "txt", subdirectory: "Emoji"),
               let text = try? String(contentsOf: url, encoding: .utf8)
@@ -457,15 +458,21 @@ final class KeyboardViewController: UIInputViewController {
         panel.apply(theme)
         panel.show(catalog: EmojiCatalog(text: text), history: emojiHistory, lettersTitle: input.label(for: .page(.letters)))
         emojiPanel = panel
-        log.info("Emoji panel opened; footprint \(Diagnostics.footprint()) (\(Diagnostics.megabytes(before)) before)")
+        log.info("Emoji panel opened in \(Diagnostics.milliseconds(.now - start)); footprint \(Diagnostics.footprint()) "
+                 + "(\(Diagnostics.megabytes(before)) before)")
     }
 
     private func hideEmojiPanel() {
-        guard let statistics = emojiPanel?.statistics else { return }
-        emojiPanel?.logTimings()
-        emojiPanel?.removeFromSuperview()
+        guard let panel = emojiPanel else { return }
+        let statistics = panel.statistics
+        panel.removeFromSuperview()
         emojiPanel = nil
         log.info("Emoji panel closed; \(statistics); \(Diagnostics.footprint()) once dropped")
+        // What the panel left behind once its views, pictures and fonts have had time to go.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [log, weak panel] in
+            log.info("Emoji panel closed 2 s ago; footprint \(Diagnostics.footprint()), panel "
+                     + "\(panel == nil ? "freed" : "STILL ALIVE"), \(EmojiRenderer.fontCopiesAlive) private fonts alive")
+        }
     }
 
     /// An emoji picked in the panel or its search, with the base it is a chosen tone for.

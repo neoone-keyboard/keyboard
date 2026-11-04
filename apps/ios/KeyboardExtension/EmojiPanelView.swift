@@ -7,8 +7,10 @@ import KeyboardCore
 /// that jumps the grid to it, and backspace (repeats while held). Holding an emoji that takes
 /// skin tones shows them in the alternates popup; sliding picks one. The grid's cells are
 /// reused and show pictures from `EmojiRenderer`, drawn off the main thread, not text: text
-/// would keep every emoji ever shown in the system font's cache. Made when opened and dropped
-/// on close, with the catalog and the pictures.
+/// would keep every emoji ever shown in the system font's cache; a faint dot until a picture
+/// is drawn, those on screen first. Made when opened and dropped on close, with the catalog
+/// and the pictures; the renderer is made as soon as the panel is in the window, so its first
+/// font is ready by the time the grid asks, and closed as it leaves.
 final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionViewDataSourcePrefetching,
     UICollectionViewDelegate {
     /// An emoji was picked: `emoji` as inserted, and its `base` when a tone was chosen for it.
@@ -28,6 +30,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     private var renderer: EmojiRenderer?
     /// Cells filled since the panel opened, for the diagnostics log.
     private var cellsShown = 0
+    /// For the log: when the panel was made, and the emoji of its first screen not drawn yet.
+    private let madeAt = ContinuousClock.now
+    private var firstScreen: Set<String>?
     private let log = Diagnostics(category: "emoji")
     /// For each emoji's tone; the recents shown are those of when the panel opened.
     private var history = EmojiHistory()
@@ -159,12 +164,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     func show(catalog: EmojiCatalog, history: EmojiHistory, lettersTitle: String) {
         self.catalog = catalog
         self.history = history
-        let scale = window?.windowScene?.screen.scale ?? traitCollection.displayScale
-        renderer = EmojiRenderer(pixelSide: Int((Self.emojiSize * max(scale, 1)).rounded(.up)))
-        renderer?.onLog = { [log] in log.info($0) }
-        if renderer?.usesPrivateFont == false {
-            log.warning("Emoji font file unreadable: drawing with the system font, whose cache grows")
-        }
+        makeRenderer()
         let recents = history.recents.map { EmojiItem(emoji: $0, tones: catalog.tones(of: $0)) }
         sections = (recents.isEmpty ? [] : [Section(name: "Recently used", symbol: Self.recentsSymbol, items: recents)])
             + catalog.categories.map { Section(name: $0.name, symbol: Self.symbols[$0.name] ?? "circle", items: $0.items) }
@@ -190,6 +190,42 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         grid.reloadData()
         grid.setContentOffset(.zero, animated: false)
         select(0)
+        // The first screen's cells ask for their pictures now, not at the next layout.
+        superview?.layoutIfNeeded()
+        noteFirstScreen()
+    }
+
+    /// Once, when the grid first has cells on screen: the emoji to wait for before logging
+    /// that the first screen is drawn.
+    private func noteFirstScreen() {
+        guard firstScreen == nil, !sections.isEmpty else { return }
+        let visible = onScreen()
+        guard !visible.isEmpty else { return }
+        firstScreen = Set(visible).filter { renderer?.kept($0) == nil }
+    }
+
+    private func makeRenderer() {
+        guard renderer == nil else { return }
+        let scale = window?.windowScene?.screen.scale ?? traitCollection.displayScale
+        let renderer = EmojiRenderer(pixelSide: Int((Self.emojiSize * max(scale, 1)).rounded(.up)))
+        renderer.onLog = { [log] in log.info($0) }
+        renderer.onScreen = { [weak self] in self?.onScreen() ?? [] }
+        if !renderer.usesPrivateFont {
+            log.warning("Emoji font file unreadable: drawing with the system font, whose cache grows")
+        }
+        self.renderer = renderer
+    }
+
+    /// The emoji in the cells on screen, top to bottom.
+    private func onScreen() -> [String] {
+        grid.indexPathsForVisibleItems.sorted().map { shown(sections[$0.section].items[$0.item]) }
+    }
+
+    /// One more of the first screen drawn: the log says when the last is.
+    private func drewFirstScreen(_ emoji: String) {
+        guard firstScreen?.remove(emoji) != nil, firstScreen?.isEmpty == true else { return }
+        log.info("Emoji panel first screen drawn \(Diagnostics.milliseconds(.now - madeAt)) after the panel was made; "
+                 + "\(renderer?.drawn ?? 0) emoji drawn, \(renderer?.fontsMade ?? 0) fonts")
     }
 
     func apply(_ theme: KeyboardTheme) {
@@ -218,11 +254,26 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
             layout.sectionInset = UIEdgeInsets(top: 0, left: inset, bottom: 4, right: inset)
             layout.invalidateLayout()
         }
+        if firstScreen == nil, !sections.isEmpty {
+            grid.layoutIfNeeded()
+            noteFirstScreen()
+        }
     }
 
     override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-        if newWindow == nil { stopBackspace() }
+        guard newWindow == nil else { return }
+        stopBackspace()
+        renderer?.close()
+        renderer = nil
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil, renderer == nil else { return }
+        makeRenderer()
+        // Back in a window after leaving it: the pictures went with the old renderer.
+        if !sections.isEmpty { grid.reloadData() }
     }
 
     // MARK: Grid
@@ -237,26 +288,40 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.cellID, for: indexPath)
         if let cell = cell as? EmojiCell {
             let emoji = shown(sections[indexPath.section].items[indexPath.item])
-            let image = renderer?.image(for: emoji) { [weak cell] image in cell?.drawn(image, for: emoji) }
-            cell.show(emoji, image: image, theme: theme)
+            cell.show(emoji, image: picture(for: emoji, in: cell), theme: theme)
         }
         cellsShown += 1
         if cellsShown % Self.logEvery == 0 { log.info("Emoji panel scrolled; \(statistics)") }
         return cell
     }
 
+    private func picture(for emoji: String, in cell: EmojiCell) -> CGImage? {
+        renderer?.image(for: emoji) { [weak cell, weak self] image in
+            cell?.drawn(image, for: emoji)
+            self?.drewFirstScreen(emoji)
+        }
+    }
+
+    /// A cell made ahead (or shown again) whose picture wasn't drawn asks again: the renderer
+    /// drops what has been off screen a while.
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard let cell = cell as? EmojiCell, !cell.hasPicture else { return }
+        let emoji = shown(sections[indexPath.section].items[indexPath.item])
+        if let image = picture(for: emoji, in: cell) { cell.drawn(image, for: emoji) }
+    }
+
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         renderer?.prefetch(indexPaths.map { shown(sections[$0.section].items[$0.item]) })
     }
 
-    /// "600 cells shown, 540 emoji drawn, 22 fonts; footprint 25.1 MB"
-    var statistics: String {
-        "\(cellsShown) cells shown, \(renderer?.drawn ?? 0) emoji drawn, \(renderer?.fontsMade ?? 0) fonts; footprint \(Diagnostics.footprint())"
+    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+        renderer?.cancelPrefetch(indexPaths.map { shown(sections[$0.section].items[$0.item]) })
     }
 
-    /// On close: the timings not yet logged.
-    func logTimings() {
-        renderer?.logTimings()
+    /// "600 cells shown, 540 emoji drawn, 12 fonts (1 alive); footprint 25.1 MB"
+    var statistics: String {
+        "\(cellsShown) cells shown, \(renderer?.drawn ?? 0) emoji drawn, \(renderer?.fontsMade ?? 0) fonts "
+            + "(\(EmojiRenderer.fontCopiesAlive) alive); footprint \(Diagnostics.footprint())"
     }
 
     /// On a memory warning: the pictures kept off screen and the font's cache.
@@ -397,10 +462,13 @@ final class EmojiCell: UICollectionViewCell {
     func show(_ emoji: String, image: CGImage?, theme: KeyboardTheme?) {
         self.emoji = emoji
         picture.image = image
+        picture.placeholder = theme?.hintText.withAlphaComponent(0.18)
         accessibilityLabel = emoji
         self.theme = theme
         isHighlighted = false
     }
+
+    var hasPicture: Bool { picture.image != nil }
 
     /// A picture that was still being drawn when the cell was filled.
     func drawn(_ image: CGImage, for emoji: String) {
@@ -413,10 +481,13 @@ final class EmojiCell: UICollectionViewCell {
 }
 
 /// Draws its picture into its own layer, which the cell keeps and reuses: one backing store
-/// per cell, whatever the pictures kept.
+/// per cell, whatever the pictures kept. A faint dot until there is a picture.
 final class EmojiPicture: UIView {
     var image: CGImage? {
         didSet { if image !== oldValue { setNeedsDisplay() } }
+    }
+    var placeholder: UIColor? {
+        didSet { if image == nil && placeholder != oldValue { setNeedsDisplay() } }
     }
 
     override init(frame: CGRect) {
@@ -429,7 +500,13 @@ final class EmojiPicture: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
     override func draw(_ rect: CGRect) {
-        guard let image, let context = UIGraphicsGetCurrentContext() else { return }
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        guard let image else {
+            placeholder?.setFill()
+            let side = bounds.width / 4
+            context.fillEllipse(in: CGRect(x: bounds.midX - side / 2, y: bounds.midY - side / 2, width: side, height: side))
+            return
+        }
         // Core Graphics draws upside down in UIKit's coordinates.
         context.translateBy(x: 0, y: bounds.height)
         context.scaleBy(x: 1, y: -1)
