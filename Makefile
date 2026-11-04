@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons lm-data models bench eval spike-assets
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval spike-assets
 
 all: build
 
@@ -61,6 +61,11 @@ eval:
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
 	./data/build-lexicons.sh
+
+# Rebuilds the committed emoji files (the panel and the suggestions) from Unicode's
+# emoji-test.txt and the CLDR annotations in data/manifests (downloads about 1.5 MB).
+emoji:
+	./data/build-emoji.sh
 
 # The LM's training text, vocabulary and token shards in training/build/lm (design §5; needs
 # data/fetch.sh and the lexicon text in data/raw/text, about 2 hours).

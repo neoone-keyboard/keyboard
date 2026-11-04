@@ -72,6 +72,16 @@ public enum Credits {
             licenceURL: "https://www.gutenberg.org/",
             attribution: "Public-domain texts from Project Gutenberg, used to train the language model. https://www.gutenberg.org/"
         ),
+        Credit(
+            id: "unicode-emoji", name: "Unicode Emoji 18.0", licence: "Unicode License v3",
+            licenceURL: "https://www.unicode.org/license.txt",
+            attribution: "Copyright © 1991-2026 Unicode, Inc. The emoji panel's emoji, order, groups and skin tones, from the Unicode emoji data file emoji-test.txt. https://www.unicode.org/emoji/"
+        ),
+        Credit(
+            id: "cldr-annotations", name: "Unicode CLDR 49 emoji annotations", licence: "Unicode License v3",
+            licenceURL: "https://www.unicode.org/license.txt",
+            attribution: "Copyright © 1991-2026 Unicode, Inc. English and Malayalam emoji keywords and names from the Unicode Common Locale Data Repository, used for emoji suggestions. https://cldr.unicode.org/"
+        ),
     ]
 
     /// Open-source Rust crates linked into the keyboard's engine. The link is each crate's

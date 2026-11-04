@@ -46,9 +46,13 @@ targets:
     platform: iOS
     sources:
       - path: KeyboardExtension
-        excludes: ["Lexicon", "Models"]
+        excludes: ["Lexicon", "Models", "Emoji"]
       # A folder reference: the .fst files land in the bundle under Lexicon/.
       - path: KeyboardExtension/Lexicon
+        type: folder
+        buildPhase: resources
+      # The emoji panel and the emoji suggestions (`make emoji`), in the bundle under Emoji/.
+      - path: KeyboardExtension/Emoji
         type: folder
         buildPhase: resources
       # The int8 transliterator and the LM (`make models`), in the bundle under Models/.
