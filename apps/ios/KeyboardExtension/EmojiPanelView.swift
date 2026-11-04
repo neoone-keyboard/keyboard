@@ -521,6 +521,9 @@ final class EmojiPicture: UIView {
         isOpaque = false
         backgroundColor = .clear
         isUserInteractionEnabled = false
+        // A new cell's picture is set before the cell gives it a size: drawn again once it has
+        // one, not the empty zero-size drawing stretched.
+        contentMode = .redraw
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
