@@ -161,6 +161,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         self.history = history
         let scale = window?.windowScene?.screen.scale ?? traitCollection.displayScale
         renderer = EmojiRenderer(pixelSide: Int((Self.emojiSize * max(scale, 1)).rounded(.up)))
+        renderer?.onLog = { [log] in log.info($0) }
         if renderer?.usesPrivateFont == false {
             log.warning("Emoji font file unreadable: drawing with the system font, whose cache grows")
         }
@@ -251,6 +252,11 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     /// "600 cells shown, 540 emoji drawn, 22 fonts; footprint 25.1 MB"
     var statistics: String {
         "\(cellsShown) cells shown, \(renderer?.drawn ?? 0) emoji drawn, \(renderer?.fontsMade ?? 0) fonts; footprint \(Diagnostics.footprint())"
+    }
+
+    /// On close: the timings not yet logged.
+    func logTimings() {
+        renderer?.logTimings()
     }
 
     /// On a memory warning: the pictures kept off screen and the font's cache.

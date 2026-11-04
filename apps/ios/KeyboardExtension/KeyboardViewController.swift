@@ -462,6 +462,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private func hideEmojiPanel() {
         guard let statistics = emojiPanel?.statistics else { return }
+        emojiPanel?.logTimings()
         emojiPanel?.removeFromSuperview()
         emojiPanel = nil
         log.info("Emoji panel closed; \(statistics); \(Diagnostics.footprint()) once dropped")
