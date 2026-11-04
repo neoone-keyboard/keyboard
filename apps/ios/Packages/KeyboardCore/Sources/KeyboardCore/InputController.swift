@@ -28,6 +28,30 @@ public enum LearningEvent: Equatable, Sendable {
     case learn(String)
 }
 
+/// A word that went into the text, typed, corrected or tapped: the engine learns from it
+/// which words follow which, how often each is used, and which language the user writes.
+public struct WordUse: Equatable, Sendable {
+    /// The word as it went in.
+    public var word: String
+    /// The end of the text before it (`contextLength` characters at most), for the words
+    /// it follows.
+    public var before: String
+    public var language: Language
+    /// The typed letters, when the user tapped this correction or Malayalam word though the
+    /// bar's middle offered something else: it is preferred for those letters next time.
+    public var chosenFor: String?
+
+    /// Enough for the two words before.
+    public static let contextLength = 64
+
+    public init(word: String, before: String, language: Language, chosenFor: String? = nil) {
+        self.word = word
+        self.before = before
+        self.language = language
+        self.chosenFor = chosenFor
+    }
+}
+
 /// Turns key actions into text and tracks which page is showing. Has no
 /// dependency on the engine, so typing keeps working when prediction fails
 /// (spec §4 rule 3).
@@ -41,12 +65,15 @@ public final class InputController {
 
     /// Reports words to learn. The extension forwards these to the engine off the main thread.
     public var onLearningEvent: (@MainActor (LearningEvent) -> Void)?
+    /// Reports every word that goes into the text (never from a password field, never an
+    /// address). Forwarded to the engine like `onLearningEvent`.
+    public var onWordUsed: (@MainActor (WordUse) -> Void)?
     /// The latest suggestions; space and punctuation commit their middle slot.
     public private(set) var suggestions: SuggestionResult = .empty
     /// Whether space and punctuation may replace the word. The extension sets
     /// this from the user's setting and the host field's traits.
     public var autocorrectEnabled = true
-    /// A password field: nothing typed is reported for learning.
+    /// A password field: nothing typed is reported for learning or use.
     public var secureTextEntry = false
     /// The engine's learned emails and URLs. Letters that begin one are one word with
     /// their punctuation (`neo.9` of sam.2024@example.com), as in the engine. May be a little stale.
@@ -202,15 +229,26 @@ public final class InputController {
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
     public func commitSuggestion(_ slot: SuggestionSlot) {
         if slot.quoted { report(.learn(slot.suggestion.text)) }
-        insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted)
+        insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted, chosenFor: choice(slot))
     }
 
     /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
     public func commitSuggestion(_ text: String) {
-        insert(suggestion: text, reportsCommit: true)
+        insert(suggestion: text, reportsCommit: true, chosenFor: nil)
     }
 
-    private func insert(suggestion text: String, reportsCommit: Bool) {
+    /// The typed letters `slot` is a choice for: a correction or Malayalam word tapped
+    /// though the middle offered something else. Completions only finish the letters.
+    private func choice(_ slot: SuggestionSlot) -> String? {
+        let typed = currentWord
+        guard !slot.quoted, !typed.isEmpty, suggestions.isFor(word: typed),
+              slot.suggestion.kind == .correction || slot.suggestion.kind == .manglish,
+              suggestions.middle?.text != slot.suggestion.text
+        else { return nil }
+        return typed
+    }
+
+    private func insert(suggestion text: String, reportsCommit: Bool, chosenFor: String?) {
         lastReplacement = nil
         heldStop = nil
         suggestions = .empty
@@ -221,6 +259,7 @@ public final class InputController {
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
         if reportsCommit { report(.committed(text)) }
+        reportUse(text, before: String(context[..<word.startIndex]), chosenFor: chosenFor)
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
@@ -292,6 +331,7 @@ public final class InputController {
         guard let (word, replacement) = correction(endingAt: context) else { return false }
         delete(word, from: context)
         output.insertText(replacement + separator)
+        reportUse(replacement, before: String(context.dropLast(word.count)))
         lastReplacement = Replacement(typed: word, replacement: replacement, separator: separator)
         suggestions = .empty
         if separator != " " {
@@ -338,6 +378,7 @@ public final class InputController {
     private func end(_ stop: HeldStop?, with separator: String) -> Bool {
         let context = output.contextBefore ?? ""
         guard let stop, context.hasSuffix(stop.word + ".") else { return false }
+        reportUse(stop.replacement ?? stop.word, before: String(context.dropLast(stop.word.count + 1)))
         if let replacement = stop.replacement {
             delete(stop.word + ".", from: context)
             output.insertText(replacement + "." + separator)
@@ -429,6 +470,18 @@ public final class InputController {
     /// is never corrected, so it is reported anyway (an email field has no autocorrect).
     private func noteCommittedWord() {
         if let word = committableWord() { report(.committed(word)) }
+        let context = output.contextBefore ?? ""
+        let word = self.word(endingAt: context)
+        if !word.isEmpty { reportUse(String(word), before: String(context[..<word.startIndex])) }
+    }
+
+    /// Reports a word that went into the text after `before`, except from a password field
+    /// and except an address: an email or URL is no part of a phrase. Unlike `.committed`,
+    /// with autocorrect off too: the engine counts only words it knows or learned.
+    private func reportUse(_ word: String, before: String, chosenFor: String? = nil) {
+        guard !secureTextEntry, !word.isEmpty, !Self.isAddress(Substring(word)) else { return }
+        let use = WordUse(word: word, before: String(before.suffix(WordUse.contextLength)), language: language, chosenFor: chosenFor)
+        onWordUsed?(use)
     }
 
     /// The word before the cursor, if `noteCommittedWord` would report it.

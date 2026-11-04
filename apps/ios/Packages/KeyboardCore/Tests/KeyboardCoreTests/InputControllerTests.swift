@@ -529,4 +529,134 @@ struct InputControllerTests {
         output.text = "so a.b"
         #expect(SuggestionResult(typed: "a.b", candidates: []).isFor(word: input.currentWord))
     }
+
+    // MARK: Word uses
+
+    /// Word uses reported while `body` runs.
+    func uses(_ body: () -> Void) -> [WordUse] {
+        var uses: [WordUse] = []
+        input.onWordUsed = { uses.append($0) }
+        body()
+        input.onWordUsed = nil
+        return uses
+    }
+
+    func use(_ word: String, after before: String, chosenFor: String? = nil) -> WordUse {
+        WordUse(word: word, before: before, language: .english, chosenFor: chosenFor)
+    }
+
+    @Test func everyWordThatGoesInIsReportedWithTheTextBeforeIt() {
+        let reported = uses {
+            output.text = "hello"
+            input.updateSuggestions(verbatim("hello"))
+            input.handle(.space, at: 0)
+            typeText("hpw")
+            input.updateSuggestions(corrected("hpw", to: "how"))
+            input.handle(.space, at: 0)
+            typeText("ar")
+            input.commitSuggestion(SuggestionSlot(suggestion: Suggestion("are", kind: .completion), quoted: false))
+            typeText("you")
+            typeText(".")
+            input.handle(.space, at: 0)
+            typeText("ok")
+            input.handle(.returnKey, at: 0)
+        }
+        #expect(output.text == "hello how are you. ok\n")
+        #expect(reported == [
+            use("hello", after: ""),
+            use("how", after: "hello "),
+            use("are", after: "hello how "),
+            use("you", after: "hello how are "),
+            use("ok", after: "hello how are you. "),
+        ])
+    }
+
+    @Test func aCorrectionAtAFullStopOrPunctuationIsReportedAsCorrected() {
+        let reported = uses {
+            output.text = "so teh"
+            input.updateSuggestions(corrected("teh", to: "the"))
+            typeText(".")
+            input.handle(.space, at: 0)
+            typeText("hpw")
+            input.updateSuggestions(corrected("hpw", to: "how"))
+            typeText(",")
+        }
+        #expect(output.text == "so the. how,")
+        #expect(reported == [use("the", after: "so "), use("how", after: "so the. ")])
+    }
+
+    @Test func usesAreReportedWithAutocorrectOffAndInMalayalam() {
+        input.autocorrectEnabled = false
+        let english = uses {
+            output.text = "hello"
+            input.handle(.space, at: 0)
+        }
+        #expect(english == [use("hello", after: "")])
+        type(.toggleLanguage)
+        let malayalam = uses {
+            output.text = "എന്റെ വീട്"
+            input.handle(.space, at: 0)
+        }
+        #expect(malayalam == [WordUse(word: "വീട്", before: "എന്റെ ", language: .malayalam)])
+    }
+
+    @Test func onlyTheEndOfTheTextIsSent() {
+        let long = String(repeating: "a ", count: 100)
+        let reported = uses {
+            output.text = long + "hello"
+            input.handle(.space, at: 0)
+        }
+        #expect(reported.map(\.before) == [String(long.suffix(WordUse.contextLength))])
+    }
+
+    @Test func addressesAreNeverReportedAsUses() {
+        input.learnedAddresses = ["sam.2024@example.com"]
+        let reported = uses {
+            output.text = "mail priya@example.com"
+            input.handle(.space, at: 0)
+            output.text = "see www.x.com"
+            input.handle(.returnKey, at: 0)
+            output.text = "hi neo"
+            input.commitSuggestion("sam.2024@example.com")
+        }
+        #expect(reported.isEmpty)
+    }
+
+    @Test func noUseIsReportedInASecureField() {
+        input.secureTextEntry = true
+        let reported = uses {
+            output.text = "hello"
+            input.updateSuggestions(verbatim("hello"))
+            input.handle(.space, at: 0)
+            typeText("teh")
+            input.updateSuggestions(corrected("teh", to: "the"))
+            input.handle(.space, at: 0)
+            typeText("x.")
+            input.handle(.space, at: 0)
+            input.commitSuggestion("could")
+            input.commitSuggestion(SuggestionSlot(suggestion: Suggestion("ഇന്ന്", kind: .manglish), quoted: false))
+        }
+        #expect(reported.isEmpty)
+    }
+
+    @Test func tappingAnotherCorrectionOrMalayalamWordIsAChoice() {
+        let innu = SuggestionResult(typed: "innu", candidates: [
+            Suggestion("ഇന്നു", kind: .manglish), Suggestion("innu", kind: .verbatim),
+            Suggestion("ഇന്ന്", kind: .manglish),
+        ])
+        func tap(_ suggestion: Suggestion, quoted: Bool = false) -> WordUse? {
+            output.text = "so innu"
+            input.updateSuggestions(innu)
+            return uses { input.commitSuggestion(SuggestionSlot(suggestion: suggestion, quoted: quoted)) }.first
+        }
+        #expect(tap(Suggestion("ഇന്ന്", kind: .manglish)) == use("ഇന്ന്", after: "so ", chosenFor: "innu"))
+        #expect(tap(Suggestion("ഇന്നു", kind: .manglish))?.chosenFor == nil, "the middle is the default")
+        #expect(tap(Suggestion("innu", kind: .verbatim), quoted: true)?.chosenFor == nil)
+        #expect(tap(Suggestion("innumerable", kind: .completion))?.chosenFor == nil)
+        // A result for other letters says nothing of these.
+        output.text = "so innu"
+        input.updateSuggestions(SuggestionResult(typed: "inn", candidates: [Suggestion("inn", kind: .verbatim)]))
+        let late = uses { input.commitSuggestion(SuggestionSlot(suggestion: Suggestion("ഇന്ന്", kind: .manglish), quoted: false)) }
+        #expect(late.first?.chosenFor == nil)
+    }
 }

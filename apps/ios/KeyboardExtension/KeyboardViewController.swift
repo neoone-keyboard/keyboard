@@ -121,6 +121,9 @@ final class KeyboardViewController: UIInputViewController {
                 self?.refreshLearnedAddresses()
             }
         }
+        input.onWordUsed = { [provider] use in
+            Task { await provider.noteUse(use) }
+        }
 
         settingsPanel.onChange = { [unowned self] changed in
             settings = changed

@@ -118,6 +118,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
+    /// A word went into the text: its phrase, its use, the language habit, and a choice of
+    /// suggestion. Best effort, like `handle`.
+    func noteUse(_ use: WordUse) {
+        guard let engine = try? loadedEngine() else { return }
+        let layout: InputLayout = use.language == .malayalam ? .malayalam : .latin
+        try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: layout)
+        if let typed = use.chosenFor {
+            try? engine.noteChoice(typed: typed, chosen: use.word)
+        }
+    }
+
     /// Must work even when the engine is shed or failed to open: an engine with
     /// no lexicons opens only the learned-word store, which is cheap.
     func forgetLearned() {
