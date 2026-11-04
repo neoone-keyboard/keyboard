@@ -248,9 +248,11 @@ impl UserStore {
     }
 
     /// Forgets one word (learned or seen once) without blocking it: typed again, it is
-    /// learned again. Writes nothing for a word the store doesn't hold.
+    /// learned again. Its phrases, uses and choices go too. Writes nothing for a word the
+    /// store doesn't hold.
     pub fn forget(&mut self, word: &str) {
-        if !acceptable(word) || !self.entries.contains_key(&key(word)) {
+        let held = self.entries.contains_key(&key(word)) || self.personal.mentions(word);
+        if !acceptable(word) || !held {
             return;
         }
         self.apply_forget(word);

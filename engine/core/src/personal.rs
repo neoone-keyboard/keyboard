@@ -292,6 +292,24 @@ impl Personal {
             .retain(|typed, c| **typed != *k && !c.chosen.eq_ignore_ascii_case(&k));
     }
 
+    /// Whether `purge(word)` would drop anything.
+    pub fn mentions(&self, word: &str) -> bool {
+        let k = key(word);
+        let in_phrases = |p: &Phrases| {
+            p.contexts.iter().any(|(context, followers)| {
+                context.split(' ').any(|w| w == k)
+                    || followers.iter().any(|f| f.word.eq_ignore_ascii_case(&k))
+            })
+        };
+        self.uses.contains_key(k.as_str())
+            || in_phrases(&self.pairs)
+            || in_phrases(&self.trigrams)
+            || self
+                .choices
+                .iter()
+                .any(|(typed, c)| **typed == *k || c.chosen.eq_ignore_ascii_case(&k))
+    }
+
     pub fn clear(&mut self) {
         *self = Self::default();
     }
