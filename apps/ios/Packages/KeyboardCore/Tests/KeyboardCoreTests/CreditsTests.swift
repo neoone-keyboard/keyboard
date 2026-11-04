@@ -60,7 +60,7 @@ private struct Manifest: Decodable {
 }
 
 @Test func creditsHaveUniqueIdsAndUsableLinks() {
-    for list in [Credits.dataSources, Credits.software] {
+    for list in [Credits.dataSources, Credits.portedCode, Credits.software] {
         #expect(Set(list.map(\.id)).count == list.count, "duplicate credit id")
         for credit in list {
             #expect(URL(string: credit.licenceURL)?.scheme != nil, "\(credit.id) has a bad link")
