@@ -50,6 +50,11 @@ public enum EmojiSupport {
 public struct EmojiItem: Equatable, Sendable {
     public let emoji: String
     public let tones: [String]
+
+    public init(emoji: String, tones: [String]) {
+        self.emoji = emoji
+        self.tones = tones
+    }
 }
 
 /// One of Unicode's emoji groups ("Smileys & Emotion"), in Unicode's order.

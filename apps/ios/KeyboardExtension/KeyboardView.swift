@@ -52,7 +52,10 @@ final class KeyboardView: UIView {
     func refreshLabels() {
         guard let theme, let label else { return }
         for (cap, key) in zip(caps, layout.rows.flatMap { $0 }) {
-            cap.configure(title: label(key), hint: Self.hint(key), special: Self.isSpecial(key.action), theme: theme)
+            cap.configure(
+                title: label(key), hint: Self.hint(key), special: Self.isSpecial(key.action),
+                symbol: key.action == .emoji ? "face.smiling" : nil, theme: theme
+            )
         }
     }
 

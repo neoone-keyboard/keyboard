@@ -8,6 +8,8 @@ final class KeyCapView: UIView {
 
     private let title = UILabel()
     private let hint = UILabel()
+    /// An SF Symbol in the title's place (the emoji key's smiley).
+    private let icon = UIImageView()
     private var theme: KeyboardTheme?
     private var isSpecial = false
 
@@ -23,15 +25,18 @@ final class KeyCapView: UIView {
         title.minimumScaleFactor = 0.5
         hint.font = .systemFont(ofSize: 10)
         hint.textAlignment = .right
+        icon.contentMode = .center
         addSubview(title)
         addSubview(hint)
+        addSubview(icon)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    func configure(title text: String, hint hintText: String?, special: Bool, theme: KeyboardTheme) {
-        title.text = text
+    func configure(title text: String, hint hintText: String?, special: Bool, symbol: String? = nil, theme: KeyboardTheme) {
+        title.text = symbol == nil ? text : nil
         title.font = special ? .systemFont(ofSize: 16) : .systemFont(ofSize: 24)
+        icon.image = symbol.flatMap { UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18)) }
         hint.text = hintText
         isSpecial = special
         self.theme = theme
@@ -42,6 +47,7 @@ final class KeyCapView: UIView {
         super.layoutSubviews()
         title.frame = bounds.insetBy(dx: 3, dy: 2)
         hint.frame = CGRect(x: 2, y: 2, width: bounds.width - 6, height: 12)
+        icon.frame = bounds
     }
 
     private func applyColors() {
@@ -50,6 +56,7 @@ final class KeyCapView: UIView {
         let pressed = isSpecial ? theme.key : theme.specialKey
         backgroundColor = isPressed ? pressed : normal
         title.textColor = theme.keyText
+        icon.tintColor = theme.keyText
         hint.textColor = theme.hintText
         layer.shadowColor = theme.shadow.cgColor
     }

@@ -195,6 +195,11 @@ final class TopBarView: UIView {
             button.setTitleColor(theme?.keyText, for: .normal)
             button.setTitleColor(theme?.hintText, for: .highlighted)
             button.addAction(UIAction { [weak self] _ in self?.onSuggestion?(slot) }, for: .touchUpInside)
+            // An emoji is drawn larger, and has no word to remove.
+            if slot.suggestion.kind == .emoji {
+                button.titleLabel?.font = .systemFont(ofSize: 24)
+                return button
+            }
             // Once the hold is recognised the button's touch is cancelled, so it doesn't commit.
             let hold = SlotHold(target: self, action: #selector(slotHeld(_:)))
             hold.slot = slot
