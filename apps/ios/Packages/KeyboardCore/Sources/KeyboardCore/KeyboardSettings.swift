@@ -17,6 +17,8 @@ public struct KeyboardSettings: Equatable, Sendable {
     public var keyClicks = false
     /// When off, space always keeps what was typed.
     public var autocorrect = true
+    /// An emoji for the word in the bar's right slot (`EmojiSuggestion`).
+    public var emojiSuggestions = true
 
     public init() {}
 
@@ -27,6 +29,7 @@ public struct KeyboardSettings: Equatable, Sendable {
         settings.numberRow = defaults.bool(forKey: Keys.numberRow)
         settings.keyClicks = defaults.bool(forKey: Keys.keyClicks)
         settings.autocorrect = defaults.object(forKey: Keys.autocorrect) as? Bool ?? settings.autocorrect
+        settings.emojiSuggestions = defaults.object(forKey: Keys.emojiSuggestions) as? Bool ?? settings.emojiSuggestions
         return settings
     }
 
@@ -36,6 +39,7 @@ public struct KeyboardSettings: Equatable, Sendable {
         defaults.set(numberRow, forKey: Keys.numberRow)
         defaults.set(keyClicks, forKey: Keys.keyClicks)
         defaults.set(autocorrect, forKey: Keys.autocorrect)
+        defaults.set(emojiSuggestions, forKey: Keys.emojiSuggestions)
     }
 
     private enum Keys {
@@ -44,5 +48,6 @@ public struct KeyboardSettings: Equatable, Sendable {
         static let numberRow = "numberRow"
         static let keyClicks = "keyClicks"
         static let autocorrect = "autocorrect"
+        static let emojiSuggestions = "emojiSuggestions"
     }
 }

@@ -17,6 +17,7 @@ private func freshDefaults() -> UserDefaults {
     #expect(!settings.numberRow)
     #expect(!settings.keyClicks)
     #expect(settings.autocorrect, "autocorrect is on until the user turns it off")
+    #expect(settings.emojiSuggestions, "emoji suggestions are on until the user turns them off")
 }
 
 @Test func roundTrips() {
@@ -27,6 +28,7 @@ private func freshDefaults() -> UserDefaults {
     settings.numberRow = true
     settings.keyClicks = true
     settings.autocorrect = false
+    settings.emojiSuggestions = false
     settings.save(to: defaults)
     #expect(KeyboardSettings.load(from: defaults) == settings)
 }

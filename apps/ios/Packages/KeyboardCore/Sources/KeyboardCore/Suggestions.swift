@@ -8,6 +8,8 @@ public enum SuggestionKind: Sendable {
     case manglish
     /// A guess for the next word, shown after a space.
     case nextWord
+    /// An emoji for the word (`EmojiSuggestion`), never from the engine.
+    case emoji
 }
 
 public struct Suggestion: Equatable, Sendable {
@@ -97,6 +99,15 @@ public struct SuggestionBar: Equatable, Sendable {
         }
     }
 
+    /// The bar with `emoji` in the right slot: never the middle, which space commits, so an
+    /// emoji is never put in by autocorrect. Nil leaves the bar as it is.
+    public func withEmoji(_ emoji: String?) -> SuggestionBar {
+        guard let emoji else { return self }
+        var bar = self
+        bar.right = SuggestionSlot(suggestion: Suggestion(emoji, kind: .emoji), quoted: false)
+        return bar
+    }
+
     /// Left, middle, right; nil for an empty slot.
     public var slots: [SuggestionSlot?] { [left, middle, right] }
 }
@@ -112,9 +123,9 @@ public struct SuggestionRemoval: Equatable, Sendable {
     /// The word itself, never the quoted title.
     public let word: String
 
-    /// Nil for a slot with no word.
+    /// Nil for a slot with no word, and for the emoji slot.
     public init?(slot: SuggestionSlot) {
-        guard !slot.suggestion.text.isEmpty else { return nil }
+        guard !slot.suggestion.text.isEmpty, slot.suggestion.kind != .emoji else { return nil }
         word = slot.suggestion.text
     }
 
