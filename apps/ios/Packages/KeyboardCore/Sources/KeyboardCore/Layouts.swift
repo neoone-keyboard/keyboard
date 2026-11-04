@@ -47,18 +47,20 @@ extension KeyboardLayout {
     ]
 
     private static func latinBottomRow(_ page: KeyboardPage) -> [Key] {
+        // Ten letter widths without the globe (Face ID iPhones), so nothing is scaled down.
         [
-            Key(page == .letters ? .page(.symbols) : .page(.letters), width: 1.5),
+            Key(page == .letters ? .page(.symbols) : .page(.letters), width: 1.25),
+            Key(.emoji),
             Key(.nextKeyboard),
             Key(.toggleLanguage),
-            Key(.space, width: 4.5),
+            Key(.space, width: 4.25),
             // Two rows, as Gboard's: the full stop right above the key (as SwiftKey's), ? to
             // its right, the rest to the left and in the row above.
             Key(.character("."), alternates: [
                 "&", "%", "+", "=", "\"", "-", ":", "'", "@",
                 ";", "/", "(", ")", "#", "!", ",", ".", "?",
             ], alternatesPerRow: 9),
-            Key(.returnKey, width: 2),
+            Key(.returnKey, width: 1.5),
         ]
     }
 
@@ -83,13 +85,15 @@ extension KeyboardLayout {
     ]
 
     private static func malayalamBottomRow(_ page: KeyboardPage) -> [Key] {
+        // Ten letter widths without the globe, as the English row.
         [
-            Key(.page(.symbols), width: 1.25),
+            Key(.page(.symbols)),
+            Key(.emoji),
             Key(.nextKeyboard),
             Key(.toggleLanguage),
-            Key(page == .malayalamVowels ? .page(.letters) : .page(.malayalamVowels), width: 1.25),
+            Key(page == .malayalamVowels ? .page(.letters) : .page(.malayalamVowels)),
             Key(.space, width: 3.5),
-            Key(page == .malayalamMore ? .page(.letters) : .page(.malayalamMore), width: 1.25),
+            Key(page == .malayalamMore ? .page(.letters) : .page(.malayalamMore)),
             Key(.returnKey, width: 1.5),
         ]
     }

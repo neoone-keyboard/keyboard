@@ -162,8 +162,8 @@ public final class InputController {
             shiftIsAutomatic = false
             manualShiftPending = true
             manualShiftContext = output.contextBefore
-        case .nextKeyboard:
-            break // The host view controller switches keyboards.
+        case .nextKeyboard, .emoji:
+            break // The host view controller switches keyboards, or shows the emoji panel.
         case .page(let target):
             // The text is unchanged, so the result still describes the word:
             // `teh`, 123, `,` gives `the,`, as the bar showed.
@@ -184,6 +184,39 @@ public final class InputController {
         lastReplacement = nil
         heldStop = nil
         type(text)
+    }
+
+    /// Types an emoji from the panel as it is, with no space. Never reported for learning.
+    public func insertEmoji(_ emoji: String) {
+        lastReplacement = nil
+        heldStop = nil
+        output.insertText(emoji)
+        shift = shift.afterCharacter
+        if shift == .off { shiftIsAutomatic = false }
+    }
+
+    /// A tap on the bar's emoji. The word being typed stays as typed, as space without
+    /// autocorrect would leave it, and the emoji follows it and a space: `pizza` and
+    /// `pizza ` both give `pizza 🍕 `.
+    public func commitEmojiSuggestion(_ emoji: String) {
+        if !currentWord.isEmpty {
+            noteCommittedWord()
+            output.insertText(" ")
+        }
+        insertEmoji(emoji + " ")
+        suggestions = .empty
+    }
+
+    /// The emoji panel's backspace: an emoji goes whole, even in a host that takes one code
+    /// point per delete (👋🏽 is two); anything else as the backspace key does it.
+    public func deleteBackwardWholeEmoji() {
+        let context = output.contextBefore ?? ""
+        guard let last = context.last, EmojiSupport.isEmoji(last) else {
+            handle(.backspace, at: 0)
+            return
+        }
+        forgetPendingState()
+        delete(String(last), from: context)
     }
 
     public func moveCursor(by offset: Int) {
@@ -306,6 +339,7 @@ public final class InputController {
         case .page(.malayalamMore): "ശഷ"
         case .page(.malayalamVowels): "അആ"
         case .toggleLanguage: language == .english ? "മ" : "EN"
+        case .emoji: "☺︎" // Drawn as a symbol; this is the fallback.
         }
     }
 

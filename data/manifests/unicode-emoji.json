@@ -1,0 +1,19 @@
+{
+  "id": "unicode-emoji",
+  "name": "Unicode Emoji 18.0 (emoji-test.txt)",
+  "homepage": "https://www.unicode.org/emoji/",
+  "licence": "Unicode License v3",
+  "licence_url": "https://www.unicode.org/license.txt",
+  "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji order, groups, skin tones and versions from the Unicode Emoji data file emoji-test.txt (UTS #51), distributed under the Unicode License v3.",
+  "verdict": "use",
+  "verdict_reason": "Permissive: the Unicode License v3 allows copying, modifying and distributing the data files with the copyright and permission notice, which the app's About screen carries.",
+  "used_for": "The emoji panel: the fully-qualified emoji, their order and groups, skin-tone variants and Emoji versions, compiled by data/pipeline/emoji_data.py into apps/ios/KeyboardExtension/Emoji/emoji.txt.",
+  "retrieved": "2026-11-04",
+  "files": [
+    {
+      "url": "https://www.unicode.org/Public/18.0.0/emoji/emoji-test.txt",
+      "sha256": "8f3735cda1f92a779d78af67cf86066bb1f07143dc22f2ac29394d9bc57ab21a",
+      "path": "emoji-test.txt"
+    }
+  ]
+}

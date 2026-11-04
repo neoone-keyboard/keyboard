@@ -6,12 +6,13 @@ struct AboutView: View {
     var body: some View {
         List {
             Section {
-                Text("Suggestions, autocorrect and Manglish run entirely on your iPhone from word lists and models built from, and modified from, the sources below. Nothing you type leaves your phone.")
+                Text("Suggestions, autocorrect, Manglish and emoji run entirely on your iPhone from word lists and models built from, and modified from, the sources below. Nothing you type leaves your phone.")
             }
             Section("Sources") {
                 ForEach(Credits.dataSources) { CreditRow(credit: $0) }
             }
             Section("Software") {
+                ForEach(Credits.portedCode) { CreditRow(credit: $0) }
                 ForEach(Credits.software) { CreditRow(credit: $0) }
             }
             #if DEBUG

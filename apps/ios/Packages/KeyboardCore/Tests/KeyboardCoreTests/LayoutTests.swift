@@ -13,7 +13,7 @@ private func actions(_ layout: KeyboardLayout) -> [KeyAction] {
 }
 
 @Test func lettersPageRows() {
-    #expect(KeyboardLayout.forPage(.letters).rows.map(\.count) == [10, 9, 9, 6])
+    #expect(KeyboardLayout.forPage(.letters).rows.map(\.count) == [10, 9, 9, 7])
 }
 
 @Test func lettersPageContainsEveryLetterOnce() {
@@ -87,7 +87,7 @@ private func actions(_ layout: KeyboardLayout) -> [KeyAction] {
     for sign in Malayalam.vowelSigns {
         #expect(typed.contains(sign), "missing U+\(String(sign.unicodeScalars.first!.value, radix: 16))")
     }
-    #expect(layout.rows.map(\.count) == [10, 10, 9, 7])
+    #expect(layout.rows.map(\.count) == [10, 10, 9, 8])
     #expect(layout.rows[2].last == Key(.backspace, width: 1.5))
     #expect(actions(layout).contains(.page(.letters)))
 }
@@ -96,4 +96,26 @@ private func actions(_ layout: KeyboardLayout) -> [KeyAction] {
     // ക → കാ … കൗ കം കഃ ക്
     #expect(Malayalam.stripSigns.suffix(3) == ["\u{0D02}", "\u{0D03}", "\u{0D4D}"])
     #expect(Malayalam.stripSigns.dropLast(3) == Malayalam.vowelSigns.dropLast())
+}
+
+@Test func emojiKeyFollowsTheSymbolsKeyOnEveryPage() {
+    for page in KeyboardPage.allCases {
+        for globe in [true, false] {
+            let bottom = KeyboardLayout.forPage(page, showsNextKeyboard: globe).rows.last!
+            #expect(bottom[1].action == .emoji, "page \(page)")
+            if case .page = bottom[0].action {} else { Issue.record("page \(page) starts with \(bottom[0].action)") }
+        }
+    }
+}
+
+/// Without the globe (every Face ID iPhone) the bottom row fits in ten letter widths, so it
+/// isn't scaled down, and space stays the widest key.
+@Test func bottomRowFitsWithSpaceWidest() {
+    for page in KeyboardPage.allCases {
+        let bottom = KeyboardLayout.forPage(page, showsNextKeyboard: false).rows.last!
+        #expect(bottom.reduce(0) { $0 + $1.width } <= 10, "page \(page)")
+        let space = bottom.first { $0.action == .space }!
+        #expect(bottom.allSatisfy { $0.action == .space || $0.width < space.width }, "page \(page)")
+        #expect(space.width >= 3.5, "page \(page)")
+    }
 }

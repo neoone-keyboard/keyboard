@@ -26,6 +26,8 @@ final class SettingsPanelView: UIView {
     private let clicksSwitch = UISwitch()
     private let autocorrectLabel = UILabel()
     private let autocorrectSwitch = UISwitch()
+    private let emojiLabel = UILabel()
+    private let emojiSwitch = UISwitch()
     private let yourWordsButton = UIButton(type: .system)
     private let forgetButton = UIButton(type: .system)
     private let diagnosticsButton = UIButton(type: .system)
@@ -83,6 +85,11 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.autocorrect = self.autocorrectSwitch.isOn }
         }, for: .valueChanged)
+        emojiLabel.text = "Emoji suggestions"
+        emojiSwitch.addAction(UIAction { [weak self] _ in
+            guard let self else { return }
+            update { $0.emojiSuggestions = self.emojiSwitch.isOn }
+        }, for: .valueChanged)
         yourWordsButton.setTitle("Your words", for: .normal)
         yourWordsButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
         yourWordsButton.titleLabel?.font = .systemFont(ofSize: 15)
@@ -100,17 +107,18 @@ final class SettingsPanelView: UIView {
         let numberRow = UIStackView(arrangedSubviews: [numberRowLabel, UIView(), numberRowSwitch])
         let clicksRow = UIStackView(arrangedSubviews: [clicksLabel, UIView(), clicksSwitch])
         let autocorrectRow = UIStackView(arrangedSubviews: [autocorrectLabel, UIView(), autocorrectSwitch])
+        let emojiRow = UIStackView(arrangedSubviews: [emojiLabel, UIView(), emojiSwitch])
 
-        for row in [header, accentRow, numberRow, clicksRow, autocorrectRow] {
+        for row in [header, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow] {
             row.axis = .horizontal
             row.alignment = .center
         }
-        for label in [accentLabel, numberRowLabel, clicksLabel, autocorrectLabel] {
+        for label in [accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel] {
             label.font = .systemFont(ofSize: 15)
         }
 
         let stack = UIStackView(arrangedSubviews: [
-            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, yourWordsButton,
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, yourWordsButton,
             forgetButton, diagnosticsButton,
         ])
         stack.axis = .vertical
@@ -156,6 +164,7 @@ final class SettingsPanelView: UIView {
         numberRowSwitch.isOn = settings.numberRow
         clicksSwitch.isOn = settings.keyClicks
         autocorrectSwitch.isOn = settings.autocorrect
+        emojiSwitch.isOn = settings.emojiSuggestions
         setForgetArmed(false)
         refreshSwatches()
     }
@@ -164,7 +173,7 @@ final class SettingsPanelView: UIView {
         self.theme = theme
         overrideUserInterfaceStyle = theme.isDark ? .dark : .light
         backgroundColor = theme.background
-        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel] {
+        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel] {
             label.textColor = theme.keyText
         }
         doneButton.tintColor = theme.keyText
@@ -175,7 +184,7 @@ final class SettingsPanelView: UIView {
         themeControl.selectedSegmentTintColor = theme.key
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .selected)
-        for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch] {
+        for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch, emojiSwitch] {
             toggle.onTintColor = theme.accent
         }
         refreshSwatches()

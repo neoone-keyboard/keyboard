@@ -19,6 +19,10 @@ final class KeyboardViewController: UIInputViewController {
     private let settingsPanel = SettingsPanelView()
     /// In the top bar's place while open, with the keys below typing its search.
     private let yourWordsView = YourWordsView()
+    /// Over the keys while open; made on opening and dropped on closing, with its catalog.
+    private var emojiPanel: EmojiPanelView?
+    /// The recent emoji and the tone chosen for each, saved in the keyboard's container.
+    private lazy var emojiHistory = EmojiHistory.load(from: Self.emojiHistoryURL)
     /// The top bar (or "Your words") over the keys.
     private let stack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
@@ -60,6 +64,7 @@ final class KeyboardViewController: UIInputViewController {
     isolated deinit {
         stack.removeFromSuperview()
         settingsPanel.removeFromSuperview()
+        emojiPanel?.removeFromSuperview()
         heightConstraint?.isActive = false
         log.info("Keyboard released; footprint \(Diagnostics.footprint())")
     }
@@ -97,7 +102,12 @@ final class KeyboardViewController: UIInputViewController {
             guard barWord == Self.straight(input.currentWord) else { return }
             let page = input.page, shift = input.shift
             output.beginEdit()
-            input.commitSuggestion(slot)
+            if slot.suggestion.kind == .emoji {
+                input.commitEmojiSuggestion(slot.suggestion.text)
+                noteEmojiUsed(slot.suggestion.text)
+            } else {
+                input.commitSuggestion(slot)
+            }
             afterInput(pageBefore: page, shiftBefore: shift)
         }
         // Removal runs on the provider's actor; the bar asks again once it is done, so the
@@ -137,6 +147,7 @@ final class KeyboardViewController: UIInputViewController {
         settingsPanel.onInsertDiagnostics = { [unowned self] in insertDiagnostics() }
         // The actor clears the log and the in-memory store; the main thread doesn't wait.
         settingsPanel.onForgetLearned = { [weak self, provider] in
+            self?.forgetEmojiHistory()
             Task {
                 await provider.forgetLearned()
                 self?.refreshLearnedAddresses()
@@ -209,6 +220,7 @@ final class KeyboardViewController: UIInputViewController {
         settings = KeyboardSettings.load(from: .standard)
         hideYourWords()
         hideSettings()
+        hideEmojiPanel()
         noteExternalChange()
         applySettings()
     }
@@ -231,10 +243,11 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// The lists of "Your words" are held only while it shows.
+    /// The lists of "Your words" and the emoji panel are held only while they show.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         hideYourWords()
+        hideEmojiPanel()
     }
 
     /// Gives the input controller the engine's learned addresses, so letters that begin one
@@ -289,6 +302,9 @@ final class KeyboardViewController: UIInputViewController {
         switch event {
         case .tap(.nextKeyboard):
             advanceToNextInputMode()
+            return
+        case .tap(.emoji):
+            showEmojiPanel()
             return
         case .tap(let action):
             input.handle(action, at: ProcessInfo.processInfo.systemUptime)
@@ -367,6 +383,89 @@ final class KeyboardViewController: UIInputViewController {
 
     private func hideSettings() {
         settingsPanel.isHidden = true
+    }
+
+    // MARK: Emoji
+
+    private static let emojiHistoryURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appending(path: "Emoji/history.json")
+    /// Saves run in order, off the main thread.
+    private static let emojiSaves = DispatchQueue(label: "me.jishnu.keyboard.emoji-history")
+    /// The word → emoji list, memory-mapped once per process; nil if missing from the bundle.
+    private static let emojiWords: EmojiWords? = Bundle.main
+        .url(forResource: "emoji-words", withExtension: "txt", subdirectory: "Emoji")
+        .flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
+        .map(EmojiWords.init)
+
+    /// Covers the keys, as the settings panel does, with the catalog read from the bundle.
+    private func showEmojiPanel() {
+        guard emojiPanel == nil,
+              let url = Bundle.main.url(forResource: "emoji", withExtension: "txt", subdirectory: "Emoji"),
+              let text = try? String(contentsOf: url, encoding: .utf8)
+        else { return }
+        keyboardView.cancelAllTouches()
+        topBar.cancelRemoval()
+        let before = MemoryMonitor.footprintBytes()
+        let panel = EmojiPanelView()
+        panel.onEmoji = { [unowned self] emoji, base in
+            if let base { emojiHistory.chooseTone(emoji, for: base) }
+            let page = input.page, shift = input.shift
+            output.beginEdit()
+            input.insertEmoji(emoji)
+            noteEmojiUsed(emoji)
+            afterInput(pageBefore: page, shiftBefore: shift)
+        }
+        panel.onBackspace = { [unowned self] in
+            let page = input.page, shift = input.shift
+            output.beginEdit()
+            input.deleteBackwardWholeEmoji()
+            afterInput(pageBefore: page, shiftBefore: shift)
+        }
+        panel.onLetters = { [unowned self] in hideEmojiPanel() }
+        panel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(panel)
+        NSLayoutConstraint.activate([
+            panel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
+            panel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
+            panel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            panel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
+        ])
+        panel.apply(theme)
+        panel.show(catalog: EmojiCatalog(text: text), history: emojiHistory, lettersTitle: input.label(for: .page(.letters)))
+        emojiPanel = panel
+        log.info("Emoji panel opened; footprint \(Diagnostics.footprint()) (\(Diagnostics.megabytes(before)) before)")
+    }
+
+    private func hideEmojiPanel() {
+        guard let panel = emojiPanel else { return }
+        panel.removeFromSuperview()
+        emojiPanel = nil
+        log.info("Emoji panel closed; footprint \(Diagnostics.footprint())")
+    }
+
+    /// An emoji went in, from the panel or the bar: first in the recents, saved at once.
+    private func noteEmojiUsed(_ emoji: String) {
+        emojiHistory.record(emoji)
+        let history = emojiHistory, url = Self.emojiHistoryURL
+        Self.emojiSaves.async { try? history.save(to: url) }
+    }
+
+    /// "Forget learned words" forgets the recent emoji and tones too.
+    private func forgetEmojiHistory() {
+        emojiHistory = EmojiHistory()
+        let url = Self.emojiHistoryURL
+        Self.emojiSaves.async { try? EmojiHistory.forget(at: url) }
+    }
+
+    /// The emoji for the bar's right slot, if the setting is on, the field isn't for a
+    /// password, a URL or an email address, and the word has one.
+    private func barEmoji() -> String? {
+        let proxy = textDocumentProxy
+        guard settings.emojiSuggestions, !input.secureTextEntry, let words = Self.emojiWords,
+              proxy.keyboardType != .URL, proxy.keyboardType != .emailAddress,
+              let word = EmojiSuggestion.word(contextBefore: proxy.documentContextBeforeInput ?? "", currentWord: input.currentWord)
+        else { return nil }
+        return EmojiSuggestion.pick(words.emoji(for: word), history: emojiHistory)
     }
 
     // MARK: Your words
@@ -483,7 +582,8 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     /// After a Malayalam consonant: the best completion and the vowel signs,
-    /// likeliest first. Otherwise the three suggestion slots.
+    /// likeliest first. Otherwise the three suggestion slots, with an emoji for the
+    /// word in the right one when there is one (`barEmoji`).
     ///
     /// Only a result for the word now before the cursor is shown. While that
     /// result is on its way the bar stays as it is (a strip, or slots for this
@@ -510,7 +610,7 @@ final class KeyboardViewController: UIInputViewController {
         if current == nil, awaitingResult, !topBar.showsVowelSigns, barWord == word { return }
         barWord = word
         let bar = SuggestionBar(current ?? .empty)
-        topBar.showSuggestions(bar)
+        topBar.showSuggestions(bar.withEmoji(barEmoji()))
         noteBar(empty: bar.left == nil && bar.middle == nil && bar.right == nil, current: current)
     }
 
