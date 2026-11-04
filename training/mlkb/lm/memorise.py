@@ -16,10 +16,15 @@ Measures, per generation:
   (`en-wiki`, `en-simple`, `ml`, `manglish-*`, `mixed-*`): `WINDOW - 1` plus the longest run of
   consecutive `WINDOW`-token windows that are in it (a hash index of every window), 0 for none.
 
+A corpus run whose tokens hold `LOOP_DISTINCT` or fewer distinct ones is a loop (`0000…`,
+`, , , ,`): a model stuck on one or two tokens, which the training text also holds somewhere. It
+carries no text from any source, and every window of a one-token loop is the same window, so one
+such run in the corpus matches a loop of any length. Loops are counted apart (`corpus_loops`).
+
 Writes the max, p99 and a histogram of each, the prompt count and the model's SHA-256; `pass` is
-whether every run, by both measures, stays under `LIMIT` tokens. Exits 1 on a fail. The longest
-runs are listed with their text, and apart from them the longest that aren't a loop over a few
-tokens (`--dump` saves every generation for a closer look).
+whether every continuation run and every corpus run that isn't a loop stays under `LIMIT` tokens.
+Exits 1 on a fail. The longest runs and the longest loops are listed with their text (`--dump`
+saves every generation for a closer look).
 
 `sources.tsv` (`bucket<TAB>source<TAB>first paragraph`) is derived here when missing:
 `data/raw/text/ml.txt` is Malayalam Wikipedia followed by Wikisource (data/build-lexicons.sh),
@@ -51,8 +56,9 @@ SEED = 20261104
 SHARE_ALIKE = ("en-wiki", "en-simple", "ml", "manglish-0", "manglish-1", "manglish-2", "manglish-3",
                "mixed-0", "mixed-1")
 RUNS = ((0.0, 0), (0.7, 1), (0.7, 2))  # (temperature, seed)
-# A generation with fewer distinct tokens is a loop (`0000…`), listed apart in the output.
-REPETITION = WINDOW
+# A matched run with this many distinct tokens or fewer is a loop (`0000…`, `, , , ,`,
+# `to be 1000…`): it is counted apart and doesn't fail the check (design §10).
+LOOP_DISTINCT = 4
 BOS = 2
 # Wikisource paragraphs read from the dump to find where it begins in `ml.txt`.
 WIKISOURCE_PARAGRAPHS = 200
@@ -97,15 +103,23 @@ class WindowIndex:
         return self.hashes[i] == hashes if len(self.hashes) else np.zeros(len(hashes), bool)
 
 
-def corpus_run(generated, index: WindowIndex) -> int:
-    """`WINDOW - 1` plus the longest run of consecutive windows of `generated` in `index`, or 0
-    when none is."""
+def corpus_runs(generated, index: WindowIndex) -> list[tuple[int, int]]:
+    """(start, length in tokens) of every run of consecutive windows of `generated` in `index`:
+    `WINDOW - 1` plus the windows."""
     hits = index.contains(window_hashes(np.asarray(generated, np.uint64)))
-    best = run = 0
-    for hit in hits:
-        run = run + 1 if hit else 0
-        best = max(best, run)
-    return best + WINDOW - 1 if best else 0
+    d = np.diff(np.concatenate(([0], hits.astype(np.int8), [0])))
+    starts, ends = np.flatnonzero(d == 1), np.flatnonzero(d == -1)
+    return [(int(s), int(e - s) + WINDOW - 1) for s, e in zip(starts, ends)]
+
+
+def corpus_run(generated, index: WindowIndex) -> int:
+    """The longest of `corpus_runs`, or 0 when there is none."""
+    return max((n for _, n in corpus_runs(generated, index)), default=0)
+
+
+def is_loop(span) -> bool:
+    """Whether a matched span is a loop: `LOOP_DISTINCT` or fewer distinct tokens."""
+    return len(set(span)) <= LOOP_DISTINCT
 
 
 def continuation_run(generated, source) -> int:
@@ -188,9 +202,9 @@ def prompts(tokens: np.ndarray, lo: int, hi: int, word_start: np.ndarray, k: int
 
 
 def entry(x) -> dict:
-    run, distinct, source, temperature, prompt, generated = x
-    return {"run": run, "distinct_tokens": distinct, "source": source, "temperature": temperature,
-            "prompt": prompt, "generated": generated}
+    run, distinct, loop, source, temperature, prompt, generated = x
+    return {"run": run, "distinct_tokens_in_run": distinct, "loop": loop, "source": source,
+            "temperature": temperature, "prompt": prompt, "generated": generated}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -234,9 +248,9 @@ def main(argv: list[str] | None = None) -> int:
 
     lm = mlengine.Lm(str(args.model))
     text = lambda ids: "".join(pieces[t] for t in ids).replace("▁", " ").strip()  # noqa: E731
-    cont, corp = [], []
+    cont, corp, loops = [], [], []
     worst: dict[str, int] = {}
-    longest = []  # (run, distinct tokens, source, temperature, prompt text, generated text)
+    longest = []  # (run, distinct tokens in the run, loop, source, temperature, prompt text, generated text)
     dumped = []
     for i, (source, shard, p) in enumerate(jobs):
         tokens = shards[shard]
@@ -246,13 +260,17 @@ def main(argv: list[str] | None = None) -> int:
         after = [int(t) for t in (after[:bos[0]] if len(bos) else after)]
         for temperature, seed in RUNS:
             generated = lm.generate(prompt, GENERATED, temperature, seed)
-            c, r = continuation_run(generated, after), corpus_run(generated, index)
+            c = continuation_run(generated, after)
+            spans = [generated[s:s + n] for s, n in corpus_runs(generated, index)]
+            r = max((len(x) for x in spans if not is_loop(x)), default=0)
+            loop = max((len(x) for x in spans if is_loop(x)), default=0)
             cont.append(c)
             corp.append(r)
+            loops.append(loop)
             worst[source] = max(worst.get(source, 0), c, r)
-            if max(c, r) >= LIMIT // 2:
-                longest.append((max(c, r), len(set(generated)), source, temperature, text(prompt),
-                                text(generated)))
+            for n, span, is_l in [(c, generated[:c], False)] + [(len(x), x, is_loop(x)) for x in spans]:
+                if n >= LIMIT // 2:
+                    longest.append((n, len(set(span)), is_l, source, temperature, text(prompt), text(generated)))
             dumped.append((source, temperature, prompt, generated))
         if (i + 1) % 200 == 0:
             print(f"{i + 1}/{len(jobs)} prompts, worst so far {max(worst.values())}", file=sys.stderr)
@@ -277,15 +295,16 @@ def main(argv: list[str] | None = None) -> int:
         "limit": LIMIT,
         "continuation": summary(cont),
         "corpus": summary(corp),
+        "loop_distinct": LOOP_DISTINCT,
+        "corpus_loops": summary(loops),
         "worst_by_source": worst,
-        "runs_over_half_the_limit": len(longest),
+        "runs_over_half_the_limit": sum(not x[2] for x in longest),
+        "loops_over_half_the_limit": sum(x[2] for x in longest),
         "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from "
                                "English and Malayalam Wikipedia and Malayalam Wikisource "
                                "(Wikipedia and Wikisource contributors).",
-        "longest": [entry(x) for x in longest[:10]],
-        # Diagnostic only (`pass` counts every run): the longest generations that aren't a loop
-        # over a few tokens (`0000…`, `. . .`), which is where verbatim copying shows.
-        "longest_not_repetition": [entry(x) for x in longest if x[1] >= REPETITION][:10],
+        "longest": [entry(x) for x in longest if not x[2]][:10],
+        "longest_loops": [entry(x) for x in longest if x[2]][:5],
         "pass": passed,
     }
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

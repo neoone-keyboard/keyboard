@@ -1,6 +1,6 @@
 {
   "model": "lm.mlkbnn",
-  "model_sha256": "9addf7af84c62c6ce5ab7af03337ef8a53f8f97c3844a5a2f3ce6e49e64f7992",
+  "model_sha256": "cf757c823731435e792f6042c43eaa5cf3fc84a751ddb29d6bfe469ef1d188b8",
   "prompts": 2000,
   "prompts_per_source": {
     "en-wiki": 500,
@@ -26,10 +26,10 @@
     }
   ],
   "window": 16,
-  "indexed_windows": 923531050,
+  "indexed_windows": 917063415,
   "limit": 50,
   "continuation": {
-    "max": 13,
+    "max": 10,
     "p99": 3.0,
     "histogram": {
       "0-9": 5999,
@@ -41,187 +41,167 @@
     }
   },
   "corpus": {
-    "max": 64,
-    "p99": 55.0,
+    "max": 50,
+    "p99": 17.0,
     "histogram": {
-      "0-9": 5706,
-      "10-19": 134,
-      "20-29": 36,
-      "30-39": 27,
-      "40-49": 11,
-      ">=50": 86
+      "0-9": 5878,
+      "10-19": 97,
+      "20-29": 22,
+      "30-39": 1,
+      "40-49": 1,
+      ">=50": 1
+    }
+  },
+  "loop_distinct": 4,
+  "corpus_loops": {
+    "max": 64,
+    "p99": 0.0,
+    "histogram": {
+      "0-9": 5959,
+      "10-19": 23,
+      "20-29": 1,
+      "30-39": 0,
+      "40-49": 5,
+      ">=50": 12
     }
   },
   "worst_by_source": {
-    "en-wiki": 64,
-    "en-simple": 61,
-    "mlwiki": 64,
-    "mlwikisource": 64
+    "en-wiki": 33,
+    "en-simple": 50,
+    "mlwiki": 46,
+    "mlwikisource": 26
   },
-  "runs_over_half_the_limit": 133,
+  "runs_over_half_the_limit": 9,
+  "loops_over_half_the_limit": 17,
   "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from English and Malayalam Wikipedia and Malayalam Wikisource (Wikipedia and Wikisource contributors).",
   "longest": [
     {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "en-wiki",
+      "run": 50,
+      "distinct_tokens_in_run": 8,
+      "loop": false,
+      "source": "en-simple",
       "temperature": 0.0,
-      "prompt": "8 1984 in hurlock where one death and six injuries were reported both storms caused between 500000 and",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 1,
-      "source": "en-wiki",
-      "temperature": 0.0,
-      "prompt": "and mountainous island of corsica so precipitation totals are somewhat reduced from the mainland most of the island receives less than 7",
-      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "mlwiki",
-      "temperature": 0.0,
-      "prompt": "\u0d2a\u0d42\u0d7c\u0d35\u0d4d\u0d35\u0d3f\u0d15\u0d7c \u0d0f\u0d15\u0d26\u0d47\u0d36\u0d02 50000 \u0d2e\u0d41\u0d24\u0d7d 65000 \u0d35\u0d7c\u0d37\u0d19\u0d4d\u0d19\u0d7e\u0d15\u0d4d\u0d15\u0d4d \u0d2e\u0d41\u0d2e\u0d4d\u0d2a\u0d4d \u0d05\u0d35\u0d38\u0d3e\u0d28 \u0d39\u0d3f\u0d2e\u0d2f\u0d41\u0d17 \u0d15\u0d3e\u0d32\u0d18\u0d1f\u0d4d\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d7d \u0d07\u0d28\u0d4d\u0d28\u0d24\u0d4d\u0d24\u0d46 \u0d24\u0d46\u0d15\u0d4d\u0d15\u0d41\u0d15\u0d3f\u0d34\u0d15\u0d4d\u0d15\u0d7b \u0d0f\u0d37\u0d4d\u0d2f\u0d2f\u0d3f\u0d7d",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "mlwiki",
-      "temperature": 0.0,
-      "prompt": "\u0d15\u0d40\u0d7d \u0d2c\u0d3f\u0d7d\u0d21\u0d4d \u0d1f\u0d42\u0d15\u0d4d\u0d15\u0d28\u0d41\u0d15\u0d7e\u0d15\u0d4d\u0d15\u0d41\u0d02 \u0d15\u0d3e\u0d32\u0d3f\u0d7d \u0d28\u0d3e\u0d32\u0d4d \u0d35\u0d3f\u0d30\u0d32\u0d41\u0d15\u0d7e \u0d09\u0d23\u0d4d\u0d1f\u0d4d \u0d07\u0d35\u0d2f\u0d3f\u0d7d \u0d30\u0d23\u0d4d\u0d1f\u0d46\u0d23\u0d4d\u0d23\u0d02 \u0d2e\u0d41\u0d28\u0d4d\u0d28\u0d4b\u0d1f\u0d4d\u0d1f\u0d41\u0d02 \u0d2c\u0d3e\u0d15\u0d4d\u0d15\u0d3f \u0d2a\u0d3f\u0d28\u0d4d\u0d28\u0d4b\u0d1f\u0d4d\u0d1f\u0d41\u0d2e\u0d3e\u0d2f\u0d3f \u0d28\u0d3f\u0d32\u0d15\u0d4a\u0d33\u0d4d\u0d33\u0d41\u0d28\u0d4d\u0d28\u0d41 \u0d2e\u0d30\u0d15\u0d4d\u0d15\u0d4a\u0d2e\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 1,
-      "source": "mlwiki",
-      "temperature": 0.0,
-      "prompt": "\u0d15\u0d4d\u0d2f\u0d3e\u0d2e\u0d4d\u0d2a\u0d4d\u200c\u0d2c\u0d46\u0d7d, \u0d0e\u0d2e\u0d4d\u0d2e \u0d2e\u0d15\u0d4d\u0d15\u0d3f\u0d2f\u0d4b\u0d7a, \u0d05\u0d32\u0d40\u0d37\u0d4d\u0d2f \u0d15\u0d4b\u0d1f\u0d4d\u0d1f\u0d4d\u0d38\u0d4d \u0d0e\u0d28\u0d4d\u0d28\u0d3f\u0d35\u0d30\u0d4b\u0d1f\u0d4a\u0d2a\u0d4d\u0d2a\u0d02 \u0d2f\u0d41\u0d23\u0d48\u0d31\u0d4d\u0d31\u0d21\u0d4d \u0d38\u0d4d\u0d31\u0d4d\u0d31\u0d47\u0d31\u0d4d\u0d31\u0d4d\u0d38\u0d4d \u0d1f\u0d40\u0d2e\u0d3f\u0d28\u0d41 \u0d2a\u0d3f\u0d28\u0d4d\u0d28\u0d3f\u0d7d 0.12",
-      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 1,
-      "source": "mlwiki",
-      "temperature": 0.0,
-      "prompt": "\u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d4d \u0d15\u0d3e\u0d23\u0d3f\u0d15\u0d4d\u0d15\u0d41\u0d28\u0d4d\u0d28 \u0d38\u0d4d\u0d24\u0d4d\u0d30\u0d40\u0d15\u0d7e \u0d09\u0d2a\u0d26\u0d4d\u0d30\u0d35\u0d2e\u0d4b \u0d05\u0d15\u0d4d\u0d30\u0d2e\u0d2e\u0d4b \u0d28\u0d47\u0d30\u0d3f\u0d1f\u0d41\u0d28\u0d4d\u0d28\u0d24\u0d4d \u0d05\u0d38\u0d3e\u0d27\u0d3e\u0d30\u0d23\u0d2e\u0d32\u0d4d\u0d321990 \u0d15\u0d33\u0d3f\u0d32\u0d46 \u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d \u0d28\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d2f \u0d38\u0d7c\u0d35\u0d47\u0d2f\u0d3f\u0d7d 5",
-      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 1,
-      "source": "mlwiki",
-      "temperature": 0.7,
-      "prompt": "\u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d4d \u0d15\u0d3e\u0d23\u0d3f\u0d15\u0d4d\u0d15\u0d41\u0d28\u0d4d\u0d28 \u0d38\u0d4d\u0d24\u0d4d\u0d30\u0d40\u0d15\u0d7e \u0d09\u0d2a\u0d26\u0d4d\u0d30\u0d35\u0d2e\u0d4b \u0d05\u0d15\u0d4d\u0d30\u0d2e\u0d2e\u0d4b \u0d28\u0d47\u0d30\u0d3f\u0d1f\u0d41\u0d28\u0d4d\u0d28\u0d24\u0d4d \u0d05\u0d38\u0d3e\u0d27\u0d3e\u0d30\u0d23\u0d2e\u0d32\u0d4d\u0d321990 \u0d15\u0d33\u0d3f\u0d32\u0d46 \u0d15\u0d36\u0d3e\u0d2a\u0d4d\u0d2a\u0d41\u0d15\u0d33\u0d3f\u0d7d \u0d28\u0d1f\u0d24\u0d4d\u0d24\u0d3f\u0d2f \u0d38\u0d7c\u0d35\u0d47\u0d2f\u0d3f\u0d7d 5",
-      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "mlwiki",
-      "temperature": 0.0,
-      "prompt": "\u0d36\u0d15\u0d4d\u0d24\u0d2e\u0d3e\u0d2f \u0d13\u0d15\u0d4d\u0d38\u0d3f\u0d21\u0d48\u0d38\u0d3f\u0d19\u0d4d \u0d0f\u0d1c\u0d28\u0d4d\u0d31\u0d4d \u0d06\u0d2f\u0d24\u0d3f\u0d28\u0d3e\u0d7d \u0d09\u0d24\u0d4d\u0d24\u0d2e\u0d2e\u0d3e\u0d2f \u0d1f\u0d46\u0d7c\u0d2e\u0d3f\u0d28\u0d7d \u0d07\u0d32\u0d15\u0d4d\u0d1f\u0d4d\u0d30\u0d4b\u0d7a \u0d38\u0d4d\u0d35\u0d40\u0d15\u0d7c\u0d24\u0d4d\u0d24\u0d3e\u0d35\u0d3e\u0d23\u0d4d. \u0d13\u0d15\u0d4d\u0d38\u0d3f\u0d1c\u0d7b\u0d31\u0d46 \u0d31\u0d3f\u0d21\u0d15\u0d4d\u0d37\u0d7b",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "mlwikisource",
-      "temperature": 0.0,
-      "prompt": "= \u0d05\u0d28\u0d4d\u0d28\u0d41 3 \u0d2a\u0d30\u0d3f\u0d1a\u0d30 \u0d7b = \u0d35\u0d47\u0d32\u0d15\u0d4d\u0d15\u0d3e\u0d30\u0d7b \u0d05\u0d30\u0d41 = \u0d35\u0d3f\u0d36\u0d47\u0d37\u0d2e\u0d41\u0d33\u0d4d\u0d33 \u0d37\u0d23\u0d4d\u0d21\u0d7b =\u0d28\u0d2a\u0d41\u0d02\u0d38\u0d15\u0d7b 4 \u0d05\u0d26\u0d4d\u0d2f = \u0d07\u0d28\u0d4d\u0d28\u0d41",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    },
-    {
-      "run": 64,
-      "distinct_tokens": 3,
-      "source": "mlwikisource",
-      "temperature": 0.0,
-      "prompt": ") \u0d06\u0d15\u0d3e\u0d36\u0d24\u0d4d\u0d24\u0d4d \u0d28\u0d3f\u0d28\u0d4d\u0d28\u0d4d \u0d35\u0d46\u0d33\u0d4d\u0d33\u0d02 \u0d1a\u0d4a\u0d30\u0d3f\u0d1e\u0d4d\u0d1e\u0d41. \u0d0e\u0d28\u0d4d\u0d28\u0d3f\u0d1f\u0d4d\u0d1f\u0d4d \u0d24\u0d3e\u0d34\u0d4d\u200c\u0d35\u0d30\u0d15\u0d33\u0d3f\u0d32\u0d42\u0d1f\u0d46 \u0d05\u0d35\u0d2f\u0d41\u0d1f\u0d46 ( \u0d35\u0d32\u0d41\u0d2a\u0d4d\u0d2a\u0d24\u0d4d\u0d24\u0d3f\u0d7b\u0d31\u0d46 ) \u0d24\u0d4b\u0d24\u0d4d \u0d05\u0d28\u0d41\u0d38\u0d30\u0d3f\u0d1a\u0d4d\u0d1a\u0d4d \u0d35\u0d46\u0d33\u0d4d\u0d33\u0d2e\u0d4a\u0d34\u0d41\u0d15\u0d3f. \u0d05\u0d2a\u0d4d\u0d2a\u0d4b\u0d7e",
-      "generated": "100000000000000000000000000000000000000000000000000000000000000"
-    }
-  ],
-  "longest_not_repetition": [
-    {
-      "run": 60,
-      "distinct_tokens": 25,
-      "source": "en-wiki",
-      "temperature": 0.7,
-      "prompt": "of 18 and 24; 0 were from 25 to 44; 2 were from 45 to 64",
-      "generated": "; 4.9% were 65 years of age or older. for every 100 females, there were 91.5 males, and for every 100 females age 18 and over there were 90.6 males age 18 and over. for every"
-    },
-    {
-      "run": 57,
-      "distinct_tokens": 23,
-      "source": "en-wiki",
-      "temperature": 0.0,
-      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
-      "generated": "188% of residents were 65 years of age or older for every 100 females there were 988 males and for every 100 females age 18 and over there were 988 males age 18 and over. for every 100"
-    },
-    {
-      "run": 57,
-      "distinct_tokens": 26,
-      "source": "en-wiki",
-      "temperature": 0.7,
-      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
-      "generated": "168% of residents were 65 years of age or older for every 100 females there were 931 males and for every 100 females age 18 and over there were 946 males age 18 and over. about 100."
-    },
-    {
-      "run": 57,
-      "distinct_tokens": 25,
-      "source": "en-wiki",
-      "temperature": 0.7,
-      "prompt": "of 61366 the median age was 512 years 165% of residents were under the age of 18 and",
-      "generated": "184% of residents were 65 years of age or older for every 100 females there were 951 males and for every 100 females age 18 and over there were 925 males age 18 and over. for every 100"
-    },
-    {
-      "run": 53,
-      "distinct_tokens": 36,
-      "source": "mlwiki",
-      "temperature": 0.7,
-      "prompt": "soden, vogels, merk, bover and nestle-aland) concluding 62.9%, or 4",
-      "generated": "2.6% of all households were made up of individuals and 10.4% had someone living alone who was 65 years of age or older. the average household size was 2.23 and the average family size was 2.65. there were 78.76"
-    },
-    {
-      "run": 48,
-      "distinct_tokens": 25,
-      "source": "en-wiki",
-      "temperature": 0.0,
-      "prompt": "2010 census chinese camp had a population of 126. the population density was . the racial makeup of chinese camp was 9",
-      "generated": "8.8% white, 0.0% african american, 0.0% native american, 0.0% asian, 0.0% pacific islander, 0.0% from other races, and 0.0% from two or more races. hispanic or latino of any"
+      "prompt": "was 16 years old, she debuted for the japan national team against italy. she played at 1986, 1989",
+      "generated": ", 1999, 1999, 1999, 1999, 2000, 2001, 2002, 2004, 2005, 2009, 20"
     },
     {
       "run": 46,
-      "distinct_tokens": 19,
+      "distinct_tokens_in_run": 10,
+      "loop": false,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d05\u0d31\u0d31\u0d4d\u0d32\u0d38\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d0e\u0d38\u0d4d.\u0d2c\u0d3f.\u0d1f\u0d3f. \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d07\u0d1f\u0d36\u0d4d\u0d36\u0d47\u0d30\u0d3f \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d \u0d15\u0d41\u0d1f\u0d4d\u0d1f\u0d2e\u0d24\u0d4d\u0d24\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d15\u0d15\u0d4d\u0d15\u0d3e\u0d1f\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d35\u0d46\u0d7a\u0d2e\u0d23\u0d3f \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d",
+      "generated": ", 2011, 2012, 2013, 2014, 2015, 2016, 2019, 2019, 2019, 2019, 20"
+    },
+    {
+      "run": 33,
+      "distinct_tokens_in_run": 14,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "two metro station pedestrian bridges, and in between the two existing arrivals and departures roadways, placing all of national hall within the",
+      "generated": "city's busy road and busy roads. the area also has a large number of other stations, including the keel. the track was used in the 1960s, 1970s, 1980s, 1990s and"
+    },
+    {
+      "run": 28,
+      "distinct_tokens_in_run": 9,
+      "loop": false,
+      "source": "mlwiki",
+      "temperature": 0.0,
+      "prompt": "\u0d32\u0d19\u0d4d\u0d15 \u0d2e\u0d3f\u0d28\u0d3e\u0d7c, 84 \u0d17\u0d41\u0d02\u0d2c\u0d1c\u0d41\u0d02 , \u0d05\u0d24\u0d4d \u0d15\u0d42\u0d1f\u0d3e\u0d24\u0d46 \u0d16\u0d48\u0d28\u0d3e\u0d39\u0d4d, \u0d26\u0d7c\u0d17 \u0d13\u0d2b\u0d4d \u0d38\u0d2f\u0d4d\u0d2f\u0d3f\u0d26\u0d4d \u0d2e\u0d3f\u0d7c \u0d05\u0d7c\u0d1c\u0d4d\u0d1c",
+      "generated": "\u0d41\u0d28, 2014, 2015, 2016, 2019, 2019, 2019, 2019, 2019, 2019, 2019,"
+    },
+    {
+      "run": 26,
+      "distinct_tokens_in_run": 17,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "in the philippines, chua notes that the chinese community comprise one percent of the population but control 60 percent of the private economy, with the",
+      "generated": "largest percentage of the population being between 150 and 200,000. the population of the city is 16,528. the population density was . the racial makeup of the city was 62.8% white, 16.5% native american"
+    },
+    {
+      "run": 26,
+      "distinct_tokens_in_run": 26,
+      "loop": false,
+      "source": "mlwikisource",
+      "temperature": 0.7,
+      "prompt": "\u0d0e\u0d34\u0d41\u0d24\u0d3f\u0d2f \u0d2a\u0d4d\u0d30\u0d15\u0d3e\u0d30\u0d02 \u0d09\u0d31\u0d41\u0d2a\u0d4d\u0d2a\u0d4d\u0d2f \u0d07\u0d2a\u0d4d\u0d2a\u0d4a\u0d7e \u0d15\u0d4a\u0d1f\u0d41\u0d24\u0d4d\u0d24\u0d2f\u0d1a\u0d4d\u0d1a\u0d24\u0d3e\u0d15\u0d41\u0d28\u0d4d\u0d28\u0d41 \u0d38\u0d3e\u0d39\u0d46\u0d2c\u0d30\u0d35\u0d7c\u0d15\u0d33\u0d46 \u0d38\u0d4d\u0d28\u0d46\u0d39\u0d02 \u0d35\u0d34\u0d3f\u0d2a\u0d4a\u0d32\u0d46 \u0d09\u0d23\u0d4d\u0d1f\u0d3e\u0d15\u0d15\u0d4a\u0d23\u0d4d\u0d1f \u0d2c\u0d46\u0d39\u0d41\u0d2e\u0d3e\u0d28\u0d2a\u0d4d\u0d2a\u0d46\u0d1f\u0d4d\u0d1f \u0d17\u0d46\u0d35\u0d28",
+      "generated": "\u0d7c \u0d38\u0d3e\u0d2f\u0d4d\u0d2a \u0d05\u0d35\u0d7c\u0d15\u0d7e\u0d15\u0d4d\u0d15 \u0d15\u0d41\u0d2c\u0d1e\u0d4d\u0d1e\u0d3f\u0d2f\u0d3f\u0d32\u0d46\u0d15\u0d4d\u0d15 \u0d05\u0d2f\u0d1a\u0d4d\u0d1a\u0d3e\u0d7d \u0d2e\u0d46\u0d1f\u0d2e\u0d3e\u0d38\u0d02 17 \u0d28\u0d41 \u0d35\u0d28\u0d4d\u0d28\u0d24. 22 \u0d28\u0d41 270 \u0d06\u0d2e\u0d24 \u0d30\u0d3e\u0d1c\u0d36\u0d4d\u0d30\u0d40 \u0d35\u0d1f\u0d15\u0d4d\u0d15\u0d46 \u0d05\u0d27\u0d3f\u0d15\u0d3e\u0d30\u0d3f \u0d24\u0d32\u0d1a\u0d4d\u0d1a\u0d46\u0d30\u0d3f \u0d24\u0d41\u0d15\u0d4d\u0d15\u0d3f\u0d1f\u0d3f \u0d38\u0d41\u0d2a\u0d4d\u0d30\u0d7c\u0d21\u0d46\u0d23\u0d4d\u0d1f\u0d7b \u0d15\u0d43\u0d38\u0d4d\u0d24\u0d2a\u0d4d\u0d2a\u0d7c \u0d2a\u0d3f\u0d32\u0d3f \u0d38\u0d3e\u0d2f\u0d4d\u0d2a\u0d3f \u0d05\u0d35\u0d7c\u0d15\u0d7e\u0d15\u0d4d\u0d15 \u0d24\u0d4a\u0d1f\u0d2a\u0d4d\u0d2a\u0d7b \u0d2a\u0d40\u0d32\u0d3f \u0d38\u0d3e\u0d2f\u0d4d\u0d2a\u0d3f \u0d05\u0d35\u0d7c\u0d15\u0d7e"
+    },
+    {
+      "run": 25,
+      "distinct_tokens_in_run": 16,
+      "loop": false,
+      "source": "en-simple",
+      "temperature": 0.0,
+      "prompt": "the 2020 census counted 8,063,232 people living on long island, making it by far the most pop",
+      "generated": "ulated island in the world. the population density was . the racial makeup of the town was 93.3% white, 0.3% native american, 0.3% native american, 0.4% native american, 0.4% native american, 0.5"
+    },
+    {
+      "run": 25,
+      "distinct_tokens_in_run": 16,
+      "loop": false,
       "source": "en-simple",
       "temperature": 0.7,
-      "prompt": "improvement stores headquartered in boucherville, quebec. they have around 425 store locations all across canada and one in saint",
-      "generated": "-domingue. the size of the town is 800,000,000,000,000,000,000,000,000,000,000,000 and affiliation"
+      "prompt": "village and civil parish in epping forest, essex, england. in 2001 there were 1171 people living in",
+      "generated": "the village. the population density was . the racial makeup of the village was 98.1% white, 25.1% native american, 7.2% asian, 1.7% native american, 2.4% asian, 2.5% pacific islander,"
     },
     {
-      "run": 41,
-      "distinct_tokens": 16,
-      "source": "en-wiki",
-      "temperature": 0.0,
-      "prompt": "and indigenous women. modern studies have revealed traces of dna that renders physical traits similar to amazonian tribes in individuals throughout cuba, although",
-      "generated": "the scandinavian population is not in the region. the scandinavian population is 1,000,000,000,000,000,000,000,000,000,00"
-    },
-    {
-      "run": 41,
-      "distinct_tokens": 26,
-      "source": "en-wiki",
+      "run": 25,
+      "distinct_tokens_in_run": 8,
+      "loop": false,
+      "source": "mlwiki",
       "temperature": 0.7,
-      "prompt": "2010 census chinese camp had a population of 126. the population density was . the racial makeup of chinese camp was 9",
-      "generated": "5.5% white, 0.3% african american, 0.2% native american, 0.3% asian, 0.0% pacific islander, 0.08% from other races, and 0.05% from two or more races. hispanic or latino"
+      "prompt": "\u0d05\u0d31\u0d31\u0d4d\u0d32\u0d38\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d0e\u0d38\u0d4d.\u0d2c\u0d3f.\u0d1f\u0d3f. \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d07\u0d1f\u0d36\u0d4d\u0d36\u0d47\u0d30\u0d3f \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d \u0d15\u0d41\u0d1f\u0d4d\u0d1f\u0d2e\u0d24\u0d4d\u0d24\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d15\u0d15\u0d4d\u0d15\u0d3e\u0d1f\u0d4d \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, \u0d35\u0d46\u0d7a\u0d2e\u0d23\u0d3f \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d",
+      "generated": ", \u0d2e\u0d3f\u0d15\u0d1a\u0d4d\u0d1a \u0d28\u0d1f\u0d28\u0d41\u0d33\u0d4d\u0d33 \u0d15\u0d47\u0d30\u0d33 \u0d38\u0d02\u0d38\u0d4d\u0d25\u0d3e\u0d28 \u0d05\u0d35\u0d3e\u0d7c\u0d21\u0d4d, 2015, \u0d0e\u0d02.\u0d1f\u0d3f.\u0d38\u0d3f. 2016, 2016, 2019, 2010, 2012, 2013, 2016, 2"
+    }
+  ],
+  "longest_loops": [
+    {
+      "run": 64,
+      "distinct_tokens_in_run": 1,
+      "loop": true,
+      "source": "en-simple",
+      "temperature": 0.0,
+      "prompt": "n. lethaeus, it was proposed as a distinct species from the \"jane\" (bmrp 2002.4",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
     },
     {
-      "run": 39,
-      "distinct_tokens": 28,
+      "run": 64,
+      "distinct_tokens_in_run": 1,
+      "loop": true,
+      "source": "en-simple",
+      "temperature": 0.0,
+      "prompt": "dancer of fourteen years 1881 is a statue by edgar degas the work measures 385 inches 9",
+      "generated": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 63,
+      "distinct_tokens_in_run": 1,
+      "loop": true,
       "source": "en-wiki",
       "temperature": 0.0,
-      "prompt": "partner present and 261% were households with a female householder and no spouse or partner present about 254% of all households were made up",
-      "generated": "of individuals and 188% had someone living alone who was 65 years of age or older the average household size was 238 and the average family size was 248 and the average family size was 249 and the average family size was 249 and the average"
+      "prompt": "armed forces might gain classified data about the aircraft in november 2018 it was reported that taiwanese military leaders had abandoned efforts to buy the f-",
+      "generated": "1000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "run": 63,
+      "distinct_tokens_in_run": 2,
+      "loop": true,
+      "source": "mlwikisource",
+      "temperature": 0.0,
+      "prompt": "\u0d30\u0d3e\u0d1c\u0d3e\u0d35\u0d3e\u0d15\u0d4d\u0d15\u0d3f \u0d05\u0d2d\u0d3f \u0d37\u0d47\u0d15\u0d35\u0d41\u0d02 \u0d1a\u0d46\u0d2f\u0d4d\u0d24\u0d41. \u0d05\u0d19\u0d4d\u0d15\u0d35\u0d41\u0d02 , \u0d1a\u0d41\u0d19\u0d4d\u0d15\u0d35\u0d41\u0d02 , \u0d35\u0d34\u0d3f\u0d2a\u0d3f\u0d34\u0d2f\u0d41\u0d02 , \u0d05\u0d2e\u0d4d\u0d2a\u0d35\u0d3e\u0d30\u0d3f\u0d2f\u0d41\u0d02 , \u0d10\u0d2e\u0d4d\u0d2e",
+      "generated": "\u0d7c , , , , , , , , , , , , , , , , , , , , , , , , , , , , , , ,"
+    },
+    {
+      "run": 61,
+      "distinct_tokens_in_run": 1,
+      "loop": true,
+      "source": "mlwikisource",
+      "temperature": 0.0,
+      "prompt": "\u0d15\u0d34\u0d3f\u0d2f\u0d41\u0d28\u0d4d\u0d28\u0d24\u0d3f\u0d28\u0d41\u0d2e\u0d41\u0d2e\u0d4d\u0d2a\u0d47 \u0d05\u0d24\u0d3f\u0d28\u0d4d\u0d31\u0d46 \u0d15\u0d3e\u0d2f\u0d4d\u0d15\u0d7e\u0d15\u0d4a\u0d23\u0d4d\u0d1f\u0d4d \u0d09\u0d2a\u0d4d\u0d2a\u0d47\u0d30\u0d3f \u0d09\u0d23\u0d4d\u0d1f\u0d3e\u0d15\u0d4d\u0d15\u0d3f\u0d15\u0d4d\u0d15\u0d4a\u0d23\u0d4d\u0d1f\u0d41\u0d35\u0d28\u0d4d\u0d28\u0d41 \u0d35\u0d3f\u0d33\u0d2e\u0d4d\u0d2a\u0d3f \u0d05\u0d19\u0d4d\u0d19\u0d28\u0d46 \u0d09\u0d23\u0d4d\u0d1f\u0d3e\u0d2f\u0d24\u0d3e\u0d23\u0d4d \u0d15\u0d4b\u0d35\u0d32\u0d4d \u0d15\u0d4b\u0d35\u0d7d\u0d15\u0d4d\u0d15\u0d3e \u0d07\u0d2a\u0d4d\u0d2a\u0d4b\u0d34\u0d41\u0d02 \u0d35\u0d46\u0d32\u0d3f\u0d15\u0d4d\u0d15\u0d41 \u0d2a\u0d4d\u0d30\u0d27\u0d3e\u0d28\u0d2e",
+      "generated": "\u0d3e\u0d15\u0d2f\u0d3e\u0d7d 10000000000000000000000000000000000000000000000000000000000000"
     }
   ],
   "pass": false
