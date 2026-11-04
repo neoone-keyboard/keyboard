@@ -1,8 +1,9 @@
 import UIKit
 import KeyboardCore
 
-/// The emoji panel, over the keys at their height: the recents and Unicode's groups in one
-/// grid that scrolls down, and along the bottom ABC (back to the letters), a symbol per group
+/// The emoji panel, over the keys at their height: a search field (it opens `EmojiSearchView`),
+/// the recents and Unicode's groups in one grid that scrolls down, and along the bottom ABC
+/// (back to the letters), a symbol per group
 /// that jumps the grid to it, and backspace (repeats while held). Holding an emoji that takes
 /// skin tones shows them in the alternates popup; sliding picks one. The grid's cells are
 /// reused and show pictures from `EmojiRenderer`, drawn off the main thread, not text: text
@@ -14,6 +15,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     var onEmoji: (@MainActor (_ emoji: String, _ toneFor: String?) -> Void)?
     var onBackspace: (@MainActor () -> Void)?
     var onLetters: (@MainActor () -> Void)?
+    var onSearch: (@MainActor () -> Void)?
 
     private struct Section {
         let name: String
@@ -22,7 +24,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     }
 
     private var sections: [Section] = []
-    private var catalog: EmojiCatalog?
+    private(set) var catalog: EmojiCatalog?
     private var renderer: EmojiRenderer?
     /// Cells filled since the panel opened, for the diagnostics log.
     private var cellsShown = 0
@@ -33,6 +35,10 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     private let layout = UICollectionViewFlowLayout()
     private lazy var grid = UICollectionView(frame: .zero, collectionViewLayout: layout)
     private let strip = UIStackView()
+    /// Looks like a search field; the search itself opens in the top bar's place.
+    private let searchField = UIControl()
+    private let searchIcon = UIImageView(image: UIImage(systemName: "magnifyingglass"))
+    private let searchLabel = UILabel()
     private let lettersButton = UIButton(type: .custom)
     private let backspaceButton = UIButton(type: .custom)
     private var categoryButtons: [UIButton] = []
@@ -52,6 +58,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     private static let columns: CGFloat = 8
     private static let rowHeight: CGFloat = 44
     private static let stripHeight: CGFloat = 40
+    private static let searchHeight: CGFloat = 34
     private static let headerHeight: CGFloat = 24
     private static let cellID = "emoji"
     private static let headerID = "header"
@@ -105,7 +112,21 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         strip.alignment = .fill
         strip.spacing = 2
 
-        for view in [grid, strip] as [UIView] {
+        searchField.layer.cornerRadius = 8
+        searchField.isAccessibilityElement = true
+        searchField.accessibilityLabel = "Search emoji"
+        searchField.accessibilityTraits = .searchField
+        searchField.addAction(UIAction { [weak self] _ in self?.onSearch?() }, for: .touchUpInside)
+        searchIcon.contentMode = .scaleAspectFit
+        searchLabel.text = "Search emoji"
+        searchLabel.font = .systemFont(ofSize: 16)
+        for view in [searchIcon, searchLabel] as [UIView] {
+            view.isUserInteractionEnabled = false
+            view.translatesAutoresizingMaskIntoConstraints = false
+            searchField.addSubview(view)
+        }
+
+        for view in [searchField, grid, strip] as [UIView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -113,7 +134,15 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         NSLayoutConstraint.activate([
             grid.leadingAnchor.constraint(equalTo: leadingAnchor),
             grid.trailingAnchor.constraint(equalTo: trailingAnchor),
-            grid.topAnchor.constraint(equalTo: topAnchor),
+            searchField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            searchField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            searchField.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            searchField.heightAnchor.constraint(equalToConstant: Self.searchHeight),
+            searchIcon.leadingAnchor.constraint(equalTo: searchField.leadingAnchor, constant: 8),
+            searchIcon.centerYAnchor.constraint(equalTo: searchField.centerYAnchor),
+            searchLabel.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: 6),
+            searchLabel.centerYAnchor.constraint(equalTo: searchField.centerYAnchor),
+            grid.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 2),
             grid.bottomAnchor.constraint(equalTo: strip.topAnchor, constant: -2),
             strip.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 3),
             strip.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -3),
@@ -165,6 +194,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     func apply(_ theme: KeyboardTheme) {
         self.theme = theme
         backgroundColor = theme.background
+        searchField.backgroundColor = theme.key
+        searchIcon.tintColor = theme.hintText
+        searchLabel.textColor = theme.hintText
         lettersButton.backgroundColor = theme.specialKey
         lettersButton.setTitleColor(theme.keyText, for: .normal)
         lettersButton.setTitleColor(theme.hintText, for: .highlighted)
@@ -333,8 +365,8 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     }
 }
 
-/// One emoji in the grid, lit while pressed: its picture, once drawn.
-private final class EmojiCell: UICollectionViewCell {
+/// One emoji in the grid (or the search's row), lit while pressed: its picture, once drawn.
+final class EmojiCell: UICollectionViewCell {
     private let picture = EmojiPicture()
     private var emoji = ""
     private var theme: KeyboardTheme?

@@ -19,11 +19,15 @@ final class KeyboardViewController: UIInputViewController {
     private let settingsPanel = SettingsPanelView()
     /// In the top bar's place while open, with the keys below typing its search.
     private let yourWordsView = YourWordsView()
-    /// Over the keys while open; made on opening and dropped on closing, with its catalog.
+    /// Over the keys and the top bar while open; made on opening and dropped on closing, with
+    /// its catalog.
     private var emojiPanel: EmojiPanelView?
+    /// The panel's search: in the top bar's place while open, with the keys below typing it.
+    private let emojiSearchView = EmojiSearchView()
+    private var emojiSearchOpen: Bool { !emojiSearchView.isHidden }
     /// The recent emoji and the tone chosen for each, saved in the keyboard's container.
     private lazy var emojiHistory = EmojiHistory.load(from: Self.emojiHistoryURL)
-    /// The top bar (or "Your words") over the keys.
+    /// The top bar (or "Your words", or the emoji search) over the keys.
     private let stack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
     private var yourWordsHeight: NSLayoutConstraint?
@@ -60,7 +64,7 @@ final class KeyboardViewController: UIInputViewController {
     /// and with it whatever is still inside: the keys, the bar and the panel, about 1 MB a
     /// session until the memory gate turned prediction off. Emptied, and without its height
     /// constraint, what stays behind is about 50 KB a session (the app's `-keyboardCycles`).
-    /// "Your words" is in `stack`, so it goes with it.
+    /// "Your words" and the emoji search are in `stack`, so they go with it.
     isolated deinit {
         stack.removeFromSuperview()
         settingsPanel.removeFromSuperview()
@@ -171,8 +175,15 @@ final class KeyboardViewController: UIInputViewController {
 
         stack.addArrangedSubview(topBar)
         stack.addArrangedSubview(yourWordsView)
+        stack.addArrangedSubview(emojiSearchView)
         stack.addArrangedSubview(keyboardView)
         yourWordsView.isHidden = true
+        emojiSearchView.isHidden = true
+        emojiSearchView.onBack = { [unowned self] in
+            hideEmojiSearch()
+            showEmojiPanel()
+        }
+        emojiSearchView.onPick = { [unowned self] emoji in insertPickedEmoji(emoji, toneFor: nil) }
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -189,11 +200,15 @@ final class KeyboardViewController: UIInputViewController {
         let wordsHeight = yourWordsView.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
         wordsHeight.priority = .required - 1
         yourWordsHeight = wordsHeight
+        let searchHeight = emojiSearchView.heightAnchor.constraint(
+            equalToConstant: Self.topBarHeight + EmojiSearchView.extraHeight)
+        searchHeight.priority = .required - 1
         let barHeight = topBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
         barHeight.priority = .required - 1
         NSLayoutConstraint.activate([
             height,
             wordsHeight,
+            searchHeight,
             barHeight,
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 3),
             stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
@@ -221,6 +236,7 @@ final class KeyboardViewController: UIInputViewController {
         hideYourWords()
         hideSettings()
         hideEmojiPanel()
+        hideEmojiSearch()
         noteExternalChange()
         applySettings()
     }
@@ -243,11 +259,12 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// The lists of "Your words" and the emoji panel are held only while they show.
+    /// The lists of "Your words", the emoji panel and its search are held only while they show.
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         hideYourWords()
         hideEmojiPanel()
+        hideEmojiSearch()
     }
 
     /// Gives the input controller the engine's learned addresses, so letters that begin one
@@ -283,6 +300,7 @@ final class KeyboardViewController: UIInputViewController {
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         emojiPanel?.releaseMemory()
+        emojiSearchView.releaseMemory()
         if gate.memoryWarning(now: ProcessInfo.processInfo.systemUptime) == .off {
             log.warning("Memory warning (\(Diagnostics.footprint())); prediction off for now")
             shedPrediction()
@@ -296,6 +314,10 @@ final class KeyboardViewController: UIInputViewController {
     private func handle(_ event: GestureEvent) {
         if yourWordsOpen {
             handleSearch(event)
+            return
+        }
+        if emojiSearchOpen {
+            handleEmojiSearch(event)
             return
         }
         let pageBefore = input.page, shiftBefore = input.shift
@@ -398,7 +420,13 @@ final class KeyboardViewController: UIInputViewController {
         .flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
         .map(EmojiWords.init)
 
-    /// Covers the keys, as the settings panel does, with the catalog read from the bundle.
+    /// The panel's search words, memory-mapped once per process; nil if missing from the bundle.
+    private static let emojiSearchWords: EmojiWords? = Bundle.main
+        .url(forResource: "emoji-search", withExtension: "txt", subdirectory: "Emoji")
+        .flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
+        .map(EmojiWords.init)
+
+    /// Covers the keys and the top bar, with the catalog read from the bundle.
     private func showEmojiPanel() {
         guard emojiPanel == nil,
               let url = Bundle.main.url(forResource: "emoji", withExtension: "txt", subdirectory: "Emoji"),
@@ -408,14 +436,7 @@ final class KeyboardViewController: UIInputViewController {
         topBar.cancelRemoval()
         let before = MemoryMonitor.footprintBytes()
         let panel = EmojiPanelView()
-        panel.onEmoji = { [unowned self] emoji, base in
-            if let base { emojiHistory.chooseTone(emoji, for: base) }
-            let page = input.page, shift = input.shift
-            output.beginEdit()
-            input.insertEmoji(emoji)
-            noteEmojiUsed(emoji)
-            afterInput(pageBefore: page, shiftBefore: shift)
-        }
+        panel.onEmoji = { [unowned self] emoji, base in insertPickedEmoji(emoji, toneFor: base) }
         panel.onBackspace = { [unowned self] in
             let page = input.page, shift = input.shift
             output.beginEdit()
@@ -423,12 +444,14 @@ final class KeyboardViewController: UIInputViewController {
             afterInput(pageBefore: page, shiftBefore: shift)
         }
         panel.onLetters = { [unowned self] in hideEmojiPanel() }
+        panel.onSearch = { [unowned self] in showEmojiSearch() }
         panel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(panel)
+        // Its search field takes the top bar's place.
         NSLayoutConstraint.activate([
             panel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
             panel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
-            panel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            panel.topAnchor.constraint(equalTo: stack.topAnchor),
             panel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
         ])
         panel.apply(theme)
@@ -442,6 +465,82 @@ final class KeyboardViewController: UIInputViewController {
         emojiPanel?.removeFromSuperview()
         emojiPanel = nil
         log.info("Emoji panel closed; \(statistics); \(Diagnostics.footprint()) once dropped")
+    }
+
+    /// An emoji picked in the panel or its search, with the base it is a chosen tone for.
+    private func insertPickedEmoji(_ emoji: String, toneFor base: String?) {
+        if let base { emojiHistory.chooseTone(emoji, for: base) }
+        let page = input.page, shift = input.shift
+        output.beginEdit()
+        input.insertEmoji(emoji)
+        noteEmojiUsed(emoji)
+        afterInput(pageBefore: page, shiftBefore: shift)
+    }
+
+    /// Swaps the panel for its search, in the top bar's place, over the letter keys. The
+    /// panel's catalog goes to the search; the panel itself is dropped.
+    private func showEmojiSearch() {
+        guard let catalog = emojiPanel?.catalog, let words = Self.emojiSearchWords else { return }
+        hideEmojiPanel()
+        keyboardView.cancelAllTouches()
+        if input.page != .letters, !input.page.isMalayalam {
+            input.handle(.page(.letters), at: ProcessInfo.processInfo.systemUptime)
+            reloadKeys()
+        }
+        emojiSearchView.apply(theme)
+        emojiSearchView.show(EmojiSearch(words: words, catalog: catalog, history: emojiHistory))
+        topBar.isHidden = true
+        emojiSearchView.isHidden = false
+        updateHeight()
+        log.info("Emoji search opened; footprint \(Diagnostics.footprint())")
+    }
+
+    /// Back to the top bar; the search and its pictures are dropped.
+    private func hideEmojiSearch() {
+        guard emojiSearchOpen else { return }
+        emojiSearchView.isHidden = true
+        emojiSearchView.release()
+        topBar.isHidden = false
+        updateHeight()
+        requestSuggestions()
+        refreshTopBar()
+        log.info("Emoji search closed; footprint \(Diagnostics.footprint())")
+    }
+
+    /// While the emoji search shows, letters, space and backspace edit its query, as with
+    /// "Your words"; return and the emoji key go back to the panel's grid.
+    private func handleEmojiSearch(_ event: GestureEvent) {
+        switch event {
+        case .tap(let action):
+            switch emojiSearchView.handle(action) {
+            case .edited, .ignored:
+                return
+            case .close:
+                hideEmojiSearch()
+                showEmojiPanel()
+            case .passThrough:
+                if action == .nextKeyboard {
+                    advanceToNextInputMode()
+                    return
+                }
+                let pageBefore = input.page, shiftBefore = input.shift
+                input.handle(action, at: ProcessInfo.processInfo.systemUptime)
+                if input.page != pageBefore {
+                    reloadKeys()
+                } else if input.shift != shiftBefore {
+                    keyboardView.refreshLabels()
+                }
+            }
+        case .commitAlternate(let text):
+            emojiSearchView.type(text)
+        case .deleteWord:
+            emojiSearchView.clearQuery()
+        case .openSettings:
+            hideEmojiSearch()
+            showSettings()
+        case .moveCursor, .showAlternates, .highlightAlternate:
+            break
+        }
     }
 
     /// An emoji went in, from the panel or the bar: first in the recents, saved at once.
@@ -553,7 +652,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func updateHeight() {
-        let extra = yourWordsOpen ? yourWordsExtraHeight : 0
+        let extra = yourWordsOpen ? yourWordsExtraHeight : emojiSearchOpen ? EmojiSearchView.extraHeight : 0
         yourWordsHeight?.constant = Self.topBarHeight + extra
         heightConstraint?.constant = (settings.numberRow ? 320 : 270) + extra
     }
@@ -566,6 +665,7 @@ final class KeyboardViewController: UIInputViewController {
         topBar.apply(theme)
         if !settingsPanel.isHidden { settingsPanel.apply(theme) }
         if yourWordsOpen { yourWordsView.apply(theme) }
+        if emojiSearchOpen { emojiSearchView.apply(theme) }
         input.numberRow = settings.numberRow
         keyboardView.playsClicks = settings.keyClicks
         updateHeight()
