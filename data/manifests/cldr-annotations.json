@@ -4,11 +4,11 @@
   "homepage": "https://cldr.unicode.org/",
   "licence": "Unicode License v3",
   "licence_url": "https://www.unicode.org/license.txt",
-  "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, common/annotations/en.xml and ml.xml, distributed under the Unicode License v3.",
+  "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, common/annotations/ and common/annotationsDerived/ en.xml and ml.xml, distributed under the Unicode License v3.",
   "verdict": "use",
   "verdict_reason": "Permissive, like the Unicode emoji data: the CLDR data files are under the Unicode License v3, which allows modified copies with the notice, carried in the app's About screen.",
-  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into apps/ios/KeyboardExtension/Emoji/emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt. No Manglish: CLDR has no romanised Malayalam.",
-  "retrieved": "2026-11-04",
+  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into apps/ios/KeyboardExtension/Emoji/emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt, with the derived names (flags by country, keycaps, people by role and gender) from annotationsDerived. No Manglish: CLDR has no romanised Malayalam.",
+  "retrieved": "2026-11-05",
   "files": [
     {
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/en.xml",
@@ -19,6 +19,16 @@
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/ml.xml",
       "sha256": "dc715654a2505f407a1c6cd82ac312b7c60f6a1fb814484662c2e693a71b96ec",
       "path": "ml.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/en.xml",
+      "sha256": "a4a6c1a4c341d94179cb116623c5f44c47400a5bc55da483423ef7430ecf622e",
+      "path": "derived-en.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/ml.xml",
+      "sha256": "c13a064ef79c2eaf88f9fd80604ef7107678511ea49ce6497d99084cd17a4729",
+      "path": "derived-ml.xml"
     }
   ]
 }

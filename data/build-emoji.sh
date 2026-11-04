@@ -10,4 +10,5 @@ RAW="$ROOT/data/raw"
 uv run --quiet --project "$ROOT/data/pipeline" python -I "$ROOT/data/pipeline/emoji_data.py" \
   --emoji-test "$RAW/unicode-emoji/emoji-test.txt" \
   --annotations "$RAW/cldr-annotations/en.xml" --annotations "$RAW/cldr-annotations/ml.xml" \
+  --annotations "$RAW/cldr-annotations/derived-en.xml" --annotations "$RAW/cldr-annotations/derived-ml.xml" \
   --out "$ROOT/apps/ios/KeyboardExtension/Emoji"

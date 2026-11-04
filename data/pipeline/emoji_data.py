@@ -40,6 +40,12 @@ def _key(emoji: str) -> str:
     return "".join(c for c in emoji if c not in TONES and c != VS16)
 
 
+def _toned(node: ET.Element) -> bool:
+    """A skin-toned form, as annotationsDerived lists them: its words ("medium skin tone") would
+    otherwise land on the untoned emoji it shares a key with."""
+    return any(c in TONES for c in node.get("cp", ""))
+
+
 def _version_tuple(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in version.split("."))
 
@@ -108,7 +114,7 @@ def parse_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[s
     names: dict[str, str] = {}
     for node in ET.fromstring(xml).iter("annotation"):
         found = order.get(_key(node.get("cp", "")))
-        if not found or not node.text:
+        if not found or not node.text or _toned(node):
             continue
         emoji = found[1]
         if node.get("type") == "tts":
@@ -137,7 +143,7 @@ def search_words(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, t
     found: dict[str, set[tuple[int, str]]] = {}
     for node in ET.fromstring(xml).iter("annotation"):
         entry = order.get(_key(node.get("cp", "")))
-        if not entry or not node.text:
+        if not entry or not node.text or _toned(node):
             continue
         into = named if node.get("type") == "tts" else found
         for phrase in node.text.split("|"):
