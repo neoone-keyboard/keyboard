@@ -1,16 +1,24 @@
 import CoreGraphics
 import CoreText
 import Foundation
+import Synchronization
 
 /// The emoji panel's pictures: each emoji drawn by CoreText into a small image, off the main
 /// thread, and a few of them kept.
 ///
 /// Emoji drawn as text stay decoded in the system emoji font's cache for the life of the
 /// process (about 48 KB each at 3x: over 100 MB for a scroll through the whole panel), and a
-/// memory warning doesn't free them (Simulator). So the drawing uses a private copy of the
-/// font, made from the font file's bytes (memory-mapped, so clean pages), and swapped for a
-/// fresh copy after every `fontLifetime` emoji: the cache goes with the old one. Without the
-/// file it falls back to the system font, which looks the same and costs that memory.
+/// memory warning doesn't free them. So the drawing uses a private copy of the font, made
+/// from the font file's mapped bytes (`EmojiFontFile`: clean pages, never copied), and
+/// swapped for a fresh copy after every `fontLifetime` emoji: the cache goes with the old
+/// one. Without the file it falls back to the system font, which looks the same and costs
+/// that memory.
+///
+/// Emoji are drawn in batches of up to `batchSize`, those on screen (`onScreen`) first, then
+/// those prefetched, then any others asked for; a batch is split between two threads of the
+/// renderer's own, which end on `close`. (CoreText holds on to the font a thread last drew
+/// with until that thread draws with another or ends, so pooled threads would keep old
+/// fonts, and their caches, alive.)
 @MainActor
 public final class EmojiRenderer {
     /// The images' width and height in pixels: the emoji's point size × the screen's scale.
@@ -18,89 +26,224 @@ public final class EmojiRenderer {
     /// Emoji drawn so far, and the private fonts made for them.
     public private(set) var drawn = 0
     public private(set) var fontsMade = 0
-    public var usesPrivateFont: Bool { painter.fontData != nil }
+    public var usesPrivateFont: Bool { EmojiFontFile.shared != nil }
+    /// The private fonts in this process that CoreText hasn't freed yet.
+    public nonisolated static var fontCopiesAlive: Int { EmojiFontFile.copiesAlive.load(ordering: .relaxed) }
+    /// The emoji on screen, top to bottom, drawn before any others. Without it, in the order
+    /// asked for.
+    public var onScreen: (@MainActor () -> [String])?
     /// Lines for the diagnostics log (never typed text): the font file once, each private
-    /// font made and dropped, and the timings every `summaryEvery` emoji.
+    /// font made and dropped, the timings every `summaryEvery` emoji and on close.
     public var onLog: (@MainActor (String) -> Void)? {
-        didSet { if oldValue == nil { onLog?(painter.fileReport) } }
+        didSet { if oldValue == nil { onLog?(EmojiFontFile.report) } }
     }
 
     private let cache = NSCache<NSString, Picture>()
+    /// Asked for by cells and not yet drawn: who to tell, and when each was first asked.
     private var waiting: [String: [@MainActor (CGImage) -> Void]] = [:]
-    /// When each emoji in `waiting` was asked for.
     private var askedAt: [String: ContinuousClock.Instant] = [:]
+    private var askOrder: [String] = []
+    /// Prefetched, in the order asked.
+    private var ahead: [String] = []
+    private var drawing = false
+    private var pumpQueued = false
+    private var closed = false
     private var timings = EmojiTimings()
     private let painter: Painter
-    /// Each draw's leftovers (the old font among them) are freed as it ends, not in a batch.
-    private let queue = DispatchQueue(label: "me.jishnu.keyboard.emoji-renderer", qos: .userInitiated,
-                                      autoreleaseFrequency: .workItem)
 
-    /// Emoji drawn with one private font before it is replaced: about 1.2 MB of its cache at
-    /// 3x. Making one takes about 0.2 ms; longer lifetimes measured higher peaks (Simulator).
-    public nonisolated static let fontLifetime = 25
+    /// Emoji drawn with one private font before it is replaced: a screen of the panel (5 rows
+    /// of 8) and a row ahead, about 2.3 MB of its cache at 3x.
+    public nonisolated static let fontLifetime = 48
+    /// Emoji sent to be drawn at once: two rows, so what is on screen is looked at again soon
+    /// after a scroll.
+    public nonisolated static let batchSize = 16
+    /// Prefetched emoji not yet drawn that are kept; older ones have scrolled past.
+    static let aheadLimit = 64
+    /// Asked-for emoji off screen that are kept; older ones are dropped (a cell asks again
+    /// when it shows).
+    static let offScreenLimit = 64
     /// A timings line in the log every so many emoji drawn.
     public nonisolated static let summaryEvery = 100
 
-    /// `cacheBytes` bounds the kept images, as their pages take (48 KB for 96 × 96).
+    /// `cacheBytes` bounds the kept images, as their pages take (48 KB for 96 × 96). The
+    /// first font is made at once, while the panel is laid out.
     public init(pixelSide: Int, cacheBytes: Int = 3 * 1_048_576) {
         self.pixelSide = pixelSide
         painter = Painter(side: pixelSide)
         cache.totalCostLimit = cacheBytes
+        painter.thread.async { [painter, weak self] in
+            let made = painter.prepare()
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.noteFont(made) } }
+        }
+    }
+
+    /// Dropped without `close`: the threads still end.
+    isolated deinit {
+        if !closed { painter.stop() }
     }
 
     /// `emoji`'s image if it's kept; otherwise nil, and `then` gets it once drawn.
     public func image(for emoji: String, then: @escaping @MainActor (CGImage) -> Void) -> CGImage? {
         if let picture = cache.object(forKey: emoji as NSString) { return picture.image }
-        request(emoji, then: then)
+        guard !closed else { return nil }
+        if waiting[emoji] == nil {
+            askedAt[emoji] = askedAt[emoji] ?? .now
+            askOrder.append(emoji)
+        }
+        waiting[emoji, default: []].append(then)
+        queuePump()
         return nil
+    }
+
+    /// `emoji`'s image if it's kept, without asking for it.
+    public func kept(_ emoji: String) -> CGImage? {
+        cache.object(forKey: emoji as NSString)?.image
     }
 
     /// Starts drawing emoji that are about to show.
     public func prefetch(_ emoji: [String]) {
-        for each in emoji where cache.object(forKey: each as NSString) == nil {
-            request(each, then: nil)
+        guard !closed else { return }
+        for each in emoji where cache.object(forKey: each as NSString) == nil && !ahead.contains(each) {
+            ahead.append(each)
+            askedAt[each] = askedAt[each] ?? .now
         }
+        if ahead.count > Self.aheadLimit { ahead.removeFirst(ahead.count - Self.aheadLimit) }
+        queuePump()
     }
 
-    /// Drops the kept images and the font's cache (on a memory warning).
+    /// Emoji no longer about to show.
+    public func cancelPrefetch(_ emoji: [String]) {
+        let gone = Set(emoji)
+        ahead.removeAll { gone.contains($0) && waiting[$0] == nil }
+    }
+
+    /// Drops the kept images and the font with its cache (on a memory warning).
     public func empty() {
         cache.removeAllObjects()
-        queue.async { [painter, weak self] in
+        painter.thread.async { [painter, weak self] in
             guard let report = painter.dropFont() else { return }
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.onLog?(report) } }
         }
     }
 
-    /// Logs the timings not yet summed up (on close).
+    /// Stops drawing and lets everything go: the pictures now; the font, and the threads,
+    /// once the emoji being drawn is done. Logs the timings not yet logged, then the
+    /// footprint once the font is dropped.
+    public func close() {
+        guard !closed else { return }
+        closed = true
+        logTimings()
+        cache.removeAllObjects()
+        waiting = [:]
+        askedAt = [:]
+        askOrder = []
+        ahead = []
+        let log = onLog, before = MemoryMonitor.footprintBytes()
+        painter.stop { dropped in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    log?("Emoji renderer closed: \(dropped ?? "no font to drop"); footprint \(megabytes(before)) at close")
+                }
+            }
+        }
+    }
+
+    /// Logs the timings not yet summed up.
     public func logTimings() {
         if !timings.isEmpty { onLog?(timings.summary()) }
         timings = EmojiTimings()
     }
 
-    private func request(_ emoji: String, then: (@MainActor (CGImage) -> Void)?) {
-        if waiting[emoji] != nil {
-            if let then { waiting[emoji]?.append(then) }
-            return
-        }
-        waiting[emoji] = then.map { [$0] } ?? []
-        askedAt[emoji] = .now
-        queue.async { [painter, weak self] in
-            let drawing = painter.draw(emoji)
-            let picture = drawing.image.map(Picture.init)
-            DispatchQueue.main.async {
-                MainActor.assumeIsolated { self?.finish(emoji, picture, drawing) }
+    // MARK: Batches
+
+    private func queuePump() {
+        // After the layout pass that asked, so `onScreen` has its cells.
+        guard !pumpQueued else { return }
+        pumpQueued = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                self?.pumpQueued = false
+                self?.pump()
             }
         }
     }
 
-    private func finish(_ emoji: String, _ picture: Picture?, _ drawing: Painter.Drawing) {
-        drawn += 1
-        if let font = drawing.newFont {
-            fontsMade += 1
-            timings.fontMakes.append(font.milliseconds)
-            onLog?(font.report)
+    private func pump() {
+        guard !drawing, !closed else { return }
+        let screen = onScreen?()
+        let batch = Self.nextBatch(onScreen: screen, asked: askOrder, waiting: Set(waiting.keys), ahead: ahead,
+                                   limit: Self.batchSize)
+        guard !batch.isEmpty else { return }
+        let sent = Set(batch)
+        ahead.removeAll { sent.contains($0) }
+        askOrder.removeAll { sent.contains($0) }
+        // Off screen and long ago: the cell has gone (or asks again when it shows).
+        if let screen, askOrder.count > Self.offScreenLimit {
+            let shown = Set(screen)
+            let old = Set(askOrder.prefix(askOrder.count - Self.offScreenLimit).filter { !shown.contains($0) })
+            for emoji in old {
+                waiting[emoji] = nil
+                askedAt[emoji] = nil
+            }
+            askOrder.removeAll { old.contains($0) }
         }
-        timings.add(draw: drawing.milliseconds, withNewFont: drawing.newFont != nil)
+        drawing = true
+        painter.thread.async { [painter, weak self] in
+            let made = painter.prepare()
+            if let made { DispatchQueue.main.async { MainActor.assumeIsolated { self?.noteFont(made) } } }
+            let fresh = painter.isFresh
+            painter.draw(batch) { emoji, image, milliseconds in
+                let picture = image.map(Picture.init)
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { self?.finish(emoji, picture, milliseconds: milliseconds, fresh: fresh) }
+                }
+            }
+            let dropped = painter.endBatch()
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    if let dropped { self?.onLog?(dropped) }
+                    self?.drawing = false
+                    self?.pump()
+                }
+            }
+        }
+    }
+
+    /// What to draw next: the emoji on screen that were asked for, top to bottom, then those
+    /// prefetched, then the others asked for, latest first; without `onScreen`, in the order
+    /// asked.
+    nonisolated static func nextBatch(onScreen: [String]?, asked: [String], waiting: Set<String>, ahead: [String],
+                                      limit: Int) -> [String] {
+        var batch: [String] = []
+        var taken = Set<String>()
+        func take(_ emoji: some Sequence<String>) {
+            for each in emoji where batch.count < limit && !taken.contains(each) {
+                batch.append(each)
+                taken.insert(each)
+            }
+        }
+        if let onScreen {
+            take(onScreen.filter(waiting.contains))
+            take(ahead)
+            take(asked.reversed().filter(waiting.contains))
+        } else {
+            take(asked.filter(waiting.contains))
+            take(ahead)
+        }
+        return batch
+    }
+
+    private func noteFont(_ made: Painter.FontMade?) {
+        guard let made else { return }
+        fontsMade += 1
+        timings.fontMakes.append(made.milliseconds)
+        onLog?(made.report)
+    }
+
+    private func finish(_ emoji: String, _ picture: Picture?, milliseconds: Double, fresh: Bool) {
+        guard !closed else { return }
+        drawn += 1
+        timings.add(draw: milliseconds, withNewFont: fresh)
         if let asked = askedAt.removeValue(forKey: emoji) { timings.waits.append(EmojiTimings.milliseconds(.now - asked)) }
         if drawn % Self.summaryEvery == 0 { logTimings() }
         let callbacks = waiting.removeValue(forKey: emoji) ?? []
@@ -109,16 +252,23 @@ public final class EmojiRenderer {
         for callback in callbacks { callback(picture.image) }
     }
 
-    /// Draws `emoji` as `pixelSide` would, on the calling thread (for tests).
+    /// Draws `emoji` as `pixelSide` would, waiting for it (for tests).
     nonisolated static func draw(_ emoji: String, side: Int) -> CGImage? {
-        Painter(side: side).draw(emoji).image
+        let painter = Painter(side: side)
+        nonisolated(unsafe) var image: CGImage?
+        painter.thread.sync {
+            _ = painter.prepare()
+            painter.draw([emoji]) { _, drawn, _ in image = drawn }
+        }
+        painter.stop()
+        return image
     }
 }
 
 /// How long the renderer's work took, in milliseconds, summed up for the log.
 struct EmojiTimings {
     var draws: [Double] = []
-    /// Each new font's first draw, which reads the font's tables.
+    /// The draws in a font's first batch, which read the font's tables.
     var firstDraws: [Double] = []
     /// From an emoji being asked for to its picture being handed over.
     var waits: [Double] = []
@@ -130,11 +280,11 @@ struct EmojiTimings {
         if withNewFont { firstDraws.append(draw) } else { draws.append(draw) }
     }
 
-    /// "Emoji timings: 100 drawn, 0.4 ms p50, 3.1 ms max; 4 first with a new font, 12.0 ms
-    /// p50, 14.1 ms max; shown 85.0 ms p50, 640.2 ms max after asked; 4 fonts made, 0.3 ms
+    /// "Emoji timings: 84 drawn, 0.4 ms p50, 3.1 ms max; 16 in a font's first batch, 1.0 ms
+    /// p50, 12.1 ms max; shown 85.0 ms p50, 640.2 ms max after asked; 2 fonts made, 0.3 ms
     /// p50, 1.2 ms max"
     func summary() -> String {
-        "Emoji timings: \(draws.count) drawn, \(Self.spread(draws)); \(firstDraws.count) first with a new font, "
+        "Emoji timings: \(draws.count) drawn, \(Self.spread(draws)); \(firstDraws.count) in a font's first batch, "
             + "\(Self.spread(firstDraws)); shown \(Self.spread(waits)) after asked; "
             + "\(fontMakes.count) fonts made, \(Self.spread(fontMakes))"
     }
@@ -151,9 +301,67 @@ struct EmojiTimings {
     }
 }
 
-/// The footprint now, for the log ("31.4 MB").
+/// "31.4 MB"
+func megabytes(_ bytes: UInt64) -> String {
+    String(format: "%.1f MB", Double(bytes) / 1_048_576)
+}
+
+/// The footprint now, for the log.
 func footprintText() -> String {
-    String(format: "%.1f MB", Double(MemoryMonitor.footprintBytes()) / 1_048_576)
+    megabytes(MemoryMonitor.footprintBytes())
+}
+
+/// The system emoji font's file, mapped into memory once per process: clean pages of a
+/// file the system has open anyway, which the footprint doesn't count. Each private font
+/// reads straight from them (a CGDataProvider over the bytes, no copy), and counts itself
+/// in `copiesAlive` until CoreText frees it.
+final class EmojiFontFile: @unchecked Sendable {
+    let bytes: UnsafeRawPointer
+    let count: Int
+
+    static var shared: EmojiFontFile? { loaded.file }
+    /// For the log: where the file is, its size, how it was read and what that took.
+    static var report: String { loaded.report }
+    private static let loaded = load()
+    static let copiesAlive = Atomic<Int>(0)
+
+    private init(bytes: UnsafeRawPointer, count: Int) {
+        self.bytes = bytes
+        self.count = count
+    }
+
+    private static func load() -> (file: EmojiFontFile?, report: String) {
+        let system = CTFontCreateWithName("AppleColorEmoji" as CFString, 32, nil)
+        guard let url = CTFontCopyAttribute(system, kCTFontURLAttribute) as? URL else {
+            return (nil, "Emoji font file not found")
+        }
+        let before = footprintText(), start = ContinuousClock.now
+        let descriptor = open(url.path, O_RDONLY)
+        guard descriptor >= 0 else { return (nil, "Emoji font file \(url.path) unreadable (errno \(errno))") }
+        defer { close(descriptor) }
+        var status = stat()
+        guard fstat(descriptor, &status) == 0, status.st_size > 0 else {
+            return (nil, "Emoji font file \(url.path) has no size (errno \(errno))")
+        }
+        let count = Int(status.st_size)
+        guard let bytes = mmap(nil, count, PROT_READ, MAP_SHARED, descriptor, 0), bytes != MAP_FAILED else {
+            return (nil, "Emoji font file \(url.path) could not be mapped (errno \(errno))")
+        }
+        let report = String(format: "Emoji font file %@, %.1f MB, mapped (mmap, read-only, no copy) in %.2f ms; footprint %@ → %@",
+                            url.path, Double(count) / 1_048_576, EmojiTimings.milliseconds(.now - start), before, footprintText())
+        return (EmojiFontFile(bytes: UnsafeRawPointer(bytes), count: count), report)
+    }
+
+    /// A copy of the font of its own at `size`, sharing nothing with the system's but the
+    /// file's pages; nil if CoreGraphics can't read it.
+    func makeFont(size: CGFloat) -> CTFont? {
+        guard let provider = CGDataProvider(dataInfo: nil, data: bytes, size: count, releaseData: { _, _, _ in
+            EmojiFontFile.copiesAlive.subtract(1, ordering: .relaxed)
+        }) else { return nil }
+        Self.copiesAlive.add(1, ordering: .relaxed)
+        guard let graphicsFont = CGFont(provider) else { return nil }
+        return CTFontCreateWithGraphicsFont(graphicsFont, size, nil, nil)
+    }
 }
 
 /// A drawn emoji, for NSCache.
@@ -168,70 +376,163 @@ private final class Picture: @unchecked Sendable {
     }
 }
 
-/// Draws on the renderer's queue only.
+/// A thread of its own that runs work in order, until stopped.
+final class WorkThread: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var work: [@Sendable () -> Void] = []
+    private var stopping = false
+
+    init(name: String) {
+        let thread = Thread { [self] in run() }
+        thread.name = name
+        thread.qualityOfService = .userInitiated
+        thread.start()
+    }
+
+    func async(_ job: @escaping @Sendable () -> Void) {
+        condition.lock()
+        work.append(job)
+        condition.signal()
+        condition.unlock()
+    }
+
+    func sync(_ job: @escaping @Sendable () -> Void) {
+        let done = DispatchSemaphore(value: 0)
+        async {
+            job()
+            done.signal()
+        }
+        done.wait()
+    }
+
+    /// The thread ends once the work already given is done.
+    func stop() {
+        condition.lock()
+        stopping = true
+        condition.signal()
+        condition.unlock()
+    }
+
+    private func run() {
+        while true {
+            condition.lock()
+            while work.isEmpty && !stopping { condition.wait() }
+            if work.isEmpty {
+                condition.unlock()
+                return
+            }
+            let job = work.removeFirst()
+            condition.unlock()
+            autoreleasepool { job() }
+        }
+    }
+}
+
+/// Draws on its own two threads: `thread` runs the renderer's work and draws half of each
+/// batch, `helper` the other half.
 private final class Painter: @unchecked Sendable {
     let side: Int
-    /// The emoji font file, memory-mapped; nil if it can't be read.
-    let fontData: Data?
-    /// Where the font file is, its size, and what reading it took.
-    let fileReport: String
+    let thread = WorkThread(name: "me.jishnu.keyboard.emoji-renderer")
+    private let helper = WorkThread(name: "me.jishnu.keyboard.emoji-renderer.helper")
+    // Only touched on `thread`.
     private var font: CTFont?
     private var drawsWithFont = 0
     private var fontNumber = 0
+    private let stopped = Atomic<Bool>(false)
     private static let colorSpace = CGColorSpace(name: CGColorSpace.displayP3) ?? CGColorSpaceCreateDeviceRGB()
+
+    struct FontMade: Sendable {
+        let milliseconds: Double
+        let report: String
+    }
 
     init(side: Int) {
         self.side = side
-        let system = CTFontCreateWithName("AppleColorEmoji" as CFString, CGFloat(side), nil)
-        let url = CTFontCopyAttribute(system, kCTFontURLAttribute) as? URL
-        let before = footprintText(), start = ContinuousClock.now
-        fontData = url.flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
-        let took = EmojiTimings.milliseconds(.now - start)
-        if let url, let fontData {
-            fileReport = String(format: "Emoji font file %@, %.1f MB, read (alwaysMapped) in %.1f ms; footprint %@ → %@",
-                                url.path, Double(fontData.count) / 1_048_576, took, before, footprintText())
-        } else {
-            fileReport = "Emoji font file \(url?.path ?? "not found") unreadable"
-        }
     }
 
-    /// What dropping it did to the footprint, if there was a font to drop.
+    /// The font has drawn nothing yet.
+    var isFresh: Bool { drawsWithFont == 0 }
+
+    /// Makes a font if there is none: what that took, for the log.
+    func prepare() -> FontMade? {
+        guard font == nil, !stopped.load(ordering: .relaxed) else { return nil }
+        let before = footprintText(), start = ContinuousClock.now
+        let size = CGFloat(side)
+        font = EmojiFontFile.shared?.makeFont(size: size) ?? CTFontCreateWithName("AppleColorEmoji" as CFString, size, nil)
+        let took = EmojiTimings.milliseconds(.now - start)
+        fontNumber += 1
+        drawsWithFont = 0
+        return FontMade(milliseconds: took, report: String(
+            format: "Emoji font %d made in %.2f ms, footprint %@ → %@; %d private fonts alive", fontNumber, took, before,
+            footprintText(), EmojiRenderer.fontCopiesAlive))
+    }
+
+    /// Draws `emoji` with the font, half on each thread (CoreText's fonts are thread-safe),
+    /// handing each image over as it is drawn, with the milliseconds it took. Stops early
+    /// once stopped.
+    func draw(_ emoji: [String], each: @escaping @Sendable (String, CGImage?, Double) -> Void) {
+        guard let font else { return }
+        nonisolated(unsafe) let shared = font
+        let lane: @Sendable (Int) -> Void = { [self] first in
+            for index in stride(from: first, to: emoji.count, by: 2) {
+                if stopped.load(ordering: .relaxed) { return }
+                let start = ContinuousClock.now
+                // What CoreText autoreleases holds on to the font: let go of it with each emoji.
+                let image = autoreleasepool { render(emoji[index], font: shared) }
+                each(emoji[index], image, EmojiTimings.milliseconds(.now - start))
+            }
+        }
+        let other = DispatchSemaphore(value: 0)
+        if emoji.count > 1 {
+            helper.async {
+                lane(1)
+                other.signal()
+            }
+        }
+        lane(0)
+        if emoji.count > 1 { other.wait() }
+        drawsWithFont += emoji.count
+    }
+
+    /// Drops the font once it has drawn its lifetime: the log line, if it did.
+    func endBatch() -> String? {
+        drawsWithFont >= EmojiRenderer.fontLifetime ? dropFont() : nil
+    }
+
+    /// What dropping the font did to the footprint, if there was one. CoreText holds on to
+    /// the font a thread last drew with until it draws with another, so both threads draw a
+    /// space with a system font.
     func dropFont() -> String? {
         guard font != nil else { return nil }
         let before = footprintText()
-        font = nil
-        return "font \(fontNumber) dropped, footprint \(before) → \(footprintText())"
-    }
-
-    struct Drawing {
-        var image: CGImage?
-        var milliseconds: Double = 0
-        /// When a new font was made for it: what that took, and the log line.
-        var newFont: (milliseconds: Double, report: String)?
-    }
-
-    func draw(_ emoji: String) -> Drawing {
-        var drawing = Drawing()
-        var dropped: String?
-        if drawsWithFont >= EmojiRenderer.fontLifetime { dropped = dropFont() }
-        if font == nil {
-            let before = footprintText(), start = ContinuousClock.now
-            font = makeFont()
-            let took = EmojiTimings.milliseconds(.now - start)
-            fontNumber += 1
-            drawsWithFont = 0
-            let made = String(format: "Emoji font %d made in %.1f ms, footprint %@ → %@", fontNumber, took, before, footprintText())
-            drawing.newFont = (took, made + (dropped.map { "; \($0)" } ?? ""))
+        autoreleasepool {
+            font = nil
+            flush()
         }
-        drawsWithFont += 1
-        let start = ContinuousClock.now
-        drawing.image = render(emoji)
-        drawing.milliseconds = EmojiTimings.milliseconds(.now - start)
-        return drawing
+        helper.sync { [self] in flush() }
+        return "Emoji font \(fontNumber) dropped, footprint \(before) → \(footprintText()); "
+            + "\(EmojiRenderer.fontCopiesAlive) private fonts alive"
     }
 
-    private func render(_ emoji: String) -> CGImage? {
-        guard let font, let context = CGContext(
+    /// Stops drawing (from any thread), then drops the font and ends both threads once the
+    /// work already given is done; `then` gets the line for the log, on `thread`.
+    func stop(then: (@Sendable (String?) -> Void)? = nil) {
+        stopped.store(true, ordering: .relaxed)
+        thread.async { [self] in
+            let dropped = dropFont()
+            helper.stop()
+            then?(dropped)
+        }
+        thread.stop()
+    }
+
+    private func flush() {
+        let system = CTFontCreateUIFontForLanguage(.system, 1, nil) ?? CTFontCreateWithName("Helvetica" as CFString, 1, nil)
+        _ = render(" ", font: system)
+    }
+
+    private func render(_ emoji: String, font: CTFont) -> CGImage? {
+        guard let context = CGContext(
             data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0, space: Self.colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
         else { return nil }
@@ -247,18 +548,5 @@ private final class Painter: @unchecked Sendable {
         context.textPosition = CGPoint(x: -ink.midX, y: -ink.midY)
         CTLineDraw(line, context)
         return context.makeImage()
-    }
-
-    /// A copy of the system emoji font of its own, so its cache can be let go; the system
-    /// font itself without the file.
-    private func makeFont() -> CTFont {
-        let size = CGFloat(side)
-        guard let fontData,
-              let all = CTFontManagerCreateFontDescriptorsFromData(fontData as CFData) as? [CTFontDescriptor],
-              let descriptor = all.first(where: {
-                  CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String == "AppleColorEmoji"
-              }) ?? all.first
-        else { return CTFontCreateWithName("AppleColorEmoji" as CFString, size, nil) }
-        return CTFontCreateWithFontDescriptor(descriptor, size, nil)
     }
 }

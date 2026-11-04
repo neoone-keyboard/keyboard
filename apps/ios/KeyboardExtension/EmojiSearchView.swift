@@ -114,6 +114,7 @@ final class EmojiSearchView: UIView, UICollectionViewDataSource, UICollectionVie
     /// Drops the search and its pictures; it is closed.
     func release() {
         search = nil
+        renderer?.close()
         renderer = nil
         row.reloadData()
     }
