@@ -94,6 +94,8 @@ impl Phrases {
             followers.swap_remove(i);
             self.len -= 1;
         }
+        // Most contexts keep one or two followers: no room for four (`Vec`'s first growth).
+        followers.reserve_exact(1);
         followers.push(Follower {
             word: word.into(),
             count: n,
