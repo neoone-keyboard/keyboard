@@ -101,6 +101,19 @@ def test_dropping_a_paragraph_keeps_the_random_stream(tmp_path, monkeypatch):
     assert rng.random() == expected.random()
 
 
+def test_held_out_sentences_split_into_disjoint_tune_and_gate_halves():
+    sentences_ = [f"ഇത് {i} ആം വാക്യം ആണ് ശരി" for i in range(200)] + ["ഇത് ഒരു വാക്യം ആണ്"] * 3
+    halves = [corpus.is_tune_half(s) for s in sentences_]
+    assert 60 < sum(halves) < 140
+    assert len({corpus.is_tune_half(s) for s in sentences_[-3:]}) == 1  # a sentence always lands on one side
+
+
+def test_held_out_sentences_seen_in_training_text_are_dropped():
+    train = corpus.sentence_keys(["ഞാൻ ഇന്ന് വീട്ടിൽ പോകും. അവൻ വന്നു"])
+    kept = corpus.not_in(["ഞാൻ ഇന്ന് വീട്ടിൽ പോകും", "അവൻ വന്നു.", "അവൾ പോയി."], train)
+    assert kept == ["അവൾ പോയി."]
+
+
 def test_loanwords_need_an_english_word_and_a_malayalam_word():
     rows = [{"source": "IndicCorp", "english word": "computer", "native word": "കമ്പ്യൂട്ടർ", "score": 0.0},
             {"source": "IndicCorp", "english word": "veedu", "native word": "വീട്", "score": 0.0},

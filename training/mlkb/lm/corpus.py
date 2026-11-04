@@ -23,9 +23,11 @@ paragraphs of every source is held out by a hash of its first 64 characters; and
 paragraphs of every bucket lose their punctuation (chat register).
 
 Also writes `heldout-en.txt` and `heldout-ml.txt` (2,000 held-out sentences each, for
-perplexity) next to the output directory, and the tune splits `data/eval/next-en.tune.txt`
-(Simple Wikipedia and Wikinews) and `data/eval/next-ml.tune.txt` (Malayalam Wikipedia and
-Wikisource): 500 short held-out sentences each, never trained on.
+perplexity) next to the output directory, the tune splits `data/eval/next-en.tune.txt` (Simple
+Wikipedia and Wikinews, 500 short held-out sentences) and `data/eval/next-ml.tune.txt`
+(Malayalam Wikipedia and Wikisource, `TUNE_SENTENCES_ML`), and the next_ml gate's held-out half
+`data/eval/next-ml.heldout.txt` (`GATE_SENTENCES_ML`): never trained on, and no Malayalam one
+is a sentence of the training text.
 """
 import argparse
 import hashlib
@@ -69,6 +71,11 @@ MANGLISH_PASSES, MANGLISH_P_LOAN = 4, 0.7
 MIXED_PASSES, MIXED_P_LOAN, MIXED_FRAC = 2, 0.3, (0.2, 0.8)
 HELDOUT_SENTENCES = 2000
 TUNE_SENTENCES, TUNE_WORDS = 500, (4, 20)
+# Malayalam held-out sentences are split by a hash into the tune half (`TUNE_SENTENCES_ML`, for
+# the weight sweep) and the gate half (`GATE_SENTENCES_ML`, `next-ml.heldout.txt`, which the
+# next_ml gate reads with the SMC conversations): together about 7,000 next-word positions each,
+# so that one row no longer decides a ship gate (the SMC set alone has 436).
+TUNE_SENTENCES_ML, GATE_SENTENCES_ML = 1000, 950
 # Aksharantar sources that are mined text (CC0): their Latin side is how the word is written.
 LOANWORD_SOURCES = frozenset({"IndicCorp", "Samanantar"})
 LOANWORD_MIN_LOG_PROB = -14.0
@@ -186,7 +193,7 @@ def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED) -> set
     """Keys of every string in every eval set (each column, each context with its word, each
     sentence), and of every Dakshina romanised dev and test sentence, in both scripts, with and
     without punctuation. The tune splits this module writes come from held-out text already."""
-    own = {"next-en.tune.txt", "next-ml.tune.txt"}
+    own = {"next-en.tune.txt", "next-ml.tune.txt", "next-ml.heldout.txt"}
     strings: list[str] = []
     for path in sorted(eval_dir.iterdir()):
         if path.suffix in (".txt", ".tsv") and path.name not in own:
@@ -480,6 +487,26 @@ def synthesise(job: tuple[str, str, str, int]) -> tuple[str, dict]:
     return Path(dst).name, stats
 
 
+def is_tune_half(sentence: str) -> bool:
+    """Which half of the held-out Malayalam sentences `sentence` belongs to: tune, else gate."""
+    return hashlib.blake2b(sentence.encode("utf-8"), digest_size=8).digest()[0] % 2 == 0
+
+
+def sentence_keys(paragraphs: Iterable[str]) -> set[int]:
+    """Keys of every sentence of some `lm_normalize`d paragraphs, with and without punctuation."""
+    keys = set()
+    for para in paragraphs:
+        for s in sentences(para):
+            keys.add(_key(s))
+            keys.add(_key(strip_punct(s)))
+    return keys
+
+
+def not_in(candidates: list[str], keys: set[int]) -> list[str]:
+    """The candidates whose sentence, with or without punctuation, has no key in `keys`."""
+    return [s for s in candidates if dedupe_key(s) not in keys and dedupe_key(strip_punct(s)) not in keys]
+
+
 def _tune_candidates(raw: str, pattern: re.Pattern, leaks: set[int]) -> Iterator[str]:
     for s in sentences(raw):
         n = len(s.split())
@@ -497,6 +524,12 @@ TUNE_ML_HEADER = """# Next-word eval set, Malayalam (tune split, for weight swee
 # {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
 # Malayalam Wikipedia and Malayalam Wikisource (CC BY-SA 4.0, by their contributors,
 # https://ml.wikipedia.org/, https://ml.wikisource.org/). Built by training/mlkb/lm/corpus.py.
+"""
+GATE_ML_HEADER = """# Next-word eval set, Malayalam (gate split, held-out half; read with next-ml.txt): one sentence per line.
+# {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
+# Malayalam Wikipedia and Malayalam Wikisource (CC BY-SA 4.0, by their contributors,
+# https://ml.wikipedia.org/, https://ml.wikisource.org/), disjoint from the tune split, and none of
+# them a sentence of the training text. Built by training/mlkb/lm/corpus.py.
 """
 
 
@@ -524,13 +557,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # Malayalam first: the synthetic buckets are built from its clean text while English runs.
     rng = random.Random(args.seed)
-    heldout_ml, tune_ml = Reservoir(HELDOUT_SENTENCES, rng), Reservoir(TUNE_SENTENCES, random.Random(args.seed + 1))
+    heldout_ml = Reservoir(HELDOUT_SENTENCES, rng)
+    tune_ml = Reservoir(TUNE_SENTENCES_ML, random.Random(args.seed + 1))
+    gate_ml = Reservoir(GATE_SENTENCES_ML, random.Random(args.seed + 3))
 
     def on_valid_ml(raw: str, norm: str) -> None:
         for s in sentences(norm):
             heldout_ml.add(s)
         for s in _tune_candidates(human.normalize(raw), _TUNE_ML, leaks):
-            tune_ml.add(s)
+            (tune_ml if is_tune_half(s) else gate_ml).add(s)
 
     train, valid = _Writer(out / "ml.txt", work / "ml-clean.txt"), _Writer(out / "valid-ml.txt", work / "valid-ml-clean.txt")
     summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml,
@@ -538,6 +573,14 @@ def main(argv: list[str] | None = None) -> int:
     train.close()
     valid.close()
     print(f"ml: {summary['ml']}  ({time.time() - start:.0f}s)", file=sys.stderr)
+    # A held-out paragraph can share a sentence with a training one: those sentences go.
+    with open(work / "ml-clean.txt", encoding="utf-8") as f:
+        trained = sentence_keys(line.rstrip("\n") for line in f)
+    for r in (tune_ml, gate_ml):
+        before = len(r.items)
+        r.items = not_in(r.items, trained)
+        summary.setdefault("next_ml_sets", {})[f"in_training_{'tune' if r is tune_ml else 'gate'}"] = before - len(r.items)
+    del trained
 
     jobs = [("manglish", str(work / "ml-clean.txt"), str(out / f"manglish-{i}.txt"), args.seed * 10 + i)
             for i in range(MANGLISH_PASSES)]
@@ -575,6 +618,8 @@ def main(argv: list[str] | None = None) -> int:
         TUNE_EN_HEADER.format(n=len(tune_en.items), seed=args.seed + 2) + "\n".join(tune_en.items) + "\n", encoding="utf-8")
     (EVAL / "next-ml.tune.txt").write_text(
         TUNE_ML_HEADER.format(n=len(tune_ml.items), seed=args.seed + 1) + "\n".join(tune_ml.items) + "\n", encoding="utf-8")
+    (EVAL / "next-ml.heldout.txt").write_text(
+        GATE_ML_HEADER.format(n=len(gate_ml.items), seed=args.seed + 3) + "\n".join(gate_ml.items) + "\n", encoding="utf-8")
     summary["loanwords"] = {"count": len(loanwords)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"done in {time.time() - start:.0f}s; summary in {out / 'summary.json'}", file=sys.stderr)
