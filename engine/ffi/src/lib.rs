@@ -528,6 +528,27 @@ mod tests {
     }
 
     #[test]
+    fn phone_numbers_cross_ffi_and_persist() {
+        let dir = std::env::temp_dir().join(format!("mlengine-ffi-number-test-{}", std::process::id()));
+        let config = EngineConfig { user_dir: Some(dir.to_string_lossy().into_owned()), ..EngineConfig::default() };
+        let engine = Engine::new(config.clone()).unwrap();
+        for _ in 0..2 {
+            engine.note_used("call +91 55501 ".into(), "12345".into(), InputLayout::Latin).unwrap();
+        }
+        drop(engine);
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(engine.learned_addresses().unwrap(), ["+91 55501 12345"]);
+        let s = engine.suggest("call +91 98".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(s.typed, "+91 98");
+        assert_eq!(s.candidates[1].text, "+91 55501 12345");
+        engine.remove_word("+91 55501 12345".into()).unwrap();
+        assert!(engine.learned_addresses().unwrap().is_empty());
+        assert_eq!(engine.removed_words().unwrap(), ["+91 55501 12345"]);
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     fn removal_crosses_ffi_and_persists() {
         let dir = std::env::temp_dir().join(format!("mlengine-ffi-remove-test-{}", std::process::id()));
         let config = EngineConfig { user_dir: Some(dir.to_string_lossy().into_owned()), ..EngineConfig::default() };
