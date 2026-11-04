@@ -24,6 +24,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     private var sections: [Section] = []
     private var catalog: EmojiCatalog?
     private var renderer: EmojiRenderer?
+    /// Cells filled since the panel opened, for the diagnostics log.
+    private var cellsShown = 0
+    private let log = Diagnostics(category: "emoji")
     /// For each emoji's tone; the recents shown are those of when the panel opened.
     private var history = EmojiHistory()
     private var theme: KeyboardTheme?
@@ -44,6 +47,8 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     /// How big an emoji is drawn, in points: 96 pixels at 3x, the size of one of the emoji
     /// font's own pictures, so it is drawn as it is, not scaled.
     static let emojiSize: CGFloat = 32
+    /// A footprint line in the log every so many cells filled.
+    private static let logEvery = 300
     private static let columns: CGFloat = 8
     private static let rowHeight: CGFloat = 44
     private static let stripHeight: CGFloat = 40
@@ -127,6 +132,9 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         self.history = history
         let scale = window?.windowScene?.screen.scale ?? traitCollection.displayScale
         renderer = EmojiRenderer(pixelSide: Int((Self.emojiSize * max(scale, 1)).rounded(.up)))
+        if renderer?.usesPrivateFont == false {
+            log.warning("Emoji font file unreadable: drawing with the system font, whose cache grows")
+        }
         let recents = history.recents.map { EmojiItem(emoji: $0, tones: catalog.tones(of: $0)) }
         sections = (recents.isEmpty ? [] : [Section(name: "Recently used", symbol: Self.recentsSymbol, items: recents)])
             + catalog.categories.map { Section(name: $0.name, symbol: Self.symbols[$0.name] ?? "circle", items: $0.items) }
@@ -199,11 +207,18 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
             let image = renderer?.image(for: emoji) { [weak cell] image in cell?.drawn(image, for: emoji) }
             cell.show(emoji, image: image, theme: theme)
         }
+        cellsShown += 1
+        if cellsShown % Self.logEvery == 0 { log.info("Emoji panel scrolled; \(statistics)") }
         return cell
     }
 
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         renderer?.prefetch(indexPaths.map { shown(sections[$0.section].items[$0.item]) })
+    }
+
+    /// "600 cells shown, 540 emoji drawn, 22 fonts; footprint 25.1 MB"
+    var statistics: String {
+        "\(cellsShown) cells shown, \(renderer?.drawn ?? 0) emoji drawn, \(renderer?.fontsMade ?? 0) fonts; footprint \(Diagnostics.footprint())"
     }
 
     /// On a memory warning: the pictures kept off screen and the font's cache.

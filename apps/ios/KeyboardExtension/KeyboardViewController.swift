@@ -438,10 +438,10 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func hideEmojiPanel() {
-        guard let panel = emojiPanel else { return }
-        panel.removeFromSuperview()
+        guard let statistics = emojiPanel?.statistics else { return }
+        emojiPanel?.removeFromSuperview()
         emojiPanel = nil
-        log.info("Emoji panel closed; footprint \(Diagnostics.footprint())")
+        log.info("Emoji panel closed; \(statistics); \(Diagnostics.footprint()) once dropped")
     }
 
     /// An emoji went in, from the panel or the bar: first in the recents, saved at once.
