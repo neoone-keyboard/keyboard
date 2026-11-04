@@ -24,20 +24,22 @@ private let catalog = EmojiCatalog(text: """
     🫈 17.0
     """, system: OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0))
 
-/// Sorted by UTF-8 bytes, as emoji_data.py writes it; 🫈 is newer than the system.
+/// Sorted by UTF-8 bytes, as emoji_data.py writes it: the emoji a word names, then "|" and
+/// those it is only a keyword of. 🫈 is newer than the system.
 private let words = EmojiWords(data: Data("""
     # Emoji search
     apple\t🍎
     face\t😀 😍 🥰
     hand\t👋
-    hea\t🫈
-    heart\t🥰 😍 ❤️ 🫈
+    hea\t| 🫈
+    heart\t😍 🥰 ❤️ | 🫈
     hearts\t🥰
+    heat\t| 😀
     pizza\t🍕
-    red\t❤️ 🍎 🔴
+    red\t❤️ 🔴 | 🍎
     tired\t🫩
     wave\t👋
-    ഹൃദയം\t😍 ❤️
+    ഹൃദയം\t| 😍 ❤️
 
     """.utf8))
 
@@ -58,13 +60,22 @@ private func search(_ query: String, history: EmojiHistory = EmojiHistory()) -> 
     #expect(search("HEART") == search("heart"))
 }
 
+@Test func aWordOfTheNameComesBeforeAKeywordOnly() {
+    // 😀 has "heat" only as a keyword (as 🫠 has in CLDR); the hearts are named "heart".
+    #expect(search("hea") == ["😍", "🥰", "❤️", "😀"])
+    // 🍎 has "red" as a keyword, even exactly; ❤️ and 🔴 are named "red".
+    #expect(search("red") == ["❤️", "🔴", "🍎"])
+}
+
 @Test func recentsComeBeforeThePanelsOrderButNotBeforeABetterMatch() {
     var history = EmojiHistory()
     history.record("❤️")
     history.record("🔴")
     #expect(search("hear", history: history) == ["❤️", "😍", "🥰"])
-    // "re" only begins "red": the recents first, then the panel's order.
+    // "re" only begins "red", which names ❤️ and 🔴: the recents first.
     #expect(search("re", history: history) == ["🔴", "❤️", "🍎"])
+    history.record("🍎")
+    #expect(search("re", history: history) == ["🔴", "❤️", "🍎"], "a keyword only stays below the names")
 }
 
 @Test func everyWordOfTheQueryMustMatch() {
@@ -105,7 +116,7 @@ private func search(_ query: String, history: EmojiHistory = EmojiHistory()) -> 
     #expect(search.handle(.space) == .edited)
     #expect(search.query == "", "no leading space")
     for c in ["r", "e", "d"] { #expect(search.handle(.character(c)) == .edited) }
-    #expect(search.results == ["❤️", "🍎", "🔴"])
+    #expect(search.results == ["❤️", "🔴", "🍎"])
     #expect(search.handle(.space) == .edited)
     _ = search.handle(.space)
     #expect(search.query == "red ", "one space between words")
@@ -146,11 +157,35 @@ private func search(_ query: String, history: EmojiHistory = EmojiHistory()) -> 
 // MARK: The bundled index
 
 @Test func prefixLookupFindsEveryWordItBegins() {
-    #expect(words.words(startingWith: "hea").map(\.word) == ["hea", "heart", "hearts"])
+    #expect(words.words(startingWith: "hea").map(\.word) == ["hea", "heart", "hearts", "heat"])
     #expect(words.words(startingWith: "Heart").map(\.word) == ["heart", "hearts"])
     #expect(words.words(startingWith: "z").isEmpty)
     #expect(words.words(startingWith: "").isEmpty)
-    #expect(words.words(startingWith: "ഹൃ").map(\.emoji) == [["😍", "❤️"]])
+    #expect(words.words(startingWith: "ഹൃ").map(\.emoji) == [["|", "😍", "❤️"]])
+}
+
+/// What people type, against the bundled index: the emoji they mean first.
+@Test func commonQueriesFindWhatTheyMean() throws {
+    let data = try Data(contentsOf: bundledEmoji.appending(path: "emoji-search.txt"), options: .alwaysMapped)
+    let text = try String(contentsOf: bundledEmoji.appending(path: "emoji.txt"), encoding: .utf8)
+    let bundled = EmojiSearch(words: EmojiWords(data: data), catalog: EmojiCatalog(text: text), history: EmojiHistory())
+    func top(_ query: String) -> [String] {
+        var each = bundled
+        each.type(query)
+        return Array(each.results.prefix(8))
+    }
+    let hearts: Set = ["😍", "😻", "💘", "💝", "💖", "💗", "💓", "💟", "❤️", "🥰"]
+    #expect(top("hea").allSatisfy(hearts.contains), "\(top("hea"))")
+    #expect(!top("hea").contains("🫠"), "heat is only a keyword of 🫠")
+    #expect(top("lau").first == "🤣")
+    #expect(top("lau").contains("😂"))
+    #expect(top("fire").prefix(3).contains("🔥"))
+    // "thumbs" is as good as "thumb" itself, and names more emoji.
+    #expect(top("thumb").prefix(2) == ["👍", "👎"])
+    #expect(top("cry").prefix(2) == ["😢", "😭"])
+    #expect(top("pizza").first == "🍕")
+    #expect(top("love").first == "💌")
+    #expect(top("love").contains("🥰") && top("love").contains("😍"))
 }
 
 @Test func theBundledIndexFindsTheRedHeartAndIsQuick() throws {

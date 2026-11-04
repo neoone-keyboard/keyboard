@@ -6,7 +6,8 @@ person only, as the panel's long-press shows them). emoji-words.txt maps a lower
 one-word keyword or name to its emoji, best first, as "word<TAB>emoji emoji…" sorted by
 UTF-8 bytes so the keyboard can binary-search it in place. emoji-search.txt is the
 panel's search, in the same form: every word of each emoji's name and keywords ("red" and
-"heart" from "red heart"), with all its emoji in the panel's order. Only fully-qualified
+"heart" from "red heart"), with all its emoji in the panel's order, those it names first,
+then "|" and those it is only a keyword of. Only fully-qualified
 emoji; the Component group (lone skin tones and hair styles) is left out."""
 
 import argparse
@@ -124,24 +125,31 @@ def parse_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[s
     return {word: [e for _, e in sorted(found)][:MAX_EMOJI_PER_WORD] for word, found in ranked.items()}
 
 
-def search_words(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, list[str]]:
-    """Word -> every emoji with the word in its name or keywords, in the panel's order. A
-    keyword of several words gives each of them; grammar words and one letter give none."""
+def search_words(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, tuple[list[str], list[str]]]:
+    """Word -> (the emoji with the word in their name, those with it only in a keyword), each in
+    the panel's order. A name or keyword of several words gives each of them; grammar words and
+    one letter give none."""
     order: dict[str, tuple[int, str]] = {}
     for _, entries in groups:
         for e in entries:
             order[_key(e.emoji)] = (len(order), e.emoji)
+    named: dict[str, set[tuple[int, str]]] = {}
     found: dict[str, set[tuple[int, str]]] = {}
     for node in ET.fromstring(xml).iter("annotation"):
         entry = order.get(_key(node.get("cp", "")))
         if not entry or not node.text:
             continue
+        into = named if node.get("type") == "tts" else found
         for phrase in node.text.split("|"):
             for word in phrase.strip().lower().replace("-", " ").split():
                 word = word.strip(",.:;!?\u201c\u201d\"()")
                 if _is_word(word) and word not in STOP_WORDS:
-                    found.setdefault(word, set()).add(entry)
-    return {word: [e for _, e in sorted(entries)] for word, entries in found.items()}
+                    into.setdefault(word, set()).add(entry)
+    return {
+        word: ([e for _, e in sorted(named.get(word, set()))],
+               [e for _, e in sorted(found.get(word, set()) - named.get(word, set()))])
+        for word in named.keys() | found.keys()
+    }
 
 
 def word_lines(words: dict[str, list[str]]) -> list[str]:
@@ -154,13 +162,17 @@ def word_lines(words: dict[str, list[str]]) -> list[str]:
     return header + sorted(f"{word}\t{' '.join(emoji)}" for word, emoji in words.items())
 
 
-def search_lines(words: dict[str, list[str]]) -> list[str]:
+def search_lines(words: dict[str, tuple[list[str], list[str]]]) -> list[str]:
     header = [
-        "# Emoji search: lowercased word<TAB>emoji, in the panel's order, from Unicode CLDR",
-        "# annotations (Unicode License v3; see data/manifests/cldr-annotations.json). Built by",
-        "# data/pipeline/emoji_data.py. Sorted by UTF-8 bytes after these comment lines.",
+        "# Emoji search: lowercased word<TAB>the emoji it names | the emoji it is a keyword of,",
+        "# each in the panel's order, from Unicode CLDR annotations (Unicode License v3; see",
+        "# data/manifests/cldr-annotations.json). Built by data/pipeline/emoji_data.py. Sorted by",
+        "# UTF-8 bytes after these comment lines.",
     ]
-    return header + sorted(f"{word}\t{' '.join(emoji)}" for word, emoji in words.items())
+    return header + sorted(
+        f"{word}\t{' '.join(named + (['|'] if others else []) + others)}"
+        for word, (named, others) in words.items()
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -171,13 +183,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     groups = parse_emoji_test(args.emoji_test.read_text(encoding="utf-8"))
     words: dict[str, list[str]] = {}
-    search: dict[str, list[str]] = {}
+    search: dict[str, tuple[list[str], list[str]]] = {}
     for path in args.annotations:
         xml = path.read_text(encoding="utf-8")
         for word, emoji in parse_annotations(xml, groups).items():
             words[word] = list(dict.fromkeys(words.get(word, []) + emoji))[:MAX_EMOJI_PER_WORD]
-        for word, emoji in search_words(xml, groups).items():
-            search[word] = list(dict.fromkeys(search.get(word, []) + emoji))
+        for word, (named, others) in search_words(xml, groups).items():
+            had_named, had_others = search.get(word, ([], []))
+            all_named = list(dict.fromkeys(had_named + named))
+            search[word] = (all_named, [e for e in dict.fromkeys(had_others + others) if e not in all_named])
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "emoji.txt").write_text("\n".join(catalog_lines(groups)) + "\n", encoding="utf-8")
     (args.out / "emoji-words.txt").write_text("\n".join(word_lines(words)) + "\n", encoding="utf-8")
