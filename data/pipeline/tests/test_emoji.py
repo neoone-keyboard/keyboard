@@ -1,4 +1,4 @@
-from emoji_data import catalog_lines, parse_annotations, parse_emoji_test, word_lines
+from emoji_data import catalog_lines, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
 
 EMOJI_TEST = """\
 # group: Smileys & Emotion
@@ -111,3 +111,25 @@ def test_word_lines_are_sorted_by_utf8_bytes():
     body = [line for line in lines if not line.startswith("#")]
     assert body == ["lov\tx", "love\t❤️ 😍", "zoo\t🐘", "സ്നേഹം\t❤️"]
     assert body == sorted(body, key=lambda line: line.encode())
+
+
+def test_search_words_take_each_word_of_names_and_keywords_without_a_cap():
+    groups = parse_emoji_test(EMOJI_TEST)
+    words = search_words(ANNOTATIONS, groups)
+    # "red heart" gives "red" and "heart"; "heart-eyes" gives "heart" and "eyes".
+    assert words["red"] == ["❤️"]
+    assert words["heart"] == ["❤️", "👋"]
+    assert words["eyes"] == ["👋"]
+    assert words["face"] == ["😀", "☺️"]
+    assert "up" not in words and "a" not in words and "3" not in words
+    assert "light" not in words, "not in the panel"
+
+
+def test_search_words_keep_malayalam_phrases_as_words():
+    words = search_words(ML_ANNOTATIONS, parse_emoji_test(EMOJI_TEST))
+    assert words == {"ചുവന്ന": ["❤️"], "ഹൃദയം": ["❤️"], "സ്നേഹം": ["❤️"]}
+
+
+def test_search_lines_are_sorted_by_utf8_bytes():
+    body = [line for line in search_lines({"zoo": ["🐘"], "heart": ["❤️", "👋"]}) if not line.startswith("#")]
+    assert body == ["heart\t❤️ 👋", "zoo\t🐘"]
