@@ -159,9 +159,40 @@ pub fn previous_word(context_before: &str) -> Option<(&str, bool)> {
     }
 }
 
+/// The words a phrase continues when the text ends in a space: the previous word, and the
+/// one before it. Phrases never run across a sentence end (`previous_word`), so after
+/// "Hi. " there is neither, and after "Hi. how " only "how". A comma doesn't end one.
+pub fn phrase_words(context_before: &str) -> (Option<&str>, Option<&str>) {
+    let Some((previous, false)) = previous_word(context_before) else {
+        return (None, None);
+    };
+    // `previous` is a slice of `context_before`.
+    let start = previous.as_ptr() as usize - context_before.as_ptr() as usize;
+    let earlier = previous_word(&context_before[..start]).and_then(|(w, end)| (!end).then_some(w));
+    (Some(previous), earlier)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn phrase_words_stop_at_a_sentence_end() {
+        assert_eq!(phrase_words("hello how "), (Some("how"), Some("hello")));
+        assert_eq!(phrase_words("hello, how "), (Some("how"), Some("hello")));
+        assert_eq!(phrase_words("hello "), (Some("hello"), None));
+        assert_eq!(phrase_words("Hi. how "), (Some("how"), None));
+        assert_eq!(phrase_words("Hi\nhow "), (Some("how"), None));
+        assert_eq!(phrase_words("Hi how. "), (None, None));
+        assert_eq!(phrase_words("hello\n"), (None, None));
+        assert_eq!(phrase_words("hello h"), (None, None), "a word is being typed");
+        assert_eq!(phrase_words(""), (None, None));
+        assert_eq!(phrase_words("എന്റെ വീട് "), (Some("വീട്"), Some("എന്റെ")));
+        assert_eq!(
+            phrase_words("mail priya@example.com "),
+            (Some("priya@example.com"), Some("mail"))
+        );
+    }
 
     #[test]
     fn english_word_at_end() {
