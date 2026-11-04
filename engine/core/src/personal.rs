@@ -59,7 +59,7 @@ struct Follower {
 }
 
 /// Followers by context: one word (`hello`) for pairs, two joined by a space (`how are`) for
-/// triples. Words never hold whitespace (`user::acceptable`).
+/// triples. Words never hold whitespace (`user::in_phrase`).
 #[derive(Debug)]
 struct Phrases {
     contexts: HashMap<Box<str>, Vec<Follower>>,

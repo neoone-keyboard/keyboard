@@ -5,7 +5,9 @@
 //! memory and simply doesn't persist.
 //!
 //! Log lines: `L` learned, `S` seen (typed once), `R` removed from the bar, `F` one
-//! word forgotten (not blocked), `U` a removed word restored (not learned).
+//! word forgotten (not blocked), `U` a removed word restored (not learned). A word holds no
+//! whitespace, except a phone number typed in groups (`+91 55501 12345`), with single spaces;
+//! an older build skips its lines.
 //!
 //! The store also keeps what `personal` learns from use, in lines of tab-separated fields,
 //! each with an optional count at the end (1 when absent; compaction writes it): `N word`
@@ -22,6 +24,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::personal::{Followed, Habit, Personal};
+use crate::text;
 
 /// Most words kept; the least recently used are evicted beyond this.
 pub const CAPACITY: usize = 5_000;
@@ -60,10 +63,19 @@ fn key(word: &str) -> String {
     word.to_ascii_lowercase()
 }
 
+/// No word holds whitespace but a phone number typed in groups (`+91 55501 12345`), whose
+/// single spaces are kept as typed.
 fn acceptable(word: &str) -> bool {
     !word.is_empty()
         && word.chars().count() <= MAX_WORD_CHARS
-        && !word.chars().any(|c| c.is_control() || c.is_whitespace())
+        && !word.chars().any(|c| c.is_control() || c.is_whitespace() && c != ' ')
+        && (!word.contains(' ') || text::is_phone_number(word))
+}
+
+/// A word that may be in a phrase, a use or a choice (`personal`): one without a space, as
+/// a phrase's context joins its words with one. A phone number never is.
+fn in_phrase(word: &str) -> bool {
+    acceptable(word) && !word.contains(' ')
 }
 
 impl UserStore {
@@ -107,7 +119,7 @@ impl UserStore {
     /// Applies one log line; a malformed one is skipped.
     fn replay(&mut self, line: &str) {
         let fields: Vec<&str> = line.split('\t').collect();
-        let ok = |words: &[&str]| words.iter().all(|w| acceptable(w));
+        let ok = |words: &[&str]| words.iter().all(|w| in_phrase(w));
         match fields.as_slice() {
             ["L", word] if acceptable(word) => self.apply_learn(word),
             ["S", word] if acceptable(word) => self.apply_seen(word),
@@ -181,11 +193,11 @@ impl UserStore {
         counted: bool,
         habit: Option<Habit>,
     ) {
-        if !acceptable(word) {
+        if !in_phrase(word) {
             return;
         }
-        let previous = previous.filter(|w| acceptable(w));
-        let before_previous = before_previous.filter(|w| acceptable(w) && previous.is_some());
+        let previous = previous.filter(|w| in_phrase(w));
+        let before_previous = before_previous.filter(|w| in_phrase(w) && previous.is_some());
         let mut lines = Vec::new();
         if counted {
             self.personal.apply_use(word, 1);
@@ -210,7 +222,7 @@ impl UserStore {
     /// The user chose `chosen` over the default suggestion for `typed`: it is offered first
     /// for `typed` from now on, until another is chosen.
     pub fn note_choice(&mut self, typed: &str, chosen: &str) {
-        if !acceptable(typed) || !acceptable(chosen) || typed.eq_ignore_ascii_case(chosen) {
+        if !in_phrase(typed) || !in_phrase(chosen) || typed.eq_ignore_ascii_case(chosen) {
             return;
         }
         self.personal.apply_choice(typed, chosen, 1);
@@ -526,6 +538,38 @@ mod tests {
         store.learn("two\nlines");
         store.learn("a\tb");
         assert_eq!(store.learned_count(), 0);
+    }
+
+    #[test]
+    fn a_phone_number_keeps_its_spaces_and_no_other_word_has_one() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(LOG_NAME), "L\tok\nL\ttwo words\nS\t55501 1234\n").unwrap();
+        let mut store = UserStore::open(dir.path());
+        assert!(store.is_learned("ok"), "an older log loads as before");
+        assert_eq!(store.learned_count(), 1);
+        store.note_typed("+91 55501 12345");
+        store.note_typed("+91 55501 12345");
+        store.learn("55501 12345");
+        store.learn("two words");
+        assert_eq!(store.completions("+91 98", 5), ["+91 55501 12345"]);
+        assert_eq!(store.completions("55501", 5), ["55501 12345"]);
+        let reopened = UserStore::open(dir.path());
+        assert!(reopened.is_learned("+91 55501 12345"));
+        assert!(!reopened.is_learned("two words"));
+        assert!(!reopened.is_learned("55501 1234"));
+        store.remove("55501 12345");
+        store.forget("+91 55501 12345");
+        let mut reopened = UserStore::open(dir.path());
+        assert_eq!(reopened.learned_words(), ["ok"]);
+        assert_eq!(reopened.removed_words(), ["55501 12345"]);
+        for _ in 0..(CAPACITY * 4 + 10) {
+            reopened.learn("+44 20 7946 0958");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.lines().count() < 100, "log was compacted");
+        let compacted = UserStore::open(dir.path());
+        assert!(compacted.is_learned("+44 20 7946 0958"));
+        assert!(compacted.is_removed("55501 12345"));
     }
 
     #[test]
@@ -966,6 +1010,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut store = UserStore::open(dir.path());
         store.note_used("two words", Some("hello"), None, true, None);
+        store.note_used("+91 55501 12345", Some("call"), None, true, None);
+        store.note_choice("55501 12345", "x");
         store.note_used("hello", None, None, false, None);
         store.note_choice("same", "Same");
         store.note_choice("", "x");

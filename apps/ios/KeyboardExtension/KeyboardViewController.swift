@@ -121,8 +121,12 @@ final class KeyboardViewController: UIInputViewController {
                 self?.refreshLearnedAddresses()
             }
         }
-        input.onWordUsed = { [provider] use in
-            Task { await provider.noteUse(use) }
+        // A use with a digit may be the end of a phone number, which the engine learns from it.
+        input.onWordUsed = { [weak self, provider] use in
+            Task {
+                await provider.noteUse(use)
+                if use.word.contains(where: \.isNumber) { self?.refreshLearnedAddresses() }
+            }
         }
 
         settingsPanel.onChange = { [unowned self] changed in

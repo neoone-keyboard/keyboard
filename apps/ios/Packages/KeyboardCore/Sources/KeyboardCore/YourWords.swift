@@ -9,7 +9,8 @@ public struct YourWords: Equatable, Sendable {
         case edited
         /// The key changes the keys (a page, the language, the next keyboard): handle it as usual.
         case passThrough
-        /// Nothing: no word holds a space or a line, and the search ignores case.
+        /// Nothing: no word holds a line, the search ignores case, and only a phone number
+        /// holds a space (its digits find it).
         case ignored
     }
 

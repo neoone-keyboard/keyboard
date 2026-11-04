@@ -26,6 +26,8 @@ use crate::user::UserStore;
 const CORRECTION_LIMIT: usize = 4_000;
 /// Candidates returned: the middle slot plus two side slots.
 const SHOWN: usize = 3;
+/// Digits typed before a learned phone number they begin is offered (`begun_number`).
+const NUMBER_PREFIX_DIGITS: usize = 3;
 /// Lexicon spellings asked of the transliterator per word. On an iPhone 15 Pro Max, encode
 /// plus 10 decoder steps at this width takes about 2.5 ms (p50) run back to back; a whole
 /// suggest that starts from an idle CPU, as when typing, runs 5–7× slower, hence the
@@ -255,10 +257,12 @@ impl Engine {
     /// learned (`rank::USE_WEIGHT`); it continues the words before it in the sentence
     /// (`text::phrase_words`), for next words and in-word bias (`rank::OWN_NEXT_WORDS`); and
     /// from the Latin keyboard its script says which language the user writes
-    /// (`rank::HABIT_WEIGHT`). Addresses and numbers are never part of a phrase.
+    /// (`rank::HABIT_WEIGHT`). Addresses and numbers are never part of a phrase; a phone
+    /// number the word ends is learned (`note_number`).
     pub fn note_used(&self, context_before: &str, word: &str, layout: Layout) {
         let word = normalize(word);
         if !phrase_word(&word) {
+            self.note_number(context_before, &word);
             return;
         }
         let (previous, earlier) = text::phrase_words(context_before);
@@ -279,6 +283,17 @@ impl Engine {
             counted,
             habit,
         );
+    }
+
+    /// A phone number (`text::phone_number_at_end`) that `word` ends, with the groups typed
+    /// before it in `context_before` (`+91 55501 ` + `12345`, or `55501-` + `12345`: the
+    /// keyboard reports the word after the last break), is learned the second time, as typed,
+    /// like an address. With autocorrect off too: a number is never corrected.
+    fn note_number(&self, context_before: &str, word: &str) {
+        let typed = format!("{context_before}{word}");
+        if let Some(number) = text::phone_number_at_end(&typed) {
+            self.user().note_typed(number);
+        }
     }
 
     /// The user tapped `chosen` for the Latin letters `typed`, though the bar's default (its
@@ -376,13 +391,14 @@ impl Engine {
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
 
-    /// The learned addresses (`text::is_address`), as shown, sorted. The keyboard reads
-    /// letters that begin one as one word too, as `current_word` does.
+    /// The learned addresses (`text::is_address`) and phone numbers (`text::is_phone_number`),
+    /// as shown, sorted. The keyboard reads letters that begin one as one word too, as
+    /// `current_word` does.
     pub fn learned_addresses(&self) -> Vec<String> {
         let mut found: Vec<String> = self
             .user()
             .learned()
-            .filter(|w| text::is_address(w))
+            .filter(|w| text::is_address(w) || text::is_phone_number(w))
             .map(str::to_string)
             .collect();
         found.sort();
@@ -605,8 +621,12 @@ impl Engine {
 
     /// The word being typed (`text::current_word`), and whether it is an address. Letters
     /// and punctuation that begin a learned address are one too (`neo.9` of
-    /// sam.2024@example.com), back to the whitespace: their full stop is no word break.
+    /// sam.2024@example.com), back to the whitespace: their full stop is no word break. So are
+    /// the digits that begin a learned phone number (`begun_number`).
     fn current_word<'a>(&self, context_before: &'a str) -> (&'a str, bool) {
+        if let Some(number) = self.begun_number(context_before) {
+            return (number, true);
+        }
         let word = text::current_word(context_before);
         if text::is_address(word) {
             return (word, true);
@@ -627,6 +647,22 @@ impl Engine {
                 .user()
                 .learned()
                 .any(|w| text::is_address(w) && starts_with_ignoring_case(w, token))
+    }
+
+    /// The longest end of `context_before` (`text::number_tails`) with `NUMBER_PREFIX_DIGITS`
+    /// or more that begins a learned phone number, its spaces, `-` and `.` and all
+    /// (`+91 98` of +91 55501 12345). Fewer digits would offer a number while typing an
+    /// ordinary one (`20` of a year).
+    fn begun_number<'a>(&self, context_before: &'a str) -> Option<&'a str> {
+        let mut tails = text::number_tails(context_before)
+            .filter(|t| t.bytes().filter(u8::is_ascii_digit).count() >= NUMBER_PREFIX_DIGITS)
+            .peekable();
+        tails.peek()?;
+        let user = self.user();
+        tails.find(|t| {
+            user.learned()
+                .any(|w| w.starts_with(t) && text::is_phone_number(w))
+        })
     }
 
     fn is_known(&self, word: &str) -> bool {
@@ -2827,6 +2863,120 @@ mod tests {
         assert!(user.followers(None, "5", 5).is_empty());
         assert_eq!(user.uses("priya@example.com"), 0);
         assert_eq!(user.uses("please"), 3, "the word itself still counts");
+    }
+
+    #[test]
+    fn a_phone_number_is_never_part_of_a_phrase() {
+        let engine = hello_engine();
+        for _ in 0..2 {
+            commit(&engine, "mail 55501 12345 please", Layout::Latin);
+        }
+        let user = engine.user();
+        assert!(user.is_learned("55501 12345"));
+        assert!(user.followers(None, "mail", 5).is_empty());
+        assert!(user.followers(None, "12345", 5).is_empty());
+        assert!(user.followers(None, "55501 12345", 5).is_empty());
+        assert_eq!(user.uses("55501 12345"), 0);
+    }
+
+    fn typed_and_bar(engine: &Engine, context: &str, layout: Layout) -> (String, Vec<String>) {
+        let s = engine.suggest(context, layout, true);
+        (s.typed, s.candidates.into_iter().map(|c| c.text).collect())
+    }
+
+    #[test]
+    fn a_phone_number_typed_twice_is_learned_and_completed() {
+        let engine = hello_engine();
+        commit(&engine, "call 5550112345", Layout::Latin);
+        assert_eq!(bar(&engine, "call 55501"), ["55501"]);
+        commit(&engine, "call 5550112345", Layout::Latin);
+        assert_eq!(bar(&engine, "call 55501"), ["55501", "5550112345"]);
+        assert_eq!(bar(&engine, "call 984"), ["984", "5550112345"]);
+        assert_eq!(bar(&engine, "call 98"), ["98"], "two digits are too few");
+        assert_eq!(engine.learned_addresses(), ["5550112345"]);
+        for layout in [Layout::Latin, Layout::Malayalam] {
+            let (typed, shown) = typed_and_bar(&engine, "9847", layout);
+            assert_eq!((typed.as_str(), shown[1].as_str()), ("9847", "5550112345"));
+        }
+    }
+
+    #[test]
+    fn a_number_typed_in_groups_is_learned_whole_with_its_spacing() {
+        let engine = hello_engine();
+        for _ in 0..2 {
+            commit(&engine, "call +91 55501 12345", Layout::Latin);
+        }
+        assert_eq!(engine.learned_words(), ["+91 55501 12345"]);
+        let (typed, shown) = typed_and_bar(&engine, "call +91 98", Layout::Latin);
+        assert_eq!(typed, "+91 98", "the groups typed are one word");
+        assert_eq!(shown, ["+91 98", "+91 55501 12345"]);
+        assert_eq!(typed_and_bar(&engine, "ring +91 9", Layout::Latin).0, "+91 9");
+        assert_eq!(typed_and_bar(&engine, "+91", Layout::Latin).0, "91");
+        assert_eq!(bar(&engine, "+91 55501 12345")[0], "+91 55501 12345");
+        // The keyboard reports the word after the last break: `-` is one too.
+        for _ in 0..2 {
+            engine.note_used("call 55501-", "12345", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "55501-1"), ["55501-1", "55501-12345"]);
+        assert_eq!(engine.learned_addresses(), ["+91 55501 12345", "55501-12345"]);
+    }
+
+    #[test]
+    fn ordinary_numbers_are_never_learned() {
+        let engine = hello_engine();
+        for _ in 0..2 {
+            for text in [
+                "I have 2 kids 3 dogs",
+                "in 2024 2025 and 2026",
+                "pay 100 or 1000000",
+                "on 12/05/2026 or 12-05-2026",
+                "pi 3.14 is 1234567.89",
+                "at 10:30",
+                "save 50% or $5550112345",
+                "1.234.567 and 123 456 789 012",
+            ] {
+                commit(&engine, text, Layout::Latin);
+                for word in text.split(' ').filter(|w| w.contains(char::is_numeric)) {
+                    engine.note_committed(word);
+                }
+            }
+        }
+        assert!(engine.learned_words().is_empty());
+    }
+
+    #[test]
+    fn digits_are_never_replaced_by_words() {
+        let engine = hello_engine();
+        for typed in ["55501", "100", "3.14", "+91 98", "2nd"] {
+            let shown = bar(&engine, typed);
+            assert_eq!(shown[0], typed.rsplit(' ').next().unwrap(), "{typed}");
+            assert_eq!(shown.len(), 1, "{typed}");
+        }
+        let (_, shown) = typed_and_bar(&engine, "55501", Layout::Malayalam);
+        assert_eq!(shown, ["55501"]);
+    }
+
+    #[test]
+    fn a_learned_number_is_removed_forgotten_and_cleared_like_a_word() {
+        let engine = hello_engine();
+        let learn = |number: &str| {
+            for _ in 0..2 {
+                commit(&engine, number, Layout::Latin);
+            }
+        };
+        learn("+91 55501 12345");
+        engine.remove_word("+91 55501 12345");
+        assert_eq!(bar(&engine, "+91 98"), ["98"]);
+        assert_eq!(engine.removed_words(), ["+91 55501 12345"]);
+        assert!(engine.learned_addresses().is_empty());
+        learn("5550112345");
+        engine.forget_word("5550112345");
+        assert!(engine.learned_words().is_empty());
+        assert_eq!(bar(&engine, "55501"), ["55501"]);
+        learn("5550112345");
+        engine.forget_learned();
+        assert!(engine.learned_addresses().is_empty());
+        assert!(engine.removed_words().is_empty());
     }
 
     #[test]

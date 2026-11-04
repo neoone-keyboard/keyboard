@@ -622,9 +622,78 @@ struct InputControllerTests {
         #expect(reported.isEmpty)
     }
 
+    /// Digits are typed on the 123 page (iOS never offers a keyboard of one's own in a phone
+    /// pad field), and space goes back to the letters after each group.
+    @Test func aNumberTypedOnTheSymbolsPageIsReportedGroupByGroup() {
+        input.autocorrectEnabled = false
+        let reported = uses {
+            output.text = "call "
+            type(.page(.symbols))
+            typeText("+91")
+            input.handle(.space, at: 0)
+            #expect(input.page == .letters)
+            type(.page(.symbols))
+            typeText("55501")
+            input.handle(.space, at: 0)
+            type(.page(.symbols))
+            typeText("12345")
+            input.handle(.returnKey, at: 0)
+        }
+        #expect(output.text == "call +91 55501 12345\n")
+        #expect(reported == [
+            use("91", after: "call +"),
+            use("55501", after: "call +91 "),
+            use("12345", after: "call +91 55501 "),
+        ])
+    }
+
+    @Test func aDottedNumberIsReportedThoughADottedWordIsNot() {
+        let reported = uses {
+            output.text = "98.470.12345"
+            input.handle(.space, at: 0)
+            output.text = "x.com"
+            input.handle(.space, at: 0)
+        }
+        #expect(reported == [use("98.470.12345", after: "")])
+    }
+
+    @Test func digitsThatBeginALearnedNumberAreOneWord() {
+        input.learnedAddresses = ["+91 55501 12345", "55501-12345", "sam@example.com"]
+        for (text, word) in [
+            ("call +91 98", "+91 98"),
+            ("call +91 9", "+91 9"),
+            ("55501-1", "55501-1"),
+            ("\"+91 98", "+91 98"),
+            ("call 98", "98"),
+            ("call +91  98", "98"),
+            ("call 99 55501", "55501"),
+            ("call +91", "91"),
+        ] {
+            output.text = text
+            #expect(input.currentWord == word, "\(text)")
+        }
+        output.text = "call +91 98"
+        input.updateSuggestions(SuggestionResult(typed: "98", candidates: [Suggestion("98", kind: .verbatim)]))
+        input.commitSuggestion("+91 55501 12345")
+        #expect(output.text == "call +91 55501 12345 ")
+    }
+
+    @Test func aFullStopInsideALearnedNumberIsPartOfIt() {
+        input.learnedAddresses = ["98.470.12345"]
+        output.text = "98"
+        typeText(".")
+        #expect(input.currentWord == "98.")
+        typeText("4")
+        #expect(input.currentWord == "98.4")
+    }
+
     @Test func noUseIsReportedInASecureField() {
         input.secureTextEntry = true
         let reported = uses {
+            typeText("55501")
+            input.handle(.space, at: 0)
+            typeText("12345")
+            input.handle(.space, at: 0)
             output.text = "hello"
             input.updateSuggestions(verbatim("hello"))
             input.handle(.space, at: 0)
