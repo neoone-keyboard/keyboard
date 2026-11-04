@@ -17,13 +17,12 @@ Measures, per generation:
   consecutive `WINDOW`-token windows that are in it (a hash index of every window), 0 for none.
 
 A corpus run whose tokens hold `LOOP_DISTINCT` or fewer distinct ones is a loop (`0000…`,
-`, , , ,`): a model stuck on one or two tokens, which the training text also holds somewhere. It
-carries no text from any source, and every window of a one-token loop is the same window, so one
-such run in the corpus matches a loop of any length. Loops are counted apart (`corpus_loops`).
+`, , , ,`): a model stuck on one or two tokens. Every window of a one-token loop is the same
+window, so one such run in the corpus matches a loop of any length. Loops count like any other
+run; the runs that aren't loops are also summarised apart (`corpus_not_loops`), for diagnosis.
 
 Writes the max, p99 and a histogram of each, the prompt count and the model's SHA-256; `pass` is
-whether every continuation run and every corpus run that isn't a loop stays under `LIMIT` tokens.
-Exits 1 on a fail. The longest runs and the longest loops are listed with their text (`--dump`
+whether every run, by both measures, stays under `LIMIT` tokens. Exits 1 on a fail. The longest runs and the longest loops are listed with their text (`--dump`
 saves every generation for a closer look).
 
 `sources.tsv` (`bucket<TAB>source<TAB>first paragraph`) is derived here when missing:
@@ -57,7 +56,7 @@ SHARE_ALIKE = ("en-wiki", "en-simple", "ml", "manglish-0", "manglish-1", "mangli
                "mixed-0", "mixed-1")
 RUNS = ((0.0, 0), (0.7, 1), (0.7, 2))  # (temperature, seed)
 # A matched run with this many distinct tokens or fewer is a loop (`0000…`, `, , , ,`,
-# `to be 1000…`): it is counted apart and doesn't fail the check (design §10).
+# `to be 1000…`): listed apart in the output, for diagnosis only (design §10).
 LOOP_DISTINCT = 4
 BOS = 2
 # Wikisource paragraphs read from the dump to find where it begins in `ml.txt`.
@@ -248,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
 
     lm = mlengine.Lm(str(args.model))
     text = lambda ids: "".join(pieces[t] for t in ids).replace("▁", " ").strip()  # noqa: E731
-    cont, corp, loops = [], [], []
+    cont, corp, prose = [], [], []
     worst: dict[str, int] = {}
     longest = []  # (run, distinct tokens in the run, loop, source, temperature, prompt text, generated text)
     dumped = []
@@ -262,11 +261,10 @@ def main(argv: list[str] | None = None) -> int:
             generated = lm.generate(prompt, GENERATED, temperature, seed)
             c = continuation_run(generated, after)
             spans = [generated[s:s + n] for s, n in corpus_runs(generated, index)]
-            r = max((len(x) for x in spans if not is_loop(x)), default=0)
-            loop = max((len(x) for x in spans if is_loop(x)), default=0)
+            r = max((len(x) for x in spans), default=0)
             cont.append(c)
             corp.append(r)
-            loops.append(loop)
+            prose.append(max((len(x) for x in spans if not is_loop(x)), default=0))
             worst[source] = max(worst.get(source, 0), c, r)
             for n, span, is_l in [(c, generated[:c], False)] + [(len(x), x, is_loop(x)) for x in spans]:
                 if n >= LIMIT // 2:
@@ -296,7 +294,7 @@ def main(argv: list[str] | None = None) -> int:
         "continuation": summary(cont),
         "corpus": summary(corp),
         "loop_distinct": LOOP_DISTINCT,
-        "corpus_loops": summary(loops),
+        "corpus_not_loops": summary(prose),
         "worst_by_source": worst,
         "runs_over_half_the_limit": sum(not x[2] for x in longest),
         "loops_over_half_the_limit": sum(x[2] for x in longest),
