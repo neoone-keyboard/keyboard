@@ -1,7 +1,8 @@
 import Foundation
 
-/// Word → emoji for the bar, from the bundled emoji-words.txt (data/pipeline/emoji_data.py):
-/// comment lines, then "word<TAB>emoji emoji…" lines sorted by UTF-8 bytes, best emoji first.
+/// Word → emoji, from the bundled emoji-words.txt for the bar or emoji-search.txt for the
+/// panel's search (data/pipeline/emoji_data.py): comment lines, then "word<TAB>emoji emoji…"
+/// lines sorted by UTF-8 bytes, best emoji first.
 /// Looked up by binary search on the file's bytes, so nothing is parsed or held but the
 /// file itself (memory-mapped by the caller); a lookup reads a dozen lines.
 public struct EmojiWords: Sendable {
@@ -49,6 +50,46 @@ public struct EmojiWords: Sendable {
                 }
             }
             return []
+        }
+    }
+
+    /// Every word that begins with `prefix` (any case; ’ as '), with its emoji: the words in
+    /// byte order, found by binary search for the first and read on from there.
+    public func words(startingWith prefix: String) -> [(word: String, emoji: [String])] {
+        let key = Array(prefix.lowercased().replacingOccurrences(of: "\u{2019}", with: "'").utf8)
+        guard !key.isEmpty else { return [] }
+        return data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [(word: String, emoji: [String])] in
+            let newline = UInt8(ascii: "\n"), tab = UInt8(ascii: "\t")
+            // The first line not before `key`; `low` and `high` are always at line starts.
+            var low = bodyStart, high = bytes.count
+            while low < high {
+                let mid = (low + high) / 2
+                var start = mid
+                while start > low, bytes[start - 1] != newline { start -= 1 }
+                var end = start
+                while end < high, bytes[end] != newline { end += 1 }
+                var split = start
+                while split < end, bytes[split] != tab { split += 1 }
+                if compare(key, bytes[start..<split]) > 0 {
+                    low = end + 1
+                } else {
+                    high = start
+                }
+            }
+            var found: [(word: String, emoji: [String])] = []
+            var start = low
+            while start < bytes.count {
+                var end = start
+                while end < bytes.count, bytes[end] != newline { end += 1 }
+                var split = start
+                while split < end, bytes[split] != tab { split += 1 }
+                guard split - start >= key.count, bytes[start..<(start + key.count)].elementsEqual(key) else { break }
+                let emoji = split < end ? String(decoding: bytes[(split + 1)..<end], as: UTF8.self) : ""
+                found.append((String(decoding: bytes[start..<split], as: UTF8.self),
+                              emoji.split(separator: " ").map(String.init)))
+                start = end + 1
+            }
+            return found
         }
     }
 
