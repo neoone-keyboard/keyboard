@@ -506,40 +506,38 @@ final class EmojiCell: UICollectionViewCell {
     }
 }
 
-/// Draws its picture into its own layer, which the cell keeps and reuses: one backing store
-/// per cell, whatever the pictures kept. A faint dot until there is a picture.
+/// Shows its picture as its layer's contents: the drawn image itself on screen, no second copy
+/// of it painted into a backing store of the cell's. A faint dot until there is a picture.
 final class EmojiPicture: UIView {
     var image: CGImage? {
-        didSet { if image !== oldValue { setNeedsDisplay() } }
+        didSet {
+            guard image !== oldValue else { return }
+            layer.contents = image
+            dot.isHidden = image != nil
+        }
     }
     var placeholder: UIColor? {
-        didSet { if image == nil && placeholder != oldValue { setNeedsDisplay() } }
+        didSet { dot.backgroundColor = placeholder }
     }
+    private let dot = UIView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isOpaque = false
         backgroundColor = .clear
         isUserInteractionEnabled = false
-        // A new cell's picture is set before the cell gives it a size: drawn again once it has
-        // one, not the empty zero-size drawing stretched.
-        contentMode = .redraw
+        layer.contentsGravity = .resize
+        dot.isUserInteractionEnabled = false
+        addSubview(dot)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    override func draw(_ rect: CGRect) {
-        guard let context = UIGraphicsGetCurrentContext() else { return }
-        guard let image else {
-            placeholder?.setFill()
-            let side = bounds.width / 4
-            context.fillEllipse(in: CGRect(x: bounds.midX - side / 2, y: bounds.midY - side / 2, width: side, height: side))
-            return
-        }
-        // Core Graphics draws upside down in UIKit's coordinates.
-        context.translateBy(x: 0, y: bounds.height)
-        context.scaleBy(x: 1, y: -1)
-        context.draw(image, in: bounds)
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let side = bounds.width / 4
+        dot.frame = CGRect(x: bounds.midX - side / 2, y: bounds.midY - side / 2, width: side, height: side)
+        dot.layer.cornerRadius = side / 2
     }
 }
 

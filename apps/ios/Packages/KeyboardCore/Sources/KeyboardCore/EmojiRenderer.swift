@@ -53,9 +53,9 @@ public final class EmojiRenderer {
     private var timings = EmojiTimings()
     private let painter: Painter
 
-    /// Emoji drawn with one private font before it is replaced: a screen of the panel (5 rows
-    /// of 8) and a row ahead, about 2.3 MB of its cache at 3x.
-    public nonisolated static let fontLifetime = 48
+    /// Emoji drawn with one private font before it is replaced: two batches, about 1.5 MB of
+    /// its cache at 3x.
+    public nonisolated static let fontLifetime = 32
     /// Emoji sent to be drawn at once: two rows, so what is on screen is looked at again soon
     /// after a scroll.
     public nonisolated static let batchSize = 16
@@ -67,9 +67,10 @@ public final class EmojiRenderer {
     /// A timings line in the log every so many emoji drawn.
     public nonisolated static let summaryEvery = 100
 
-    /// `cacheBytes` bounds the kept images, as their pages take (48 KB for 96 × 96). The
-    /// first font is made at once, while the panel is laid out.
-    public init(pixelSide: Int, cacheBytes: Int = 3 * 1_048_576) {
+    /// `cacheBytes` bounds the kept images, as their pages take (48 KB for 96 × 96): those on
+    /// screen are held by their cells anyway, so this is what is kept off screen, to scroll
+    /// back to. The first font is made at once, while the panel is laid out.
+    public init(pixelSide: Int, cacheBytes: Int = 1_048_576) {
         self.pixelSide = pixelSide
         painter = Painter(side: pixelSide)
         cache.totalCostLimit = cacheBytes
