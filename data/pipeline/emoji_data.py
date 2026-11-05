@@ -24,6 +24,15 @@ SKIPPED_GROUPS = {"Component"}
 MAX_EMOJI_PER_WORD = 6
 # Grammar words CLDR lists as keywords (☝️ for "this", 🤮 for "up"): an emoji after every
 # one of them would be noise, so they get none.
+# Everyday names for flags that CLDR names only in full ("United States"), so a word of
+# them suggests the flag. Our own list, not CLDR's. "us" is left out: it's a grammar word.
+FLAG_NAMES = {
+    "usa": "🇺🇸", "america": "🇺🇸", "അമേരിക്ക": "🇺🇸",
+    "uk": "🇬🇧", "britain": "🇬🇧", "ബ്രിട്ടൻ": "🇬🇧", "യുകെ": "🇬🇧",
+    "uae": "🇦🇪", "emirates": "🇦🇪", "dubai": "🇦🇪", "യുഎഇ": "🇦🇪", "ദുബായ്": "🇦🇪",
+    "korea": "🇰🇷", "കൊറിയ": "🇰🇷",
+    "holland": "🇳🇱",
+}
 STOP_WORDS = {"at", "do", "down", "got", "not", "off", "out", "over", "that", "this", "up"}
 
 
@@ -227,7 +236,10 @@ def main(argv: list[str] | None = None) -> int:
             had_named, had_others = search.get(word, ([], []))
             all_named = list(dict.fromkeys(had_named + named))
             search[word] = (all_named, [e for e in dict.fromkeys(had_others + others) if e not in all_named])
-    words = merge_words(ranked)
+    words = merge_words([{word: [(True, flag)] for word, flag in FLAG_NAMES.items()}] + ranked)
+    for word, flag in FLAG_NAMES.items():
+        named, others = search.get(word, ([], []))
+        search[word] = ([flag] + [e for e in named if e != flag], [e for e in others if e != flag])
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "emoji.txt").write_text("\n".join(catalog_lines(groups)) + "\n", encoding="utf-8")
     (args.out / "emoji-words.txt").write_text("\n".join(word_lines(words)) + "\n", encoding="utf-8")

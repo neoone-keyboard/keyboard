@@ -66,6 +66,7 @@ amazed	😳
 amazement	🫢
 amble	🚶 🚶‍♂️ 🚶‍♀️ 🚶‍➡️ 🚶‍♀️‍➡️ 🚶‍♂️‍➡️
 ambulance	🚑
+america	🇺🇸
 american	🏈
 americas	🌎
 amoeba	🦠
@@ -417,6 +418,7 @@ briefs	🩲
 bright	😎 ☀️ 🌝 🌞 🔆
 brightness	🔅 🔆
 brine	🫝
+britain	🇬🇧
 bro	😎 👊 💪 👨 👨‍🦰 👨‍🦱
 broadband	🛜
 broccoli	🥦
@@ -1000,6 +1002,7 @@ drumsticks	🥁
 drunk	🥴 🍹
 dry	🚱
 dua	🤲
+dubai	🇦🇪
 duck	🦆 🪿
 duckling	🦢
 duel	🤼 🤼‍♂️ 🤼‍♀️
@@ -1053,6 +1056,7 @@ embrace	🫂
 embroidery	🪡
 emerge	🐦‍🔥
 emergency	🚑 🚨 🦺
+emirates	🇦🇪
 emoji	🤨
 emotion	💘 💝 💖 💗 💓 💞
 empanada	🥟
@@ -1579,6 +1583,7 @@ holding	🥹
 hole	🕳️ ⛳ 🪏
 holi	🫟
 holiday	🎅 🤶 🧑‍🎄
+holland	🇳🇱
 hollow	⭕
 hollywood	🎥
 home	🪹 🛖 🏚️ 🏠 🏡 🔨
@@ -1792,6 +1797,7 @@ knowledge	📖 📚
 knows	🤷 🤷‍♂️ 🤷‍♀️
 knuckle	👊
 koala	🐨
+korea	🇰🇷
 kosovo	🇽🇰
 kuaizi	🥢
 kuwait	🇰🇼
@@ -3461,12 +3467,14 @@ typhoon	🌀
 typing	💬
 tyrannosaurus	🦖
 türkiye	🇹🇷
+uae	🇦🇪
 ufo	👽 👾 🛸
 uganda	🇺🇬
 ugh	😒 🙄 🤌
 ugly	🦢
 uh	😑
 uhh	😒
+uk	🇬🇧
 ukraine	🇺🇦
 ultimate	🥏
 um	😋
@@ -3502,6 +3510,7 @@ upward	💹 📈
 upwards	🔼
 urn	⚱️
 uruguay	🇺🇾
+usa	🇺🇸
 utility	🚙
 uzbekistan	🇺🇿
 vacancy	🈳 🈵
@@ -3792,7 +3801,7 @@ zōri	🩴
 അമാനുഷികശക്തി	🦸 🦸‍♂️ 🦸‍♀️ 🦹‍♂️ 🦹‍♀️
 അമാവാസി	🌑
 അമീബ	🦠
-അമേരിക്ക	🌎
+അമേരിക്ക	🇺🇸 🌎
 അമേരിക്കൻ	🌎 🏈
 അമ്പടയാളം	⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️
 അമ്പരന്ന	🫪
@@ -4384,6 +4393,7 @@ zōri	🩴
 കൊമ്പുകൾ	😈 🤘
 കൊമ്പ്	🦣
 കൊയല	🐨
+കൊറിയ	🇰🇷
 കൊളംബിയ	🇨🇴
 കൊളുത്ത്	🪝
 കൊള്ളയടി	🏴‍☠️
@@ -4955,6 +4965,7 @@ zōri	🩴
 ദീർഘനിശ്വാസം	😮‍💨
 ദുഃഖം	😔
 ദുഖം	🪊
+ദുബായ്	🇦🇪
 ദുരന്തം	🛘
 ദുർഗന്ധം	🦨
 ദുർഭൂതം	🧝
@@ -5514,6 +5525,7 @@ zōri	🩴
 ബ്രഡ്	🫓
 ബ്രഷ്	🪮 🪥
 ബ്രസീൽ	🇧🇷
+ബ്രിട്ടൻ	🇬🇧
 ബ്രൂണൈ	🇧🇳
 ബ്രെഡ്	🍞 🥐 🥖 🥪 🥙
 ബ്രോക്കോളി	🥦
@@ -5786,6 +5798,8 @@ zōri	🩴
 യാചിക്കുന്നത്	🥺
 യാത്ര	🧳
 യിൻ	☯️
+യുഎഇ	🇦🇪
+യുകെ	🇬🇧
 യുദ്ധം	🥷
 യുവരാജാവ്	🤴
 യൂണികോൺ	🦄

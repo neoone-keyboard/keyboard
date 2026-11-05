@@ -68,6 +68,7 @@ amazed	| 😳
 amazement	| 🫢
 amble	| 🚶 🚶‍♂️ 🚶‍♀️ 🚶‍➡️ 🚶‍♀️‍➡️ 🚶‍♂️‍➡️
 ambulance	🚑
+america	🇺🇸
 american	🏈 🇦🇸
 americas	🌎
 amoeba	| 🦠
@@ -431,6 +432,7 @@ briefs	🩲
 bright	🔆 | 😎 🧒 👦 👧 ☀️ 🌝 🌞
 brightness	| 🔅 🔆
 brine	| 🫝
+britain	🇬🇧
 british	🇮🇴 🇻🇬
 bro	| 😎 👊 💪 👨 👨‍🦰 👨‍🦱 👨‍🦳 👨‍🦲
 broadband	| 🛜
@@ -1040,6 +1042,7 @@ drumsticks	| 🥁
 drunk	| 🥴 🍹
 dry	| 🚱
 dua	| 🤲
+dubai	🇦🇪
 duck	🦆 | 🪿
 duckling	| 🦢
 duel	| 🤼 🤼‍♂️ 🤼‍♀️
@@ -1643,6 +1646,7 @@ holding	🥹 🧑‍🤝‍🧑 👭 👫 👬
 hole	🕳️ ⛳ | 🪏
 holi	| 🫟
 holiday	| 🎅 🤶 🧑‍🎄
+holland	🇳🇱
 hollow	⭕
 hollywood	| 🎥
 home	| 🪹 🛖 🏚️ 🏠 🏡 🔨 🔧 🔩
@@ -1867,7 +1871,7 @@ knows	| 🤷 🤷‍♂️ 🤷‍♀️
 knuckle	| 👊
 koala	🐨
 kong	🇭🇰
-korea	🇰🇵 🇰🇷
+korea	🇰🇷 🇰🇵
 kosovo	🇽🇰
 kuaizi	| 🥢
 kuwait	🇰🇼
@@ -3609,12 +3613,14 @@ typhoon	| 🌀
 typing	| 💬
 tyrannosaurus	| 🦖
 türkiye	🇹🇷
+uae	🇦🇪
 ufo	| 👽 👾 🛸
 uganda	🇺🇬
 ugh	| 😒 🙄 🤌
 ugly	| 🦢
 uh	| 😑
 uhh	| 😒
+uk	🇬🇧
 ukraine	🇺🇦
 ultimate	| 🥏
 um	| 😋
@@ -3653,6 +3659,7 @@ upward	| 💹 📈
 upwards	🔼
 urn	⚱️
 uruguay	🇺🇾
+usa	🇺🇸
 utility	🚙
 uzbekistan	🇺🇿
 vacancy	🈳 🈵
@@ -3977,7 +3984,7 @@ zōri	| 🩴
 അമാവാസി	🌑 🌗 🌚 🌜
 അമിത	| 🫃
 അമീബ	| 🦠
-അമേരിക്ക	🌎
+അമേരിക്ക	🇺🇸 🌎
 അമേരിക്കൻ	🏈 🇦🇸 🇺🇸 | 🌎
 അമ്പടയാള	⏫ ⏬ | 🔼 🔽
 അമ്പടയാളം	⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️ ⬅️ ↖️ ↕️ ↔️ ↩️ ↪️ ⤴️ ⤵️ 🔙 🔚 🔛 🔜 | 🔃 🔄 🔝 🔽
@@ -4864,6 +4871,7 @@ zōri	| 🩴
 കൊമ്പുകൾ	| 😈 🤘
 കൊമ്പ്	| 🦣
 കൊയല	🐨
+കൊറിയ	🇰🇷
 കൊലയാളി	🫍
 കൊളംബിയ	🇨🇴
 കൊളുത്ത്	🪝
@@ -5667,6 +5675,7 @@ zōri	| 🩴
 ദുഃഖം	| 😔
 ദുഃഖിതമായ	😓
 ദുഖം	| 🪊
+ദുബായ്	🇦🇪
 ദുരന്തം	| 🛘
 ദുർഗന്ധം	| 🦨
 ദുർഭൂതം	🧝 🧝‍♂️ 🧝‍♀️
@@ -6512,6 +6521,7 @@ zōri	| 🩴
 ബ്രസീൽ	🇧🇷
 ബ്രാസവില്ലി	🇨🇬
 ബ്രിട്ടീഷ്	🇮🇴 🇻🇬
+ബ്രിട്ടൻ	🇬🇧
 ബ്രൂണൈ	🇧🇳
 ബ്രെഡ്	🍞 🥖 | 🥐 🥪 🥙
 ബ്രോക്കോളി	🥦
@@ -6912,6 +6922,8 @@ zōri	| 🩴
 യാത്രികൻ	| 🧑‍🚀
 യാന്ത്രിക	🧑‍🦼 🧑‍🦼‍➡️
 യിൻ	☯️
+യുഎഇ	🇦🇪
+യുകെ	🇬🇧
 യുണൈറ്റഡ്	🇦🇪 🇬🇧
 യുദ്ധം	| 🥷
 യുവരാജാവ്	| 🤴

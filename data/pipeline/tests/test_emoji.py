@@ -1,4 +1,4 @@
-from emoji_data import catalog_lines, merge_words, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
+from emoji_data import FLAG_NAMES, catalog_lines, merge_words, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
 
 EMOJI_TEST = """\
 # group: Smileys & Emotion
@@ -165,3 +165,9 @@ def test_a_country_suggests_its_flag():
 def test_an_emoji_the_word_names_comes_first_across_files():
     merged = merge_words([{"australia": [(False, "🐨"), (False, "🌏")]}, {"australia": [(True, "🇦🇺")]}])
     assert merged["australia"] == ["🇦🇺", "🐨", "🌏"]
+
+
+def test_everyday_flag_names_are_words_and_flags():
+    from emoji_data import _is_flag, _is_word
+    assert all(_is_word(word) and _is_flag(flag) for word, flag in FLAG_NAMES.items())
+    assert "us" not in FLAG_NAMES
