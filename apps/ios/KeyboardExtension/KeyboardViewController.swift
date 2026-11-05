@@ -66,11 +66,52 @@ final class KeyboardViewController: UIInputViewController {
     /// constraint, what stays behind is about 50 KB a session (the app's `-keyboardCycles`).
     /// "Your words" and the emoji search are in `stack`, so they go with it.
     isolated deinit {
+        emptyView()
+        log.info("Keyboard released; footprint \(Diagnostics.footprint())")
+    }
+
+    /// Puts the keys, the bar and the settings panel in the input view: on loading, and again
+    /// if a controller emptied by `emptyIdleControllers` is shown after all.
+    private func attachViews() {
+        view.addSubview(stack)
+        view.addSubview(settingsPanel)
+        NSLayoutConstraint.activate([
+            heightConstraint,
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 3),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
+            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
+            stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -2),
+            settingsPanel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
+            settingsPanel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
+            settingsPanel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            settingsPanel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
+        ].compactMap { $0 })
+    }
+
+    /// Takes everything out of the input view (see `deinit`).
+    private func emptyView() {
+        hideEmojiPanel()
         stack.removeFromSuperview()
         settingsPanel.removeFromSuperview()
-        emojiPanel?.removeFromSuperview()
         heightConstraint?.isActive = false
-        log.info("Keyboard released; footprint \(Diagnostics.footprint())")
+    }
+
+    /// The controllers alive in this process. iOS 27 sometimes loads a controller, often just
+    /// as another session closes, never shows it and keeps it: its deinit never runs, and its
+    /// keys and bar stayed in memory, a few MB each, until the memory gate turned prediction
+    /// off for good (iPhone 15 Pro Max: 76 sessions, 5 never shown and 5 never released).
+    private static var alive: [Held] = []
+    private struct Held { weak var controller: KeyboardViewController? }
+
+    /// Empties every earlier controller that isn't on screen, as its deinit would; one that is
+    /// shown after all puts its views back (`viewWillAppear`). Returns how many it emptied.
+    private func emptyIdleControllers() -> Int {
+        Self.alive.removeAll { $0.controller == nil }
+        let idle = Self.alive.compactMap(\.controller)
+            .filter { $0 !== self && $0.viewIfLoaded?.window == nil && $0.stack.superview != nil }
+        for controller in idle { controller.emptyView() }
+        Self.alive.append(Held(controller: self))
+        return idle.count
     }
 
     /// Key clicks need the input view itself to adopt UIInputViewAudioFeedback.
@@ -187,10 +228,8 @@ final class KeyboardViewController: UIInputViewController {
         stack.axis = .vertical
         stack.spacing = 4
         stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
         settingsPanel.translatesAutoresizingMaskIntoConstraints = false
         settingsPanel.isHidden = true
-        view.addSubview(settingsPanel)
 
         let height = view.heightAnchor.constraint(equalToConstant: 270)
         height.priority = .defaultHigh + 1
@@ -205,20 +244,8 @@ final class KeyboardViewController: UIInputViewController {
         searchHeight.priority = .required - 1
         let barHeight = topBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
         barHeight.priority = .required - 1
-        NSLayoutConstraint.activate([
-            height,
-            wordsHeight,
-            searchHeight,
-            barHeight,
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 3),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -3),
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 4),
-            stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -2),
-            settingsPanel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
-            settingsPanel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
-            settingsPanel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
-            settingsPanel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
-        ])
+        NSLayoutConstraint.activate([wordsHeight, searchHeight, barHeight])
+        attachViews()
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
             self.applySettings()
@@ -227,11 +254,17 @@ final class KeyboardViewController: UIInputViewController {
         registerForTraitChanges([UITraitVerticalSizeClass.self]) { (self: Self, _: UITraitCollection) in
             self.updateHeight()
         }
-        log.info("Keyboard loaded; \(Diagnostics.buildDescription); iOS \(UIDevice.current.systemVersion); footprint \(Diagnostics.footprint())")
+        let emptied = emptyIdleControllers()
+        log.info("Keyboard loaded; \(Diagnostics.buildDescription); iOS \(UIDevice.current.systemVersion); "
+                 + "\(Self.alive.count) controllers alive, \(emptied) off screen emptied; footprint \(Diagnostics.footprint())")
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        if stack.superview == nil {
+            attachViews()
+            log.info("Emptied keyboard shown after all; views put back")
+        }
         settings = KeyboardSettings.load(from: .standard)
         hideYourWords()
         hideSettings()
