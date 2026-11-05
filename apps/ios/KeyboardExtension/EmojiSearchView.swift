@@ -19,6 +19,9 @@ final class EmojiSearchView: UIView, UICollectionViewDataSource, UICollectionVie
     private let searchIcon = UIImageView(image: UIImage(systemName: "magnifyingglass"))
     private let searchLabel = UILabel()
     private let clearButton = UIButton(type: .system)
+    /// The query's cursor, blinking as a text field's does: before the placeholder, after the
+    /// query. (The app's own cursor, in its text field, blinks too: a keyboard can't hide it.)
+    private let caret = UIView()
     private let layout = UICollectionViewFlowLayout()
     private lazy var row = UICollectionView(frame: .zero, collectionViewLayout: layout)
     private let emptyLabel = UILabel()
@@ -53,6 +56,9 @@ final class EmojiSearchView: UIView, UICollectionViewDataSource, UICollectionVie
         searchRow.alignment = .center
         searchRow.translatesAutoresizingMaskIntoConstraints = false
         searchBox.addSubview(searchRow)
+        caret.layer.cornerRadius = 1
+        caret.isUserInteractionEnabled = false
+        searchBox.addSubview(caret)
 
         let header = UIStackView(arrangedSubviews: [backButton, searchBox])
         header.spacing = 6
@@ -151,6 +157,7 @@ final class EmojiSearchView: UIView, UICollectionViewDataSource, UICollectionVie
         backButton.tintColor = theme.keyText
         searchBox.backgroundColor = theme.key
         searchIcon.tintColor = theme.hintText
+        caret.backgroundColor = theme.accent
         clearButton.tintColor = theme.hintText
         emptyLabel.textColor = theme.hintText
         refresh()
@@ -180,9 +187,41 @@ final class EmojiSearchView: UIView, UICollectionViewDataSource, UICollectionVie
         }
         searchLabel.accessibilityLabel = query.isEmpty ? "Search emoji" : "Search emoji: \(query)"
         clearButton.isHidden = query.isEmpty
+        setNeedsLayout()
+        restartBlink()
         let empty = search?.results.isEmpty ?? true
         emptyLabel.isHidden = !empty
         emptyLabel.text = query.isEmpty ? "Type to find emoji" : "No emoji found"
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        searchBox.layoutIfNeeded()
+        let label = searchLabel.convert(searchLabel.bounds, to: searchBox)
+        let typed = search?.query.isEmpty == false
+        let width = typed ? min(searchLabel.intrinsicContentSize.width, label.width) : 0
+        let height = searchLabel.font.lineHeight + 2
+        caret.frame = CGRect(x: (label.minX + width).rounded(), y: (searchBox.bounds.height - height) / 2,
+                             width: 2, height: height)
+    }
+
+    /// Solid while typing, then on and off every half second.
+    private func restartBlink() {
+        caret.layer.removeAnimation(forKey: "blink")
+        let blink = CAKeyframeAnimation(keyPath: "opacity")
+        blink.values = [1, 0]
+        blink.keyTimes = [0, 0.5, 1]
+        blink.calculationMode = .discrete
+        blink.duration = 1
+        blink.repeatCount = .infinity
+        blink.beginTime = CACurrentMediaTime() + 0.5
+        blink.fillMode = .backwards
+        caret.layer.add(blink, forKey: "blink")
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil { restartBlink() }
     }
 
     // MARK: Row
