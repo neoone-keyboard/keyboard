@@ -319,6 +319,15 @@ public final class InputController {
         shiftIsAutomatic = wanted
     }
 
+    /// The text a tap on `action` would add before the cursor when that is all the tap does: a
+    /// Latin letter (English and Manglish), shifted as `type` shifts it. Nil for anything else,
+    /// whose effect depends on more than the key (punctuation, space, Malayalam marks).
+    public func insertion(for action: KeyAction) -> String? {
+        guard case .character(let c) = action, c.unicodeScalars.count == 1,
+              let scalar = c.unicodeScalars.first, scalar.isASCII, scalar.properties.isAlphabetic else { return nil }
+        return showsUppercase ? c.uppercased() : c
+    }
+
     public func label(for action: KeyAction) -> String {
         switch action {
         case .character(let c): Self.isLoneMark(c) ? "\u{25CC}" + c : showsUppercase ? c.uppercased() : c

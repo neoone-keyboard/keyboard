@@ -54,6 +54,23 @@ struct InputControllerTests {
         #expect(input.shift == .locked)
     }
 
+    /// What a letter's key-up will type, for starting its suggestions at touch-down: exactly
+    /// the text the tap then adds, and nothing for keys whose effect depends on more.
+    @Test func insertionIsWhatALetterTapTypes() {
+        for (action, shifted) in [(KeyAction.character("k"), false), (.character("k"), true)] {
+            let output = RecordingOutput()
+            let input = InputController(output: output)
+            if shifted { input.handle(.shift, at: 0) }
+            let predicted = input.insertion(for: action)
+            input.handle(action, at: 1)
+            #expect(predicted == output.text)
+        }
+        for action in [KeyAction.character("."), .character(","), .character("'"), .character("1"),
+                       .character("ക"), .character("\u{0D3F}"), .space, .backspace, .returnKey] {
+            #expect(input.insertion(for: action) == nil, "\(action)")
+        }
+    }
+
     @Test func labelsFollowShiftState() {
         #expect(input.label(for: .character("a")) == "a")
         #expect(input.label(for: .shift) == "⇧")

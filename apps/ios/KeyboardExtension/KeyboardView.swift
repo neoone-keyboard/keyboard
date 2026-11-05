@@ -5,6 +5,8 @@ import KeyboardCore
 /// KeyGesture and InputController; this view only does layout and touch plumbing.
 final class KeyboardView: UIView {
     var onEvent: (@MainActor (GestureEvent) -> Void)?
+    /// A finger came down on a key, before its gesture is known (the key-up may never type it).
+    var onPress: (@MainActor (KeyAction) -> Void)?
     /// Clicks only sound because the controller's input view is a KeyboardInputView.
     var playsClicks = false
 
@@ -101,6 +103,7 @@ final class KeyboardView: UIView {
             )
             activeTouches[ObjectIdentifier(touch)] = (gesture, index)
             setPressed(true, at: index)
+            onPress?(frame.key.action)
             if playsClicks { UIDevice.current.playInputClick() }
         }
         startTimerIfNeeded()

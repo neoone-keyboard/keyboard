@@ -22,6 +22,14 @@ actor EngineSuggestionProvider: SuggestionProvider {
     private var loadedSources: [String] = []
     /// The last `learnedAddresses` read from the engine.
     private var addresses: [String] = []
+    /// A result worked out while the finger was still on the key (`prefetch`), for the request
+    /// its key-up will make. Dropped by anything that changes what the engine would suggest.
+    private var ahead: (request: SuggestionRequest, result: SuggestionResult)?
+    /// Of the requests a prefetch was made for, how many found it ready; logged every
+    /// `aheadLogEvery` prefetches.
+    private var aheadMade = 0
+    private var aheadUsed = 0
+    private static let aheadLogEvery = 200
 
     init(config: EngineConfig) {
         self.config = config
@@ -85,6 +93,33 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult {
         try Task.checkCancellation()
+        if let ahead, ahead.request == request {
+            self.ahead = nil
+            aheadUsed += 1
+            return ahead.result
+        }
+        return try suggest(request)
+    }
+
+    /// Works out the suggestions for `request` before it is made: a key is down, and this is
+    /// the text its key-up would leave. A suggest that starts from idle runs 5–7× slower than
+    /// one straight after another (see `modelDeadlineMs`); the finger stays down for some
+    /// 80–100 ms, so the result is usually ready when the key-up asks. The same request, so
+    /// the same suggestions, only sooner. Best effort: a failure just leaves nothing ahead.
+    func prefetch(_ request: SuggestionRequest) {
+        guard ahead?.request != request else { return }
+        ahead = nil
+        guard let result = try? suggest(request) else { return }
+        ahead = (request, result)
+        aheadMade += 1
+        if aheadMade == Self.aheadLogEvery {
+            log.info("Suggestions ahead: \(aheadUsed) of \(aheadMade) used at key-up")
+            aheadMade = 0
+            aheadUsed = 0
+        }
+    }
+
+    private func suggest(_ request: SuggestionRequest) throws -> SuggestionResult {
         let engine = try loadedEngine()
         let start = ContinuousClock.now
         let result = try engine.suggest(
@@ -112,6 +147,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     /// Best effort: a failure only means the word isn't learned.
     func handle(_ event: LearningEvent) {
+        ahead = nil
         switch event {
         case .committed(let word): try? loadedEngine().noteCommitted(word: word)
         case .learn(let word): try? loadedEngine().learn(word: word)
@@ -121,6 +157,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// A word went into the text: its phrase, its use, the language habit, and a choice of
     /// suggestion. Best effort, like `handle`.
     func noteUse(_ use: WordUse) {
+        ahead = nil
         guard let engine = try? loadedEngine() else { return }
         let layout: InputLayout = use.language == .malayalam ? .malayalam : .latin
         try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: layout)
@@ -132,6 +169,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// Must work even when the engine is shed or failed to open: an engine with
     /// no lexicons opens only the learned-word store, which is cheap.
     func forgetLearned() {
+        ahead = nil
         addresses = []
         if let engine {
             try? engine.forgetLearned()
@@ -143,6 +181,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// The user removed `word` from the bar. Best effort, like `handle`; works while the
     /// engine is shed, as `forgetLearned` does, so the choice is never silently lost.
     func remove(_ word: String) {
+        ahead = nil
         if let engine {
             try? engine.removeWord(word: word)
         } else {
@@ -162,6 +201,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// Forgets one learned word from "Your words", without blocking it. Best effort, and
     /// works while the engine is shed, like `remove`.
     func forget(_ word: String) {
+        ahead = nil
         // The last list read stands in while the engine is shed; it mustn't keep the word.
         addresses.removeAll { $0 == word }
         if let engine {
@@ -173,6 +213,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     /// Un-removes a word from "Your words", so it may be suggested again. Like `forget`.
     func restore(_ word: String) {
+        ahead = nil
         if let engine {
             try? engine.restoreWord(word: word)
         } else {
@@ -204,6 +245,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     /// Drops the engine so its memory is released, and keeps it unloaded until `resume`.
     func unload() {
+        ahead = nil
         if engine != nil { log.info("Engine unloaded; footprint before \(Diagnostics.footprint())") }
         engine = nil
         shed = true

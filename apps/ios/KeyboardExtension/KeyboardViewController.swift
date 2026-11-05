@@ -139,6 +139,7 @@ final class KeyboardViewController: UIInputViewController {
             }
         }
         keyboardView.onEvent = { [unowned self] in handle($0) }
+        keyboardView.onPress = { [unowned self] in prefetchSuggestions(after: $0) }
         topBar.onVowelSign = { [unowned self] sign in
             let page = input.page, shift = input.shift
             output.beginEdit()
@@ -852,11 +853,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func requestSuggestions() {
-        let request = SuggestionRequest(
-            contextBefore: String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64)),
-            language: input.language,
-            autocorrect: input.autocorrectEnabled
-        )
+        let request = suggestionRequest(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
         guard request != lastRequest else { return }
         // A result for the other language must not stay in the bar.
         if request.language != lastRequest?.language { latest = .empty }
@@ -865,5 +862,22 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.request(request)
         // A disabled coordinator never answers, so nothing is awaited.
         awaitingResult = suggestions.isEnabled
+    }
+
+    private func suggestionRequest(contextBefore: String) -> SuggestionRequest {
+        SuggestionRequest(
+            contextBefore: String(contextBefore.suffix(64)),
+            language: input.language,
+            autocorrect: input.autocorrectEnabled
+        )
+    }
+
+    /// A finger is on a letter: the engine starts on the suggestions its key-up will ask for
+    /// (`EngineSuggestionProvider.prefetch`). The key-up still makes its own request.
+    private func prefetchSuggestions(after action: KeyAction) {
+        guard suggestions.isEnabled, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil,
+              let text = input.insertion(for: action) else { return }
+        let request = suggestionRequest(contextBefore: (textDocumentProxy.documentContextBeforeInput ?? "") + text)
+        Task { [provider] in await provider.prefetch(request) }
     }
 }
