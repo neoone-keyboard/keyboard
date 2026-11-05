@@ -1,4 +1,4 @@
-from emoji_data import catalog_lines, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
+from emoji_data import catalog_lines, merge_words, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
 
 EMOJI_TEST = """\
 # group: Smileys & Emotion
@@ -136,3 +136,32 @@ def test_search_lines_are_sorted_by_utf8_bytes():
     lines = search_lines({"zoo": (["🐘"], []), "heart": (["❤️"], ["👋"]), "eyes": ([], ["👋"])})
     body = [line for line in lines if not line.startswith("#")]
     assert body == ["eyes\t| 👋", "heart\t❤️ | 👋", "zoo\t🐘"]
+
+
+FLAGS_TEST = """\
+# group: Flags
+# subgroup: country-flag
+1F1EE 1F1F3                                            ; fully-qualified     # 🇮🇳 E2.0 flag: India
+1F1FA 1F1F8                                            ; fully-qualified     # 🇺🇸 E2.0 flag: United States
+"""
+
+DERIVED_FLAGS = """<?xml version="1.0" encoding="UTF-8" ?>
+<ldml><annotations>
+<annotation cp="🇮🇳">flag</annotation>
+<annotation cp="🇮🇳" type="tts">flag: India</annotation>
+<annotation cp="🇺🇸">flag</annotation>
+<annotation cp="🇺🇸" type="tts">flag: United States</annotation>
+</annotations></ldml>
+"""
+
+
+def test_a_country_suggests_its_flag():
+    words = parse_annotations(DERIVED_FLAGS, parse_emoji_test(FLAGS_TEST))
+    assert words["india"] == ["🇮🇳"]
+    # A name of two words is no one word the keyboard has typed.
+    assert "united states" not in words and "states" not in words
+
+
+def test_an_emoji_the_word_names_comes_first_across_files():
+    merged = merge_words([{"australia": [(False, "🐨"), (False, "🌏")]}, {"australia": [(True, "🇦🇺")]}])
+    assert merged["australia"] == ["🇦🇺", "🐨", "🌏"]

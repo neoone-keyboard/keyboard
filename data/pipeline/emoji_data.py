@@ -46,6 +46,13 @@ def _toned(node: ET.Element) -> bool:
     return any(c in TONES for c in node.get("cp", ""))
 
 
+def _is_flag(emoji: str) -> bool:
+    """A country's or region's flag: two regional indicators, or the black flag with tag letters
+    (England, Scotland, Wales)."""
+    regional = [c for c in emoji if 0x1F1E6 <= ord(c) <= 0x1F1FF]
+    return len(regional) == 2 == len(emoji) or (emoji.startswith("\U0001F3F4") and any(0xE0061 <= ord(c) <= 0xE007A for c in emoji))
+
+
 def _version_tuple(version: str) -> tuple[int, ...]:
     return tuple(int(part) for part in version.split("."))
 
@@ -106,6 +113,11 @@ def parse_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[s
     """Word -> emoji, best first: an emoji whose name is the word, then the panel's order,
     which puts faces and hearts first (😀 for "happy", 🥰 for "love"). Fewer keywords first
     was tried: it put 🏩 first for "love" and 🦸 for "good"."""
+    return {word: [e for _, e in found] for word, found in ranked_annotations(xml, groups).items()}
+
+
+def ranked_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, list[tuple[bool, str]]]:
+    """As `parse_annotations`, each emoji with whether the word is its name."""
     order: dict[str, tuple[int, str]] = {}
     for _, entries in groups:
         for e in entries:
@@ -118,7 +130,11 @@ def parse_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[s
             continue
         emoji = found[1]
         if node.get("type") == "tts":
-            names[emoji] = node.text.strip().lower()
+            name = node.text.strip().lower()
+            # A country's flag is named "flag: India" (annotationsDerived): the country is its name.
+            if _is_flag(emoji) and ":" in name:
+                name = name.split(":", 1)[1].strip()
+            names[emoji] = name
         else:
             keywords[emoji] = [k.strip().lower() for k in node.text.split("|")]
     ranked: dict[str, list[tuple[tuple[bool, int], str]]] = {}
@@ -128,7 +144,21 @@ def parse_annotations(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[s
         rank = order[_key(emoji)][0]
         for word in {w for w in own + ([name] if name else []) if _is_word(w) and w not in STOP_WORDS}:
             ranked.setdefault(word, []).append(((word != name, rank), emoji))
-    return {word: [e for _, e in sorted(found)][:MAX_EMOJI_PER_WORD] for word, found in ranked.items()}
+    return {word: [(not keyword, e) for (keyword, _), e in sorted(found)][:MAX_EMOJI_PER_WORD]
+            for word, found in ranked.items()}
+
+
+def merge_words(files: list[dict[str, list[tuple[bool, str]]]]) -> dict[str, list[str]]:
+    """The words of several annotation files: for each word the emoji it names, then the
+    others, each in the files' order (so 🇦🇺 from the derived names comes before 🐨)."""
+    merged: dict[str, list[tuple[bool, str]]] = {}
+    for words in files:
+        for word, found in words.items():
+            merged.setdefault(word, []).extend(found)
+    return {
+        word: list(dict.fromkeys([e for named, e in found if named] + [e for named, e in found if not named]))[:MAX_EMOJI_PER_WORD]
+        for word, found in merged.items()
+    }
 
 
 def search_words(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, tuple[list[str], list[str]]]:
@@ -188,16 +218,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="directory for emoji.txt and emoji-words.txt")
     args = parser.parse_args(argv)
     groups = parse_emoji_test(args.emoji_test.read_text(encoding="utf-8"))
-    words: dict[str, list[str]] = {}
+    ranked: list[dict[str, list[tuple[bool, str]]]] = []
     search: dict[str, tuple[list[str], list[str]]] = {}
     for path in args.annotations:
         xml = path.read_text(encoding="utf-8")
-        for word, emoji in parse_annotations(xml, groups).items():
-            words[word] = list(dict.fromkeys(words.get(word, []) + emoji))[:MAX_EMOJI_PER_WORD]
+        ranked.append(ranked_annotations(xml, groups))
         for word, (named, others) in search_words(xml, groups).items():
             had_named, had_others = search.get(word, ([], []))
             all_named = list(dict.fromkeys(had_named + named))
             search[word] = (all_named, [e for e in dict.fromkeys(had_others + others) if e not in all_named])
+    words = merge_words(ranked)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "emoji.txt").write_text("\n".join(catalog_lines(groups)) + "\n", encoding="utf-8")
     (args.out / "emoji-words.txt").write_text("\n".join(word_lines(words)) + "\n", encoding="utf-8")

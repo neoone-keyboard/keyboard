@@ -36,6 +36,7 @@ aerial	🚡
 aeroplane	✈️ 🛩️ 🛫 🛬
 aesculapius	⚕️
 af	🔥
+afghanistan	🇦🇫
 afraid	😨
 africa	🌍
 afro	🪮
@@ -47,11 +48,13 @@ aid	🦻 ⛑️ 🩼
 air	🪟
 airplane	✈️ 🛩️ 🛫 🛬
 alarm	🚨 ⏰
+albania	🇦🇱
 alces	🫎
 alcohol	🍷 🍸 🍹 🍺 🍻
 ale	🍺
 alembic	⚗️
 alert	🚨
+algeria	🇩🇿
 alien	👽 👾
 aliens	🛸 📡
 almond	🌰
@@ -72,12 +75,15 @@ amulet	🧿 🪬
 amusement	🛝 🎡 🎢
 anatomical	🫀
 anchor	⚓ 🔱
+andorra	🇦🇩
 angel	😇 👼
 angelic	😇 🪽
 angels	😇
 anger	😤 😡 😠 💢 🗯️
 angle	📏 📐
+angola	🇦🇴
 angry	😤 😡 😠 👿 👺 💢
+anguilla	🇦🇮
 anguished	😧
 animal	😺 😸 😹 😻 😼 😽
 animals	🐕 🐈 🐂 🐄 🐁
@@ -87,7 +93,7 @@ anniversary	💝 💞 💕 💏 💑 💐
 annoyed	😖 🙍 🙍‍♂️ 🙍‍♀️
 answer	🟰
 ant	🐜
-antarctica	🐧
+antarctica	🇦🇶 🐧
 antenna	📡 📶
 anticlockwise	🔄
 antlers	🫎
@@ -109,9 +115,11 @@ archery	🏹
 architect	🧑‍💼 👨‍💼 👩‍💼
 arctic	🐻‍❄️
 arepa	🫓
+argentina	🇦🇷
 argument	🫯
 aries	♈ 🐏
 arm	💪 🦾
+armenia	🇦🇲
 army	🪖
 arrest	👮 👮‍♂️ 👮‍♀️
 arrival	🛬
@@ -126,6 +134,7 @@ artist	🧑‍🎨 👨‍🎨 👩‍🎨 🎨
 arts	🥋 🎭
 artsy	🎨
 arty	🎨
+aruba	🇦🇼
 ascend	🪽 🐦‍🔥
 ascension	🐦‍🔥
 ashes	⚱️
@@ -146,7 +155,8 @@ atm	🏧
 atom	⚛️
 attraction	🧲
 aubergine	🍆
-australia	🐨 🌏
+australia	🇦🇺 🐨 🌏
+austria	🇦🇹
 auto	🛺
 automated	🏧
 automobile	🚗 🚘 🛻
@@ -164,6 +174,7 @@ awkward	😐 😑 😶 😬 😳
 aww	🥹
 ax	🪓
 axe	🪓
+azerbaijan	🇦🇿
 baa	🐑
 babe	💏 💑 👩‍❤️‍💋‍👨 👨‍❤️‍💋‍👨 👩‍❤️‍💋‍👩 👩‍❤️‍👨
 babies	👶 🍼
@@ -188,6 +199,8 @@ bagel	🥯
 baggage	🛄 🛅
 bags	🫩 🛍️ 🛄
 baguette	🥖
+bahamas	🇧🇸
+bahrain	🇧🇭
 bait	🪤
 bakery	🥯 🧁
 balance	🤹 🤹‍♂️ 🤹‍♀️ ⚖️ ♎
@@ -205,11 +218,13 @@ bandage	🤕 🩹
 bandana	🧕
 bang	❣️ ❕ ❗
 bangbang	‼️
+bangladesh	🇧🇩
 banjo	🪕
 bank	🏦 💰 💴 💵 💶 💷
 banknote	💴 💵 💶 💷 💸
 banner	🎋
 bar	🍫 🍶 🍾 🍷 🍸 🍹
+barbados	🇧🇧
 barbell	🏋️ 🏋️‍♂️ 🏋️‍♀️
 barber	💇 💇‍♂️ 💇‍♀️ 💈
 bare	🪾
@@ -260,13 +275,18 @@ beg	🙏 🙇 🙇‍♂️ 🙇‍♀️
 begging	🥺
 beginner	🔰
 behind	⛅ 🌤️ 🌥️ 🌦️
+belarus	🇧🇾
+belgium	🇧🇪
 believe	😮
+belize	🇧🇿
 bell	🔔 🫑 🛎️ 🎐 🔕
 bellhop	🛎️
 belly	🫃 🫄
 bench	💪
+benin	🇧🇯
 bent	🦵 🧢
 bento	🍱
+bermuda	🇧🇲
 berries	🍒 🫐
 berry	🍓 🫐
 bestest	💜
@@ -275,6 +295,7 @@ bet	👌 💰
 beverage	☕ 🍵 🍶 🍷 🧃
 bewilder	🤦 🤦‍♂️ 🤦‍♀️
 bff	👯 👯‍♂️ 👯‍♀️ 🧑‍🤝‍🧑 👭 👫
+bhutan	🇧🇹
 biceps	💪
 bicycle	🚲 🚴 🚴‍♂️ 🚴‍♀️ 🚵 🚵‍♂️
 bicycles	🚳
@@ -336,6 +357,7 @@ boba	🧋
 body	💀 👂 👃 👀 👁️ 👅
 bodybuilder	💪 🏋️ 🏋️‍♂️ 🏋️‍♀️
 bok	🥬
+bolivia	🇧🇴
 bollywood	🎥
 bolt	🔩
 bomb	💣 💥
@@ -354,6 +376,7 @@ booze	🍷 🍸 🍹 🍺 🍻
 bored	😒 😔 🫩 🥱 💅
 born	🍼
 boss	😏
+botswana	🇧🇼
 bottle	🍼 🍶 🍾 🧴
 bottoms	🍻
 boulder	🪨
@@ -374,6 +397,7 @@ branch	🪹 🪺
 branches	🪾
 brass	🪊
 brawl	🫯
+brazil	🇧🇷
 brb	🔜
 bread	🍞 🥐 🥖 🫓 🥯 🥪
 break	💔 🔔 ⛓️‍💥
@@ -404,6 +428,7 @@ brothers	👬
 brown	🤎 👞 🥾 🟤 🟫
 brr	🧥
 bruh	👊
+brunei	🇧🇳
 brush	🪥
 bs	💩
 bubble	💬 👁️‍🗨️ 🗨️ 🗯️ 💭 🧋
@@ -417,6 +442,7 @@ bug	🐛 🪲 🦗
 build	👷 👷‍♂️ 👷‍♀️ 📲
 building	🏛️ 🏗️ 🏠 🏡 🏢 🏣
 bulb	💡
+bulgaria	🇧🇬
 bull	🐂 🎯 ♉
 bullet	🚅
 bullseye	🎯
@@ -431,6 +457,7 @@ burn	❤️‍🔥 🪼 🔥
 burp	🫧
 burrito	🌯
 burro	🫏
+burundi	🇧🇮
 bury	🪏
 bus	🚌 🚋 🚍 🚎 🚐 🚏
 business	🧑‍💼 👨‍💼 👩‍💼 🕴️ 🈺
@@ -460,11 +487,14 @@ calculator	🧮
 calendar	📅 📆 🗓️
 call	😥 🤙 📲
 calm	😌 🪷
+cambodia	🇰🇭
 camcorder	📹
 camel	🐪 🐫
 camera	📷 🤳 🎥 📸 📹 🎦
+cameroon	🇨🇲
 camping	🏕️ ⛺ 🥾
 can	🥫 🗑️
+canada	🇨🇦
 cancel	✖️ ❌
 cancer	♋ 🦀
 candelabrum	🕎
@@ -522,6 +552,7 @@ censor	🤬
 cereal	🥣
 ceremony	🎑
 cha	🪇
+chad	🇹🇩
 chai	☕
 chain	⛓️‍💥 ⛓️
 chains	⛓️
@@ -559,9 +590,11 @@ chicken	🐔 🍗
 chickpea	🧆
 child	🧒 👦 👧 👪 🧑‍🧑‍🧒 🧑‍🧑‍🧒‍🧒
 children	👶 🚸
+chile	🇨🇱
 chilling	😎
 chime	🎐
 chin	🤔
+china	🇨🇳
 chinese	👲
 chip	🍪
 chipmunk	🐿️
@@ -644,6 +677,7 @@ collar	👕 👚
 collect	🪍
 collide	💥
 collision	💥
+colombia	🇨🇴
 colorful	🦚 🎨
 comb	🪮
 combat	🤼 🤼‍♂️ 🤼‍♀️
@@ -654,6 +688,7 @@ comfortable	👘
 comfy	🥿
 comic	💩 💢 💥 💫 💦 💨
 communication	📢 📱 📲 📞 📟 📠
+comoros	🇰🇲
 compass	🧭
 complete	✅
 completed	✅
@@ -728,6 +763,7 @@ cricket	🦗 🏏
 crime	🫆
 criminal	🦹 🦹‍♂️ 🦹‍♀️
 cringe	😖
+croatia	🇭🇷
 crochet	🧶
 crocodile	🐊
 croissant	🥐
@@ -749,6 +785,7 @@ crying	🤣 😂 😪 😢 😭 😩
 cryptid	🫈
 crystal	🔮
 crêpe	🥞
+cuba	🇨🇺
 cube	🧊
 cubical	🏢
 cucumber	🥒 🫝
@@ -758,6 +795,7 @@ cup	🍵 🍶 🥤 🪠
 cupcake	🧁
 cupid	💘 🪉
 cupped	🤲
+curaçao	🇨🇼
 curious	🦝
 curl	📃 ➰ ➿
 curling	🥌
@@ -782,6 +820,8 @@ cycling	🚲
 cyclist	🚴 🚴‍♂️ 🚴‍♀️ 🚵 🚵‍♂️ 🚵‍♀️
 cyclone	🌀
 cygnet	🦢
+cyprus	🇨🇾
+czechia	🇨🇿
 dad	👨‍🍼 🧢
 dagger	🗡️
 dairy	🧈
@@ -834,6 +874,7 @@ delivery	🥡 🚚 📦
 demon	😈 👿
 demonstration	🪧
 denim	👖
+denmark	🇩🇰
 dental	🪥
 dentist	😬 😷 🦷
 department	🏬
@@ -895,6 +936,7 @@ diving	🦪 🤿
 division	➗
 diya	🪔
 dizzy	💫 🥴 😵 😵‍💫 🌀
+djibouti	🇩🇯
 djinn	🧞 🧞‍♂️ 🧞‍♀️
 dna	🧬
 doctor	😷 🧑‍⚕️ 👨‍⚕️ 👩‍⚕️ 🏥 🥼
@@ -906,6 +948,7 @@ doll	🎎 🪆
 dollar	🪙 💰 💵 💸 💲
 dolls	🎎 🪆
 dolphin	🐬
+dominica	🇩🇲
 donation	🩸
 done	💅 ⌛ ⏳ ✅ ☑️ ✔️
 donkey	🫏
@@ -978,6 +1021,7 @@ earthworm	🪱
 east	➡️
 easy	🍳
 eat	😋 🍔 🍽️ 🍴 🥄
+ecuador	🇪🇨
 edamame	🫛
 edge	📏
 education	🎒 🎓 📔 📕 📖 📗
@@ -985,6 +1029,7 @@ eek	😰
 egg	🥚 🐣 🪺 🍳
 eggplant	🍆
 eggs	🪺
+egypt	🇪🇬
 eight	🕗 🕣 🎱 8️⃣
 eighteen	🔞
 eject	⏏️
@@ -1020,6 +1065,7 @@ engaged	💍
 engagement	💍 💎
 engine	🚂 🚒
 engineer	🧑‍🔬 👨‍🔬 👩‍🔬
+england	🏴󠁧󠁢󠁥󠁮󠁧󠁿
 enlightenment	🛙
 enraged	😡
 ensnare	🪝
@@ -1035,9 +1081,13 @@ equestrian	🐎
 equine	🐴
 erase	🪌
 eraser	🪌
+eritrea	🇪🇷
 error	🪌
 eruption	🌋
 escargot	🐌
+estonia	🇪🇪
+eswatini	🇸🇿
+ethiopia	🇪🇹
 euro	🪙 💶
 europe	🌍
 european	🏤 🏰
@@ -1132,6 +1182,7 @@ field	🏑
 fife	🪈
 fight	🫯 🥷
 fighter	🥷
+fiji	🇫🇯
 file	📁 📂 🗃️ 🗄️
 filing	🗄️
 filling	🥧
@@ -1141,6 +1192,7 @@ finger	🖐️ 🖖 🤞 🫰 🤘 👈
 fingerprint	🫆
 fingers	🖐️ 🤌 🤏 🤞 🤟
 finish	🏁
+finland	🇫🇮
 fire	🔥 ❤️‍🔥 🧑‍🚒 👨‍🚒 👩‍🚒 🚒
 fireball	🪋
 firebird	🐦‍🔥
@@ -1232,6 +1284,7 @@ fragile	🫌
 frame	🖼️ 🪟
 framed	🖼️
 frames	🎞️
+france	🇫🇷
 frankfurter	🌭
 free	🆓 🈶 🈚
 freedom	⛓️‍💥
@@ -1269,9 +1322,11 @@ fury	😤
 futbol	⚽
 future	🔮
 g2g	👋
+gabon	🇬🇦
 gaggle	🪿
 gains	💪
 gait	🚶 🚶‍♂️ 🚶‍♀️ 🚶‍➡️ 🚶‍♀️‍➡️ 🚶‍♂️‍➡️
+gambia	🇬🇲
 gamble	🎰
 gambling	🎰
 game	👾 🏐 🎳 🏏 🏑 🏒
@@ -1299,15 +1354,19 @@ gene	🧬
 genetics	🧬
 genie	🧞 🧞‍♂️ 🧞‍♀️
 geometric	🔴 🔵 ⚫ ⚪ ⬛ ⬜
+georgia	🇬🇪
+germany	🇩🇪
 germs	😷
 gesture	🙈 🙉 🙊 🤌 🤟 🙌
 gesturing	🙆 🙆‍♂️ 🙆‍♀️
 gesundheit	🤧
 getting	💆 💆‍♂️ 💆‍♀️
+ghana	🇬🇭
 gherkin	🫝
 ghost	👻
 giant	🫈
 gibbous	🌔 🌖
+gibraltar	🇬🇮
 gift	🧧 🎁
 gifted	🤓
 giggle	🤭
@@ -1379,8 +1438,11 @@ graveyard	🪦
 gravity	🪋
 gray	🩶
 great	👏
+greece	🇬🇷
 green	💚 🏌️ 🏌️‍♂️ 🏌️‍♀️ 🌳 🍏
+greenland	🇬🇱
 greetings	👋
+grenada	🇬🇩
 grey	🩶
 grimace	😬 🙎 🙎‍♂️ 🙎‍♀️
 grimacing	😬
@@ -1399,14 +1461,20 @@ growl	🐻
 growth	🌷 💹 📈
 gtg	👋
 gua	👲
+guadeloupe	🇬🇵
+guam	🇬🇺
 guanaco	🦙
 guapi	👲
 guard	💂 😦 💂‍♂️ 💂‍♀️
+guatemala	🇬🇹
+guernsey	🇬🇬
 guess	🤷 🤷‍♂️ 🤷‍♀️
 guidance	🛙
 guide	🦮 🪬
+guinea	🇬🇳
 guitar	🎸
 gun	🔫
+guyana	🇬🇾
 gym	💪
 gymnastics	🤸 🤸‍♂️ 🤸‍♀️
 gyro	🥙
@@ -1418,6 +1486,7 @@ hail	🚖
 hair	👱‍♀️ 👱‍♂️ 💇 💇‍♂️ 💇‍♀️ 🪮
 haircut	💇 💇‍♂️ 💇‍♀️ 💈
 hairy	🫈
+haiti	🇭🇹
 hajj	🕋
 halloween	👻 🧛 🧛‍♂️ 🧛‍♀️ 🧟 🧟‍♂️
 halo	😇
@@ -1514,6 +1583,7 @@ hollow	⭕
 hollywood	🎥
 home	🪹 🛖 🏚️ 🏠 🏡 🔨
 homie	😏 👏 🔝
+honduras	🇭🇳
 honey	🐻 🦡 🐝 🍯
 honeybee	🐝
 honeypot	🍯
@@ -1550,6 +1620,7 @@ huh	🤌
 human	👱
 hump	🐪 🐫
 hundred	💯
+hungary	🇭🇺
 hungry	😋 😩 🍗 🍔 🍕 🍴
 hurl	🤾 🤾‍♂️ 🤾‍♀️
 hurricane	🌀
@@ -1564,6 +1635,7 @@ hóngbāo	🧧
 ice	🧊 🍦 🍧 🍨 🏒 ⛸️
 iceberg	🧊
 icecream	🍦
+iceland	🇮🇸
 icicles	🥶
 id	🪪 🆔
 idea	💭 💡
@@ -1586,8 +1658,10 @@ incoming	📨
 increasing	💹 📈
 indecisive	🧇
 index	🫰 👈 👉 👆 👇 ☝️
+india	🇮🇳
 indifference	🤷 🤷‍♂️ 🤷‍♀️
 indigo	🪻
+indonesia	🇮🇩
 industrial	🧑‍🏭 👨‍🏭 👩‍🏭
 inexpressive	😑
 infant	👶 🍼
@@ -1617,16 +1691,22 @@ inventor	🧑‍💻 👨‍💻 👩‍💻
 invertebrate	🪼
 invisible	🫥
 invoice	🧾
+iran	🇮🇷
+iraq	🇮🇶
+ireland	🇮🇪
 irish	☘️ 🍀
 iron	🧇
 ironic	😼
 irritated	🙍 🙍‍♂️ 🙍‍♀️
 islam	🕌 🕋 ☪️
 island	🏝️
+israel	🇮🇱
+italy	🇮🇹
 jack	🎃
 jacked	💪
 jacket	🥼 🧥
-japan	🗾
+jamaica	🇯🇲
+japan	🇯🇵 🗾
 japanese	🍙 🍡 🏣 🏯 🎋 🎍
 jar	🫙 🍯
 jazz	👐 🪊
@@ -1637,6 +1717,7 @@ jel	😒
 jelly	😒 🪼
 jellyfish	🪼
 jeotgarak	🥢
+jersey	🇯🇪
 jet	✈️
 jew	🕍 ✡️
 jewel	💎
@@ -1651,6 +1732,7 @@ joey	🦘
 joke	😜
 joker	🃏
 jolly	🏴‍☠️
+jordan	🇯🇴
 journey	🛄
 joy	🤣 😂 🥲 🥹 😹
 joystick	🕹️
@@ -1669,8 +1751,10 @@ kangaroo	🦘
 karaoke	🎤
 karate	🥋
 katakana	🈁 🈂️
+kazakhstan	🇰🇿
 kebab	🥙 🍢
 keep	🤐 💯
+kenya	🇰🇪
 kerchief	🧕
 key	🔑 🍋‍🟩 🔐 🗝️
 keyboard	⌨️ 🎹
@@ -1684,6 +1768,7 @@ kidding	😏
 kidney	🫘
 kimono	👘
 king	🤴 👑
+kiribati	🇰🇮
 kiss	💏 😘 😗 😙 😽 💋
 kisses	😍 😚 😙 💝 💖 💗
 kissing	😚 😙 😽 💋 👄
@@ -1707,7 +1792,10 @@ knowledge	📖 📚
 knows	🤷 🤷‍♂️ 🤷‍♀️
 knuckle	👊
 koala	🐨
+kosovo	🇽🇰
 kuaizi	🥢
+kuwait	🇰🇼
+kyrgyzstan	🇰🇬
 lab	🥼 🔍 🔎 🧪 🧫 🔬
 label	🏷️
 lacrosse	🥍
@@ -1724,6 +1812,7 @@ landing	🛬
 landscape	🌆
 landslide	🛘
 lantern	🎃 🏮
+laos	🇱🇦
 laptop	💻
 large	🤪 🦣 🦤 ⭕ ⬛ ⬜
 last	🌗 🌜 ⏮️
@@ -1731,6 +1820,7 @@ late	🫩 ⏰
 later	👋
 lather	🧼
 latin	✝️ 🔠 🔡 🔤
+latvia	🇱🇻
 laugh	😀 😄 😆 🤣 😂 😹
 laughing	😹
 launch	🚀
@@ -1743,6 +1833,7 @@ lazy	🦥
 leaf	🌿 🍀 🍁 🍂 🍃 🔰
 leafless	🪾
 leafy	🥬
+lebanon	🇱🇧
 lecturer	🧑‍🏫 👨‍🏫 👩‍🏫
 ledger	📒
 leer	😏
@@ -1758,6 +1849,7 @@ lemon	🍋
 leo	♌ 🦁
 leopard	🐆
 lesbian	🌈 🏳️‍🌈
+lesotho	🇱🇸
 letter	💌 ✉️ 📧 📨 📩 📤
 letters	🔠 🔡 🔤
 lettuce	🥬
@@ -1767,12 +1859,15 @@ lgbt	🌈 🏳️‍🌈
 lgbtq	🌈 🏳️‍🌈
 lgbtqia	🌈 🏳️‍🌈
 liar	🤥
+liberia	🇱🇷
 liberty	🗽
 libra	♎ ⚖️
 library	📖 📗 📘 📙 📚
+libya	🇱🇾
 license	🪪
 lick	👅
 lie	🤥
+liechtenstein	🇱🇮
 life	🪼 🛟 🧬
 lifesaver	🛟
 lift	🫴 🚠 🛗
@@ -1800,6 +1895,7 @@ listen	🙉 👂
 listening	👂
 lit	🔥
 litaf	🔥
+lithuania	🇱🇹
 litter	🚮 🚯
 litterbin	🚮
 littering	🚯
@@ -1853,11 +1949,13 @@ lungs	🫁
 lupine	🪻
 lure	🪤
 lust	❤️‍🔥
+luxembourg	🇱🇺
 luxurious	🧖 🧖‍♂️ 🧖‍♀️
 luxury	🚤
 lying	🤥
 machine	🎰 📠
 mad	😖 😩 😤 😡 😠 🤬
+madagascar	🇲🇬
 maddening	😡 😠
 mage	🧙 🧙‍♂️ 🧙‍♀️
 maggot	🪰
@@ -1875,8 +1973,13 @@ maize	🌽
 major	🔑
 makeup	💅 💄 🪞
 malaria	🦟
+malawi	🇲🇼
+malaysia	🇲🇾
+maldives	🇲🇻
 male	🐏 ♂️
+mali	🇲🇱
 malt	🥤
+malta	🇲🇹
 mammal	🫎 🫏
 mammoth	🦣
 man	👨 🧔‍♂️ 👱‍♂️ 👴 🙍‍♂️ 🙎‍♂️
@@ -1904,6 +2007,7 @@ married	💍
 marsupial	🐨 🦘
 martial	🥋
 martini	🍸
+martinique	🇲🇶
 mary	🪬
 masjid	🕌
 mask	😷 👹 👺 🤿 🎭
@@ -1913,8 +2017,11 @@ mate	🧉
 math	📏 📐 ➖ ➗ 🟰
 mathematician	🧑‍🔬 👨‍🔬 👩‍🔬
 matryoshka	🪆
+mauritania	🇲🇷
+mauritius	🇲🇺
 maybe	🤷 🤷‍♂️ 🤷‍♀️
 mayo	🪅
+mayotte	🇾🇹
 maze	🌽
 me	🫴 🤙 🙋 🙋‍♂️ 🙋‍♀️
 mean	👺
@@ -1961,8 +2068,10 @@ metamorphosis	🫌
 meteor	🪋
 metro	🚇
 mexican	🌮 🌯 🫔
+mexico	🇲🇽
 mic	🎙️ 🎤
 microbe	🦠
+micronesia	🇫🇲
 microphone	🎤 🎙️
 microscope	🔬
 middle	🖕
@@ -1990,21 +2099,27 @@ mobility	🩼
 mode	📳
 moisturizer	🧴
 mojito	🍋‍🟩
+moldova	🇲🇩
 mollusk	🦑
 mom	🤱 👩‍🍼
+monaco	🇲🇨
 monarch	🫅
 money	🤑 🫰 🧧 💎 🪙 💰
 moneybag	💰
+mongolia	🇲🇳
 monitor	🖥️
 monkey	🐒 🙈 🙉 🙊 🐵 🦧
 monocle	🧐
 monorail	🚝 🚈
 monster	💀 ☠️ 💩 👹 👺 👻
+montenegro	🇲🇪
 monthly	🈷️
+montserrat	🇲🇸
 moo	🐮 🐄
 moon	🥮 🌑 🌒 🌓 🌔 🌕
 moose	🫎
 morning	💖 ☕ 🌄 🌅
+morocco	🇲🇦
 mortar	🧱
 mosque	🕌
 mosquito	🦟
@@ -2025,6 +2140,7 @@ mouthless	😶
 move	🏃 🏃‍♂️ 🏃‍♀️ 🚛 🏃‍➡️ 🏃‍♀️‍➡️
 movie	🍿 🎥 🎞️ 📽️ 🎬 🎦
 moyai	🗿
+mozambique	🇲🇿
 mrs	🤶
 muah	😘 💗
 mudslide	🛘
@@ -2053,12 +2169,14 @@ mythology	🪽
 naan	🫓
 nail	💅
 name	📛
+namibia	🇳🇦
 nanny	👩‍🍼 👨‍🍼 🧑‍🍼
 nap	😴 😫 🥱 🛌
 nasty	🤢
 national	🏞️
 natural	🫚
 nature	🐌 🐝 🐞 🌵 🍄‍🟫 🌋
+nauru	🇳🇷
 nauseated	🤢
 navigation	🧭 🛙
 nazar	🧿
@@ -2068,6 +2186,7 @@ necktie	👔
 nectarine	🍊
 needle	🧵 🪡 💉
 negative	📉 🧲
+nepal	🇳🇵
 neptune	🧜‍♂️
 nerd	🤓
 nerves	😟
@@ -2075,6 +2194,7 @@ nervous	😅 😟 😰 😓 💗 🫦
 nest	🪹 🪺
 nesting	🪹 🪺 🪆
 net	⛹️ ⛹️‍♂️ ⛹️‍♀️ 🥅
+netherlands	🇳🇱
 network	🛜
 neutral	😐 🫹 🫺
 new	🗽 🌑 🌚 🆕
@@ -2084,10 +2204,14 @@ newspaper	📰 🗞️
 next	⏭️
 ng	🆖
 nib	✒️ 🔏
+nicaragua	🇳🇮
 nice	😀 😁 😛 👏
+niger	🇳🇪
+nigeria	🇳🇬
 night	😙 😪 😴 🥱 💖 💤
 nine	🕘 🕤 9️⃣
 ninja	🥷
+niue	🇳🇺
 no	🙂‍↔️ 🤯 😲 🙈 🙉 🙊
 noble	🫅
 nod	🙂‍↕️
@@ -2097,6 +2221,7 @@ nope	👎
 north	⬆️
 northeast	↗️
 northwest	↖️
+norway	🇳🇴
 nose	👃 🥸 😤 🐽 🚅
 noses	👃
 nosey	👃
@@ -2137,6 +2262,7 @@ oktoberfest	🍺
 old	🧓 👴 👵 📼 📇 🗝️
 olive	🫒
 om	🕉️
+oman	🇴🇲
 omg	😝 🫢 😑 🫨 😵‍💫 😮
 omw	👣 🔜
 once	🔂
@@ -2187,13 +2313,16 @@ paintbrush	🖌️
 painter	🎨
 painting	🖼️ 🎨 🖌️
 pair	👯 👯‍♂️ 👯‍♀️
+pakistan	🇵🇰
 palace	💂 💂‍♂️ 💂‍♀️
+palau	🇵🇼
 palette	🧑‍🎨 👨‍🎨 👩‍🎨 🎨
 palm	🫳 🫴 🌴 🥥 🪬
 palms	🤲
 pamonha	🫔
 pamper	🧖 🧖‍♂️ 🧖‍♀️
 pan	🍳 🥘
+panama	🇵🇦
 pancake	🥞
 pancakes	🥞
 panda	🐼
@@ -2204,6 +2333,7 @@ paper	🏮 📃 📜 📄 📰 🗞️
 paperclip	📎 🖇️
 paperclips	🖇️
 parachute	🪂
+paraguay	🇵🇾
 parasail	🪂
 parasite	🪱
 parcel	📦
@@ -2262,11 +2392,13 @@ persevere	😣
 persevering	😣
 person	🧑 🥸 👱 🧔 🧓 🙍
 personal	💻
+peru	🇵🇪
 pest	🪳 🦟 🪰
 pester	🦡
 pet	🐶 🐕 🐱 🐈 🐹 🐰
 petri	🧫
 pga	🏌️ 🏌️‍♂️ 🏌️‍♀️
+philippines	🇵🇭
 pho	🍜
 phoenix	🐦‍🔥
 phone	🤳 📱 📲 ☎️ 📞 📵
@@ -2345,6 +2477,7 @@ point	💯 👈 👉 👆 👇 ☝️
 pointed	🔺 🔻
 pointing	👈 👉 👆 👇 ☝️ 🫵
 poke	🫵
+poland	🇵🇱
 polar	🐻‍❄️
 pole	💈 🎣
 police	👮 👮‍♂️ 👮‍♀️ 🚓 🚔 🚨
@@ -2366,6 +2499,7 @@ porkchop	🥩
 porous	🧽
 porridge	🥣
 portobello	🍄‍🟫
+portugal	🇵🇹
 poseidon	🧜‍♂️ 🔱
 position	🧘 🧘‍♂️ 🧘‍♀️
 positive	🧲
@@ -2443,6 +2577,7 @@ pushing	🫷 🫸
 pushpin	📌 📍
 putt	🏌️ 🏌️‍♂️ 🏌️‍♀️
 puzzle	🧩
+qatar	🇶🇦
 quarter	🌓 🌗 🌛 🌜
 queen	👸 👑
 queer	🌈 🏳️‍🌈
@@ -2587,6 +2722,7 @@ roller	🎢 🛼 🧳
 rolling	🤣 🙄
 rolodex	📇
 romance	🥰 😍 💌 💘 💙 💋
+romania	🇷🇴
 romantic	😍 😘 💚
 rook	🐦‍⬛
 room	🧖 🧖‍♂️ 🧖‍♀️ 🚹 🚺
@@ -2616,7 +2752,9 @@ rung	🪜
 running	💨 🎽 👟
 rush	🏃 🏃‍♂️ 🏃‍♀️ 🏃‍➡️ 🏃‍♀️‍➡️ 🏃‍♂️‍➡️
 rushed	😰
-russia	🪆
+russia	🇷🇺 🪆
+rwanda	🇷🇼
+réunion	🇷🇪
 sacred	❤️‍🔥
 sad	😔 😪 😕 😟 🙁 ☹️
 safari	🦁
@@ -2632,6 +2770,7 @@ salt	🧂
 salty	🧂
 salute	🫡 🖖
 saluting	🫡
+samoa	🇼🇸
 sand	⌛ ⏳
 sandal	🩴 👡
 sandals	🩴
@@ -2641,6 +2780,7 @@ sapling	🌱
 sarcasm	🫠 💁 💁‍♂️ 💁‍♀️
 sarcastic	🫠 🤌 💁 💁‍♂️ 💁‍♀️
 sari	🥻
+sark	🇨🇶
 sash	🎽
 sasquatch	🫈
 sassy	💁 💁‍♂️ 💁‍♀️
@@ -2679,6 +2819,7 @@ scorpio	♏ 🦂
 scorpion	🦂 ♏
 scorpius	🦂 ♏
 scotch	🥃
+scotland	🏴󠁧󠁢󠁳󠁣󠁴󠁿
 scowl	🙎 🙎‍♂️ 🙎‍♀️
 scream	😱
 screamer	😱
@@ -2703,7 +2844,9 @@ selfie	🤳 📷
 selling	🪝
 semi	🚛
 send	📩
+senegal	🇸🇳
 sent	📨 📩 📤
+serbia	🇷🇸
 serenity	🧘 🧘‍♂️ 🧘‍♀️ 🪷
 serious	👔
 seriously	💁 💁‍♂️ 💁‍♀️
@@ -2716,6 +2859,7 @@ seven	🕖 🕢 7️⃣
 sew	🪡
 sewing	🧵 🪡
 sexy	😉 💋 🫦
+seychelles	🇸🇨
 shade	😐 😏 🙄 😡 😠 😈
 shades	😎
 shadow	👤
@@ -2788,6 +2932,7 @@ silly	👻 🪿
 silver	🩶 🥈 🪙 🪎
 simple	🏠 🏡
 sing	🎤
+singapore	🇸🇬
 singer	🧑‍🎤 👨‍🎤 👩‍🎤
 single	🔂
 sir	🫡
@@ -2836,6 +2981,8 @@ slipper	🥿
 slot	🎰
 sloth	🦥
 slots	🎰
+slovakia	🇸🇰
+slovenia	🇸🇮
 slow	🦥
 slug	🐌
 slurp	👅
@@ -2887,6 +3034,7 @@ software	🧑‍💻 👨‍💻 👩‍💻
 soldier	🥷 🪖
 solid	🪨
 solidarity	✊
+somalia	🇸🇴
 somersault	🤸 🤸‍♂️ 🤸‍♀️
 son	👦
 soon	🔜
@@ -2910,6 +3058,7 @@ spa	💆 💆‍♂️ 💆‍♀️ 🧖 🧖‍♂️ 🧖‍♀️
 space	👽 👾 🧑‍🚀 👨‍🚀 👩‍🚀 🛰️
 spade	♠️ 🪏
 spaghetti	🍝
+spain	🇪🇸
 spanner	🛠️ 🔧
 spark	🧨
 sparkle	❇️ 💖 🌟 🎇 ✨
@@ -3028,6 +3177,7 @@ subway	🚇
 subzero	🥶
 sucks	😔
 suction	🪠
+sudan	🇸🇩
 sudden	🤭
 sugar	🧁
 suit	🕴️ ♠️ ♥️ ♦️ ♣️ 🩱
@@ -3052,6 +3202,7 @@ sure	😕 👌
 surf	🏄 🏄‍♂️ 🏄‍♀️ 🌊
 surfer	🏄 🏄‍♂️ 🏄‍♀️ 🌊
 surfing	🏄 🏄‍♂️ 🏄‍♀️ 🌊
+suriname	🇸🇷
 surprise	🤭 🫢 🤨 🫨 😦 😧
 surprised	😟 😮 😯 🫪 😱 🙀
 sushi	🍣
@@ -3063,6 +3214,7 @@ swan	🦢
 swearing	🤬
 sweat	😅 😰 😥 😓 💦 💧
 sweating	🥵
+sweden	🇸🇪
 sweeping	🧹
 sweet	😛 🩷 👌 🍠 🍡 🍦
 swell	🏄 🏄‍♂️ 🏄‍♀️
@@ -3072,12 +3224,14 @@ swimmer	🏊 🏊‍♂️ 🏊‍♀️
 swimming	🏊 🏊‍♂️ 🏊‍♀️ 🤽 🤽‍♂️ 🤽‍♀️
 swimsuit	🩱 🩲 🩳
 swirl	🍥
+switzerland	🇨🇭
 sword	🤺
 swords	⚔️
 symbol	💢 ♿ 🚼 ⚛️ ☮️ ⚧️
 symbols	🤬 🔣
 sympathy	😮
 synagogue	🕍
+syria	🇸🇾
 syringe	💉
 table	🏓
 tableware	🥄
@@ -3089,6 +3243,8 @@ taekwondo	🥋
 tag	🏷️
 tai	🍹
 tailoring	🪡
+taiwan	🇹🇼
+tajikistan	🇹🇯
 takeout	🥡
 taking	🛀
 tale	😇 😈 👿 💀 👹 👺
@@ -3100,6 +3256,7 @@ tangerine	🍊
 tangled	🪢
 tango	💃 🕺
 tangy	🍋‍🟩
+tanzania	🇹🇿
 tao	☯️
 taoist	☯️
 tape	📼
@@ -3140,6 +3297,7 @@ terrapin	🐢
 terrestrial	🛸
 test	🧪
 text	💬
+thailand	🇹🇭
 thanks	🙏 🫂
 thanksgiving	🦃
 theater	🎭
@@ -3186,12 +3344,15 @@ toadstool	🍄
 toast	🍞
 toboggan	🛷
 together	🤲 💏 💑 👩‍❤️‍💋‍👨 👨‍❤️‍💋‍👨 👩‍❤️‍💋‍👩
+togo	🇹🇬
 toilet	🚽 🪠 🧻 🚹 🚺 🚻
 toiletry	🪥
+tokelau	🇹🇰
 tokyo	🗼
 tomato	🍅
 tomb	🪦
 tombstone	🪦
+tonga	🇹🇴
 tongue	👅 😛 😜 😝 🥵
 tool	🔪 🏺 ⚓ 🔥 🔫 🔮
 toolbox	🧰
@@ -3274,13 +3435,16 @@ tube	🧪
 tuk	🛺
 tulip	🌷
 tumbler	🥃
+tunisia	🇹🇳
 turban	👳 👳‍♂️ 👳‍♀️
 turd	💩
 turkey	🦃 🍗
+turkmenistan	🇹🇲
 turn	🛞
 turnip	🫜
 turtle	🐢
 tusk	🦣
+tuvalu	🇹🇻
 tuxedo	🤵 🤵‍♂️ 🤵‍♀️
 tv	📺
 twelve	🕛 🕧
@@ -3296,11 +3460,14 @@ type	🅰️ 🆎 🅱️ 🅾️
 typhoon	🌀
 typing	💬
 tyrannosaurus	🦖
+türkiye	🇹🇷
 ufo	👽 👾 🛸
+uganda	🇺🇬
 ugh	😒 🙄 🤌
 ugly	🦢
 uh	😑
 uhh	😒
+ukraine	🇺🇦
 ultimate	🥏
 um	😋
 umbrella	☂️ 🏖️ 🌂 ☔ ⛱️
@@ -3334,13 +3501,16 @@ upset	😡 😠 💢 🙍 🙍‍♂️ 🙍‍♀️
 upward	💹 📈
 upwards	🔼
 urn	⚱️
+uruguay	🇺🇾
 utility	🚙
+uzbekistan	🇺🇿
 vacancy	🈳 🈵
 vaccination	💉
 valentine	💌 💘 💝 🌹
 valuables	🪎
 vampire	🧛 🧛‍♂️ 🧛‍♀️ 🦇 ⚰️
 van	🚐
+vanuatu	🇻🇺
 vat	🪣
 vcr	📼
 vegetable	🍅 🍆 🥔 🥕 🫑 🥒
@@ -3348,6 +3518,7 @@ vegetarian	🍄‍🟫 🫜
 veggie	🫛 🍄‍🟫
 vehicle	🚝 🚌 🚐 🚑 🚕 🚗
 veil	👰 👰‍♂️ 👰‍♀️
+venezuela	🇻🇪
 versus	🆚
 vertical	🚦 🔃 ⏸️
 vertically	🙂‍↕️
@@ -3361,6 +3532,7 @@ vicuña	🦙
 video	🎮 🕹️ 📻 📽️ 📺 📷
 videocassette	📼
 videogame	🕹️
+vietnam	🇻🇳
 view	🪟
 viewer	🫵
 viewing	🎑
@@ -3385,6 +3557,7 @@ wacky	😜
 waffle	🧇
 wait	🫷 🫸
 waiting	⏳ ⏰
+wales	🏴󠁧󠁢󠁷󠁬󠁳󠁿
 walk	🚶 🚶‍♂️ 🚶‍♀️ 👣 🚶‍➡️ 🚶‍♀️‍➡️
 walking	🧟 🧟‍♂️ 🧟‍♀️ 🚶 🚶‍♂️ 🚶‍♀️
 wall	🧱
@@ -3518,6 +3691,7 @@ yawn	😴 🥱
 yawning	🥱
 yay	😃 👏
 yellow	💛 🚕 🚖 🔰 🟡 🟨
+yemen	🇾🇪
 yen	💴 💹
 yes	🫡 🙂‍↕️ 👍
 yeti	🫈
@@ -3537,12 +3711,14 @@ yummy	😋 🍴
 yup	💯
 yurt	🛖
 yuèbǐng	🥮
+zambia	🇿🇲
 zany	🤪
 zap	⚡
 zebra	🦓
 zen	😌 🧘 🧘‍♂️ 🧘‍♀️
 zero	📥 0️⃣
 zest	🍋‍🟩
+zimbabwe	🇿🇼
 zip	🤐 🤌
 zipper	🤐
 zodiac	👧 🦁 🐂 🐏 🐐 🐍
@@ -3554,6 +3730,7 @@ zōri	🩴
 അംഗഭംഗം	🩼
 അംഗരക്ഷ	💂
 അംഗരക്ഷകൻ	💂
+അംഗോള	🇦🇴
 അക്കോർഡിയൻ	🪗
 അക്കൗണ്ടിംഗ്	🧾
 അക്വേറിയം	🪼
@@ -3598,6 +3775,7 @@ zōri	🩴
 അന്ധൻ	🧑‍🦯 👨‍🦯 👩‍🦯 🦮 🧑‍🦯‍➡️ 👨‍🦯‍➡️
 അന്യഗ്രഹജീവി	👽
 അന്യഗ്രഹപരം	👽 👾
+അന്റാർട്ടിക്ക	🇦🇶
 അന്വേഷണം	ℹ️
 അപകടം	🛘
 അപായം	☠️ ⚡
@@ -3629,6 +3807,7 @@ zōri	🩴
 അമർഷം	😾
 അയച്ചു	📤
 അയ്യോ	🙀
+അയർലൻഡ്	🇮🇪
 അരയന്നം	🦢
 അരയന്നക്കുഞ്ഞ്	🦢
 അരി	🌾 🍘 🍙
@@ -3640,6 +3819,7 @@ zōri	🩴
 അറസ്റ്റ്	👮 👮‍♀️
 അറിയിപ്പ്	🪧
 അറിയില്ല	🫴
+അറൂബ	🇦🇼
 അലക്കുശാല	🧺
 അലറിക്കരയുക	😱
 അലാറം	⏰
@@ -3660,8 +3840,14 @@ zōri	🩴
 അസ്ഥികൂടം	🦴 🩻
 അസ്വസ്ഥത	☹️
 അസ്സലായി	👌
+അസർബൈജാൻ	🇦🇿
 അൺഡെഡ്	🧛‍♂️ 🧛‍♀️ 🧟 🧟‍♂️ 🧟‍♀️
+അൻഡോറ	🇦🇩
+അർജന്റീന	🇦🇷
 അർദ്ധചന്ദ്രൻ	🌓
+അർമേനിയ	🇦🇲
+അൽബേനിയ	🇦🇱
+അൾജീരിയ	🇩🇿
 അൾട്ടിമേറ്റ്	🥏
 ആംഗ്യം	🙌 🙍 🙍‍♂️ 🙍‍♀️ 🙎‍♂️ 🙎‍♀️
 ആംഫെറ	🏺
@@ -3723,12 +3909,15 @@ zōri	🩴
 ആൺ	👨‍🎓
 ആൺകുട്ടി	👦 👨‍👩‍👦 👨‍👩‍👧‍👦 👨‍👩‍👦‍👦 👨‍👨‍👦 👨‍👨‍👧‍👦
 ആൺമയിൽ	🦚
+ആൻഗ്വില്ല	🇦🇮
 ആർക്കിടെക്റ്റ്	🧑‍💼
 ആർട്ടിക്ക്	🐻‍❄️
 ആർട്ടിസ്റ്റ്	🧑‍🎨
 ആർത്തവം	🩸
 ആർവി	🚙
 ആൽപാക	🦙
+ഇംഗ്ലണ്ട്	🏴󠁧󠁢󠁥󠁮󠁧󠁿
+ഇക്വഡോർ	🇪🇨
 ഇഞ്ചി	🫚
 ഇടത്	🫲 🫹 ↔️ ◀️
 ഇടത്തേക്ക്	🤛
@@ -3739,7 +3928,8 @@ zōri	🩴
 ഇടിമിന്നൽ	⛈️ ⚡
 ഇണങ്ങാത്ത	🫏
 ഇത്	🫹 🫺
-ഇന്ത്യ	🪷
+ഇന്തോനേഷ്യ	🇮🇩
+ഇന്ത്യ	🇮🇳 🪷
 ഇന്ദ്രജാലം	🪄
 ഇന്ധനം	⛽
 ഇന്റർകാർഡിനൽ	↗️ ↘️ ↙️ ↖️
@@ -3753,7 +3943,10 @@ zōri	🩴
 ഇരുമ്പ്	🧇
 ഇറച്ചി	🥓
 ഇറച്ചിത്തുണ്ടം	🥩
+ഇറാഖ്	🇮🇶
+ഇറാൻ	🇮🇷
 ഇറേസർ	🪌
+ഇറ്റലി	🇮🇹
 ഇല	🍁 🔰
 ഇലകൊഴിയൽ	🌳
 ഇലക്ട്രിക്ക്	💡
@@ -3767,18 +3960,22 @@ zōri	🩴
 ഇഷ്ടം	❤️ 🩷
 ഇഷ്ടക്കേട്	👎
 ഇസകയ	🏮
+ഇസ്രായേൽ	🇮🇱
 ഇസ്ലാം	☪️
 ഇൻകമിംഗ്	📨
 ഇൻഡക്സ്	📇
 ഇൻപുട്ട്	🔣
 ഇൻബോക്സ്	📥
 ഈച്ച	🪰
+ഈജിപ്ത്	🇪🇬
 ഈശ്വരാ	🫢 🙆 🤦‍♂️ 🤦‍♀️
+ഉഗാണ്ട	🇺🇬
 ഉച്ചഭാഷിണി	📢
 ഉണക്കയില	🍁 🍂
 ഉത്കണ്ഠ	🫪 😨
 ഉത്കണ്ഠാകുലം	🫦
 ഉത്തരം	🟰
+ഉത്തരകൊറിയ	🇰🇵
 ഉത്സവം	🎀
 ഉത്സാഹം	💁
 ഉദ്യാനം	🏞️
@@ -3805,6 +4002,7 @@ zōri	🩴
 ഉറക്കക്ഷീണം	🫩
 ഉറപ്പില്ലാത്തത്	🧇
 ഉറവ	♨️
+ഉറുഗ്വേ	🇺🇾
 ഉറുമ്പ്	🐜
 ഉള്ളി	🧅
 ഉഷ്ണമേഖല	🦩 🍋‍🟩
@@ -3827,10 +4025,12 @@ zōri	🩴
 എണ്ണവീപ്പ	🛢️
 എത്തിച്ചേരലുകൾ	🛬
 എത്തിച്ചേരുന്നു	🛬
+എത്യോപ്യ	🇪🇹
 എനിക്കറിയില്ല	🤷 🤷‍♂️ 🤷‍♀️
 എന്തായാലും	🫥
 എരിവ്	🌶️
 എരുമ	🦬
+എറിത്രിയ	🇪🇷
 എലവേറ്റർ	🛗
 എലി	🐀
 എലിക്കെണി	🪤
@@ -3849,6 +4049,7 @@ zōri	🩴
 ഏഴുമുപ്പത്	🕢
 ഏഴ്	7️⃣
 ഏഷ്യ	🌏
+ഐക്യരാഷ്ട്രസഭ	🇺🇳
 ഐഡന്റിഫിക്കേഷൻ	🪪
 ഐഡന്റിറ്റി	🆔
 ഐഡി	🪪 🆔
@@ -3862,6 +4063,7 @@ zōri	🩴
 ഒന്നുമുപ്പത്	🕜
 ഒന്ന്	1️⃣
 ഒബ്റോൺ	🧚‍♂️
+ഒമാൻ	🇴🇲
 ഒമ്പതുമുപ്പത്	🕤
 ഒമ്പത്	9️⃣
 ഒരിക്കലുമില്ല	🙅
@@ -3893,12 +4095,14 @@ zōri	🩴
 ഓമന	🐱
 ഓറഞ്ച്	🧡 🍊 🟠 🟧
 ഓറിയന്റീയറിംഗ്	🧭
+ഓസ്ട്രിയ	🇦🇹
 ഓസ്ത്രേലിയ	🌏
 ഓഹ്	😯
 ഓർക്കസ്ട്ര	🪉
 ഔഷധം	🌿
 ഔഷധച്ചെടി	🌿
 കംഗാരു	🦘
+കംബോഡിയ	🇰🇭
 കഅബ	🕋
 കക്ക	🐚
 കക്കരി	🫝
@@ -3987,6 +4191,7 @@ zōri	🩴
 കവിളിണ	😊
 കഷണം	🧩
 കഷണ്ടി	👨‍🦲 👩‍🦲 🧑‍🦲
+കസാഖിസ്ഥാൻ	🇰🇿
 കസേര	🪑 💺
 കസ്റ്റംസ്	🛃
 കസ്റ്റാഡ്	🍮
@@ -4000,6 +4205,7 @@ zōri	🩴
 കാണേണ്ട	🤦 🤦‍♂️ 🤦‍♀️
 കാണ്ടാമൃഗം	🦏
 കാത്തിരിക്കൂ	🫷 🫸
+കാനഡ	🇨🇦
 കാന്തം	🧲
 കാന്തികം	🧲
 കാപ്പി	☕
@@ -4008,6 +4214,7 @@ zōri	🩴
 കാബിനെറ്റ്	🗄️
 കാബേജ്	🥬
 കാമം	❤️‍🔥
+കാമറൂൺ	🇨🇲
 കായ	🍌
 കായികം	🏌️ 🚣 🏊 ⛹️ 🚵 🤸
 കായികതാരം	⛹️ 🤾‍♀️
@@ -4044,6 +4251,7 @@ zōri	🩴
 കിഡ്നി	🫘
 കിന്നരം	🪉
 കിമോണോ	👘
+കിരിബാട്ടി	🇰🇮
 കിരീടം	👑 🫅
 കിറുക്കൻ	🤓
 കിലുക്കം	🪇
@@ -4057,6 +4265,7 @@ zōri	🩴
 കിഴിക്കുക	➖
 കിവി	🥝
 കിവിപ്പഴം	🥝
+കിർഗിസ്ഥാൻ	🇰🇬
 കീ	🗝️
 കീക്യാപ്പ്	0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣
 കീടം	🫌 🪲 🪳
@@ -4093,6 +4302,7 @@ zōri	🩴
 കുരങ്ങൻ	🐒 🦧
 കുരിശ്	⛑️ ✝️ ☦️
 കുറച്ച്	🤏
+കുറാകാവോ	🇨🇼
 കുറുകെയുള്ളത്	⚔️
 കുറുക്കൻ	🦊
 കുറ്റാന്വേഷക	🕵️‍♀️
@@ -4113,6 +4323,7 @@ zōri	🩴
 കുഴിമാടം	🪦
 കുഴിമാടക്കല്ല്	🪦
 കുഴൽവാദ്യം	🪈
+കുവൈറ്റ്	🇰🇼
 കൂടാരം	⛺ 🛖 🎪
 കൂടിക്കാഴ്ച	🤝
 കൂട്ടം	🦬
@@ -4143,6 +4354,7 @@ zōri	🩴
 കെട്ടുപിണഞ്ഞ	🪢
 കെട്ട്	🪢
 കെണി	🪍 🪤
+കെനിയ	🇰🇪
 കെമിസ്റ്റ്	🧑‍🔬 👨‍🔬 👩‍🔬
 കെയ്ൻ	🦯
 കേക്ക്	🥞 🍥 🍰
@@ -4172,11 +4384,13 @@ zōri	🩴
 കൊമ്പുകൾ	😈 🤘
 കൊമ്പ്	🦣
 കൊയല	🐨
+കൊളംബിയ	🇨🇴
 കൊളുത്ത്	🪝
 കൊള്ളയടി	🏴‍☠️
 കൊള്ളാം	👍
 കൊള്ളിമീൻ	🌠
 കൊഴുക്കട്ട	🥟
+കൊസോവൊ	🇽🇰
 കോംഗ	🪘
 കോച്ച്	🚃
 കോടതി	👨‍⚖️ 👩‍⚖️
@@ -4194,6 +4408,7 @@ zōri	🩴
 കോമാളി	🤓 🤡
 കോമിക്	💬 💭
 കോമിക്ക്	💩 💢 💥 💫 💦 💨
+കോമൊറോസ്	🇰🇲
 കോമ്പസ്സ്	🧭
 കോയിൻ	👛 🪙
 കോരിക	🪏
@@ -4204,6 +4419,7 @@ zōri	🩴
 കോഴിക്കുഞ്ഞ്	🐤 🐣 🐥
 കോഴിമുട്ട	🍳
 കോസ്മെറ്റിക്സ്	💄
+കോസ്റ്ററിക്ക	🇨🇷
 കോൺഫെറ്റി	🎊
 കോർക്ക്	🍾
 ക്യാച്ച്	🪍
@@ -4214,6 +4430,7 @@ zōri	🩴
 ക്യാമ്പുചെയ്യുക	🏕️
 ക്യാരറ്റ്	🥕
 ക്യാൻ	🥫
+ക്യൂബ	🇨🇺
 ക്രയോൺ	🖍️
 ക്രഷ്	🥰
 ക്രിക്കറ്റ്	🏏
@@ -4224,6 +4441,7 @@ zōri	🩴
 ക്രിസ്റ്റൽ	🔮
 ക്രൂരനായ	🖤
 ക്രെഡിറ്റ്	💳
+ക്രൊയേഷ്യ	🇭🇷
 ക്രോധം	😡
 ക്രോസ്	❌
 ക്ലബ്	♣️
@@ -4256,13 +4474,18 @@ zōri	🩴
 കർഷക	👩‍🌾
 കർഷകൻ	🧑‍🌾 👨‍🌾
 ഖണ്ഡ	🪯
+ഖത്തർ	🇶🇦
 ഖേദിക്കുന്നു	🙇
 ഗണിതം	➕ ➖ ➗ 🟰
 ഗതാഗതം	🛻
 ഗന്ധർവ്വൻ	🧚‍♂️
+ഗയാന	🇬🇾
+ഗാംബിയ	🇬🇲
+ഗാബൺ	🇬🇦
 ഗായകൻ	👨‍🎤
 ഗായിക	👩‍🎤
 ഗാർഡ്	💂
+ഗിനിയ	🇬🇳
 ഗിഫ്റ്റ്	🎁 📦
 ഗിയർ	⚙️
 ഗിറ്റാർ	🎸
@@ -4277,6 +4500,7 @@ zōri	🩴
 ഗുസ്തിക്കാർ	🤼
 ഗെയിം	🏐 🏏 🏑 🏒 🏓 🏸
 ഗെയിംസ്	🎮
+ഗേൺസി	🇬🇬
 ഗോഗിൾസ്	🥽
 ഗോമുഖം	🐮
 ഗോറില്ല	🦍
@@ -4286,18 +4510,25 @@ zōri	🩴
 ഗോൾഫുകളിക്കുന്നയാൾ	🏌️‍♂️
 ഗോൾഫ്	🏌️ 🏌️‍♂️ 🏌️‍♀️
 ഗോൾഫർ	🏌️
+ഗ്രനേഡ	🇬🇩
 ഗ്രാഫ്	📈 📉
 ഗ്രിപ്പ്	🫹 🫺
+ഗ്രീസ്	🇬🇷
 ഗ്രീൻ	🍏
+ഗ്രീൻലൻഡ്	🇬🇱
 ഗ്ലാസുകൾ	🍷
 ഗ്ലാസ്	🫗
 ഗ്ലാസ്സുകൾ	🥸
 ഗ്ലാസ്സ്	🥛 🥂 🥃
 ഗ്ലോബ്	🌍 🌎 🌏 🌐
 ഗ്ലൗവ്	🥊
+ഗ്വാം	🇬🇺
+ഗ്വാട്ടിമാല	🇬🇹
+ഗ്വാഡലൂപ്പ്	🇬🇵
 ഗ്വാനാകോ	🦙
 ഗർഭിണി	🤰 🫃 🫄
 ഘടനാപരം	🫀
+ഘാന	🇬🇭
 ചക്രം	🛞 ☸️
 ചക്രക്കസേര	🧑‍🦼 🧑‍🦽 🧑‍🦼‍➡️ 🧑‍🦽‍➡️
 ചങ്ങല	⛓️‍💥 ⛓️
@@ -4343,6 +4574,7 @@ zōri	🩴
 ചിറക്	🪽
 ചിലന്തി	🕷️ 🕸️
 ചിലന്തിവല	🕸️
+ചിലി	🇨🇱
 ചിഹ്നം	⚓ 🃏 📧 🪧 ☣️ 🎦
 ചീട്ടുകെട്ട്	🃏
 ചീട്ട്	🃏
@@ -4380,6 +4612,7 @@ zōri	🩴
 ചൂണ്ടുവിരൽ	🫵
 ചൂൽ	🧹
 ചെകുത്താൻ	👿
+ചെക്കിയ	🇨🇿
 ചെക്കിൻ	🛫
 ചെക്ക്	✅ ✔️
 ചെഞ്ചുണ്ട്	🫦
@@ -4407,6 +4640,7 @@ zōri	🩴
 ചെലവേറിയത്	🫰
 ചെവി	👂 🧏 👯
 ചേമ്പ്	🫜
+ചൈന	🇨🇳
 ചൈനീസ്	🍣 🥢
 ചോക്കലേറ്റ്	🍫
 ചോക്ലേറ്റ്	🫕
@@ -4416,6 +4650,7 @@ zōri	🩴
 ചോറ്	🍚 🍛
 ചോളം	🌽
 ചോളക്കതിർ	🌽
+ഛാഡ്	🇹🇩
 ഛർദ്ദി	🤮
 ജംഗ്ഷൻ	🚥 🚦
 ജഗിൾ	🤹 🤹‍♂️
@@ -4427,7 +4662,8 @@ zōri	🩴
 ജനൽ	🪟
 ജപമാല	📿
 ജപ്പാനീസ്	👹 👺 🏯 🎎
-ജപ്പാൻ	🗾 ⛩️
+ജപ്പാൻ	🇯🇵 🗾 ⛩️
+ജമൈക്ക	🇯🇲
 ജയം	😤
 ജലം	🫗 ♒
 ജലദോഷം	😷
@@ -4447,6 +4683,8 @@ zōri	🩴
 ജിജ്ഞാസ	💗
 ജിജ്ഞാസുവായ	🦝
 ജിന്ന്	🧞 🧞‍♂️ 🧞‍♀️
+ജിബൂത്തി	🇩🇯
+ജിബ്രാൾട്ടർ	🇬🇮
 ജിയോമെട്രിക്ക്	⚫ ⚪ ⬛ ⬜ ◼️ ◻️
 ജിറാഫ്	🦒
 ജീനി	🧞
@@ -4464,15 +4702,19 @@ zōri	🩴
 ജെല്ലി	🪼
 ജെല്ലിഫിഷ്	🪼
 ജെല്ലീഫിഷ്	🪼
+ജേഴ്സി	🇯🇪
 ജോക്കർ	🃏
 ജോടി	👯 👭
 ജോലിക്കാരി	👩‍🏭
 ജോലിക്കാരൻ	👨‍🏭
+ജോർജ്ജിയ	🇬🇪
+ജോർദ്ദാൻ	🇯🇴
 ജ്യാമിതീയമായത്	🔴
 ജ്യൂതമതം	✡️
 ജ്യൂസ്	🍋‍🟩 🥤
 ജ്വലിക്കുക	🪼
 ജ്വാല	🔥
+ജർമ്മനി	🇩🇪
 ഞണ്ട്	🦀
 ഞാനല്ല	🤷 🤷‍♂️ 🤷‍♀️
 ഞാറ്	🌾
@@ -4489,6 +4731,7 @@ zōri	🩴
 ടാമേൽ	🫔
 ടാവോ	☯️
 ടാവോയിസ്റ്റ്	☯️
+ടാൻസാനിയ	🇹🇿
 ടിക്കറ്റ്	🎫 🎟️
 ടിപ്പിംഗ്	💁
 ടിവി	📺
@@ -4497,6 +4740,8 @@ zōri	🩴
 ടീപോട്ട്	🫖
 ടീഷർട്ട്	👕
 ടീൽ	🩵
+ടുണീഷ്യ	🇹🇳
+ടുവാലു	🇹🇻
 ടൂത്ത്ബ്രഷ്	🪥
 ടൂളിപ്	🌷
 ടൂൾ	🪛 🧰
@@ -4511,7 +4756,10 @@ zōri	🩴
 ടൈമർ	⏳ ⏲️
 ടൈറ്റാനിയ	🧚‍♀️
 ടൈൽ	🀄
+ടോംഗ	🇹🇴
 ടോക്കിയോ	🗼
+ടോക്കെലൂ	🇹🇰
+ടോഗോ	🇹🇬
 ടോപ്പ്	🎩
 ടോയ്ലറ്റ്	🚺
 ടോർച്ച്	🔦
@@ -4558,11 +4806,13 @@ zōri	🩴
 ഡിസ്മിസ്	🫳
 ഡീസൽ	⛽
 ഡെവലപ്പർ	🧑‍💻 👨‍💻 👩‍💻
+ഡെൻമാർക്ക്	🇩🇰
 ഡേറ്റിംഗ്	💋 👫
 ഡേവിഡ്	✡️
 ഡൈ	🎲
 ഡൈനാമിറ്റ്	🧨
 ഡൈവിംഗ്	🦪 🤿
+ഡൊമിനിക്ക	🇩🇲
 ഡോക്ടർ	🧑‍⚕️ 👨‍⚕️ 👩‍⚕️ 💉 💊 🩻
 ഡോക്യുമെന്റ്	📃 📄 🪪
 ഡോഡോ	🦤
@@ -4614,6 +4864,7 @@ zōri	🩴
 തവി	🥄
 താക്കഌ	🔐
 താക്കോൽ	🔑 🗝️
+താജിക്കിസ്ഥാൻ	🇹🇯
 താടി	🧔 🧔‍♂️ 🧔‍♀️
 താടിക്കാരൻ	🧔
 താടിവച്ചയാൾ	🧔
@@ -4658,6 +4909,8 @@ zōri	🩴
 തുളുമ്പുക	🫗
 തുള്ളി	💧
 തുഴയൽ	🚣‍♂️ 🚣‍♀️ 🛶
+തുർക്കിയെ	🇹🇷
+തുർക്ക്മെനിസ്ഥാൻ	🇹🇲
 തൂവൽ	🪶
 തെക്ക്	⬇️
 തെന്നുവണ്ടി	🛷
@@ -4689,6 +4942,8 @@ zōri	🩴
 തോൾവെട്ടിക്കുന്നയാൾ	🤷‍♂️
 ത്രിശൂലം	🔱
 ത്രോ	🤾
+ദക്ഷിണകൊറിയ	🇰🇷
+ദക്ഷിണാഫ്രിക്ക	🇿🇦
 ദണ്ഡ്	🩼
 ദന്തരോഗവിദഗ്ദ്ധൻ	🦷
 ദമ്പതികൾ	👫
@@ -4732,6 +4987,7 @@ zōri	🩴
 നന്ദി	🥹 🙏 🫂
 നന്നായി	👍
 നന്നാവുക	❤️‍🩹
+നമീബിയ	🇳🇦
 നല്ലതല്ല	👎 🆖
 നല്ലത്	🦸 🦸‍♂️ 🦸‍♀️
 നഴ്സിംഗ്	👩‍🍼 👨‍🍼 🧑‍🍼
@@ -4757,6 +5013,7 @@ zōri	🩴
 നാവിഗേഷൻ	🧭 🛙
 നാവ്	👅 😛 😜 😝
 നാൻ	🫓
+നിക്കരാഗ്വ	🇳🇮
 നിങ്ങൾ	🫵
 നിഞ്ച	🥷
 നിഞ്ജ	🥷
@@ -4813,11 +5070,18 @@ zōri	🩴
 നെല്ല്	🌾
 നെസ്റ്റിംഗ്	🪆
 നെൽക്കതിർ	🌾
+നേപ്പാൾ	🇳🇵
+നൈജീരിയ	🇳🇬
+നൈജർ	🇳🇪
 നൊടി	🫰
 നോട്ട്	💴 💵 💶 💸 🗒️
 നോട്ട്ബുക്ക്	📓
+നോർവെ	🇳🇴
 ന്യായാധിപൻ	🧑‍⚖️
 ന്യൂഡിൽസ്	🥢
+ന്യൂയി	🇳🇺
+ന്യൂസിലൻഡ്	🇳🇿
+നൗറു	🇳🇷
 നർത്തകി	💃 🧑‍🩰 👯
 നർത്തകൻ	🕺 💃
 പകിട	🎲
@@ -4853,6 +5117,7 @@ zōri	🩴
 പത്മാസനം	🧘
 പത്രം	📰 🗞️
 പന	🌴
+പനാമ	🇵🇦
 പനി	🦟
 പനിയുള്ള	🥵
 പന്തയം	🏇 🐎
@@ -4868,6 +5133,7 @@ zōri	🩴
 പയർവർഗ്ഗങ്ങൾ	🫛
 പരദേശി	👽 👾
 പരന്നപാത്രം	🥘
+പരാഗ്വേ	🇵🇾
 പരാദം	🪱
 പരിക്ക്	🤕
 പരിചരണം	🤱
@@ -4892,6 +5158,7 @@ zōri	🩴
 പറയൂ	🫴
 പറവ	🐦 🕊️
 പലഹാരം	🥟 🥠
+പലാവു	🇵🇼
 പല്ലി	🦎
 പല്ലുകൾ	🪥
 പല്ലുതേപ്പ്	🪥
@@ -4906,6 +5173,7 @@ zōri	🩴
 പശു	🐄 🐮
 പസിൽ	🧩
 പാക്കിംഗ്	🧳
+പാക്കിസ്ഥാൻ	🇵🇰
 പാക്കേജ്	📦
 പാചകം	🍳 🍴 🏺
 പാചകക്കാരി	👩‍🍳
@@ -5015,6 +5283,7 @@ zōri	🩴
 പെയിന്റിംഗ്	🖼️ 🎨 🖌️
 പെയിന്റ്	🎨 🫟
 പെരുമ്പറ	🪘
+പെറു	🇵🇪
 പെൺ	👩‍🎓
 പെൺകുട്ടി	👧 👨‍👩‍👧 👨‍👩‍👧‍👦 👨‍👩‍👧‍👧 👨‍👨‍👧 👨‍👨‍👧‍👦
 പെൺമയിൽ	🦚
@@ -5051,9 +5320,11 @@ zōri	🩴
 പോലീസുകാരി	👮‍♀️
 പോലീസുകാരൻ	👮 👮‍♂️
 പോലീസ്	👮
+പോളണ്ട്	🇵🇱
 പോളിഷ്	💅
 പോളോ	🤽
 പോസ്റ്റ്	📯
+പോർച്ചുഗൽ	🇵🇹
 പ്രകടനം	🪧
 പ്രകടിപ്പിക്കുന്നത്	🦚
 പ്രകാശം	🔦
@@ -5115,8 +5386,11 @@ zōri	🩴
 ഫാമിലി	👪 👨‍👩‍👦 👨‍👩‍👧 👨‍👩‍👧‍👦 👨‍👩‍👦‍👦 👨‍👩‍👧‍👧
 ഫാൻ	🪭
 ഫിംഗർപ്രിന്റ്	🫆
+ഫിജി	🇫🇯
 ഫിലിം	🎞️ 📽️
+ഫിലിപ്പീൻസ്	🇵🇭
 ഫില്ലിംഗ്	🥧
+ഫിൻലാൻഡ്	🇫🇮
 ഫുഡ്	🍄‍🟫
 ഫുൾ	💯
 ഫോട്ടോ	📷
@@ -5128,6 +5402,7 @@ zōri	🩴
 ഫോൾഡർ	📁 📂
 ഫ്യൂജി	🗻
 ഫ്രാങ്ക്ഫർട്ടർ	🌭
+ഫ്രാൻസ്	🇫🇷
 ഫ്രീ	🆓
 ഫ്രീസ്റ്റൈൽ	🏊
 ഫ്രെഞ്ച്	🥐
@@ -5142,6 +5417,7 @@ zōri	🩴
 ഫ്ലോപ്പി	💾
 ഫൗണ്ടെയിൻ	⛲
 ഫൗണ്ടൻ	🖋️
+ബംഗ്ലാദേശ്	🇧🇩
 ബക്കറ്റ്	🪣
 ബട്ടൺ	🖱️ 🔙 🔚 🔼 🔽 🔘
 ബട്ടർ	🧈
@@ -5153,14 +5429,17 @@ zōri	🩴
 ബയോളജിസ്റ്റ്	👨‍🔬 👩‍🔬
 ബയോഹസാർഡ്	☣️
 ബറീറ്റോ	🌯
+ബറുണ്ടി	🇧🇮
 ബലംപിടുത്തം	🧐
 ബലിക്കാക്ക	🐦‍⬛
 ബലൂൺ	🎈 💬 👁️‍🗨️ 🗨️ 🗯️ 💭
 ബസ്	🚌 🚍 🚎 🚐 🚏
+ബഹാമാസ്	🇧🇸
 ബഹിരാകാശം	👨‍🚀 👩‍🚀 🛰️ 🌛 ☄️ 🪋
 ബഹിരാകാശചാരി	🧑‍🚀
 ബഹിരാകാശയാത്രിക	👩‍🚀
 ബഹിരാകാശയാത്രികൻ	👨‍🚀
+ബഹ്റിൻ	🇧🇭
 ബാക്ക്	🔙 🔚
 ബാഗെറ്റ്	🥖
 ബാഗെൽ	🥯
@@ -5179,6 +5458,7 @@ zōri	🩴
 ബാലൻസ്	🤹
 ബാൻഡേജ്	🤕 🩹
 ബാർ	🍫 🍶 🍾 🍷 🍸 🍹
+ബാർബഡോസ്	🇧🇧
 ബാർബർ	💇 💈
 ബാർബർഷോപ്പ്	💇‍♂️ 💇‍♀️
 ബിക്കിനി	👙
@@ -5208,25 +5488,33 @@ zōri	🩴
 ബൂമറാംഗ്	🪃
 ബൂമറാങ്	🪃
 ബെഡ്	🛏️
+ബെനിൻ	🇧🇯
 ബെന്റോ	🍱
 ബെറി	🍓 🫐
+ബെലറൂസ്	🇧🇾
+ബെലീസ്	🇧🇿
 ബെസ്റ്റി	👫
 ബെൽ	🛎️ 🔔
+ബെൽജിയം	🇧🇪
 ബേക്കറി	🍰 🍬 🍭
 ബൈക്കിങ്ങ്	🚴
 ബൈക്ക്	🚵 🏍️ 🚳
 ബൈസൈക്കിൾ	🚴 🚵
 ബൊക്കെ	💐
+ബൊളീവിയ	🇧🇴
 ബോംബ്	💣
 ബോക്സിംഗ്	🥊
 ബോട്ടിൽ	🍶
 ബോട്ട്	🚣 🚤 ⛴️ 🛥️
+ബോട്സ്വാന	🇧🇼
 ബോർഡ്	🛹
 ബോൾ	🏌️ ⛹️ 🤾 🎊 🥎 🏐
 ബോൾട്ട്	🔩
 ബോൾപോയന്റ്	🖊️
 ബ്രഡ്	🫓
 ബ്രഷ്	🪮 🪥
+ബ്രസീൽ	🇧🇷
+ബ്രൂണൈ	🇧🇳
 ബ്രെഡ്	🍞 🥐 🥖 🥪 🥙
 ബ്രോക്കോളി	🥦
 ബ്രോണ്ടോസോറസ്	🦕
@@ -5239,6 +5527,8 @@ zōri	🩴
 ബ്ലോസ്സം	🌸
 ബൗളിംഗ്	🎳
 ബർഗർ	🥬 🍔
+ബർമുഡ	🇧🇲
+ബൾഗേറിയ	🇧🇬
 ബൾബ്	💡
 ഭംഗി	🩷 💠
 ഭക്ഷണം	🥝 🫒 🥑 🥔 🥕 🥒
@@ -5263,12 +5553,14 @@ zōri	🩴
 ഭീകരജീവി	🧌
 ഭൂകമ്പം	🫨 🛘
 ഭൂഗോളം	🌍 🌎 🌏 🌐
+ഭൂട്ടാൻ	🇧🇹
 ഭൂതം	👻 🦹 🧝 🧟 🧌
 ഭൂതക്കണ്ണാടി	🔍 🔎
 ഭൂമി	🌍 🌎 🌏
 ഭ്രമം	😇
 ഭ്രമകൽപ്പന	👽 👾 🧌
 ഭ്രാന്തുളള	💢
+മംഗോളിയ	🇲🇳
 മകരം	♑
 മഗ്	🍺 🍻
 മജീഷ്യൻ	🪄
@@ -5281,6 +5573,7 @@ zōri	🩴
 മഞ്ഞ്	⛷️ 🏔️ 🌁 🌨️ 🌫️ ❄️
 മടങ്ങുക	🔙
 മടി	🦥
+മഡഗാസ്കർ	🇲🇬
 മണി	🔔 🎐
 മണികൾ	📿
 മണ്ണിര	🪱
@@ -5304,6 +5597,7 @@ zōri	🩴
 മന്ത്രവാദിനി	🧙‍♀️ 🪄 🧹
 മന്ദഹാസം	🙂
 മയക്കം	🥴 😵
+മയോട്ടി	🇾🇹
 മരം	🌲 🌴 🪵
 മരച്ചീനി	🫜
 മരണം	💀 ☠️ ⚰️ 🪦 ⚱️
@@ -5325,7 +5619,9 @@ zōri	🩴
 മലകയറ്റം	🧗 🚵‍♂️ 🚵‍♀️
 മലകയറൽ	🧗‍♂️ 🧗‍♀️
 മലനിര	⛰️
+മലാവി	🇲🇼
 മലേറിയ	🦟
+മലേഷ്യ	🇲🇾
 മഴ	⛈️ 🌦️ 🌧️ 🌨️ 🌈 🌂
 മഴത്തുള്ളി	💧
 മഴത്തുള്ളികൾ	☔
@@ -5355,12 +5651,16 @@ zōri	🩴
 മാരത്തോൺ	🏃 🏃‍♂️ 🏃‍♀️ 🏃‍➡️ 🏃‍♀️‍➡️ 🏃‍♂️‍➡️
 മാറ്റം	🫌
 മാലാഖ	😇 👼 🪽
+മാലി	🇲🇱
+മാലിദ്വീപ്	🇲🇻
 മാസ്കിങ്	🫫
 മാൻ	🦌
 മാൻകൊമ്പ്	🫎
 മാർക്കറ്റ്	💹
 മാർക്ക്	✔️ ❌
 മാർക്കർ	📑
+മാർട്ടിനിക്ക്	🇲🇶
+മാൾട്ട	🇲🇹
 മിടിപ്പ്	💓
 മിഥുനം	♊
 മിനിബസ്	🚐
@@ -5420,6 +5720,7 @@ zōri	🩴
 മൃദുവായതുണി	🧸
 മെക്കാനിക്	👨‍🔧 👩‍🔧 🧰
 മെക്കാനിക്ക്	🧑‍🔧
+മെക്സിക്കോ	🇲🇽
 മെക്സിക്കൻ	🫔 🪅
 മെഗാഫോൺ	📣
 മെച്ചപ്പെടുക	❤️‍🩹
@@ -5441,14 +5742,20 @@ zōri	🩴
 മേപ്പിൾ	🍁
 മേരി	🪬
 മൈക്ക്	🎙️ 🎤
+മൈക്രോനേഷ്യ	🇫🇲
 മൈക്രോഫോൺ	🎤 🎙️
 മൊച്ചി	🍡
+മൊണാക്കോ	🇲🇨
+മൊണ്ടെസരത്ത്	🇲🇸
 മൊബൈൽ	📱 📲 📞 📵 📶 📳
+മൊറോക്കൊ	🇲🇦
+മൊസാംബിക്ക്	🇲🇿
 മോട്ടോർ	🛵
 മോട്ടോർവേ	🛣️
 മോട്ടോർസൈക്കിൾ	🏍️
 മോഡ്	📳
 മോണോറെയിൽ	🚝
+മോണ്ടെനെഗ്രോ	🇲🇪
 മോതിരം	💍
 മോയായ്	🗿
 മോശം	👎 🆖
@@ -5458,12 +5765,14 @@ zōri	🩴
 മ്യൂസിയം	🖼️
 മ്ലാവ്	🫎
 മൗനം	😶
-മൗറീഷ്യസ്	🦤
+മൗറിറ്റാനിയ	🇲🇷
+മൗറീഷ്യസ്	🇲🇺 🦤
 മൗസ്	🖱️
 മൺകോരി	🪏
 മർമ്മരം	🍃
 മൽപ്പിടുത്തം	🫯
 മൽസ്യം	🦈 🦐 🦑
+മൾഡോവ	🇲🇩
 യക്ഷി	🧚‍♀️ 🧚
 യക്ഷിക്കഥ	🧚
 യക്ഷിഗന്ധർവ്വാദികൾ	🧚
@@ -5484,6 +5793,7 @@ zōri	🩴
 യൂറോ	🪙 💶
 യൂറോപ്പ്	🥨 🌍
 യൂറോപ്യൻ	🏤
+യെമൻ	🇾🇪
 യെൻ	💴
 യോഗ	🧘 🧘‍♂️ 🧘‍♀️
 യോഗി	🧘
@@ -5533,7 +5843,7 @@ zōri	🩴
 റണ്ണർ	🏃 🏃‍➡️
 റദ്ദാക്കുക	✖️
 റദ്ദാക്കൽ	❌
-റഷ്യ	🪆
+റഷ്യ	🇷🇺 🪆
 റഷ്യൻ	🪆
 റാക്കറ്റ്	🎾
 റാന്തൽ	🎃
@@ -5548,7 +5858,9 @@ zōri	🩴
 റിവോൾവർ	🔫
 റിസീവർ	📞
 റിസോർട്ട്	⛵
+റീയൂണിയൻ	🇷🇪
 റീസൈക്കിൾ	♻️
+റുവാണ്ട	🇷🇼
 റൂളർ	📏
 റെക്കോർഡ്	⏺️
 റെക്കോർഡർ	🪈
@@ -5562,6 +5874,7 @@ zōri	🩴
 റേഡിയോ	📻 🔘
 റേസിംഗ്	🏎️ 🏍️
 റേസർ	🪒
+റൊമാനിയ	🇷🇴
 റൊമാൻസ്	💌 💏 💑 💐 💒 💍
 റൊസെറ്റ്	🏵️
 റോക്കറ്റ്	🚀 🧑‍🚀 👨‍🚀 👩‍🚀
@@ -5577,6 +5890,7 @@ zōri	🩴
 റ്റാറ്റാ	👋
 റ്റൂലിപ്പ്	🌷
 ലക്ഷ്യം	🎯
+ലക്സംബർഗ്	🇱🇺
 ലഗേജ്	🧳 🛅
 ലഘുഭക്ഷണം	🍿 🍩
 ലജ്ജ	🫣
@@ -5586,18 +5900,26 @@ zōri	🩴
 ലാക്രോസ്	🥍
 ലാബ്	🧪 🧫
 ലാമ	🦙
+ലാറ്റ്വിയ	🇱🇻
 ലാവഷ്	🫓
+ലാവോസ്	🇱🇦
 ലാവൻഡർ	🪻
 ലാൻഡുചെയ്യുന്നു	🛬
 ലിംഗഭേദമില്ല	🧒 🧑 🧑‍🦰 🧑‍🦱 🧑‍🦳 🧑‍🦲
 ലിങ്ക്	🔗 🖇️
+ലിച്ചൺസ്റ്റൈൻ	🇱🇮
+ലിത്വാനിയ	🇱🇹
 ലിഫ്റ്റ്	🛗
+ലിബിയ	🇱🇾
 ലിബ്ര	⚖️
 ലൂപിൻ	🪻
+ലെബനൻ	🇱🇧
 ലെറ്റൂസ്	🥬
 ലെവെൽ	🎚️
+ലെസോതോ	🇱🇸
 ലേബൽ	🏷️
 ലൈം	🍋‍🟩
+ലൈബീരിയ	🇱🇷
 ലൈബ്രറി	📗
 ലൈറ്റ്	🪶 🚈 🚦
 ലൈറ്റ്ഹൗസ്	🛙
@@ -5621,9 +5943,11 @@ zōri	🩴
 വട്ടം	⚫ ⚪
 വണ്ട്	🐞
 വത്തക്ക	🍈 🍉
+വത്തിക്കാൻ	🇻🇦
 വധു	👰
 വനം	🫈
 വനിത	👡 👢 ♀️
+വന്വാതു	🇻🇺
 വയറ്	🫃 🫄
 വയലിൻ	🎻
 വയോധിക	🧓
@@ -5692,7 +6016,7 @@ zōri	🩴
 വിനോദം	🎥
 വിന്റർ	🪾
 വിമാനം	✈️ 🧑‍✈️ 👨‍✈️ 👩‍✈️ 🛩️ 🛫
-വിയറ്റ്നാം	🪷
+വിയറ്റ്നാം	🇻🇳 🪷
 വിയോജിപ്പ്	🫯
 വിയർത്തത്	🥵
 വിയർപ്പുതുള്ളി	😥 😓
@@ -5759,8 +6083,10 @@ zōri	🩴
 വെടിമരുന്ന്	🎆 🎇
 വെണ്ണ	🧈
 വെണ്ണപ്പഴം	🥑
+വെനിസ്വേല	🇻🇪
 വെയിറ്റ്	🏋️
 വെയിൽ	☀️ 🌞 ☂️ ⛱️ 🪭
+വെയിൽസ്	🏴󠁧󠁢󠁷󠁬󠁳󠁿
 വെളിച്ചം	🛙 🕯️ 💡 🔦 🔅 🔆
 വെളിപ്പെടുത്തൽ	🫫
 വെളുത്ത	🐻‍❄️ 🏳️
@@ -5825,6 +6151,7 @@ zōri	🩴
 ശൈത്യം	🪾
 ശ്മശാനം	🪦
 ശ്രദ്ധയില്ലാത്ത	😶‍🌫️
+ശ്രീലങ്ക	🇱🇰
 ശ്വസനം	🫁
 ശ്വാസം	🫁
 ശ്വാസംവിടുക	🫁
@@ -5876,6 +6203,7 @@ zōri	🩴
 സമാന്തരങ്ങൾ	🟰
 സമുദ്ര	🛙
 സമുദ്രം	🏄 🫍 🪸 🪼
+സമോവ	🇼🇸
 സമ്പത്ത്	🪎
 സമ്മതം	🤝 🙆‍♂️ 🙆‍♀️
 സമ്മതിക്കുക	🙂‍↕️
@@ -5893,6 +6221,7 @@ zōri	🩴
 സഹായം	🫴 💁 💁‍♂️ 💁‍♀️ 🐕‍🦺 🩼
 സഹായിക്കാം	🫴
 സഹികെട്ടു	🤦‍♂️ 🤦‍♀️
+സാംബിയ	🇿🇲
 സാക്ഷി	👁️‍🗨️
 സാക്സഫോൺ	🎷
 സാന്ത	🎅 🧑‍🎄
@@ -5906,7 +6235,9 @@ zōri	🩴
 സാഹിത്യകാരൻ	👨‍🎨
 സാൻഡൽ	👡
 സാൻറക്ലോസ്	🧑‍🎄
+സാർക്ക്	🇨🇶
 സാർവ്വലൗകികം	♾️
+സിംഗപ്പൂർ	🇸🇬
 സിംഗ്	👳
 സിംബൽ	⚓ 🃏 📧 🔗 ♿ 🅰️
 സിംഹം	🦁
@@ -5917,19 +6248,23 @@ zōri	🩴
 സിനിമ	🎦 🎫 🎥 🎞️ 📽️ 🎬
 സിയാൻ	🩵
 സിറിഞ്ച്	💉
+സിറിയ	🇸🇾
 സിറ്റി	🏙️
 സില്ലൗട്ട്	👤 👥
 സീഫുഡ്	🍢
 സീബ്ര	🦓
 സീറ്റ്	💺 🪑
+സീഷെൽസ്	🇸🇨
 സീൽ	🦭
 സുഖപ്പെടുക	❤️‍🩹
 സുഗന്ധവ്യഞ്ജനം	🫚
+സുഡാൻ	🇸🇩
 സുതാര്യം	🪟
 സുരക്ഷ	🛟 🦺 🔏 🔐
 സുരക്ഷാജീവനക്കാരി	💂‍♀️
 സുരക്ഷാജീവനക്കാരൻ	💂‍♂️
 സുരക്ഷിതത്വം	🪪
+സുരിനാം	🇸🇷
 സുഷി	🍣
 സുഷിരം	🧽
 സൂചന	🗝️
@@ -5944,9 +6279,11 @@ zōri	🩴
 സൂര്യോദയം	🌅 🌄
 സൂര്യൻ	☀️ 😎 🌻 🌞 ⛅ 🌤️
 സെക്സി	💋
+സെനഗൽ	🇸🇳
 സെമി	🚛
 സെമിത്തേരി	🪦
 സെൻ	🧘
+സെർബിയ	🇷🇸
 സെൽ	📵 📶 📳 📴
 സെൽഫി	🤳
 സേക്ക്	🍶
@@ -5956,12 +6293,14 @@ zōri	🩴
 സൈക്ലിസ്റ്റ്	🚴 🚵
 സൈക്ലോൺ	🌀
 സൈന്യം	🪖
+സൈപ്രസ്	🇨🇾
 സൈൻ	🚧 ™️
 സോക്കർ	🏉
 സോഡ	🥤
 സോഡിയാക്ക്	🦁 ⚖️
 സോപ്പുപത	🧼
 സോപ്പ്	🧼 🫧
+സോമാലിയ	🇸🇴
 സോമ്പി	🧟
 സോറി	🙇
 സോറോപോഡ്	🦕
@@ -6009,11 +6348,16 @@ zōri	🩴
 സ്ലൈഡിംഗ്	🛝
 സ്ലൈഡ്	🛝 🪊
 സ്ലൈഡർ	🎚️
+സ്ലോവാക്യ	🇸🇰
+സ്ലോവേനിയ	🇸🇮
 സ്വാതന്ത്ര്യം	⛓️‍💥
 സ്വാദ്	😋 😝
+സ്വാസിലൻഡ്	🇸🇿
 സ്വിമ്മിംഗ്	🏊
+സ്വിറ്റ്സർലാൻഡ്	🇨🇭
 സ്വിസ്സ്	🫕
 സ്വീകരിച്ചു	📥
+സ്വീഡൻ	🇸🇪
 സ്വീറ്റ്	🎂
 സ്വർണ്ണം	🥇 🪙 🪎
 സ്വർണ്ണത്തലമുടി	👱
@@ -6034,6 +6378,7 @@ zōri	🩴
 സർഫർ	🏄
 സർവീസ്	🛅
 സർവ്വീസ്	🐕‍🦺
+ഹംഗറി	🇭🇺
 ഹംസം	🦩
 ഹണി	🍯
 ഹയസിന്ത്	🪻
@@ -6066,6 +6411,7 @@ zōri	🩴
 ഹൃദയചിഹ്നം	🥰 🩷 🩵 🩶 💑 👩‍❤️‍👨
 ഹൃദയതാളം	💗 🫀
 ഹൃദയമിടിപ്പ്	💗
+ഹെയ്തി	🇭🇹
 ഹെലികോപ്റ്റർ	🚁
 ഹെർബൽ	🫚
 ഹെൽമെറ്റ്	🪖 ⛑️
@@ -6076,6 +6422,7 @@ zōri	🩴
 ഹോക്കി	🏑 🏒
 ഹോട്ട്ഡോഗ്	🌭
 ഹോട്ടൽ	🏨 🛌 🍞 🍖 🍗 🍔
+ഹോണ്ടുറാസ്	🇭🇳
 ഹോളി	🫟
 ഹോസ്പിറ്റൽ	🏥
 ഹോൺ	📯
