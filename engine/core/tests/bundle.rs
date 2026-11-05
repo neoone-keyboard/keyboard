@@ -761,6 +761,54 @@ fn latency() {
         let _ = engine.suggest_timed(context, layout, true, Some(&Timing::keyboard(&elapsed)));
     };
     time_with("with the LM, keyboard cutoffs", &engine, &inputs, &keyboard);
+    // A long message as the keyboard sends it: the last 64 characters before the cursor, so
+    // the front of the text moves at every keystroke once it is longer.
+    let message = message_inputs();
+    time_suggests("with the LM, a long message", &engine, &message);
+    time_with(
+        "with the LM, a long message, keyboard cutoffs",
+        &engine,
+        &message,
+        &keyboard,
+    );
+    // The keyboard's cutoffs on a clock 6 times faster, as on a phone typing from idle (design
+    // §4: 5–7 times slower): how often the LM's context is ready for the word being typed.
+    let phone = |context: &str, layout| {
+        let start = Instant::now();
+        let elapsed = || start.elapsed() * 6;
+        let _ = engine.suggest_timed(context, layout, true, Some(&Timing::keyboard(&elapsed)));
+    };
+    for (label, suggest) in [
+        ("keyboard cutoffs", &keyboard as &dyn Fn(&str, Layout)),
+        ("phone cutoffs", &phone),
+    ] {
+        let ready = message
+            .iter()
+            .filter(|(context, layout)| {
+                suggest(context, *layout);
+                engine.lm_ready()
+            })
+            .count();
+        println!(
+            "with the LM, a long message, {label}: LM ready after {ready} of {} requests",
+            message.len()
+        );
+    }
+}
+
+/// A long message typed letter by letter, each request with only the last 64 characters
+/// before the cursor (`KeyboardViewController.requestSuggestions`).
+fn message_inputs() -> Vec<(String, Layout)> {
+    let text = "I said njan varam, but the bus was late again. Hello how are you doing today? \
+        I was thinking we could meet tomorrow at the cafe near the station. ente veettil \
+        ellarum sukhamano? enikku nale varan pattilla because of work, definitely next week. ";
+    let chars: Vec<char> = text.chars().collect();
+    (1..=chars.len())
+        .map(|end| {
+            let context: String = chars[end.saturating_sub(64)..end].iter().collect();
+            (context, Layout::Latin)
+        })
+        .collect()
 }
 
 /// The latency gate with every table of the learned-word store full (`personal`): phrases
