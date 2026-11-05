@@ -213,10 +213,10 @@ public final class EmojiRenderer {
                     }
                 }
             }
-            let dropped = painter.endBatch()
+            // Not logged: a scroll makes and drops dozens of fonts; the timings line counts them.
+            _ = painter.endBatch()
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    if let dropped { self?.onLog?(dropped) }
                     self?.drawing = false
                     self?.pump()
                 }
@@ -252,7 +252,6 @@ public final class EmojiRenderer {
         guard let made else { return }
         fontsMade += 1
         timings.fontMakes.append(made.milliseconds)
-        onLog?(made.report)
     }
 
     private func finish(_ emoji: String, _ picture: Picture?, milliseconds: Double, fresh: Bool) {

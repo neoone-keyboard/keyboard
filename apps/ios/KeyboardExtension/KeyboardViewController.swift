@@ -5,9 +5,10 @@ import MLEngine
 
 final class KeyboardViewController: UIInputViewController {
     private let log = Diagnostics(category: "keyboard")
-    /// Largest footprint seen since the keyboard loaded, and when it was last logged.
+    /// Largest footprint seen since the keyboard loaded, and when and at what it was last logged.
     private var peakFootprint: UInt64 = 0
     private var lastFootprintSample: Double = 0
+    private var lastFootprintLogged: UInt64 = 0
     private static let footprintSampleInterval: Double = 5
     /// How the last delivered fetch ended, for explaining an empty bar.
     private var lastOutcome: (outcome: SuggestionCoordinator.Outcome, elapsed: Duration)?
@@ -88,9 +89,11 @@ final class KeyboardViewController: UIInputViewController {
         ].compactMap { $0 })
     }
 
-    /// Takes everything out of the input view (see `deinit`).
+    /// Takes everything out of the input view (see `deinit`). A controller iOS keeps alive still
+    /// owns its views, so the keys go too; `viewWillAppear` makes them again (`applySettings`).
     private func emptyView() {
         hideEmojiPanel()
+        keyboardView.removeKeys()
         stack.removeFromSuperview()
         settingsPanel.removeFromSuperview()
         heightConstraint?.isActive = false
@@ -778,9 +781,9 @@ final class KeyboardViewController: UIInputViewController {
         } else {
             reason = "result was for another word (\(latest.typed.count) chars)"
         }
-        let key = "\(reason)|\(input.currentWord.count)"
-        guard key != loggedEmptyBar else { return }
-        loggedEmptyBar = key
+        // Once per reason until the bar fills: not once per key while prediction is off.
+        guard reason != loggedEmptyBar else { return }
+        loggedEmptyBar = reason
         log.info("Bar empty: \(reason); word \(input.currentWord.count) chars, \(input.language == .malayalam ? "ml" : "latin"), footprint \(Diagnostics.footprint())")
     }
 
@@ -814,8 +817,11 @@ final class KeyboardViewController: UIInputViewController {
         let footprint = MemoryMonitor.footprintBytes()
         let now = ProcessInfo.processInfo.systemUptime
         peakFootprint = max(peakFootprint, footprint)
-        if now - lastFootprintSample >= Self.footprintSampleInterval {
+        // Only when it moved by a megabyte or more, so a steady footprint isn't logged every 5 s.
+        let moved = footprint.distance(to: lastFootprintLogged).magnitude >= 1_048_576
+        if now - lastFootprintSample >= Self.footprintSampleInterval, moved || lastFootprintLogged == 0 {
             lastFootprintSample = now
+            lastFootprintLogged = footprint
             log.info("Footprint \(Diagnostics.megabytes(footprint)) (peak \(Diagnostics.megabytes(peakFootprint))); gate \(gate.isOn ? "on" : "off")")
         }
         switch gate.update(footprintBytes: footprint, now: now) {

@@ -48,6 +48,17 @@ final class KeyboardView: UIView {
         setNeedsLayout()
     }
 
+    /// Drops every key, with its drawn labels, for a keyboard iOS keeps but no longer shows;
+    /// `configure` makes them again.
+    func removeKeys() {
+        cancelAllTouches()
+        hidePopup()
+        caps.forEach { $0.removeFromSuperview() }
+        caps = []
+        frames = []
+        layout = KeyboardLayout(rows: [])
+    }
+
     /// Re-reads every key's label, e.g. after shift changes.
     func refreshLabels() {
         guard let theme, let label else { return }

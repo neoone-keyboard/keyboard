@@ -105,8 +105,8 @@ struct EmojiRendererTests {
         for _ in 0..<100 where EmojiRenderer.fontCopiesAlive > 0 { try await Task.sleep(for: .milliseconds(10)) }
         #expect(EmojiRenderer.fontCopiesAlive == 0)
         #expect(lines.first?.contains("mapped (mmap") == true)
-        #expect(lines.contains { $0.hasPrefix("Emoji font 1 made in") })
-        #expect(lines.contains { $0.hasPrefix("Emoji timings: 2 drawn") && $0.contains("1 in a font's first batch") })
+        #expect(!lines.contains { $0.hasPrefix("Emoji font 1 made in") })
+        #expect(lines.contains { $0.hasPrefix("Emoji timings: 2 drawn") && $0.contains("1 in a font's first batch") && $0.contains("1 fonts made") })
         #expect(lines.contains { $0.hasPrefix("Emoji renderer closed: Emoji font 1 dropped") })
         #expect(renderer.image(for: "🐘") { _ in } == nil)
     }
