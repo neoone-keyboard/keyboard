@@ -37,6 +37,18 @@ pub struct Lang {
     pub log_script: f32,
 }
 
+/// Fewest cached words that a text cut at the front must end with to keep them
+/// (`LmContext::slid`).
+const SLID_RUN: usize = 3;
+
+/// Cached words `at..at + len` are the new words `from..from + len`.
+#[derive(Debug, Clone, Copy)]
+struct Run {
+    at: usize,
+    from: usize,
+    len: usize,
+}
+
 /// The context cache and what is read from it once per context.
 #[derive(Debug, Default)]
 pub struct LmContext {
@@ -68,18 +80,18 @@ impl LmContext {
     /// says stop (asked before each word). True when the context is ready: every word fed and
     /// the next-token distribution read. False leaves the work done so far for the next call.
     pub fn sync(&mut self, lm: &Lm, words: &[String], more: &dyn Fn() -> bool) -> bool {
-        let start = self.matched(words);
-        let start = match start {
-            Some((j, k)) => {
-                if k < self.words.len() {
-                    let rows = self.words[..k].iter().map(|(_, n)| n).sum();
+        let start = match self.reused(words) {
+            Some(Run { at, from, len }) => {
+                let kept = at + len;
+                if kept < self.words.len() {
+                    let rows = self.words[..kept].iter().map(|(_, n)| n).sum();
                     if let Some(cache) = &mut self.cache {
                         lm.truncate(cache, rows);
                     }
-                    self.words.truncate(k);
+                    self.words.truncate(kept);
                     self.ready = false;
                 }
-                j + k
+                from + len
             }
             None => {
                 self.cache = Some(lm.cache());
@@ -128,35 +140,87 @@ impl LmContext {
         true
     }
 
-    /// Where the cached words reappear in `words`: `(j, k)` when the first `k` cached words
-    /// are `words[j..j + k]` (the longest such run; ties, the latest `j`). None when nothing
-    /// matches, when the run can't be the cache's own text, or when positions ran out: the
-    /// cache is then filled afresh.
-    fn matched(&self, words: &[String]) -> Option<(usize, usize)> {
-        let cache = self.cache.as_ref()?;
-        if cache.next_pos() > MAX_POSITION {
+    /// The cached words kept for `words`: `matched`'s run, or `slid`'s when that is longer.
+    /// None when the cache is filled afresh.
+    fn reused(&self, words: &[String]) -> Option<Run> {
+        if self.words.is_empty()
+            || self
+                .cache
+                .as_ref()
+                .is_none_or(|c| c.next_pos() > MAX_POSITION)
+        {
             return None;
         }
-        let mut best: Option<(usize, usize)> = None;
-        for j in 0..words.len() {
-            let k = self
-                .words
-                .iter()
-                .zip(&words[j..])
-                .take_while(|((cached, _), word)| cached == *word)
-                .count();
-            if k > 0 && best.is_none_or(|(_, b)| k >= b) {
-                best = Some((j, k));
+        let matched = self.matched(words);
+        match self.slid(words) {
+            Some(slid) if matched.is_none_or(|m| slid.len > m.len) => Some(slid),
+            _ => matched,
+        }
+    }
+
+    /// Where the cached words reappear in `words`: the first `len` cached words are
+    /// `words[from..from + len]` (the longest such run; ties, the latest `from`). None when
+    /// nothing matches or when the run can't be the cache's own text.
+    fn matched(&self, words: &[String]) -> Option<Run> {
+        let mut best: Option<Run> = None;
+        for from in 0..words.len() {
+            let len = self.run(0, words, from);
+            if len > 0 && best.is_none_or(|b| len >= b.len) {
+                best = Some(Run { at: 0, from, len });
             }
         }
-        let (j, k) = best?;
+        let best = best?;
         // Past the start of the text, the run must follow the word the cache last dropped;
         // otherwise it is a repeated phrase elsewhere, and the cache would hold less context
         // than a fresh fill.
-        if j > 0 && self.dropped.as_deref() != Some(words[j - 1].as_str()) {
+        if best.from > 0 && self.dropped.as_deref() != Some(words[best.from - 1].as_str()) {
             return None;
         }
-        Some((j, k))
+        Some(best)
+    }
+
+    /// The keyboard sends only the end of the text before the cursor (its last 64
+    /// characters), so once the text is longer its front is cut at every keystroke, often
+    /// inside a word: `words` are then bos (`lm_words` can't tell a cut text from a whole
+    /// one), perhaps the end of the cut word, and the words the cache holds. `matched` finds
+    /// only bos there and every word was fed again at each keystroke: 0.9 of 1.6 ms a
+    /// suggest on the Mac, and on the phone past the 3 ms prefill cutoff while typing, so the
+    /// LM was never ready. This keeps the cached words that `words` end with, and the cached
+    /// words before them, which are the text that was cut. At least `SLID_RUN` words must
+    /// match, with at most one new word after them; anything else is another text.
+    fn slid(&self, words: &[String]) -> Option<Run> {
+        let lead = usize::from(words.first().is_some_and(String::is_empty));
+        let mut best: Option<Run> = None;
+        for at in 0..self.words.len() {
+            // The word before cached word `at`: the cache's own, or the one it dropped last.
+            let before = match at {
+                0 => self.dropped.as_deref(),
+                _ => Some(self.words[at - 1].0.as_str()),
+            };
+            // After bos, the text starts at word `at`, or with the end of the word before it.
+            let cut = words.get(lead).is_some_and(|w| {
+                before.is_some_and(|b| b.len() > w.len() && b.ends_with(w.as_str()))
+            });
+            let from = lead + usize::from(cut);
+            if at == 0 && from == 0 {
+                continue; // `matched` has it
+            }
+            let len = self.run(at, words, from);
+            if len >= SLID_RUN && from + len + 1 >= words.len() && best.is_none_or(|b| len > b.len)
+            {
+                best = Some(Run { at, from, len });
+            }
+        }
+        best
+    }
+
+    /// How many cached words from `at` on are `words` from `from` on.
+    fn run(&self, at: usize, words: &[String], from: usize) -> usize {
+        self.words[at..]
+            .iter()
+            .zip(&words[from..])
+            .take_while(|((cached, _), word)| cached == *word)
+            .count()
     }
 
     /// Whether the context is ready: `next` and `lang` hold for the current text.
@@ -474,6 +538,53 @@ mod tests {
         sync(&mut ctx, &lm, &format!("{text}more "));
         assert_eq!(ctx.fed_tokens() - fed, lm.tokenizer().word("more").len());
         assert!(ctx.cached_tokens() <= rank::LM_WINDOW);
+    }
+
+    /// The last `n` characters of `text`, as the keyboard sends them.
+    fn window(text: &str, n: usize) -> &str {
+        let skip = text.chars().count().saturating_sub(n);
+        &text[text.char_indices().nth(skip).map_or(text.len(), |(i, _)| i)..]
+    }
+
+    #[test]
+    fn a_text_cut_at_the_front_keeps_the_cache() {
+        let (lm, mut ctx) = (lm(), LmContext::default());
+        let text = "we could meet at the cafe near the station tomorrow ";
+        sync(&mut ctx, &lm, text);
+        let fed = ctx.fed_tokens();
+        // Cut inside a word ("uld meet …") and at a word boundary ("meet …"): nothing to feed.
+        for cut in [window(text, 46), window(text, 43)] {
+            assert!(sync(&mut ctx, &lm, cut));
+            assert_eq!(ctx.fed_tokens(), fed, "{cut:?}");
+        }
+        // A new word after the cut text: only it is fed, and the context is the one the
+        // uncut text gives, cut words and all.
+        let more = format!("{text}then ");
+        assert!(sync(&mut ctx, &lm, window(&more, 46)));
+        assert_eq!(ctx.fed_tokens() - fed, lm.tokenizer().word("then").len());
+        let mut whole = LmContext::default();
+        sync(&mut whole, &lm, text);
+        sync(&mut whole, &lm, &more);
+        assert_eq!(ctx.cached_words(), whole.cached_words());
+        assert_eq!(ctx.next(), whole.next());
+    }
+
+    #[test]
+    fn a_text_ending_in_cached_words_is_another_text_without_a_cut() {
+        let (lm, mut ctx) = (lm(), LmContext::default());
+        sync(&mut ctx, &lm, "we could meet at the cafe near the station ");
+        // Three cached words, but after a word the cache doesn't have before them.
+        for other in [
+            "so the cafe near the station ",
+            "near the station and then home ",
+        ] {
+            sync(&mut ctx, &lm, other);
+            let mut fresh = LmContext::default();
+            sync(&mut fresh, &lm, other);
+            assert_eq!(ctx.cached_words(), fresh.cached_words(), "{other:?}");
+            assert_eq!(ctx.next(), fresh.next());
+            sync(&mut ctx, &lm, "we could meet at the cafe near the station ");
+        }
     }
 
     #[test]
