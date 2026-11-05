@@ -1711,6 +1711,12 @@ impl Engine {
     /// and the previous word's `next.fst` followers scored the same way (a set phrase, ആധാർ
     /// കാർഡ് or ഈഫൽ ടവർ, often begins with a piece outside the LM's likeliest), with the
     /// `next.fst` bigram mixed in (`rank::NEXT_BIGRAM_WEIGHT`).
+    ///
+    /// `P_lex(w | t)` is at most 1, so a word scores no more than its piece alone would, with
+    /// the best bigram among the followers it could be (`bound`). A piece or word that can't
+    /// reach the shown words found so far (`Leaders`) is skipped without reading the lexicon
+    /// or tokenising, which were most of a next-word request (1.6 of 1.9 ms on the Mac).
+    /// A piece's words come commonest first, so its first one out of reach ends it.
     fn lm_next_words(
         &self,
         scores: &dyn ContextScores,
@@ -1718,70 +1724,105 @@ impl Engine {
     ) -> Vec<Candidate> {
         let sentence_end = previous.is_some_and(|(_, end)| end);
         let followers = self.followers(previous.map(|(w, _)| w));
-        // Each word with its first piece and lexicon count.
-        let mut pieces: Vec<(NextPiece, String, u64)> = Vec::new();
-        for p in scores.next_pieces(rank::NEXT_PIECES) {
-            let Some(lex) = self.next_lexicon(&p) else {
-                continue;
-            };
-            // The piece itself, in its stored case (`i` is I), and the commonest words it
-            // begins (ignoring case: `lon` begins London) whose first token it is.
-            if let Some(word) = stored_case(lex, &p.text) {
-                pieces.push((p.clone(), word.0, word.1));
-            }
-            for (key, count) in lex.top_completions(p.text.as_bytes(), TOP_K) {
-                let Ok(word) = String::from_utf8(key) else {
-                    continue;
-                };
-                if word.len() > p.text.len()
-                    && scores.first_piece(&word).as_deref() == Some(p.text.as_str())
-                {
-                    pieces.push((p.clone(), word, count));
-                }
-            }
-        }
-        for (word, _) in &followers {
-            let Some(p) = scores.piece_of(word) else {
-                continue;
-            };
-            if let Some((word, count)) = self.next_lexicon(&p).and_then(|l| stored_case(l, word)) {
-                pieces.push((p, word, count));
-            }
-        }
         let b = f64::from(self.lm_weights.next_bigram);
-        let mut found: Vec<Candidate> = Vec::new();
-        for (p, word, count) in pieces {
-            let Some(lex) = self.next_lexicon(&p) else {
-                continue;
-            };
-            let bigram = followers
+        let mix = |lm: f32, bigram: f64| {
+            ((1.0 - b) * f64::from(lm).exp() + b * bigram)
+                .max(1e-30)
+                .ln() as f32
+        };
+        let lm = |p: &NextPiece, lex: &Lexicon, count: u64| {
+            (p.log_p + lex.log_prob(count) - p.first_log_mass).min(p.log_p)
+        };
+        let bigram = |word: &str| {
+            followers
                 .iter()
-                .find(|(f, _)| f.eq_ignore_ascii_case(&word))
-                .map_or(0.0, |(_, p)| *p);
+                .find(|(f, _)| f.eq_ignore_ascii_case(word))
+                .map_or(0.0, |(_, p)| *p)
+        };
+        // Words the user often uses rank higher (`rank::USE_WEIGHT`).
+        let uses = self.user().has_uses();
+        let bound = |lm: f32, bigram: f64| mix(lm, bigram) + if uses { rank::USE_MAX } else { 0.0 };
+        let candidate = |p: &NextPiece, word: String, count: u64| {
+            let lex = self.next_lexicon(p)?;
+            let share = bigram(&word);
             let text = if sentence_end {
                 capitalize(&word)
             } else {
                 word
             };
-            let lm = p.log_p + lex.log_prob(count) - p.first_log_mass;
-            found.push(Candidate {
+            if self.user().is_removed(&text) {
+                return None;
+            }
+            let mut score = mix(lm(p, lex, count), share);
+            if uses {
+                score += self.use_bonus(&text);
+            }
+            Some(Candidate {
                 text,
                 kind: Kind::NextWord,
-                score: ((1.0 - b) * f64::from(lm).exp() + b * bigram)
-                    .max(1e-30)
-                    .ln() as f32,
-            });
-        }
-        {
-            let user = self.user();
-            found.retain(|c| !user.is_removed(&c.text));
-        }
-        // Words the user often uses rank higher (`rank::USE_WEIGHT`).
-        if self.user().has_uses() {
-            for c in &mut found {
-                c.score += self.use_bonus(&c.text);
+                score,
+            })
+        };
+        // Each follower with its first piece: a piece's words can only have the bigrams of
+        // followers that begin with it or are it.
+        let firsts: Vec<(Option<String>, &str, f64)> = followers
+            .iter()
+            .map(|(f, share)| (scores.first_piece(f), f.as_str(), *share))
+            .collect();
+        let piece_bigram = |p: &NextPiece| {
+            firsts
+                .iter()
+                .filter(|(first, f, _)| {
+                    first.as_deref() == Some(p.text.as_str()) || f.eq_ignore_ascii_case(&p.text)
+                })
+                .fold(0.0, |top, (_, _, share)| share.max(top))
+        };
+        let mut from_followers: Vec<Candidate> = Vec::new();
+        for (word, _) in &followers {
+            let Some(p) = scores.piece_of(word) else {
+                continue;
+            };
+            if let Some((word, count)) = self.next_lexicon(&p).and_then(|l| stored_case(l, word)) {
+                from_followers.extend(candidate(&p, word, count));
             }
         }
+        let mut leaders = Leaders::default();
+        from_followers.iter().for_each(|c| leaders.add(c));
+        let mut found: Vec<Candidate> = Vec::new();
+        for p in scores.next_pieces(rank::NEXT_PIECES) {
+            let top_bigram = piece_bigram(&p);
+            if bound(p.log_p, top_bigram) < leaders.floor() {
+                continue;
+            }
+            let Some(lex) = self.next_lexicon(&p) else {
+                continue;
+            };
+            // The piece itself, in its stored case (`i` is I), and the commonest words it
+            // begins (ignoring case: `lon` begins London) whose first token it is.
+            let piece_word = stored_case(lex, &p.text).and_then(|(w, n)| candidate(&p, w, n));
+            if let Some(c) = piece_word {
+                leaders.add(&c);
+                found.push(c);
+            }
+            for (key, count) in lex.top_completions(p.text.as_bytes(), TOP_K) {
+                let term = lm(&p, lex, count);
+                if bound(term, top_bigram) < leaders.floor() {
+                    break;
+                }
+                let Ok(word) = String::from_utf8(key) else {
+                    continue;
+                };
+                if bound(term, bigram(&word)) >= leaders.floor()
+                    && word.len() > p.text.len()
+                    && scores.first_piece(&word).as_deref() == Some(p.text.as_str())
+                    && let Some(c) = candidate(&p, word, count)
+                {
+                    leaders.add(&c);
+                    found.push(c);
+                }
+            }
+        }
+        found.extend(from_followers);
         sort_and_dedup(&mut found);
         found.truncate(SHOWN);
         found
@@ -2075,6 +2116,29 @@ fn sort_and_dedup(candidates: &mut Vec<Candidate>) {
     candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
     let mut seen = std::collections::HashSet::new();
     candidates.retain(|c| seen.insert(c.text.clone()));
+}
+
+/// The `SHOWN` best texts among the candidates added, each with its best score, so far: a
+/// candidate scoring below `floor` can never be shown (`Engine::lm_next_words`).
+#[derive(Default)]
+struct Leaders(Vec<(String, f32)>);
+
+impl Leaders {
+    fn add(&mut self, c: &Candidate) {
+        match self.0.iter_mut().find(|(text, _)| *text == c.text) {
+            Some(seen) => seen.1 = seen.1.max(c.score),
+            None => self.0.push((c.text.clone(), c.score)),
+        }
+        self.0.sort_by(|a, b| b.1.total_cmp(&a.1));
+        self.0.truncate(SHOWN);
+    }
+
+    /// The `SHOWN`th best score, or minus infinity before there are that many texts.
+    fn floor(&self) -> f32 {
+        self.0
+            .get(SHOWN - 1)
+            .map_or(f32::NEG_INFINITY, |(_, score)| *score)
+    }
 }
 
 /// Puts `replacement` (chosen by the caller, already checked against the
@@ -2745,12 +2809,14 @@ mod tests {
         Engine::new(hello_sources(), UserStore::in_memory())
     }
 
+    /// "you" is all of its piece's lexicon mass (500 of 2,505), so its LM score is the
+    /// piece's: a word can't be likelier than the piece it begins with.
     fn hello_lm() -> Fake {
         Fake {
             next: vec![
                 piece("kitty", true, -0.5, -3.0),
                 piece("there", true, -1.0, -3.0),
-                piece("you", true, -2.0, -3.0),
+                piece("you", true, -0.6, (500f32 / 2505.0).ln()),
             ],
             ..Fake::default()
         }
