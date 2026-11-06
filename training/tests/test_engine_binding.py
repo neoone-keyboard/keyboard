@@ -3,14 +3,15 @@ from pathlib import Path
 import mlengine
 
 LEX = Path(__file__).resolve().parents[2] / "apps/ios/KeyboardExtension/Lexicon"
+PACK = LEX.parents[3] / "packs/ml.neopack"
 
 
 def engine():
     return mlengine.Engine(
         english=str(LEX / "en.fst"),
-        malayalam=str(LEX / "ml.fst"),
-        manglish=str(LEX / "manglish.fst"),
-        next_words=str(LEX / "next.fst"),
+        malayalam=str(PACK / "ml.fst"),
+        manglish=str(PACK / "manglish.fst"),
+        next_words=str(PACK / "next.fst"),
     )
 
 
@@ -25,7 +26,7 @@ def test_manglish_reaches_python():
 
 
 def test_malayalam_words_are_frequency_ordered():
-    words = mlengine.malayalam_words(str(LEX / "ml.fst"), 1000)
+    words = mlengine.malayalam_words(str(PACK / "ml.fst"), 1000)
     assert len(words) == 1000
     counts = [c for _, c in words]
     assert counts == sorted(counts, reverse=True)

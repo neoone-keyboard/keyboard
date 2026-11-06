@@ -51,10 +51,11 @@ REPO = Path(__file__).resolve().parents[3]
 RAW_TEXT = REPO / "data/raw/text"
 EVAL = REPO / "data/eval"
 LEXICON = REPO / "apps/ios/KeyboardExtension/Lexicon"
+PACK = REPO / "packs/ml.neopack"
 DAKSHINA_ROMANIZED = REPO / "data/raw/dakshina/dakshina_dataset_v1.0/ml/romanized"
 AKSHARANTAR_TRAIN = REPO / "data/raw/aksharantar/extracted/mal_train.json"
 SMC_BORROWED = REPO / "data/raw/smc-words/english-borrowed.txt"
-TRANSLIT = REPO / "apps/ios/KeyboardExtension/Models/translit.mlkbnn"
+TRANSLIT = REPO / "packs/ml.neopack/translit.mlkbnn"
 
 SEED = 20261103
 EN_WIKI_WORDS = 230_000_000
@@ -259,7 +260,7 @@ def transliterated(words: Iterable[str]) -> dict[str, list[str]]:
     """Malayalam word -> the English words whose first transliteration (the bundled M3a
     transliterator and Malayalam lexicons, no English lexicon) it is."""
     engine = mlengine.Engine(
-        malayalam=str(LEXICON / "ml.fst"), manglish=str(LEXICON / "manglish.fst"), translit=str(TRANSLIT),
+        malayalam=str(PACK / "ml.fst"), manglish=str(PACK / "manglish.fst"), translit=str(TRANSLIT),
     )
     out: dict[str, list[str]] = {}
     for word in words:
@@ -279,7 +280,7 @@ def load_loanwords() -> dict[str, str]:
     for w, c in en:
         if math.log(c / total) > LOANWORD_MIN_LOG_PROB:
             english[w.lower()] = english.get(w.lower(), 0) + c
-    malayalam = {w for w, _ in mlengine.malayalam_words(str(LEXICON / "ml.fst"), 10**8)}
+    malayalam = {w for w, _ in mlengine.malayalam_words(str(PACK / "ml.fst"), 10**8)}
     borrowed = [human.normalize(w.strip()) for w in SMC_BORROWED.read_text(encoding="utf-8").splitlines() if w.strip()]
     plain = sorted((w for w in english if w.isascii() and w.isalpha() and len(w) > 2), key=lambda w: -english[w])
     reverse = transliterated(plain[:TRANSLITERATED_WORDS])

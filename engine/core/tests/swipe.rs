@@ -13,15 +13,10 @@ fn bundle() -> PathBuf {
 
 fn engine() -> Engine {
     let dir = bundle();
-    let lm = dir.join("Models/lm.mlkbnn");
+    let pack = mlengine_core::pack::Pack::open(&dir.join("../../../packs/ml.neopack")).unwrap();
     Engine::open(&Paths {
-        english: Some(dir.join("Lexicon/en.fst")),
-        malayalam: Some(dir.join("Lexicon/ml.fst")),
-        manglish: Some(dir.join("Lexicon/manglish.fst")),
-        next_words: Some(dir.join("Lexicon/next.fst")),
         translit: None,
-        lm: lm.exists().then_some(lm),
-        user_dir: None,
+        ..Paths::with_pack(Some(dir.join("Lexicon/en.fst")), &pack, None)
     })
 }
 

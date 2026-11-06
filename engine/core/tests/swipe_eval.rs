@@ -23,15 +23,10 @@ fn root() -> PathBuf {
 
 fn engine() -> Engine {
     let dir = root().join("apps/ios/KeyboardExtension");
-    let lm = dir.join("Models/lm.mlkbnn");
+    let pack = mlengine_core::pack::Pack::open(&dir.join("../../../packs/ml.neopack")).unwrap();
     let mut engine = Engine::open(&Paths {
-        english: Some(dir.join("Lexicon/en.fst")),
-        malayalam: Some(dir.join("Lexicon/ml.fst")),
-        manglish: Some(dir.join("Lexicon/manglish.fst")),
-        next_words: Some(dir.join("Lexicon/next.fst")),
         translit: None,
-        lm: lm.exists().then_some(lm),
-        user_dir: None,
+        ..Paths::with_pack(Some(dir.join("Lexicon/en.fst")), &pack, None)
     });
     if let Ok(w) = std::env::var("SWIPE_WEIGHTS") {
         let v: Vec<f32> = w.split(',').map(|x| x.parse().unwrap()).collect();
@@ -271,7 +266,7 @@ fn swipe_eval() {
     let english = thin(english_rows());
     let manglish = thin(manglish_rows());
     let mg = mlengine_core::lexicon::Lexicon::open(
-        &root().join("apps/ios/KeyboardExtension/Lexicon/manglish.fst"),
+        &root().join("packs/ml.neopack/manglish.fst"),
     )
     .unwrap();
     let known: Vec<Row> = manglish
@@ -317,7 +312,7 @@ fn swipe_recall() {
     use mlengine_core::swipe::{MAX_POINTS, STEP, decode, resample};
     let every: usize = std::env::var("SWIPE_EVERY").map_or(1, |v| v.parse().unwrap());
     let mg = mlengine_core::lexicon::Lexicon::open(
-        &root().join("apps/ios/KeyboardExtension/Lexicon/manglish.fst"),
+        &root().join("packs/ml.neopack/manglish.fst"),
     )
     .unwrap();
     let keys = qwerty();
@@ -372,7 +367,7 @@ fn swipe_word() {
     let word = std::env::var("SWIPE_WORD").unwrap();
     let skeleton = std::env::var("SWIPE_SKELETON").unwrap();
     let mg = mlengine_core::lexicon::Lexicon::open(
-        &root().join("apps/ios/KeyboardExtension/Lexicon/manglish.fst"),
+        &root().join("packs/ml.neopack/manglish.fst"),
     )
     .unwrap();
     let map = KeyMap::new(&qwerty()).unwrap();

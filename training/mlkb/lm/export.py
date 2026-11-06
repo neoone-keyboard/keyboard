@@ -38,6 +38,7 @@ __all__ = ["dequantised_model", "export", "forward_masked", "reference", "tables
 
 ROOT = Path(__file__).resolve().parents[3]
 LEXICONS = ROOT / "apps/ios/KeyboardExtension/Lexicon"
+PACK = ROOT / "packs/ml.neopack"
 BOS = 2
 TABLES = ("tok.p_en", "lex.first_en", "lex.first_ml")
 # Texts for `--reference` on the real model; the fixture uses the same ones.
@@ -180,14 +181,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--checkpoint", type=Path, default=Path("build/lm.pt"))
     p.add_argument("--vocab", type=Path, default=Path("build/lm/pieces.tsv"))
     p.add_argument("--shards", type=Path, default=Path("build/lm/shards"))
-    p.add_argument("--lexicons", type=Path, default=LEXICONS, help="folder with en.fst and ml.fst")
+    p.add_argument("--lexicons", type=Path, default=LEXICONS, help="folder with en.fst")
+    p.add_argument("--pack", type=Path, default=PACK, help="the Malayalam pack folder, with ml.fst")
     p.add_argument("--out", type=Path, default=Path("build/lm.mlkbnn"))
     p.add_argument("--reference", type=Path, help="also write PyTorch reference outputs (JSON)")
     args = p.parse_args(argv)
     model = load_checkpoint(args.checkpoint)
     pieces, scores = read_pieces(args.vocab)
     tokenizer = mlengine.Tokenizer(pieces, scores)
-    en_fst, ml_fst = args.lexicons / "en.fst", args.lexicons / "ml.fst"
+    en_fst, ml_fst = args.lexicons / "en.fst", args.pack / "ml.fst"
     tables = lexicon_tables(tokenizer, en_fst, ml_fst, len(pieces))
     tables["tok.p_en"] = p_en(args.shards, len(pieces), latin_pieces(pieces))
     args.out.parent.mkdir(parents=True, exist_ok=True)

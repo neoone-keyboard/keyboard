@@ -2,7 +2,7 @@
 # Sources: hand-written for this repo. Starts from the M2 goldens in engine/core/tests/bundle.rs and
 # engine/core/tests/golden_manglish.rs (fixture-lexicon rows kept where the word suits the real bundle),
 # the known M2 failures in the M3a plan, then common chat words, names, places and spelling variants.
-# Non-joined targets were checked against apps/ios/KeyboardExtension/Lexicon/ml.fst. No external data.
+# Non-joined targets were checked against packs/ml.neopack/ml.fst. No external data.
 	ente	എന്റെ
 	ende	എന്റെ
 	entey	എന്റെ

@@ -30,7 +30,7 @@ from mlkb.data import calibrate, human
 from mlkb.data.romanise import RULES, Rules, canonical, variants
 
 ROOT = Path(__file__).resolve().parents[3]
-LEXICON = ROOT / "apps/ios/KeyboardExtension/Lexicon/ml.fst"
+LEXICON = ROOT / "packs/ml.neopack/ml.fst"
 EVAL_SETS = [ROOT / "data/eval/chat-golden.tsv", ROOT / "data/eval/translit-human.tsv"]
 OUT = ROOT / "training/build/pairs"
 

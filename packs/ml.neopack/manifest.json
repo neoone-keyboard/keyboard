@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "id": "ml",
+  "version": "2026.11.06",
+  "name": "Malayalam",
+  "nativeName": "മലയാളം",
+  "script": "mlym",
+  "romanised": {
+    "name": "Manglish"
+  },
+  "minEngine": 1,
+  "files": {
+    "lexicon": "ml.fst",
+    "romanisedLexicon": "manglish.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "lm": "lm.mlkbnn"
+  },
+  "sha256": {
+    "lm.mlkbnn": "4cb54319258e5fbac340675786638418413be6c37c7138cd6bf39546197dde4c",
+    "manglish.fst": "afb22b4e6e5a6df38a275cf991b17b50fe449ae3f3bb0c54cc988996bd304c2e",
+    "ml.fst": "3afc897841f2cef2b3ec5e2025a2085ae26fb5537f1c83e7008f54b7e580b11c",
+    "next.fst": "08e40c6240b21b19337c1cb8ef3b80ed6cb3713540b84f6cc83a28f01e821c5a",
+    "translit.mlkbnn": "fd545d98c7ffe507a25ea1c8ab24a63fcac98de00adf4a46bc55be93523ff6ed"
+  },
+  "credits": [
+    {
+      "name": "Malayalam Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ml.wikipedia.org/"
+    },
+    {
+      "name": "Malayalam Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ml.wikisource.org/"
+    },
+    {
+      "name": "SMC Malayalam word lists",
+      "licence": "CC BY-SA 3.0",
+      "url": "https://gitlab.com/smc/corpus"
+    },
+    {
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    },
+    {
+      "name": "Simple English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://simple.wikipedia.org/"
+    },
+    {
+      "name": "English Wikinews",
+      "licence": "CC BY 2.5 and CC BY 4.0",
+      "url": "https://en.wikinews.org/"
+    },
+    {
+      "name": "Project Gutenberg",
+      "licence": "Public domain",
+      "url": "https://www.gutenberg.org/"
+    }
+  ]
+}

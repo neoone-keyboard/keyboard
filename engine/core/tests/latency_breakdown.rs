@@ -15,13 +15,14 @@ fn root() -> PathBuf {
 
 fn open(model: bool) -> Engine {
     let dir = root().join("apps/ios/KeyboardExtension/Lexicon");
+    let pack = root().join("packs/ml.neopack");
     Engine::open(&Paths {
         english: Some(dir.join("en.fst")),
-        malayalam: Some(dir.join("ml.fst")),
-        manglish: Some(dir.join("manglish.fst")),
-        next_words: Some(dir.join("next.fst")),
+        malayalam: Some(pack.join("ml.fst")),
+        manglish: Some(pack.join("manglish.fst")),
+        next_words: Some(pack.join("next.fst")),
         lm: None,
-        translit: model.then(|| root().join("apps/ios/KeyboardExtension/Models/translit.mlkbnn")),
+        translit: model.then(|| root().join("packs/ml.neopack/translit.mlkbnn")),
         user_dir: None,
     })
 }
@@ -45,8 +46,8 @@ fn breakdown() {
     let with = open(true);
     let without = open(false);
     let model =
-        Translit::open(&root().join("apps/ios/KeyboardExtension/Models/translit.mlkbnn")).unwrap();
-    let ml = Lexicon::open(&root().join("apps/ios/KeyboardExtension/Lexicon/ml.fst")).unwrap();
+        Translit::open(&root().join("packs/ml.neopack/translit.mlkbnn")).unwrap();
+    let ml = Lexicon::open(&root().join("packs/ml.neopack/ml.fst")).unwrap();
     let en = Lexicon::open(&root().join("apps/ios/KeyboardExtension/Lexicon/en.fst")).unwrap();
     for word in [
         "preferenc",

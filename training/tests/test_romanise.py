@@ -8,7 +8,7 @@ from mlkb.data.romanise import canonical, variants
 from mlkb.eval.translit import load
 
 REPO = Path(__file__).resolve().parents[2]
-LEXICON = REPO / "apps/ios/KeyboardExtension/Lexicon/ml.fst"
+LEXICON = REPO / "packs/ml.neopack/ml.fst"
 GOLDEN = REPO / "data/eval/chat-golden.tsv"
 
 

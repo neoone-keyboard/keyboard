@@ -409,7 +409,7 @@ fn nn_latency() {
     report("random full-size model", &t);
 
     let trained = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../apps/ios/KeyboardExtension/Models/translit.mlkbnn");
+        .join("../../packs/ml.neopack/translit.mlkbnn");
     if trained.exists() {
         let t = Transformer::new(&ModelFile::open(&trained).unwrap()).unwrap();
         report("the bundled translit.mlkbnn", &t);

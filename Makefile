@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
+.PHONY: pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
 
 all: build
 
@@ -41,6 +41,7 @@ test-engine:
 	./scripts/shipped-crates.sh --check
 
 test-data:
+	python3 -I scripts/pack.py packs/ml.neopack --check
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
@@ -52,8 +53,8 @@ test-training:
 # with the bundled transliterator and the bundled LM (when present). Fails on a regression
 # past the recorded baseline. Needs only committed files (the lexicons, the models and the eval
 # sets), not the training data.
-TRANSLIT_MODEL := apps/ios/KeyboardExtension/Models/translit.mlkbnn
-LM_MODEL := apps/ios/KeyboardExtension/Models/lm.mlkbnn
+TRANSLIT_MODEL := packs/ml.neopack/translit.mlkbnn
+LM_MODEL := packs/ml.neopack/lm.mlkbnn
 eval:
 	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
 	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
@@ -61,6 +62,10 @@ eval:
 # Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json.
 eval-swipe:
 	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture
+
+# The Malayalam pack as a .neopack file (a zip of packs/ml.neopack), for import or download.
+pack:
+	python3 -I scripts/pack.py packs/ml.neopack --zip build/packs/ml.neopack
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
@@ -94,6 +99,7 @@ models:
 	  --checkpoint build/translit.pt --out build/translit.mlkbnn --reference build/translit-reference.json
 	mkdir -p $(dir $(TRANSLIT_MODEL))
 	cp training/build/translit.mlkbnn $(TRANSLIT_MODEL)
+	python3 -I scripts/pack.py packs/ml.neopack --write
 	@if [ ! -f training/build/lm.pt ]; then \
 	  cd training && uv run --group train python -m mlkb.lm.train --shards build/lm/shards \
 	    --vocab build/lm/pieces.tsv --out build/lm.pt; \
@@ -104,6 +110,7 @@ models:
 	cd training && uv run --group train python -m mlkb.lm.memorise --model build/lm.mlkbnn \
 	  --shards build/lm/shards --out $(CURDIR)/data/eval/memorisation.json
 	cp training/build/lm.mlkbnn $(LM_MODEL)
+	python3 -I scripts/pack.py packs/ml.neopack --write
 
 # Suggestion latency on the real bundle, release build: p99 must stay under 8 ms. Then the
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model and the

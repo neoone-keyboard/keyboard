@@ -2,13 +2,14 @@
 //! `make lexicons` rebuilds it. Set MLENGINE_BUNDLE to test another directory.
 //!
 //! The transliterator rows use the model the keyboard bundles,
-//! `apps/ios/KeyboardExtension/Models/translit.mlkbnn` (`make models`).
+//! `packs/ml.neopack/translit.mlkbnn` (`make models`).
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::nn::{Deadline, Translit, Transliteration};
+use mlengine_core::pack::Pack;
 use mlengine_core::{Engine, Kind, Layout, Paths, Timing, rank, suffix};
 
 fn bundle_dir() -> PathBuf {
@@ -28,6 +29,15 @@ fn open_engine(translit: Option<PathBuf>) -> Engine {
     Engine::open(&bundle_paths(translit, None))
 }
 
+/// The Malayalam pack (MLENGINE_PACK to test another build of it).
+fn pack_dir() -> PathBuf {
+    std::env::var_os("MLENGINE_PACK")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack"))
+}
+
+/// English from the bundle, Malayalam through the pack's manifest (as the keyboard opens it),
+/// with the given models in place of the pack's.
 fn bundle_paths(translit: Option<PathBuf>, lm: Option<PathBuf>) -> Paths {
     let dir = bundle_dir();
     assert!(
@@ -35,14 +45,11 @@ fn bundle_paths(translit: Option<PathBuf>, lm: Option<PathBuf>) -> Paths {
         "no lexicon bundle in {}: run `make lexicons`",
         dir.display()
     );
+    let pack = Pack::open(&pack_dir()).expect("the Malayalam pack");
     Paths {
-        english: Some(dir.join("en.fst")),
-        malayalam: Some(dir.join("ml.fst")),
-        manglish: Some(dir.join("manglish.fst")),
-        next_words: Some(dir.join("next.fst")),
         translit,
         lm,
-        user_dir: None,
+        ..Paths::with_pack(Some(dir.join("en.fst")), &pack, None)
     }
 }
 
@@ -53,7 +60,7 @@ fn lm_path() -> Option<PathBuf> {
         .map(PathBuf::from)
         .into_iter()
         .chain([
-            root.join("apps/ios/KeyboardExtension/Models/lm.mlkbnn"),
+            root.join("packs/ml.neopack/lm.mlkbnn"),
             root.join("training/build/lm.mlkbnn"),
         ])
         .find(|p| p.exists());
@@ -74,7 +81,7 @@ fn model_path() -> Option<PathBuf> {
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../apps/ios/KeyboardExtension/Models/translit.mlkbnn")
+                .join("../../packs/ml.neopack/translit.mlkbnn")
         });
     if path.exists() {
         Some(path)
@@ -959,7 +966,8 @@ fn trained_translit() -> Option<Translit> {
 }
 
 fn bundle_lexicon(name: &str) -> Lexicon {
-    Lexicon::open(&bundle_dir().join(name)).unwrap()
+    let path = bundle_dir().join(name);
+    Lexicon::open(&if path.exists() { path } else { pack_dir().join(name) }).unwrap()
 }
 
 /// The constrained beam's spellings of `typed`, with its suffix splits allowed.

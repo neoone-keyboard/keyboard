@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Rebuilds the lexicon bundle in apps/ios/KeyboardExtension/Lexicon/ from the
+# Rebuilds en.fst in apps/ios/KeyboardExtension/Lexicon/ and ml.fst, manglish.fst and
+# next.fst in the Malayalam pack (packs/ml.neopack/), then the pack's checksums, from the
 # sources in data/manifests/: fetch, extract plain text, run lexbuild.
 # Extracted text is cached in data/raw/text/; delete it to re-extract.
 set -euo pipefail
@@ -10,6 +11,7 @@ RAW="$ROOT/data/raw"
 TEXT="$RAW/text"
 PIPELINE="$ROOT/data/pipeline"
 OUT="$ROOT/apps/ios/KeyboardExtension/Lexicon"
+PACK="$ROOT/packs/ml.neopack"
 ENGLISH_WORDS=500000000
 
 py() { uv run --quiet --project "$PIPELINE" python -I "$@"; }
@@ -45,8 +47,9 @@ rm -rf "$RAW/bundle"
   --english-list "$ROOT/data/indian-english.txt" \
   --out "$RAW/bundle"
 
-mkdir -p "$OUT"
-rm -f "$OUT"/*.fst
-mv "$RAW"/bundle/*.fst "$OUT/"
+mkdir -p "$OUT" "$PACK"
+mv "$RAW/bundle/en.fst" "$OUT/"
+mv "$RAW/bundle/ml.fst" "$RAW/bundle/manglish.fst" "$RAW/bundle/next.fst" "$PACK/"
 mv "$RAW/bundle/stats.txt" "$ROOT/data/lexicon-stats.txt"
-echo "Lexicons written to $OUT; stats in data/lexicon-stats.txt"
+python3 -I "$ROOT/scripts/pack.py" "$PACK" --write
+echo "Lexicons written to $OUT and $PACK; stats in data/lexicon-stats.txt"

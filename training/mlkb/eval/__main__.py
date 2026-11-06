@@ -28,6 +28,7 @@ from mlkb.eval import english, nextword, translit
 
 ROOT = Path(__file__).resolve().parents[3]
 LEX = ROOT / "apps/ios/KeyboardExtension/Lexicon"
+PACK = LEX.parents[3] / "packs/ml.neopack"
 EVAL = ROOT / "data/eval"
 BASELINES = EVAL / "baselines.json"
 # The new metrics with the LM off, recorded before any model existed; never re-recorded.
@@ -55,9 +56,9 @@ def load_engine(translit_model: str | None, lm_model: str | None = None):
     """The engine on the committed bundle, plus the transliterator and the LM when given."""
     return mlengine.Engine(
         english=str(LEX / "en.fst"),
-        malayalam=str(LEX / "ml.fst"),
-        manglish=str(LEX / "manglish.fst"),
-        next_words=str(LEX / "next.fst"),
+        malayalam=str(PACK / "ml.fst"),
+        manglish=str(PACK / "manglish.fst"),
+        next_words=str(PACK / "next.fst"),
         translit=translit_model,
         lm=lm_model,
     )
