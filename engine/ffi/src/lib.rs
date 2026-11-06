@@ -135,6 +135,11 @@ impl From<&EngineConfig> for mlengine_core::Paths {
             english: path(&c.english),
             malayalam: path(&c.malayalam),
             manglish: path(&c.manglish),
+            // Without a pack, the romanisation tables sit beside the romanised lexicon, as
+            // they do in packs/ml.neopack.
+            romanisation: path(&c.manglish)
+                .map(|m| m.with_file_name("romanisation.json"))
+                .filter(|p| p.exists()),
             next_words: path(&c.next_words),
             translit: path(&c.translit),
             lm: path(&c.lm),

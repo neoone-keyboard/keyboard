@@ -11,6 +11,7 @@ def engine():
         english=str(LEX / "en.fst"),
         malayalam=str(PACK / "ml.fst"),
         manglish=str(PACK / "manglish.fst"),
+        romanisation=str(PACK / "romanisation.json"),
         next_words=str(PACK / "next.fst"),
     )
 

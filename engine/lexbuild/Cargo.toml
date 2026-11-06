@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+fst = "0.4"
 clap = { version = "4", features = ["derive"] }
 mlengine-core = { path = "../core" }
 serde = { version = "1", features = ["derive"] }

@@ -45,6 +45,7 @@ rm -rf "$RAW/bundle"
 "$ROOT/engine/target/release/lexbuild" \
   --english "$TEXT/en.txt" --malayalam "$TEXT/ml.txt" --scowl "$TEXT/scowl.txt" "${smc[@]}" \
   --english-list "$ROOT/data/indian-english.txt" \
+  --romanisation "$PACK/romanisation.json" \
   --out "$RAW/bundle"
 
 mkdir -p "$OUT" "$PACK"

@@ -71,11 +71,18 @@ mod tests {
     fn malayalam_rules_match_the_old_functions() {
         let ml = rules("mlym").unwrap();
         for ctx in ["ക", "ന്റ", "കി", "ക്", "അവൻ", "abc", ""] {
-            assert_eq!(ml.mark_base(ctx), crate::malayalam::vowel_sign_base(ctx), "{ctx:?}");
+            assert_eq!(
+                ml.mark_base(ctx),
+                crate::malayalam::vowel_sign_base(ctx),
+                "{ctx:?}"
+            );
         }
         for w in ["ഇന്ന്", "അതു", "വേണം", "ആവിശ്യം"] {
             assert_eq!(ml.other_final_u(w), crate::malayalam::other_final_u(w));
-            assert_eq!(ml.vowel_sign_drops(w), crate::malayalam::vowel_sign_drops(w));
+            assert_eq!(
+                ml.vowel_sign_drops(w),
+                crate::malayalam::vowel_sign_drops(w)
+            );
             assert_eq!(ml.normalize(w), crate::normalize::normalize(w));
         }
     }

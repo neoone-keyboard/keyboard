@@ -42,6 +42,7 @@ test-engine:
 
 test-data:
 	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
+	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the

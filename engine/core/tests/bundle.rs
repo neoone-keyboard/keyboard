@@ -970,6 +970,11 @@ fn bundle_lexicon(name: &str) -> Lexicon {
     Lexicon::open(&if path.exists() { path } else { pack_dir().join(name) }).unwrap()
 }
 
+/// Malayalam's romanisation tables, from the pack.
+fn tables() -> mlengine_core::romanisation::Romanisation {
+    mlengine_core::romanisation::Romanisation::load(&pack_dir().join("romanisation.json")).unwrap()
+}
+
 /// The constrained beam's spellings of `typed`, with its suffix splits allowed.
 fn transliterations(
     t: &Translit,
@@ -977,7 +982,7 @@ fn transliterations(
     manglish: &Lexicon,
     typed: &str,
 ) -> Vec<Transliteration> {
-    let splits: Vec<String> = suffix::splits(manglish, typed, rank::MANGLISH_SPLIT_STEM_MIN)
+    let splits: Vec<String> = suffix::splits(&tables(), manglish, typed, rank::MANGLISH_SPLIT_STEM_MIN)
         .into_iter()
         .map(|s| s.word)
         .collect();

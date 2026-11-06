@@ -10,7 +10,7 @@
 
 use crate::lexicon::Lexicon;
 use crate::manglish;
-use crate::romanize::skeleton;
+use crate::romanisation::Romanisation;
 
 /// Shorter typed words are not split: too many read as some stem plus -o.
 pub const MIN_LETTERS: usize = 5;
@@ -252,8 +252,8 @@ fn endings<'a>(
 
 /// Malayalam readings of `typed` as a stem plus one or two suffixes, for
 /// stems at least `min_log_prob` likely. Unordered; may repeat a word.
-pub fn splits(lexicon: &Lexicon, typed: &str, min_log_prob: f32) -> Vec<Split> {
-    splits_with(typed, |key| {
+pub fn splits(r: &Romanisation, lexicon: &Lexicon, typed: &str, min_log_prob: f32) -> Vec<Split> {
+    splits_with(r, typed, |key| {
         let mut stems: Vec<(String, f32)> = manglish::same_skeleton(lexicon, key)
             .into_iter()
             .map(|(word, count)| (word, lexicon.log_prob(count)))
@@ -293,7 +293,7 @@ fn cuts(latin: &str) -> Vec<Cut<'static>> {
 
 /// `splits`, with the stems of a skeleton found by `lookup` (called at most
 /// `MAX_LOOKUPS` times).
-fn splits_with(typed: &str, mut lookup: impl FnMut(&str) -> Vec<(String, f32)>) -> Vec<Split> {
+fn splits_with(r: &Romanisation, typed: &str, mut lookup: impl FnMut(&str) -> Vec<(String, f32)>) -> Vec<Split> {
     let latin: String = typed
         .chars()
         .filter(char::is_ascii_alphabetic)
@@ -306,7 +306,7 @@ fn splits_with(typed: &str, mut lookup: impl FnMut(&str) -> Vec<(String, f32)>) 
     let mut looked_up: Vec<(String, Vec<(String, f32)>)> = Vec::new();
     let mut out = Vec::new();
     for cut in &cuts {
-        let key = skeleton(&cut.stem);
+        let key = r.skeleton(&cut.stem);
         let i = match looked_up.iter().position(|(k, _)| *k == key) {
             Some(i) => i,
             None if looked_up.len() < MAX_LOOKUPS => {
@@ -336,6 +336,7 @@ fn splits_with(typed: &str, mut lookup: impl FnMut(&str) -> Vec<(String, f32)>) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::romanisation::ml;
     use crate::lexicon::build;
 
     #[test]
@@ -407,11 +408,11 @@ mod tests {
 
     fn lexicon(words: &[(&str, u64)]) -> Lexicon {
         let vocab: Vec<(String, u64)> = words.iter().map(|(w, c)| (w.to_string(), *c)).collect();
-        Lexicon::from_bytes(build(manglish::entries(&vocab)).unwrap()).unwrap()
+        Lexicon::from_bytes(build(manglish::entries(ml(), &vocab)).unwrap()).unwrap()
     }
 
     fn words(lex: &Lexicon, typed: &str) -> Vec<String> {
-        splits(lex, typed, f32::NEG_INFINITY)
+        splits(ml(), lex, typed, f32::NEG_INFINITY)
             .into_iter()
             .map(|s| s.word)
             .collect()
@@ -437,7 +438,7 @@ mod tests {
             words(&lex, "marathil").contains(&"മരത്തിൽ".to_string()),
             "oblique"
         );
-        let two = splits(&lex, "varunnundo", f32::NEG_INFINITY);
+        let two = splits(ml(), &lex, "varunnundo", f32::NEG_INFINITY);
         assert!(two.iter().any(|s| s.suffixes == 2), "{two:?}");
     }
 
@@ -453,19 +454,19 @@ mod tests {
     #[test]
     fn rare_stems_are_left_out() {
         let lex = lexicon(&[("വന്നു", 1), ("ഇഷ്ടം", 1_000_000)]);
-        assert!(splits(&lex, "vanno", lex.log_prob(1) + 0.1).is_empty());
+        assert!(splits(ml(), &lex, "vanno", lex.log_prob(1) + 0.1).is_empty());
     }
 
     #[test]
     fn lookups_are_bounded() {
         // Many suffix spellings end this word; only a few stems are looked up.
         let typed = "marathilundoo";
-        let mut skeletons: Vec<String> = cuts(typed).iter().map(|c| skeleton(&c.stem)).collect();
+        let mut skeletons: Vec<String> = cuts(typed).iter().map(|c| ml().skeleton(&c.stem)).collect();
         skeletons.sort();
         skeletons.dedup();
         assert!(skeletons.len() > MAX_LOOKUPS, "{skeletons:?}");
         let mut calls = 0;
-        let _ = splits_with(typed, |_| {
+        let _ = splits_with(ml(), typed, |_| {
             calls += 1;
             Vec::new()
         });

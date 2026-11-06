@@ -9,7 +9,7 @@
 //! precomputed top keys of a large subtree, or scans a small one whole.
 
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
-use crate::romanize::{romanize, skeleton};
+use crate::romanisation::Romanisation;
 
 /// Candidates kept before the finer (slower) re-ranking by edit distance.
 const SHORTLIST: usize = 16;
@@ -44,8 +44,8 @@ pub fn unpack(bytes: &[u8]) -> Option<String> {
 }
 
 /// The `manglish.fst` key for a Malayalam word; None if it has no skeleton or can't be packed.
-pub fn key(word: &str) -> Option<Vec<u8>> {
-    let mut key = skeleton(&romanize(word)).into_bytes();
+pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
+    let mut key = r.word_skeleton(word).into_bytes();
     if key.is_empty() {
         return None;
     }
@@ -55,10 +55,10 @@ pub fn key(word: &str) -> Option<Vec<u8>> {
 }
 
 /// `manglish.fst` entries for a Malayalam vocabulary.
-pub fn entries(malayalam: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
+pub fn entries(r: &Romanisation, malayalam: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
     malayalam
         .iter()
-        .filter_map(|(word, count)| Some((key(word)?, *count)))
+        .filter_map(|(word, count)| Some((key(r, word)?, *count)))
         .collect()
 }
 
@@ -79,8 +79,8 @@ pub struct Match {
 
 /// Malayalam words matching a typed Latin word: those with exactly its
 /// skeleton first, then longer ones, each group by frequency.
-pub fn lookup(lexicon: &Lexicon, typed: &str) -> Vec<Match> {
-    let typed_skeleton = skeleton(typed);
+pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
+    let typed_skeleton = r.skeleton(typed);
     if typed_skeleton.is_empty() {
         return Vec::new();
     }
@@ -123,7 +123,7 @@ pub fn lookup(lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     shortlist
         .into_iter()
         .map(|(_, mut m)| {
-            (m.spelled, m.distance) = fit(typed, &m.word, m.missing > 0);
+            (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0);
             m
         })
         .collect()
@@ -147,13 +147,13 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str) -> Vec<(String, u64)> {
 /// How closely the typed letters match a Malayalam word: whether they spell
 /// it out (`Match::spelled`), and otherwise the edit distance to its
 /// romanisation (`Match::distance`), to its closest prefix when `prefix` is set.
-pub fn fit(typed: &str, word: &str, prefix: bool) -> (bool, usize) {
+pub fn fit(r: &Romanisation, typed: &str, word: &str, prefix: bool) -> (bool, usize) {
     let typed_lower: Vec<u8> = typed
         .bytes()
         .filter(u8::is_ascii_alphabetic)
         .map(|b| b.to_ascii_lowercase())
         .collect();
-    let roman = romanize(word);
+    let roman = r.romanize(word);
     if !prefix && relaxed(&typed_lower) == relaxed(roman.as_bytes()) {
         (true, 0)
     } else {
@@ -219,17 +219,18 @@ fn prefix_distance(typed: &[u8], target: &[u8], prefix: bool) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::romanisation::ml;
     use crate::lexicon::build;
 
     fn lexicon(words: &[(&str, u64)]) -> Lexicon {
         let vocab: Vec<(String, u64)> = words.iter().map(|(w, c)| (w.to_string(), *c)).collect();
-        Lexicon::from_bytes(build(entries(&vocab)).unwrap()).unwrap()
+        Lexicon::from_bytes(build(entries(ml(), &vocab)).unwrap()).unwrap()
     }
 
     #[test]
     fn keys_are_skeleton_then_packed_word() {
-        assert_eq!(key("എന്റെ"), Some(b"ent\0\x8E\xA8\xCD\xB1\xC6".to_vec()));
-        assert_eq!(key("\u{0D4D}"), None, "a lone virama has no skeleton");
+        assert_eq!(key(ml(), "എന്റെ"), Some(b"ent\0\x8E\xA8\xCD\xB1\xC6".to_vec()));
+        assert_eq!(key(ml(), "\u{0D4D}"), None, "a lone virama has no skeleton");
     }
 
     #[test]
@@ -244,7 +245,7 @@ mod tests {
     #[test]
     fn finds_words_by_skeleton() {
         let lex = lexicon(&[("എന്റെ", 100), ("എന്ത്", 80), ("അവൻ", 50)]);
-        let found = lookup(&lex, "ende");
+        let found = lookup(ml(), &lex, "ende");
         let words: Vec<&str> = found.iter().map(|m| m.word.as_str()).collect();
         assert_eq!(words, ["എന്റെ", "എന്ത്"]);
         assert_eq!(found[0].missing, 0);
@@ -256,7 +257,7 @@ mod tests {
     #[test]
     fn finds_longer_words_from_a_prefix() {
         let lex = lexicon(&[("മലയാളം", 100)]);
-        let found = lookup(&lex, "malay");
+        let found = lookup(ml(), &lex, "malay");
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].word, "മലയാളം");
         assert!(found[0].missing > 0);
@@ -278,8 +279,8 @@ mod tests {
             })
             .collect();
         words.push(("എന്റെ".to_string(), 1));
-        let lex = Lexicon::from_bytes(build(entries(&words)).unwrap()).unwrap();
-        let found = lookup(&lex, "ente");
+        let lex = Lexicon::from_bytes(build(entries(ml(), &words)).unwrap()).unwrap();
+        let found = lookup(ml(), &lex, "ente");
         assert!(
             found.iter().any(|m| m.word == "എന്റെ" && m.missing == 0),
             "{found:?}"
@@ -289,14 +290,14 @@ mod tests {
     #[test]
     fn nothing_for_empty_skeletons() {
         let lex = lexicon(&[("എന്റെ", 100)]);
-        assert!(lookup(&lex, "").is_empty());
-        assert!(lookup(&lex, "123").is_empty());
+        assert!(lookup(ml(), &lex, "").is_empty());
+        assert!(lookup(ml(), &lex, "123").is_empty());
     }
 
     #[test]
     fn spelled_out_words_ignore_vowel_length() {
         let lex = lexicon(&[("നാളെ", 10), ("നാല്", 100)]);
-        let found = lookup(&lex, "nale");
+        let found = lookup(ml(), &lex, "nale");
         let naale = found.iter().find(|m| m.word == "നാളെ").unwrap();
         assert!(naale.spelled && naale.distance == 0, "{naale:?}");
         let naalu = found.iter().find(|m| m.word == "നാല്").unwrap();

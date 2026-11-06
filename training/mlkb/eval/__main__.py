@@ -58,6 +58,7 @@ def load_engine(translit_model: str | None, lm_model: str | None = None):
         english=str(LEX / "en.fst"),
         malayalam=str(PACK / "ml.fst"),
         manglish=str(PACK / "manglish.fst"),
+        romanisation=str(PACK / "romanisation.json"),
         next_words=str(PACK / "next.fst"),
         translit=translit_model,
         lm=lm_model,

@@ -397,6 +397,7 @@ name = "lexbuild"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "fst",
  "mlengine-core",
  "serde",
  "serde_json",

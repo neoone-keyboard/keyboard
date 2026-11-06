@@ -16,6 +16,7 @@ use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
 use crate::personal::{FOLLOWERS_PER_CONTEXT, Habit};
 use crate::rank::{self, apply_case, capitalize};
+use crate::romanisation::Romanisation;
 use crate::suffix;
 use crate::swipe;
 use crate::text::{self, Script};
@@ -83,6 +84,9 @@ pub struct Sources {
     pub english: Option<Lexicon>,
     pub malayalam: Option<Lexicon>,
     pub manglish: Option<Lexicon>,
+    /// The pack's `romanisation.json`: the walk and skeleton `manglish` is keyed by. Without
+    /// it there is no romanised typing, so `open` leaves out `manglish` and `translit` too.
+    pub romanisation: Option<Romanisation>,
     pub next_words: Option<Lexicon>,
     /// The neural transliterator (`nn::Translit`). Without it, Manglish ranking is M2's:
     /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
@@ -129,6 +133,8 @@ pub struct Paths {
     pub english: Option<PathBuf>,
     pub malayalam: Option<PathBuf>,
     pub manglish: Option<PathBuf>,
+    /// The pack's `romanisation.json`.
+    pub romanisation: Option<PathBuf>,
     pub next_words: Option<PathBuf>,
     /// The transliterator model (`.mlkbnn`).
     pub translit: Option<PathBuf>,
@@ -147,15 +153,19 @@ impl Sources {
             .as_deref()
             .and_then(|p| Lm::open(p).ok())
             .filter(|lm| Self::lm_fits(lm, english.as_ref(), malayalam.as_ref()));
+        let romanisation = paths.romanisation.as_deref().and_then(|p| Romanisation::load(p).ok());
+        let romanised = romanisation.is_some();
         Self {
             english,
             malayalam,
-            manglish: open(&paths.manglish),
+            manglish: open(&paths.manglish).filter(|_| romanised),
+            romanisation,
             next_words: open(&paths.next_words),
             translit: paths
                 .translit
                 .as_deref()
-                .and_then(|p| Translit::open(p).ok()),
+                .and_then(|p| Translit::open(p).ok())
+                .filter(|_| romanised),
             lm,
         }
     }
@@ -1411,7 +1421,7 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
         let mut found = ManglishCandidates::default();
-        let Some(lex) = &self.sources.manglish else {
+        let (Some(lex), Some(r)) = (&self.sources.manglish, &self.sources.romanisation) else {
             return found;
         };
         // One letter matches half the lexicon; an apostrophe is English.
@@ -1425,7 +1435,7 @@ impl Engine {
                 -rank::MANGLISH_MISSING_PER_CHAR * missing as f32
             }
         };
-        for m in manglish::lookup(lex, typed_n) {
+        for m in manglish::lookup(r, lex, typed_n) {
             // Without the fit bonus: it ranks a word against English, but
             // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
             let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
@@ -1586,11 +1596,14 @@ impl Engine {
 
     /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
     fn scored_splits(&self, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
+        let Some(r) = &self.sources.romanisation else {
+            return Vec::new();
+        };
         let mut splits: Vec<ScoredSplit> =
-            suffix::splits(lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
+            suffix::splits(r, lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
                 .into_iter()
                 .map(|split| {
-                    let (spelled, distance) = manglish::fit(typed_n, &split.word, false);
+                    let (spelled, distance) = manglish::fit(r, typed_n, &split.word, false);
                     let log_prob =
                         split.log_prob - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32;
                     ScoredSplit {
@@ -1666,7 +1679,9 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
     ) -> Option<String> {
-        let (Some(model), Some(ml)) = (&self.sources.translit, &self.sources.malayalam) else {
+        let (Some(model), Some(ml), Some(r)) =
+            (&self.sources.translit, &self.sources.malayalam, &self.sources.romanisation)
+        else {
             return None;
         };
         let split_words: Vec<String> = splits.iter().map(|s| s.word.clone()).collect();
@@ -1694,7 +1709,7 @@ impl Engine {
                     None => continue,
                 },
             };
-            let (spelled, distance) = manglish::fit(typed_n, &t.text, false);
+            let (spelled, distance) = manglish::fit(r, typed_n, &t.text, false);
             let distance_penalty = if keeps_distance {
                 rank::MANGLISH_DISTANCE * distance as f32
             } else {
@@ -2340,6 +2355,7 @@ mod tests {
                 ("കീ", 1),
             ]),
             manglish: None,
+            romanisation: None,
             translit: None,
             lm: None,
             next_words: lex(&[
@@ -2478,8 +2494,9 @@ mod tests {
             ]),
             malayalam: lex(&words),
             manglish: Some(
-                Lexicon::from_bytes(build(manglish::entries(&malayalam)).unwrap()).unwrap(),
+                Lexicon::from_bytes(build(manglish::entries(crate::romanisation::ml(), &malayalam)).unwrap()).unwrap(),
             ),
+            romanisation: Some(crate::romanisation::load_ml()),
             ..Sources::default()
         };
         Engine::new(sources, UserStore::in_memory())

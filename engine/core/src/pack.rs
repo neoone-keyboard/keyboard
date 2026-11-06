@@ -135,6 +135,7 @@ impl Paths {
             english,
             malayalam: pack.file("lexicon"),
             manglish: pack.file("romanisedLexicon"),
+            romanisation: pack.file("romanisation"),
             next_words: pack.file("nextWords"),
             translit: pack.file("translit"),
             lm: pack.file("lm"),

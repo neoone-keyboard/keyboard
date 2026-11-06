@@ -22,7 +22,7 @@ struct Engine(Core);
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None))]
+    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None))]
     fn new(
         english: Option<PathBuf>,
         malayalam: Option<PathBuf>,
@@ -30,11 +30,13 @@ impl Engine {
         next_words: Option<PathBuf>,
         translit: Option<PathBuf>,
         lm: Option<PathBuf>,
+        romanisation: Option<PathBuf>,
     ) -> Self {
         Engine(Core::open(&Paths {
             english,
             malayalam,
             manglish,
+            romanisation,
             next_words,
             translit,
             lm,

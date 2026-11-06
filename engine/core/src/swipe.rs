@@ -191,7 +191,7 @@ fn step_for(b: u8) -> Step {
     }
 }
 
-/// The keys a Manglish skeleton letter may be drawn through (`romanize::skeleton` folds them):
+/// The keys a Manglish skeleton letter may be drawn through (the pack's skeleton folds them):
 /// `k` is also `c`, `q` and the `g` of `gh`; `t` is `d`; `p` is `f`; `v` is `w`; `i` is the
 /// `e` of `ee`; `u` is the `o` of `oo`.
 fn skeleton_keys(letter: u8) -> &'static [u8] {

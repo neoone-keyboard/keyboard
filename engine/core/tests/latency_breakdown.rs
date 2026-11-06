@@ -20,6 +20,7 @@ fn open(model: bool) -> Engine {
         english: Some(dir.join("en.fst")),
         malayalam: Some(pack.join("ml.fst")),
         manglish: Some(pack.join("manglish.fst")),
+        romanisation: Some(pack.join("romanisation.json")),
         next_words: Some(pack.join("next.fst")),
         lm: None,
         translit: model.then(|| root().join("packs/ml.neopack/translit.mlkbnn")),

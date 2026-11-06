@@ -119,10 +119,18 @@ class Romanisation:
             for ch in sym:
                 if not (self.skel["collapseDoubles"] and out and out[-1] == ch):
                     out.append(ch)
+        # A vowel people write or leave out between consonants (samajhana, samjhna): all at once.
+        between = self.skel.get("dropBetweenConsonants", "")
+        if between and len(out) >= 3:
+            out = [
+                ch
+                for k, ch in enumerate(out)
+                if not (ch in between and 0 < k < len(out) - 1 and out[k - 1] not in VOWELS and out[k + 1] not in VOWELS)
+            ]
         final = self.skel["dropFinalVowel"]
-        # The result (without the vowel) must be at least `minLength` long.
+        # `minLength` is the length before the vowel is dropped (ente -> ent with 3).
         if (
-            len(out) - 1 >= final["minLength"]
+            len(out) >= max(final["minLength"], 2)
             and out[-1] in final["vowels"]
             and (not final["afterConsonant"] or out[-2] not in VOWELS)
         ):

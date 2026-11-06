@@ -29,6 +29,12 @@ fn lexicon(entries: Vec<(Vec<u8>, u64)>) -> Option<Lexicon> {
     Some(Lexicon::from_bytes(build(entries).unwrap()).unwrap())
 }
 
+/// Malayalam's romanisation tables, from the pack.
+fn tables() -> mlengine_core::romanisation::Romanisation {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    mlengine_core::romanisation::Romanisation::load(&root.join("packs/ml.neopack/romanisation.json")).unwrap()
+}
+
 fn engine() -> Engine {
     let en = ENGLISH
         .iter()
@@ -42,7 +48,8 @@ fn engine() -> Engine {
                 .map(|(w, c)| (w.as_bytes().to_vec(), *c))
                 .collect(),
         ),
-        manglish: lexicon(manglish::entries(&ml)),
+        manglish: lexicon(manglish::entries(&tables(), &ml)),
+        romanisation: Some(tables()),
         next_words: None,
         translit: None,
         lm: None,

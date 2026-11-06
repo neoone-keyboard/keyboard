@@ -13,6 +13,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use lexbuild::romanisation::Table;
+use mlengine_core::romanisation::Romanisation;
 use lexbuild::{
     Config, NextWords, count_native_words, count_words, english_vocab, malayalam_vocab,
     native_phrase_break, native_vocab, native_words, read_hand_list, read_lexicon, read_word_list,
@@ -196,7 +197,13 @@ fn run(args: Args) -> io::Result<()> {
     }
     next.extend(pairs.entries(config.next_per_word));
 
-    let stats = write_bundle(&args.out, &english, &malayalam, &next)?;
+    let Some(romanisation) = &args.romanisation else {
+        return Err(io::Error::other(
+            "--romanisation is required: Malayalam's manglish.fst is keyed by packs/ml.neopack/romanisation.json",
+        ));
+    };
+    let tables = Romanisation::load(romanisation).map_err(io::Error::other)?;
+    let stats = write_bundle(&args.out, &tables, &english, &malayalam, &next)?;
     print!("{}", stats.report);
     Ok(())
 }

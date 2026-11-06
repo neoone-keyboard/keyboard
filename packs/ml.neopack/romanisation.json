@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "script": "mlym",
+  "virama": "്",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "u",
+    "inherent": "a"
+  },
+  "independentVowels": {
+    "അ": "a", "ആ": "aa", "ഇ": "i", "ഈ": "ee", "ഉ": "u", "ഊ": "oo", "ഋ": "ru",
+    "എ": "e", "ഏ": "e", "ഐ": "ai", "ഒ": "o", "ഓ": "o", "ഔ": "au"
+  },
+  "vowelSigns": {
+    "ാ": "aa", "ി": "i", "ീ": "ee", "ു": "u", "ൂ": "oo", "ൃ": "ru",
+    "െ": "e", "േ": "e", "ൈ": "ai", "ൊ": "o", "ോ": "o", "ൌ": "au", "ൗ": "au"
+  },
+  "consonants": {
+    "ക": "k", "ഖ": "kh", "ഗ": "g", "ഘ": "gh", "ങ": "ng",
+    "ച": "ch", "ഛ": "chh", "ജ": "j", "ഝ": "jh", "ഞ": "nj",
+    "ട": "t", "ഠ": "th", "ഡ": "d", "ഢ": "dh", "ണ": "n",
+    "ത": "th", "ഥ": "th", "ദ": "d", "ധ": "dh", "ന": "n",
+    "പ": "p", "ഫ": "ph", "ബ": "b", "ഭ": "bh", "മ": "m",
+    "യ": "y", "ര": "r", "റ": "r", "ല": "l", "ള": "l", "ഴ": "zh", "വ": "v",
+    "ശ": "sh", "ഷ": "sh", "സ": "s", "ഹ": "h", "ഺ": "t"
+  },
+  "finals": {
+    "ൺ": "n", "ൻ": "n", "ർ": "r", "ൽ": "l", "ൾ": "l", "ൿ": "k", "ം": "m", "ഃ": "h"
+  },
+  "clusters": {
+    "ന്റ": "nt", "റ്റ": "tt", "ങ്ങ": "ng", "ഞ്ഞ": "nj", "ക്ഷ": "ksh"
+  },
+  "skeleton": {
+    "dropTrailing": { "letters": "yh", "afterVowel": true, "minLength": 3 },
+    "pairs": [["chh", "c"], ["ch", "c"], ["kh", "k"], ["gh", "k"], ["jh", "j"],
+              ["th", "t"], ["dh", "t"], ["ph", "p"], ["bh", "b"], ["sh", "s"], ["zh", "z"],
+              ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"]],
+    "singles": { "c": "k", "q": "k", "d": "t", "f": "p", "w": "v", "x": "ks" },
+    "collapseDoubles": true,
+    "dropFinalVowel": { "vowels": "ue", "afterConsonant": true, "minLength": 3 }
+  },
+  "notes": "Malayalam to Manglish. Reproduces the engine's original romanize.rs exactly (checked over every word of ml.fst). gh folds to k, not g: people write ഖ as gh as often as kh (sugham, mugham), and ഖ is far commoner than ഘ. A final -a is never dropped: it tells words apart (എന്താ / എന്ത്, അമ്മ / അമ്മു)."
+}

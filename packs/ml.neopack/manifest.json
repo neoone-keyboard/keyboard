@@ -12,6 +12,7 @@
   "files": {
     "lexicon": "ml.fst",
     "romanisedLexicon": "manglish.fst",
+    "romanisation": "romanisation.json",
     "nextWords": "next.fst",
     "translit": "translit.mlkbnn",
     "lm": "lm.mlkbnn"
@@ -21,6 +22,7 @@
     "manglish.fst": "afb22b4e6e5a6df38a275cf991b17b50fe449ae3f3bb0c54cc988996bd304c2e",
     "ml.fst": "3afc897841f2cef2b3ec5e2025a2085ae26fb5537f1c83e7008f54b7e580b11c",
     "next.fst": "08e40c6240b21b19337c1cb8ef3b80ed6cb3713540b84f6cc83a28f01e821c5a",
+    "romanisation.json": "676ba29348d7bd59d8e70557d2459add199f3a4a6c626c90fe70152d370eef6b",
     "translit.mlkbnn": "fd545d98c7ffe507a25ea1c8ab24a63fcac98de00adf4a46bc55be93523ff6ed"
   },
   "credits": [

@@ -13,6 +13,7 @@ fn builds_a_bundle_the_engine_can_use() {
     let status = Command::new(env!("CARGO_BIN_EXE_lexbuild"))
         .args(["--english".as_ref(), fixtures.join("en.txt").as_os_str()])
         .args(["--malayalam".as_ref(), fixtures.join("ml.txt").as_os_str()])
+        .args(["--romanisation".as_ref(), fixtures.join("../../../../packs/ml.neopack/romanisation.json").as_os_str()])
         .args(["--scowl".as_ref(), fixtures.join("scowl.txt").as_os_str()])
         .args(["--smc".as_ref(), fixtures.join("smc.txt").as_os_str()])
         .args(["--out".as_ref(), out.path().as_os_str()])
@@ -27,6 +28,7 @@ fn builds_a_bundle_the_engine_can_use() {
         english: Some(out.path().join("en.fst")),
         malayalam: Some(out.path().join("ml.fst")),
         manglish: Some(out.path().join("manglish.fst")),
+        romanisation: Some(fixtures.join("../../../../packs/ml.neopack/romanisation.json")),
         next_words: Some(out.path().join("next.fst")),
         translit: None,
         lm: None,
@@ -65,6 +67,7 @@ fn builds_a_pack_language_from_its_config() {
     let status = Command::new(env!("CARGO_BIN_EXE_lexbuild"))
         .args(["--english".as_ref(), fixtures.join("en.txt").as_os_str()])
         .args(["--malayalam".as_ref(), fixtures.join("ml.txt").as_os_str()])
+        .args(["--romanisation".as_ref(), fixtures.join("../../../../packs/ml.neopack/romanisation.json").as_os_str()])
         .args(["--scowl".as_ref(), fixtures.join("scowl.txt").as_os_str()])
         .args(["--out".as_ref(), english.path().as_os_str()])
         .status()

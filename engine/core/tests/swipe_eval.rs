@@ -259,6 +259,7 @@ fn report(name: &str, key: &str, s: &mut Score, gate: bool) {
 #[test]
 #[ignore]
 fn swipe_eval() {
+    let tables = mlengine_core::romanisation::Romanisation::load(&root().join("packs/ml.neopack/romanisation.json")).unwrap();
     let engine = engine();
     // SWIPE_EVERY=n keeps every nth row, for quicker sweeps.
     let every: usize = std::env::var("SWIPE_EVERY").map_or(1, |v| v.parse().unwrap());
@@ -271,7 +272,7 @@ fn swipe_eval() {
     .unwrap();
     let known: Vec<Row> = manglish
         .iter()
-        .filter(|r| mlengine_core::manglish::key(&r.expected).is_some_and(|k| mg.get(&k).is_some()))
+        .filter(|r| mlengine_core::manglish::key(&tables, &r.expected).is_some_and(|k| mg.get(&k).is_some()))
         .map(|r| Row {
             before: r.before.clone(),
             drawn: r.drawn.clone(),
@@ -309,6 +310,7 @@ fn swipe_eval() {
 #[test]
 #[ignore]
 fn swipe_recall() {
+    let tables = mlengine_core::romanisation::Romanisation::load(&root().join("packs/ml.neopack/romanisation.json")).unwrap();
     use mlengine_core::swipe::{MAX_POINTS, STEP, decode, resample};
     let every: usize = std::env::var("SWIPE_EVERY").map_or(1, |v| v.parse().unwrap());
     let mg = mlengine_core::lexicon::Lexicon::open(
@@ -320,7 +322,7 @@ fn swipe_recall() {
     let mut rng = Rng(2);
     let (mut rows, mut found, mut first, mut top16) = (0, 0, 0, 0);
     for row in manglish_rows().into_iter().step_by(every) {
-        let Some(key) = mlengine_core::manglish::key(&row.expected) else {
+        let Some(key) = mlengine_core::manglish::key(&tables, &row.expected) else {
             continue;
         };
         if mg.get(&key).is_none() {

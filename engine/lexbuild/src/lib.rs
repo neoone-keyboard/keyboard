@@ -477,13 +477,14 @@ pub struct Stats {
 /// Writes `en.fst`, `ml.fst`, `manglish.fst` and `next.fst` into `out`, plus `stats.txt`.
 pub fn write_bundle(
     out: &Path,
+    tables: &mlengine_core::romanisation::Romanisation,
     english: &[(String, u64)],
     malayalam: &[(String, u64)],
     next: &[(Vec<u8>, u64)],
 ) -> io::Result<Stats> {
     fs::create_dir_all(out)?;
     let mut report = String::new();
-    let manglish = manglish::entries(malayalam);
+    let manglish = manglish::entries(tables, malayalam);
     let manglish_len = manglish.len();
     let files: [(&str, Entries, usize); 4] = [
         ("en.fst", to_entries(english), english.len()),
@@ -1019,7 +1020,11 @@ mod tests {
             let mut next = NextWords::new(&en, &config);
             next.add_corpus("the cat the dog the cat".as_bytes(), None)
                 .unwrap();
-            write_bundle(dir.path(), &en, &[], &next.entries(3)).unwrap();
+            let tables = mlengine_core::romanisation::Romanisation::load(
+                &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json"),
+            )
+            .unwrap();
+            write_bundle(dir.path(), &tables, &en, &[], &next.entries(3)).unwrap();
             ["en.fst", "ml.fst", "manglish.fst", "next.fst"]
                 .map(|n| fs::read(dir.path().join(n)).unwrap())
         };
