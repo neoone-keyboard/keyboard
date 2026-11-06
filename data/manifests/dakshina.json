@@ -1,6 +1,6 @@
 {
   "id": "dakshina",
-  "name": "Dakshina dataset v1.0 (Google Research), Malayalam",
+  "name": "Dakshina dataset v1.0 (Google Research), Malayalam and Hindi",
   "homepage": "https://github.com/google-research-datasets/dakshina",
   "licence": "CC BY-SA 4.0",
   "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
@@ -8,9 +8,9 @@
   "attribution": "Dakshina dataset by Google Research (Roark et al., 2020, LREC), CC BY-SA 4.0. Native-script text from Wikipedia; romanisations by Google's annotators.",
   "verdict": "use",
   "verdict_reason": "Share-alike, same position as Wikipedia (see the licence audit). Human romanisations are exactly what the rule probabilities need. Train split for training and for fitting the rule probabilities; dev and test splits held out for eval.",
-  "used_for": "ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv (native word, romanisation, annotator count), and for M3b the romanized/ rejoined dev and test sentences. Train: transliterator training pairs and the romaniser's rule calibration (training/mlkb/data/calibrate.py). Dev: validation during training. Test: data/eval/translit-human.tsv (2,000 pairs). Dev and test words are kept out of every training pair. The native_script_wikipedia text (a copy of mlwiki) isn't used. M3b: romanized/ rejoined dev sentences: data/eval/next-manglish*.tsv (eval only). Test sentences untouched. Both splits' sentences are removed from the M3b LM training text. The romaniser calibrated on the train split also writes the M3b synthetic Manglish LM text.",
-  "retrieved": "2026-11-03",
-  "notes": "The tar holds all 12 languages (2,008,340,480 bytes). After data/fetch.sh, extract only the Malayalam lexicons: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/lexicons/*'. The SHA-256 of each extracted file is under `extracted`. For M3b: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/romanized/*' (training/mlkb/lm/sources.py does this).",
+  "used_for": "ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv (native word, romanisation, annotator count), and for M3b the romanized/ rejoined dev and test sentences. Train: transliterator training pairs and the romaniser's rule calibration (training/mlkb/data/calibrate.py). Dev: validation during training. Test: data/eval/translit-human.tsv (2,000 pairs). Dev and test words are kept out of every training pair. The native_script_wikipedia text (a copy of mlwiki) isn't used. M3b: romanized/ rejoined dev sentences: data/eval/next-manglish*.tsv (eval only). Test sentences untouched. Both splits' sentences are removed from the M3b LM training text. The romaniser calibrated on the train split also writes the M3b synthetic Manglish LM text. Hindi pack (hi/): hi/lexicons/hi.translit.sampled.{train,dev,test}.tsv the same way (train: Hindi transliterator pairs and the check of the Hindi romanisation table, data/lang/hi/romanisation.json; dev: validation; test: data/eval/hi/translit-human.tsv). Dev and test words are kept out of every Hindi training pair. hi/romanized/ rejoined dev sentences: Hinglish eval only (data/eval/hi/next-hinglish.tsv); rejoined test sentences (native and roman): Hinglish and code-mixed LM training text.",
+  "retrieved": "2026-11-03 (ml); 2026-11-06 (hi)",
+  "notes": "The tar holds all 12 languages (2,008,340,480 bytes). After data/fetch.sh, extract only the Malayalam lexicons: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/lexicons/*'. The SHA-256 of each extracted file is under `extracted`. For M3b: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/ml/romanized/*' (training/mlkb/lm/sources.py does this). Hindi: tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina dakshina_dataset_v1.0/hi/lexicons dakshina_dataset_v1.0/hi/romanized.",
   "files": [
     {
       "url": "https://storage.googleapis.com/gresearch/dakshina/dakshina_dataset_v1.0.tar",
@@ -25,6 +25,13 @@
     "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.dev.native.txt": "f06ea4486b2072ceb65b2fa7e490d5d6094df75d19a2c938d42603c18b9ca3ef",
     "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.dev.roman.txt": "dfb56d39d4c83fcd80017eaaf9df2309b10d23a3dd81f045018f59e17ac0fd58",
     "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.test.native.txt": "f8b60a3cd94835a552fb7879bd58b622bd8827b3c3a374828b32c01acc788a11",
-    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.test.roman.txt": "2c679b43f7d839cd50a4f74644707270cea372d53c30427414c6fbba8cc8d8a0"
+    "dakshina_dataset_v1.0/ml/romanized/ml.romanized.rejoined.test.roman.txt": "2c679b43f7d839cd50a4f74644707270cea372d53c30427414c6fbba8cc8d8a0",
+    "dakshina_dataset_v1.0/hi/lexicons/hi.translit.sampled.train.tsv": "4b3f872d3363a91f949dfb640acab6a968ed7d2d65829a22af662c3e99ef7803",
+    "dakshina_dataset_v1.0/hi/lexicons/hi.translit.sampled.dev.tsv": "62019ba0e046ceffd7211a2797daf2d2970da77586ee056dcecaa34c38392bce",
+    "dakshina_dataset_v1.0/hi/lexicons/hi.translit.sampled.test.tsv": "37dccdd2ca18a520267588b472f293ce805a1444a5ca2a99169417da17d9bafd",
+    "dakshina_dataset_v1.0/hi/romanized/hi.romanized.rejoined.dev.native.txt": "01bc13b653f8ffa3ec0ddfb4cb91c22c908e4d3a40afd39d2bfe48743b57e2b1",
+    "dakshina_dataset_v1.0/hi/romanized/hi.romanized.rejoined.dev.roman.txt": "106fbc342d19587a9a7a7687e6bd8a0312669c238511618148c01b49f1c6f881",
+    "dakshina_dataset_v1.0/hi/romanized/hi.romanized.rejoined.test.native.txt": "507ad672e15f0d01e44245c89980e3a8370c1c581497d15f3302a1904c20110a",
+    "dakshina_dataset_v1.0/hi/romanized/hi.romanized.rejoined.test.roman.txt": "c49ebf67a0f7fdcc69f7f421dd21f6b48491b8db5fe3ef641078d660ce6bf1e7"
   }
 }

@@ -1,6 +1,7 @@
 """Human romanisation pairs from Dakshina and Aksharantar, and the human eval set.
 
     uv run python -m mlkb.data.human   # writes data/eval/translit-human.tsv
+    uv run python -m mlkb.data.human --lang hi   # writes data/eval/hi/translit-human.tsv
 
 Sources and the rules for using them are in `docs/design/2026-11-03-m3-licence-audit.md`:
 - **Dakshina** (`ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv`: native word, romanisation,
@@ -14,6 +15,10 @@ Sources and the rules for using them are in `docs/design/2026-11-03-m3-licence-a
 Malayalam is normalised the way the engine does (`engine/core/src/normalize.rs`): NFC, old-style
 chillus (consonant + virama + ZWJ) made atomic, stray joiners dropped. Latin is lowercased; rows
 with anything but a–z are dropped.
+
+Every function takes `lang` (a file in `mlkb/langs`, Malayalam by default). For another
+language the Dakshina and Aksharantar files are that language's, the native side is NFC with
+joiners dropped, and a native word is one in the language's script block.
 """
 
 import argparse
@@ -24,6 +29,8 @@ from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+
+from mlkb import langs
 
 ROOT = Path(__file__).resolve().parents[3]
 RAW = ROOT / "data/raw"
@@ -81,11 +88,28 @@ def _is_malayalam(word: str) -> bool:
     return bool(word) and all("ഀ" <= c <= "ൿ" or c in (ZWJ, ZWNJ) for c in word)
 
 
-def clean(latin: str, native: str) -> tuple[str, str] | None:
-    """The normalised (latin, malayalam) pair, or None when it can't be a training row."""
+def _normalizer(lang: str):
+    """The native side's normal form for `lang`: `normalize` for Malayalam, else NFC without joiners."""
+    if lang == "ml":
+        return normalize
+    return lambda text: "".join(c for c in unicodedata.normalize("NFC", text) if c not in (ZWJ, ZWNJ))
+
+
+def _is_native(lang: str):
+    if lang == "ml":
+        return _is_malayalam
+    spec = langs.load(lang)
+    # Letters and signs of the block: not its punctuation (danda) or digits.
+    return lambda word: bool(word) and all(
+        spec.in_block(c) and unicodedata.category(c)[0] in "LM" for c in word
+    )
+
+
+def clean(latin: str, native: str, lang: str = "ml") -> tuple[str, str] | None:
+    """The normalised (latin, native) pair, or None when it can't be a training row."""
     latin = latin.strip().lower()
-    native = normalize(native.strip())
-    if not latin or not latin.isascii() or not latin.isalpha() or not _is_malayalam(native):
+    native = _normalizer(lang)(native.strip())
+    if not latin or not latin.isascii() or not latin.isalpha() or not _is_native(lang)(native):
         return None
     if len(latin) > MAX_CHARS or len(native) > MAX_CHARS:
         return None
@@ -102,13 +126,15 @@ class HumanPair:
     source: str
 
 
-def dakshina(split: str, root: Path = DAKSHINA) -> list[HumanPair]:
+def dakshina(split: str, root: Path | None = None, lang: str = "ml") -> list[HumanPair]:
     """Dakshina lexicon rows for `split` (train, dev or test), cleaned."""
     out = []
-    path = root / f"ml.translit.sampled.{split}.tsv"
+    spec = langs.load(lang)
+    root = root or (DAKSHINA if lang == "ml" else spec.dakshina_lexicons)
+    path = root / f"{spec.dakshina}.translit.sampled.{split}.tsv"
     for line in path.read_text(encoding="utf-8").splitlines():
         native, latin, count = line.split("\t")
-        pair = clean(latin, native)
+        pair = clean(latin, native, lang)
         if pair:
             out.append(HumanPair(pair[0], pair[1], int(count), "Dakshina"))
     return out
@@ -122,11 +148,15 @@ def aksharantar_rows(path: Path) -> Iterator[dict]:
                 yield json.loads(line)
 
 
-def aksharantar(split: str = "train", root: Path = AKSHARANTAR, stats: Counter | None = None) -> list[HumanPair]:
+def aksharantar(
+    split: str = "train", root: Path | None = None, stats: Counter | None = None, lang: str = "ml"
+) -> list[HumanPair]:
     """Aksharantar rows whose source the audit allows, cleaned; `stats` counts kept and dropped."""
     stats = stats if stats is not None else Counter()
+    spec = langs.load(lang)
+    root = root or (AKSHARANTAR if lang == "ml" else spec.aksharantar_dir)
     out = []
-    for row in aksharantar_rows(root / f"mal_{split}.json"):
+    for row in aksharantar_rows(root / f"{spec.aksharantar_prefix}_{split}.json"):
         source = row.get("source") or "missing"
         if source not in AKSHARANTAR_KEEP:
             stats[f"dropped {source} (licence)"] += 1
@@ -135,7 +165,7 @@ def aksharantar(split: str = "train", root: Path = AKSHARANTAR, stats: Counter |
         if source == "IndicCorp" and score is not None and score < INDICCORP_MIN_SCORE:
             stats["dropped IndicCorp (low mining score)"] += 1
             continue
-        pair = clean(row["english word"], row["native word"])
+        pair = clean(row["english word"], row["native word"], lang)
         if not pair:
             stats[f"dropped {source} (not a-z / too long)"] += 1
             continue
@@ -144,9 +174,9 @@ def aksharantar(split: str = "train", root: Path = AKSHARANTAR, stats: Counter |
     return out
 
 
-def held_out_words(root: Path = DAKSHINA) -> set[str]:
-    """Every Malayalam word in the Dakshina dev and test splits: never in a training pair."""
-    return {p.malayalam for split in ("dev", "test") for p in dakshina(split, root)}
+def held_out_words(root: Path | None = None, lang: str = "ml") -> set[str]:
+    """Every native word in the Dakshina dev and test splits: never in a training pair."""
+    return {p.malayalam for split in ("dev", "test") for p in dakshina(split, root, lang)}
 
 
 def eval_rows(test: list[HumanPair], n: int = HUMAN_EVAL_ROWS, seed: int = HUMAN_EVAL_SEED) -> list[HumanPair]:
@@ -159,13 +189,14 @@ def eval_rows(test: list[HumanPair], n: int = HUMAN_EVAL_ROWS, seed: int = HUMAN
     return [HumanPair(latin, ml, 1, "Dakshina") for latin, ml in sorted(picked, key=lambda x: (x[1], x[0]))]
 
 
-def write_eval(rows: list[HumanPair], path: Path = HUMAN_EVAL) -> None:
-    """Writes `context<TAB>latin<TAB>malayalam` with an empty context."""
+def write_eval(rows: list[HumanPair], path: Path = HUMAN_EVAL, lang: str = "ml") -> None:
+    """Writes `context<TAB>latin<TAB>native` with an empty context."""
+    spec = langs.load(lang)
     header = (
-        "# Human transliteration eval set: context<TAB>latin<TAB>malayalam (context empty).\n"
-        f"# {len(rows)} pairs sampled (seed {HUMAN_EVAL_SEED}) from the Dakshina v1.0 Malayalam lexicon\n"
-        "# test split (ml.translit.sampled.test.tsv), Google Research, CC BY-SA 4.0. Built by\n"
-        "# `python -m mlkb.data.human`. Never train on these words.\n"
+        f"# Human transliteration eval set: context<TAB>latin<TAB>{spec.name.lower()} (context empty).\n"
+        f"# {len(rows)} pairs sampled (seed {HUMAN_EVAL_SEED}) from the Dakshina v1.0 {spec.name} lexicon\n"
+        f"# test split ({spec.dakshina}.translit.sampled.test.tsv), Google Research, CC BY-SA 4.0. Built by\n"
+        f"# `python -m mlkb.data.human{'' if lang == 'ml' else ' --lang ' + lang}`. Never train on these words.\n"
     )
     body = "".join(f"\t{p.latin}\t{p.malayalam}\n" for p in rows)
     path.write_text(header + body, encoding="utf-8")
@@ -173,12 +204,15 @@ def write_eval(rows: list[HumanPair], path: Path = HUMAN_EVAL) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--out", type=Path, default=HUMAN_EVAL)
+    p.add_argument("--out", type=Path)
+    p.add_argument("--lang", default="ml", help="a file in mlkb/langs")
     args = p.parse_args(argv)
-    test = dakshina("test")
+    out = args.out or (HUMAN_EVAL if args.lang == "ml" else langs.load(args.lang).eval_dir / "translit-human.tsv")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    test = dakshina("test", lang=args.lang)
     rows = eval_rows(test)
-    write_eval(rows, args.out)
-    print(f"dakshina test {len(test)} pairs, {len({t.malayalam for t in test})} words; wrote {len(rows)} to {args.out}")
+    write_eval(rows, out, args.lang)
+    print(f"dakshina test {len(test)} pairs, {len({t.malayalam for t in test})} words; wrote {len(rows)} to {out}")
 
 
 if __name__ == "__main__":

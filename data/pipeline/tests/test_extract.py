@@ -148,3 +148,12 @@ def test_sanskrit_verse_in_malayalam_script_is_skipped():
 
 def test_lines_without_malayalam_are_never_taken_for_sanskrit():
     assert list(paragraphs("x || y and some more words")) == ["x || y and some more words"]
+
+
+def test_hindi_file_and_category_links_are_removed():
+    text = "भारत एक [[देश]] है जो दक्षिण एशिया में है। [[चित्र:Map.png|thumb|नक्शा]] [[श्रेणी:देश]]"
+    assert list(paragraphs(text)) == ["भारत एक देश है जो दक्षिण एशिया में है।"]
+
+
+def test_devanagari_line_end_hyphens_are_joined():
+    assert list(paragraphs("यह एक बहुत सुन्दर क-\nविता है")) == ["यह एक बहुत सुन्दर कविता है"]

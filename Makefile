@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: golden golden-save golden-check pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
+.PHONY: golden golden-save golden-check pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
 
 all: build
 
@@ -41,7 +41,7 @@ test-engine:
 	./scripts/shipped-crates.sh --check
 
 test-data:
-	python3 -I scripts/pack.py packs/ml.neopack --check
+	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
@@ -83,6 +83,32 @@ pack:
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:
 	./data/build-lexicons.sh
+
+# A pack whose romanisation is data (packs/<lang>.neopack/romanisation.json), not Malayalam:
+# its lexicons from the sources in data/lang/$(PACK_LANG).conf (`lexicons` first if en.fst changed),
+# then its transliterator: training pairs (needs that language's Dakshina and Aksharantar extracts,
+# see data/manifests), training (about 1.5 hours; skipped when training/build/$(PACK_LANG)/translit.pt
+# exists), int8 export, held-out accuracy on data/eval/$(PACK_LANG)/translit-human.tsv, and the copy
+# into the pack. No LM yet: the LM pipeline is Malayalam's only.
+PACK_LANG ?= hi
+PACK_DIR := packs/$(PACK_LANG).neopack
+PACK_BUILD := build/$(PACK_LANG)
+pack-lexicons:
+	./data/build-pack-lexicons.sh $(PACK_LANG)
+
+pack-models:
+	@if [ ! -f training/$(PACK_BUILD)/translit.pt ]; then \
+	  cd training && uv run --group train python -m mlkb.data.pairs --lang $(PACK_LANG) --out $(PACK_BUILD)/pairs && \
+	  uv run --group train python -m mlkb.translit.train --lang $(PACK_LANG) --pairs $(PACK_BUILD)/pairs \
+	    --out $(PACK_BUILD)/translit.pt; \
+	fi
+	cd training && uv run --group train python -m mlkb.translit.export --lang $(PACK_LANG) \
+	  --checkpoint $(PACK_BUILD)/translit.pt --out $(PACK_BUILD)/translit.mlkbnn \
+	  --reference $(PACK_BUILD)/translit-reference.json
+	cd training && uv run --group train python -m mlkb.translit.accuracy --lang $(PACK_LANG) \
+	  --model $(PACK_BUILD)/translit.mlkbnn --out $(CURDIR)/data/eval/$(PACK_LANG)/translit-accuracy.json
+	cp training/$(PACK_BUILD)/translit.mlkbnn $(PACK_DIR)/translit.mlkbnn
+	python3 -I scripts/pack.py $(PACK_DIR) --write
 
 # Rebuilds the committed emoji files (the panel and the suggestions) from Unicode's
 # emoji-test.txt and the CLDR annotations in data/manifests (downloads about 1.5 MB).

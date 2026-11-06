@@ -1,6 +1,6 @@
 """Builds the transliteration pairs: `latin<TAB>malayalam` rows for training.
 
-    uv run python -m mlkb.data.pairs [--out training/build/pairs] [--rows 3000000]
+    uv run python -m mlkb.data.pairs [--out training/build/pairs] [--rows 3000000] [--lang ml]
 
 Synthetic rows: reads the most frequent Malayalam forms from `ml.fst`, samples each in
 proportion to `count ** 0.5` (flattened, so rare forms appear too), and writes the spellings
@@ -14,6 +14,11 @@ Human rows (`mlkb.data.human`) make up `--human-share` of `train.tsv`: Dakshina 
 1% of the lexicon words (not rows) go to `valid.tsv`, so no word is in both files; the
 Dakshina dev pairs go to `valid-human.tsv`. Every eval target (chat-golden, translit-human)
 and every Dakshina dev/test word is left out of `train.tsv`.
+
+With `--lang` other than `ml` (a file in `mlkb/langs` whose romaniser is a pack's
+`romanisation.json`), the lexicon, the Dakshina and Aksharantar files and the eval sets are that
+language's, and the synthetic spellings come from `table_romanise.variants` (one set of rules,
+so `--chat-share` doesn't apply).
 """
 
 import argparse
@@ -26,7 +31,8 @@ from pathlib import Path
 import mlengine
 import numpy as np
 
-from mlkb.data import calibrate, human
+from mlkb import langs
+from mlkb.data import calibrate, human, table_romanise
 from mlkb.data.romanise import RULES, Rules, canonical, variants
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -64,12 +70,17 @@ def build(
     rules: Rules = RULES,
     alt_rules: Rules | None = None,
     alt_share: float = 0.0,
+    spell=None,
+    spells=None,
 ) -> tuple[list[Pair], list[Pair]]:
-    """About `rows` (latin, malayalam) pairs split into train and valid by word, both shuffled.
+    """About `rows` (latin, native) pairs split into train and valid by word, both shuffled.
 
-    Each draw uses `rules`, or `alt_rules` with probability `alt_share`.
+    Each draw uses `rules`, or `alt_rules` with probability `alt_share`. `spell(word, rng, rules)`
+    and `spells(word)` (whether the word romanises at all) default to Malayalam's romaniser.
     """
-    words = [(w, c) for w, c in words if w not in excluded and canonical(w)]
+    spell = spell or variants
+    spells = spells or canonical
+    words = [(w, c) for w, c in words if w not in excluded and spells(w)]
     rng = random.Random(seed)
     is_valid = [rng.random() < valid_frac for _ in words]
     weights = np.array([c for _, c in words], dtype=np.float64) ** FREQUENCY_POWER
@@ -78,7 +89,7 @@ def build(
 
     # Spellings per draw, measured on a pilot sample, sets how many draws give `rows`.
     pilot = np_rng.choice(len(words), size=min(2000, rows), p=weights)
-    per_draw = np.mean([len(variants(words[k][0], rng, rules)) for k in pilot])
+    per_draw = np.mean([len(spell(words[k][0], rng, rules)) for k in pilot])
     draws = np_rng.multinomial(round(rows / per_draw), weights)
 
     train: list[Pair] = []
@@ -87,21 +98,30 @@ def build(
         out = valid if to_valid else train
         for _ in range(k):
             r = alt_rules if alt_rules is not None and rng.random() < alt_share else rules
-            out.extend((latin, word) for latin in variants(word, rng, r))
+            out.extend((latin, word) for latin in spell(word, rng, r))
     rng.shuffle(train)
     rng.shuffle(valid)
     return train, valid
 
 
 def human_rows(
-    n: int, dakshina_share: float, excluded: set[str], seed: int, stats: dict[str, int] | None = None
+    n: int,
+    dakshina_share: float,
+    excluded: set[str],
+    seed: int,
+    stats: dict[str, int] | None = None,
+    lang: str = "ml",
 ) -> list[Pair]:
     """`n` human training pairs: Dakshina train (by annotator count) and filtered Aksharantar."""
     stats = stats if stats is not None else {}
     rng = random.Random(seed + 1)
-    dak = [h for h in human.dakshina("train") if h.malayalam not in excluded]
+    dak = [h for h in human.dakshina("train", lang=lang) if h.malayalam not in excluded]
     aks_stats: Counter = Counter()
-    aks = [(h.latin, h.malayalam) for h in human.aksharantar("train", stats=aks_stats) if h.malayalam not in excluded]
+    aks = [
+        (h.latin, h.malayalam)
+        for h in human.aksharantar("train", stats=aks_stats, lang=lang)
+        if h.malayalam not in excluded
+    ]
     stats.update(aks_stats)
     stats["dakshina train pairs usable"] = len(dak)
     stats["aksharantar pairs usable"] = len(aks)
@@ -124,7 +144,8 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--words", type=int, default=300_000)
     p.add_argument("--valid-frac", type=float, default=0.01)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--lexicon", type=Path, default=LEXICON)
+    p.add_argument("--lang", default="ml", help="a file in mlkb/langs")
+    p.add_argument("--lexicon", type=Path, help="the native lexicon (default: the language's pack)")
     p.add_argument("--rules", type=Path, default=calibrate.CALIBRATED, help="calibrated rules JSON")
     p.add_argument("--chat-share", type=float, default=0.5, help="draws that use the hand-set chat rules")
     p.add_argument("--human-share", type=float, default=0.3, help="share of train rows that are human pairs")
@@ -132,22 +153,34 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
 
     start = time.monotonic()
-    words = mlengine.malayalam_words(str(args.lexicon), args.words)
-    excluded = excluded_words(EVAL_SETS) | human.held_out_words()
+    lang = langs.load(args.lang)
+    lexicon = args.lexicon or (LEXICON if args.lang == "ml" else lang.lexicon)
+    words = mlengine.malayalam_words(str(lexicon), args.words)
+    eval_sets = EVAL_SETS if args.lang == "ml" else sorted(lang.eval_dir.glob("*.tsv"))
+    excluded = excluded_words(eval_sets) | human.held_out_words(lang=args.lang)
     left_out = sum(w in excluded for w, _ in words)
     synthetic_rows = round(args.rows * (1 - args.human_share))
-    rules = calibrate.load(args.rules)
-    train, valid = build(
-        words, synthetic_rows, args.valid_frac, excluded, args.seed, rules, alt_rules=RULES, alt_share=args.chat_share
-    )
+    if args.lang == "ml":
+        rules = calibrate.load(args.rules)
+        train, valid = build(
+            words, synthetic_rows, args.valid_frac, excluded, args.seed, rules, alt_rules=RULES,
+            alt_share=args.chat_share,
+        )
+    else:
+        table = table_romanise.Table.load(lang.romanisation)
+        train, valid = build(
+            words, synthetic_rows, args.valid_frac, excluded, args.seed,
+            spell=lambda w, rng, _rules: table_romanise.variants(table, w, rng),
+            spells=table.canonical,
+        )
     # Human rows: never an eval word, a held-out Dakshina word, or a synthetic valid word.
     valid_words = {w for _, w in valid}
     n_human = round(len(train) * args.human_share / (1 - args.human_share))
     stats: dict[str, int] = {}
-    humans = human_rows(n_human, args.dakshina_share, excluded | valid_words, args.seed, stats)
+    humans = human_rows(n_human, args.dakshina_share, excluded | valid_words, args.seed, stats, args.lang)
     train += humans
     random.Random(args.seed + 2).shuffle(train)
-    valid_human = [(h.latin, h.malayalam) for h in human.dakshina("dev")]
+    valid_human = [(h.latin, h.malayalam) for h in human.dakshina("dev", lang=args.lang)]
     args.out.mkdir(parents=True, exist_ok=True)
     write(args.out / "train.tsv", train)
     write(args.out / "valid.tsv", valid)

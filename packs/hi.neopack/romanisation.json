@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "script": "deva",
+  "virama": "्",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "अ": "a", "आ": "a", "इ": "i", "ई": "i", "उ": "u", "ऊ": "u", "ऋ": "ri", "ॠ": "ri",
+    "ऌ": "li", "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऍ": "e", "ऎ": "e", "ऑ": "o", "ऒ": "o"
+  },
+  "vowelSigns": {
+    "ा": "a", "ि": "i", "ी": "i", "ु": "u", "ू": "u", "ृ": "ri", "ॄ": "ri", "ॢ": "li",
+    "े": "e", "ै": "ai", "ो": "o", "ौ": "au", "ॅ": "e", "ॆ": "e", "ॉ": "o", "ॊ": "o", "ॏ": "au"
+  },
+  "consonants": {
+    "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n",
+    "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+    "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+    "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n", "ऩ": "n",
+    "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m",
+    "य": "y", "र": "r", "ऱ": "r", "ल": "l", "ळ": "l", "ऴ": "l", "व": "v",
+    "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+    "क़": "q", "ख़": "kh", "ग़": "g", "ज़": "z", "झ़": "zh", "ड़": "d", "ढ़": "dh", "फ़": "f", "य़": "y"
+  },
+  "finals": {
+    "ं": "n", "ँ": "n", "ः": "h", "ऽ": ""
+  },
+  "clusters": {
+    "क्ष": "ksh", "ज्ञ": "gy", "श्र": "shr", "त्र": "tr"
+  },
+  "skeleton": {
+    "dropTrailing": { "letters": "h", "afterVowel": true, "minLength": 3 },
+    "pairs": [["chh", "c"], ["mbh", "nb"], ["mph", "np"],
+              ["ch", "c"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"],
+              ["ph", "p"], ["bh", "b"], ["sh", "s"], ["zh", "j"], ["mb", "nb"], ["mp", "np"],
+              ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "e"]],
+    "singles": { "c": "k", "q": "k", "f": "p", "z": "j", "w": "v", "x": "ks" },
+    "collapseDoubles": true,
+    "dropFinalVowel": { "vowels": "", "afterConsonant": true, "minLength": 3 }
+  },
+  "swipe": {
+    "aspirated": "ktpbcjsdgz",
+    "trail": "h"
+  },
+  "notes": "Hindi (Devanagari) to Hinglish. Keys are NFC: a nukta letter (क़ ज़ फ़ ड़ …) is its consonant plus U+093C, taken before the bare consonant by the longest-key-first walk; ऩ ऱ ऴ stay single code points under NFC. Vowels are short (ा ी ू give a i u), which matches the most Dakshina romanisations; typed aa ee oo fold to the same skeleton. Anusvara and chandrabindu are always n; the pairs mb/mp/mbh/mph fold to nb/np so sambhav and sanbhav meet. Not expressible in format 1 (measured on the Dakshina hi test lexicon, 4,502 human pairs: the typed skeleton equals the walk's for 60.1% as this file stands): (1) medial schwa: Hindi drops the inherent vowel in V C a C V (समझना samjhna, कमरा kamra, बचपन bachpan), which the walk keeps (samajhana). The cheapest fix is one optional skeleton step, dropBetweenConsonants: \"a\", applied after collapseDoubles: drop an a with a consonant on both sides, so samajhana, samajhna, samjhna and samajna all become smjn. With it the match is 76.5%, and the walk needs no deletion rule. Looking typed Dakshina test words up in hinglish.fst by exact skeleton (most frequent first) finds the right word first 41.0% of the time (top 3: 51.8%) with this file, and 53.9% (top 3: 68.9%) with that step. (2) The final schwa is kept after a conjunct ending in र य व (मित्र mitra, कार्य karya) and in one-letter words (न na); atWordEnd.inherent drops it everywhere (mitr, n). (3) े before a word-final anusvara is typed ei (में mein, करें karein); the skeleton folds ei to e, so lookup is unaffected, only the walk's spelling. (4) Anusvara is m before प फ ब भ म (handled by the mb/mp pairs)."
+}

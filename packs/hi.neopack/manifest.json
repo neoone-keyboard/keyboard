@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "id": "hi",
+  "version": "2026.11.06",
+  "name": "Hindi",
+  "nativeName": "हिन्दी",
+  "script": "deva",
+  "romanised": {
+    "name": "Hinglish"
+  },
+  "minEngine": 2,
+  "englishFingerprint": "9a50d0c85c79a0df",
+  "files": {
+    "lexicon": "hi.fst",
+    "romanisedLexicon": "hinglish.fst",
+    "nextWords": "next.fst",
+    "romanisation": "romanisation.json",
+    "translit": "translit.mlkbnn"
+  },
+  "sha256": {
+    "hi.fst": "1fa9ba05a26839017e585fc919e1c61c5a9de2acbca775ed6c6659a31b0b4326",
+    "hinglish.fst": "958fbc2914054d8e417d79ab8cd25db31798880de7270c7e72be181822843804",
+    "next.fst": "85e761bd0eef7bc142ad7f1e76233d2d911b4a91000a0628d0b7d127bc94ee2f",
+    "romanisation.json": "44f7ef49d156d1d413d6cc05dfca2a8b48a27dd3e635a9d9e3b7480d0453c07a",
+    "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
+  },
+  "credits": [
+    {
+      "name": "Hindi Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikipedia.org/"
+    },
+    {
+      "name": "Hindi Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikisource.org/"
+    },
+    {
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

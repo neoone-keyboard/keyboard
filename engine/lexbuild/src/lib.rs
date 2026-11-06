@@ -8,10 +8,14 @@ use std::fs;
 use std::io::{self, BufRead};
 use std::path::Path;
 
+pub mod romanisation;
+
 use mlengine_core::lexicon::{SEPARATOR, build};
 use mlengine_core::manglish;
 use mlengine_core::normalize::normalize;
 use mlengine_core::text::{Script, script, words};
+
+use crate::romanisation::Table;
 
 /// Longest English token counted, in bytes (the engine corrects up to 24).
 pub const MAX_ENGLISH_LEN: usize = 24;
@@ -308,14 +312,27 @@ impl NextWords {
     }
 
     pub fn add_corpus(&mut self, reader: impl BufRead, max_lines: Option<usize>) -> io::Result<()> {
+        self.add_corpus_with(reader, max_lines, is_phrase_break, |phrase| {
+            words(phrase).collect()
+        })
+    }
+
+    /// `add_corpus` with another script's phrase breaks and tokeniser (`native_words`).
+    pub fn add_corpus_with(
+        &mut self,
+        reader: impl BufRead,
+        max_lines: Option<usize>,
+        is_break: impl Fn(char) -> bool,
+        tokens: impl Fn(&str) -> Vec<&str>,
+    ) -> io::Result<()> {
         for_each_line(reader, max_lines, |line| {
             let line = normalize(line);
             // A pair never spans punctuation: "i.e." is not "i" followed by "e".
-            for phrase in line.split(is_phrase_break) {
+            for phrase in line.split(&is_break) {
                 let mut previous: Option<u32> = None;
                 let mut before: Option<&str> = None; // the word before `previous`
                 let mut last: Option<&str> = None;
-                for word in words(phrase) {
+                for word in tokens(phrase) {
                     let id = self.ids.get(&lookup_key(word)).copied();
                     if let (Some(p), Some(next)) = (previous, id)
                         && (p as usize) < self.previous_allowed
@@ -449,9 +466,181 @@ pub fn write_bundle(
     Ok(Stats { report })
 }
 
+/// In the script's block, whether or not a letter (a danda or a native digit is not one).
+fn in_block(table: &Table, c: char) -> bool {
+    (c as u32)
+        .checked_sub(table.block_base() as u32)
+        .is_some_and(|offset| offset < 0x80)
+}
+
+/// Splits a line into the words of a native script described by `table`, and other words: a
+/// word is a run of the script's letters and signs (`Table::is_letter`), joiners, and letters
+/// and digits outside the block. The engine's `words` would split a Devanagari word at its
+/// virama or nukta, which Unicode doesn't call alphanumeric.
+pub fn native_words<'a>(table: &Table, line: &'a str) -> Vec<&'a str> {
+    line.split(|c: char| {
+        let token = table.is_letter(c)
+            || matches!(c, '\u{200C}' | '\u{200D}')
+            || (c.is_alphanumeric() && !in_block(table, c));
+        !token
+    })
+    .filter(|w| !w.is_empty())
+    .collect()
+}
+
+/// A phrase break in a native-script corpus: `is_phrase_break`, or the script's own
+/// punctuation (the danda and double danda).
+pub fn native_phrase_break(table: &Table, c: char) -> bool {
+    is_phrase_break(c) || (in_block(table, c) && !table.is_letter(c) && !c.is_numeric())
+}
+
+/// Counts every word of the native script described by `table`, by surface form, after normalising.
+pub fn count_native_words(
+    reader: impl BufRead,
+    table: &Table,
+    max_chars: usize,
+    max_lines: Option<usize>,
+) -> io::Result<Counts> {
+    let mut counts = Counts::new();
+    for_each_line(reader, max_lines, |line| {
+        let line = normalize(line);
+        for word in native_words(table, &line) {
+            if table.is_native(word) && word.chars().count() <= max_chars {
+                *counts.entry(word.to_string()).or_default() += 1;
+            }
+        }
+    })?;
+    Ok(counts)
+}
+
+/// Native forms: frequent ones, plus every word of `listed` even if the corpus never used it.
+/// Sorted by count, highest first. `malayalam_vocab` for any script with a `Table`.
+pub fn native_vocab(
+    counts: &Counts,
+    listed: &HashSet<String>,
+    table: &Table,
+    config: &Config,
+) -> Vec<(String, u64)> {
+    let ok = |w: &str| {
+        table.is_native(w) && table.plausible(w) && w.chars().count() <= config.max_malayalam_chars
+    };
+    let mut vocab: HashMap<String, u64> = counts
+        .iter()
+        .filter(|(w, c)| ok(w) && (**c >= config.min_count || listed.contains(*w)))
+        .map(|(w, c)| (w.clone(), *c))
+        .collect();
+    for word in listed.iter().filter(|w| ok(w)) {
+        vocab.entry(word.clone()).or_insert(1);
+    }
+    let mut vocab: Vec<(String, u64)> = vocab.into_iter().collect();
+    sort_and_cap(&mut vocab, config.malayalam_max);
+    vocab
+}
+
+/// A lexicon file's words and counts, most frequent first (ties in key order). A pack's English
+/// vocabulary is the base's `en.fst` itself, so its `next.fst` is built against exactly the
+/// lexicon the keyboard ships.
+pub fn read_lexicon(path: &Path) -> io::Result<Vec<(String, u64)>> {
+    let lex = mlengine_core::lexicon::Lexicon::open(path)
+        .map_err(|e| io::Error::other(format!("{}: {e}", path.display())))?;
+    let mut words = Vec::with_capacity(lex.len());
+    lex.words(|key, count| {
+        if let Ok(word) = std::str::from_utf8(key) {
+            words.push((word.to_owned(), count));
+        }
+    });
+    words.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    Ok(words)
+}
+
+/// Writes a native pack's lexicons into `out`: `<lang>.fst`, `<romanised>.fst` (keyed by the
+/// table's skeletons), `next.fst`, plus `stats.txt`.
+pub fn write_native_bundle(
+    out: &Path,
+    lang: &str,
+    romanised: &str,
+    table: &Table,
+    native: &[(String, u64)],
+    next: &[(Vec<u8>, u64)],
+) -> io::Result<Stats> {
+    fs::create_dir_all(out)?;
+    let mut report = String::new();
+    let keys = table.entries(native);
+    let keys_len = keys.len();
+    let files: [(String, Entries, usize); 3] = [
+        (format!("{lang}.fst"), to_entries(native), native.len()),
+        (format!("{romanised}.fst"), keys, keys_len),
+        ("next.fst".to_string(), next.to_vec(), next.len()),
+    ];
+    for (name, entries, n) in files {
+        let bytes = build(entries).map_err(io::Error::other)?;
+        fs::write(out.join(&name), &bytes)?;
+        let _ = writeln!(report, "{name}: {n} keys, {} bytes", bytes.len());
+    }
+    let top: Vec<&str> = native.iter().take(20).map(|(w, _)| w.as_str()).collect();
+    let _ = writeln!(report, "{lang} top 20: {}", top.join(" "));
+    fs::write(out.join("stats.txt"), &report)?;
+    Ok(Stats { report })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn hindi() -> Table {
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/hi.neopack/romanisation.json");
+        Table::load(&path).unwrap()
+    }
+
+    #[test]
+    fn native_words_keep_virama_and_nukta_and_split_at_dandas() {
+        let t = hindi();
+        let line = "क्या ज़िंदगी है। २०२० में ok, 42";
+        assert_eq!(
+            native_words(&t, line),
+            ["क्या", "ज़िंदगी", "है", "में", "ok", "42"]
+        );
+        let c = count_native_words(line.as_bytes(), &t, 30, None).unwrap();
+        let mut got: Vec<_> = c.keys().map(String::as_str).collect();
+        got.sort();
+        assert_eq!(got, ["क्या", "ज़िंदगी", "में", "है"]);
+        assert!(native_phrase_break(&t, '।'));
+        assert!(!native_phrase_break(&t, '्'));
+    }
+
+    #[test]
+    fn native_vocab_keeps_frequent_plausible_words() {
+        let t = hindi();
+        let c = count_native_words("है है है ा ा ा न् न् न् भारत".as_bytes(), &t, 30, None).unwrap();
+        let config = Config {
+            min_count: 2,
+            ..Config::default()
+        };
+        let vocab = native_vocab(&c, &set(&["दिल्ली"]), &t, &config);
+        assert_eq!(vocab, [("है".to_string(), 3), ("दिल्ली".to_string(), 1)]);
+    }
+
+    #[test]
+    fn native_next_words_pair_within_phrases() {
+        let t = hindi();
+        let vocab = vocab_of(&["क्या", "हाल", "है", "ठीक"]);
+        let mut next = NextWords::new(&vocab, &Config::default());
+        next.add_corpus_with(
+            "क्या हाल है। ठीक है\nक्या हाल".as_bytes(),
+            None,
+            |c| native_phrase_break(&t, c),
+            |p| native_words(&t, p),
+        )
+        .unwrap();
+        let mut entries = next.entries(3);
+        entries.sort();
+        let want: Vec<(Vec<u8>, u64)> = [("क्या\0हाल", 2), ("ठीक\0है", 1), ("हाल\0है", 1)]
+            .iter()
+            .map(|(k, c)| (k.as_bytes().to_vec(), *c))
+            .collect();
+        assert_eq!(entries, want);
+    }
 
     fn counts(text: &str, want: Script) -> Counts {
         count_words(text.as_bytes(), want, None).unwrap()
@@ -545,7 +734,10 @@ mod tests {
             ..Config::default()
         };
         let c = counts(
-            &format!("Vishu vishu Biryani Biryani biryani zork {}", "pan ".repeat(5)),
+            &format!(
+                "Vishu vishu Biryani Biryani biryani zork {}",
+                "pan ".repeat(5)
+            ),
             Script::Latin,
         );
         let scowl = set(&["pan"]);
