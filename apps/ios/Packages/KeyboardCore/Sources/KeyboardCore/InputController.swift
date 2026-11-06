@@ -16,8 +16,24 @@ public enum AutoCapitalization: Sendable {
     case off, words, sentences, allCharacters
 }
 
-public enum Language: Sendable {
-    case english, malayalam
+/// A language the keyboard types: English on the Latin keys, or a pack's language on its
+/// native layout (`PackDescriptor.layout`).
+public enum Language: Hashable, Sendable {
+    case english
+    case pack(PackDescriptor)
+
+    /// The language id: "en", "ml".
+    public var id: String {
+        switch self {
+        case .english: "en"
+        case .pack(let pack): pack.id
+        }
+    }
+
+    /// The native layout; nil for English.
+    public var nativeLayout: PackLayout? {
+        if case .pack(let pack) = self { pack.layout } else { nil }
+    }
 }
 
 /// Something the engine should learn from what the user just did.
@@ -69,6 +85,14 @@ public final class InputController {
     public private(set) var shift: ShiftState = .off
     public private(set) var page: KeyboardPage = .letters
     public private(set) var language: Language = .english
+    /// What the language key cycles through, in order (the engine's `layouts()`); never empty.
+    /// Setting it keeps the current language if it is still listed, else shows the first.
+    public var languages: [Language] = [.english] {
+        didSet {
+            if languages.isEmpty { languages = [.english] }
+            if !languages.contains(language) { switchLanguage(to: languages[0]) }
+        }
+    }
     public var numberRow = false
     public var showsNextKeyboard = true
 
@@ -145,12 +169,30 @@ public final class InputController {
     private var manualShiftPending = false
     private var manualShiftContext: String?
 
-    public init(output: TextOutput) {
+    public init(output: TextOutput, languages: [Language] = [.english]) {
         self.output = output
+        self.languages = languages.isEmpty ? [.english] : languages
+        language = self.languages[0]
+        page = alphabetPage
     }
 
     public var layout: KeyboardLayout {
-        .forPage(page, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard)
+        .forPage(page, native: language.nativeLayout, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard)
+    }
+
+    /// The language the language key switches to: the next in `languages`.
+    private var nextLanguage: Language {
+        let index = languages.firstIndex(of: language) ?? -1
+        return languages[(index + 1) % languages.count]
+    }
+
+    private func switchLanguage(to next: Language) {
+        suggestions = .empty
+        language = next
+        page = alphabetPage
+        shift = .off
+        shiftIsAutomatic = false
+        manualShiftPending = false
     }
 
     /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
@@ -207,12 +249,7 @@ public final class InputController {
             heldStop = stop
             page = target == .letters ? alphabetPage : target
         case .toggleLanguage:
-            suggestions = .empty
-            language = language == .english ? .malayalam : .english
-            page = alphabetPage
-            shift = .off
-            shiftIsAutomatic = false
-            manualShiftPending = false
+            switchLanguage(to: nextLanguage)
         }
     }
 
@@ -461,7 +498,7 @@ public final class InputController {
     public func label(for action: KeyAction) -> String {
         switch action {
         case .character(let c): Self.isLoneMark(c) ? "\u{25CC}" + c : showsUppercase ? c.uppercased() : c
-        case .space: language == .english ? "English" : "മലയാളം"
+        case .space: language.nativeLayout?.spaceBar ?? "English"
         case .backspace: "⌫"
         case .shift:
             switch shift {
@@ -471,13 +508,11 @@ public final class InputController {
             }
         case .returnKey: "return"
         case .nextKeyboard: "🌐"
-        case .page(.letters): language == .english ? "ABC" : "കഖ"
+        case .page(.letters): language.nativeLayout?.alphabet.label ?? "ABC"
         case .page(.symbols): "123"
         case .page(.moreSymbols): "#+="
-        case .page(.malayalam): "കഖ"
-        case .page(.malayalamMore): "ശഷ"
-        case .page(.malayalamVowels): "അആ"
-        case .toggleLanguage: language == .english ? "മ" : "EN"
+        case .page(.native(let id)): language.nativeLayout?.page(id)?.label ?? id
+        case .toggleLanguage: nextLanguage.nativeLayout?.languageKey ?? "EN"
         case .emoji: "☺︎" // Drawn as a symbol; this is the fallback.
         }
     }
@@ -497,7 +532,7 @@ public final class InputController {
     }
 
     private var alphabetPage: KeyboardPage {
-        language == .english ? .letters : .malayalam
+        language.nativeLayout.map { .native($0.alphabet.id) } ?? .letters
     }
 
     /// Replaces the typed word with the middle suggestion (`correction`), then types `separator`.

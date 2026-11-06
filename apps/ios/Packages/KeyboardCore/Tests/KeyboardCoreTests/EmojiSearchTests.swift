@@ -139,7 +139,7 @@ private func search(_ query: String, history: EmojiHistory = EmojiHistory()) -> 
 @Test func keysThatChangeTheKeysPassThroughAndReturnCloses() {
     var search = EmojiSearch(words: words, catalog: catalog, history: EmojiHistory())
     #expect(search.handle(.page(.symbols)) == .passThrough)
-    #expect(search.handle(.page(.malayalam)) == .passThrough)
+    #expect(search.handle(.page(.native("letters"))) == .passThrough)
     #expect(search.handle(.toggleLanguage) == .passThrough)
     #expect(search.handle(.nextKeyboard) == .passThrough)
     #expect(search.handle(.shift) == .ignored)

@@ -53,22 +53,50 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
     static let shared = bundled()
 
-    /// English from the extension bundle and Malayalam from the bundled pack
-    /// (`packs/ml.neopack`, M6), whose manifest names its lexicons and models; learned words in
-    /// the extension's own container. A file missing from the pack disables only that source
-    /// (without the transliterator, Manglish uses the lexicons alone; without the LM, ranking
-    /// is M3a's).
+    /// The language packs in the extension bundle (`packs/`, M6; today only `ml.neopack`),
+    /// read once per process: their manifests and layouts, for the keys and the engine.
+    static let packs: [PackDescriptor] = Bundle.main.resourceURL
+        .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
+
+    /// The languages the language key cycles before the engine has said (`layouts`): English,
+    /// then the first pack with a keyboard, as the engine's default active list has it.
+    static var defaultLanguages: [Language] {
+        [.english] + packs.prefix(1).filter { $0.layout != nil }.map(Language.pack)
+    }
+
+    /// The keyboard's languages for the engine's layouts, in order: Latin is English, a
+    /// native layout its pack's language. A pack the keyboard can't draw is left out.
+    static func languages(for layouts: [InputLayout]) -> [Language] {
+        layouts.compactMap { layout in
+            switch layout {
+            case .latin: return .english
+            case .native(let id): return packs.first { $0.id == id && $0.layout != nil }.map(Language.pack)
+            }
+        }
+    }
+
+    /// What the engine is told the text was typed on.
+    static func inputLayout(_ language: Language) -> InputLayout {
+        switch language {
+        case .english: .latin
+        case .pack(let pack): .native(language: pack.id)
+        }
+    }
+
+    /// English from the extension bundle and every bundled pack (`packs`), whose manifests name
+    /// their lexicons and models; learned words in the extension's own container. A file
+    /// missing from a pack disables only that source (without the transliterator, Manglish
+    /// uses the lexicons alone; without the LM, ranking is M3a's).
     static func bundled() -> EngineSuggestionProvider {
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
         }
-        let pack = Bundle.main.resourceURL?.appending(path: "packs/ml.neopack", directoryHint: .isDirectory)
         let userDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appending(path: "LearnedWords", directoryHint: .isDirectory).path
         return EngineSuggestionProvider(config: EngineConfig(
             english: lexicon("en"),
             userDir: userDir,
-            packDir: pack?.path,
+            packDirs: packs.map(\.folder.path),
             modelDeadlineMs: modelDeadlineMs,
             lmPrefillMs: lmPrefillMs,
             lmAfterSpaceMs: lmAfterSpaceMs,
@@ -128,12 +156,12 @@ actor EngineSuggestionProvider: SuggestionProvider {
         let start = ContinuousClock.now
         let result = try engine.suggest(
             contextBefore: request.contextBefore,
-            layout: request.language == .malayalam ? .native(language: "ml") : .latin,
+            layout: Self.inputLayout(request.language),
             autocorrect: request.autocorrect
         )
         let elapsed = ContinuousClock.now - start
         if elapsed > .milliseconds(10) {
-            log.warning("Slow suggest: \(Diagnostics.milliseconds(elapsed)) for \(result.typed.count) chars, \(result.candidates.count) candidates, \(request.language == .malayalam ? "ml" : "latin")")
+            log.warning("Slow suggest: \(Diagnostics.milliseconds(elapsed)) for \(result.typed.count) chars, \(result.candidates.count) candidates, \(request.language.id)")
         }
         return SuggestionResult(
             typed: result.typed,
@@ -186,6 +214,12 @@ actor EngineSuggestionProvider: SuggestionProvider {
         swipesDeleted = 0
     }
 
+    /// The layouts the language key cycles (`Engine.layouts`), once the engine is open; nil
+    /// before, or when it can't say.
+    func layouts() -> [InputLayout]? {
+        try? engine?.layouts()
+    }
+
     /// Opens the lexicons ahead of the first request, once the keys are showing, and fills the
     /// LM's context with the text already in the field (`lmPrepareMs`).
     func warmUp(contextBefore: String) {
@@ -210,8 +244,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     func noteUse(_ use: WordUse) {
         ahead = nil
         guard let engine = try? loadedEngine() else { return }
-        let layout: InputLayout = use.language == .malayalam ? .native(language: "ml") : .latin
-        try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: layout)
+        try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: Self.inputLayout(use.language))
         if let typed = use.chosenFor {
             try? engine.noteChoice(typed: typed, chosen: use.word)
         }
@@ -328,10 +361,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
             failedAt = nil
             refusalLogged = nil
             loadedSources = (try? created.loadedSources()) ?? []
-            if let problem = created.packProblem() {
+            for problem in created.packProblems() {
                 log.error("Pack refused: \(problem)")
             }
-            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) pack=\(config.packDir.map { URL(fileURLWithPath: $0).lastPathComponent } ?? "none"); footprint \(Diagnostics.footprint())")
+            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) packs=\(config.packDirs.isEmpty ? "none" : config.packDirs.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: ",")); footprint \(Diagnostics.footprint())")
             return created
         } catch {
             log.error("Engine failed to open: \(String(describing: error)); footprint \(Diagnostics.footprint())")

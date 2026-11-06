@@ -2,84 +2,82 @@ import Foundation
 import Testing
 import KeyboardCore
 
-/// packs/ml.neopack/layout.json, found from this file's path
-/// (…/apps/ios/Packages/KeyboardCore/Tests/KeyboardCoreTests/).
-private let layoutFile = URL(fileURLWithPath: #filePath)
-    .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    .deletingLastPathComponent()
-    .appendingPathComponent("packs/ml.neopack/layout.json")
-
-/// The format in docs/design/2026-11-06-m6-language-packs-design.md ("layout.json").
-private struct PackLayout: Decodable {
-    struct Page: Decodable {
-        let id: String
-        let label: String
-        let rows: [[String]]
-    }
-
-    let format: Int
-    let spaceBar: String
-    let languageKey: String
-    let pages: [Page]
-    let longPress: [String: [String]]
-    let vowelSignStrip: [String]
-}
-
-private func load() throws -> PackLayout {
-    try JSONDecoder().decode(PackLayout.self, from: Data(contentsOf: layoutFile))
-}
-
-/// The keys of a page that type text, row by row.
-private func characterRows(_ page: KeyboardPage) -> [[Key]] {
-    KeyboardLayout.forPage(page).rows.dropLast().map { row in
-        row.filter { if case .character = $0.action { true } else { false } }
-    }
-}
-
-private func text(_ key: Key) -> String {
-    if case .character(let c) = key.action { return c }
-    return ""
-}
-
-/// Until the keyboard reads layout.json (phase 2, task 11), the file must say exactly what
-/// the compiled-in Malayalam layout does.
+/// The native keyboard comes from packs/ml.neopack: its manifest (`PackDescriptor`) and its
+/// layout.json (`PackLayout`, format in docs/design/2026-11-06-m6-language-packs-design.md).
 @MainActor
 struct PackLayoutTests {
-    private let pages: [KeyboardPage] = [.malayalam, .malayalamMore, .malayalamVowels]
-
-    @Test func pagesEqualTheCompiledInLayout() throws {
-        let layout = try load()
-        #expect(layout.format == 1)
+    @Test func theManifestDescribesMalayalam() throws {
+        #expect(malayalamPack.id == "ml")
+        #expect(malayalamPack.name == "Malayalam")
+        #expect(malayalamPack.nativeName == "മലയാളം")
+        #expect(malayalamPack.script == "mlym")
+        #expect(malayalamPack.romanisedName == "Manglish")
+        let layout = try #require(malayalamPack.layout)
         #expect(layout.pages.map(\.id) == ["letters", "more", "vowels"])
-        for (page, filed) in zip(pages, layout.pages) {
-            #expect(characterRows(page).map { $0.map(text) } == filed.rows, "page \(filed.id)")
-        }
+        #expect(layout.pages.map(\.label) == ["കഖ", "ശഷ", "അആ"])
     }
 
-    @Test func longPressEqualsTheCompiledInAlternates() throws {
-        let layout = try load()
-        var alternates: [String: [String]] = [:]
-        for page in pages {
-            for key in characterRows(page).joined() where !key.alternates.isEmpty {
-                alternates[text(key)] = key.alternates
-            }
-        }
-        #expect(layout.longPress == alternates)
-    }
-
-    @Test func labelsEqualTheCompiledInOnes() throws {
-        let layout = try load()
-        let input = InputController(output: RecordingOutput())
+    @Test func labelsComeFromTheLayout() throws {
+        let layout = try #require(malayalamPack.layout)
+        let input = InputController(output: RecordingOutput(), languages: englishAndMalayalam)
         #expect(input.label(for: .toggleLanguage) == layout.languageKey)
         input.handle(.toggleLanguage, at: 0)
-        #expect(input.language == .malayalam)
+        #expect(input.language == malayalam)
+        #expect(input.page == .native("letters"))
         #expect(input.label(for: .space) == layout.spaceBar)
-        #expect(pages.map { input.label(for: .page($0)) } == layout.pages.map(\.label))
+        #expect(layout.pages.map { input.label(for: .page(.native($0.id))) } == layout.pages.map(\.label))
         #expect(input.label(for: .page(.letters)) == layout.pages[0].label)
+        #expect(input.label(for: .toggleLanguage) == "EN")
     }
 
-    @Test func vowelSignStripEqualsTheCompiledInOne() throws {
-        #expect(try load().vowelSignStrip == Malayalam.stripSigns)
+    @Test func pagesTypeWhatTheFileLists() throws {
+        let layout = try #require(malayalamPack.layout)
+        for page in layout.pages {
+            let rows = mlLayout(.native(page.id)).rows.dropLast().map { row in
+                row.compactMap { key -> String? in if case .character(let c) = key.action { c } else { nil } }
+            }
+            #expect(rows == page.rows, "page \(page.id)")
+        }
+        let keys = layout.pages.map { mlLayout(.native($0.id)) }.flatMap(\.rows).joined()
+        for (text, options) in layout.longPress {
+            #expect(keys.first { $0.action == .character(text) }?.alternates == options, "\(text)")
+        }
+    }
+
+    @Test func aLayoutOfAnotherFormatOrWithoutPagesIsRefused() {
+        let json = { (format: Int, pages: String) in
+            Data(#"{"format": \#(format), "spaceBar": "x", "languageKey": "x", "pages": \#(pages)}"#.utf8)
+        }
+        #expect(throws: PackLayout.Invalid.self) { try PackLayout.parse(json(2, #"[{"id": "a", "label": "a", "rows": [["a"]]}]"#)) }
+        #expect(throws: PackLayout.Invalid.self) { try PackLayout.parse(json(1, "[]")) }
+        #expect(throws: PackLayout.Invalid.self) { try PackLayout.parse(json(1, #"[{"id": "a", "label": "a", "rows": [[""]]}]"#)) }
+        // Optional fields may be missing and unknown ones are ignored.
+        let parsed = try? PackLayout.parse(Data(#"{"format": 1, "spaceBar": "x", "languageKey": "y", "later": 1, "pages": [{"id": "a", "label": "a", "rows": [["a"]]}]}"#.utf8))
+        #expect(parsed?.longPress == [:])
+        #expect(parsed?.vowelSignStrip == [])
+    }
+
+    /// Only the bundled pack has a layout today; a pack without one is still described.
+    @Test func scanningFindsEveryPack() {
+        let packs = PackDescriptor.scan(packsFolder)
+        #expect(packs.map(\.id).contains("ml"))
+        #expect(packs.first { $0.id == "ml" }?.layout != nil)
+        for pack in packs where pack.id != "ml" {
+            #expect(pack.layout == nil, "\(pack.id) has a layout.json now: check it draws")
+        }
+        #expect(PackDescriptor.scan(packsFolder.appending(path: "nonexistent")).isEmpty)
+    }
+
+    @Test func theLanguageKeyCyclesTheLanguagesGiven() {
+        let input = InputController(output: RecordingOutput(), languages: [malayalam])
+        #expect(input.language == malayalam)
+        #expect(input.page == .native("letters"))
+        input.languages = englishAndMalayalam
+        #expect(input.language == malayalam, "a language still listed stays")
+        input.languages = [.english]
+        #expect(input.language == .english)
+        #expect(input.page == .letters)
+        input.languages = []
+        #expect(input.languages == [.english])
     }
 }

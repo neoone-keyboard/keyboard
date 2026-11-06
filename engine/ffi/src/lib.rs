@@ -90,11 +90,16 @@ pub struct EngineConfig {
     pub lm: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
-    /// A language pack folder (`<id>.neopack`, M6). When it opens, its files replace
-    /// `malayalam`, `manglish`, `next_words`, `translit` and `lm`; when it is refused, those
-    /// fields are used and `Engine::pack_problem` says why.
+    /// Deprecated: one pack folder, read as one more entry of `pack_dirs` (after them, unless
+    /// it is already listed).
     #[uniffi(default = None)]
     pub pack_dir: Option<String>,
+    /// Language pack folders (`<id>.neopack`, M6), in order. Each that opens is loaded; each
+    /// refused one is left out and `Engine::pack_problems` says why. When none opens (or none
+    /// is given), `malayalam`, `manglish`, `next_words`, `translit` and `lm` describe one
+    /// Malayalam pack instead.
+    #[uniffi(default = [])]
+    pub pack_dirs: Vec<String>,
     /// Milliseconds from the start of a suggest after which the transliterator stops and its
     /// finished spellings are used (`mlengine_core::nn::Deadline`); nil lets it run to the end.
     #[uniffi(default = None)]
@@ -122,19 +127,40 @@ fn millis(ms: Option<u32>) -> Option<std::time::Duration> {
     ms.map(|ms| std::time::Duration::from_millis(ms.into()))
 }
 
-/// The engine's paths for `c`, and why its pack was refused, if it was.
-fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Option<String>) {
-    let path = |s: &Option<String>| s.as_ref().map(std::path::PathBuf::from);
-    let Some(dir) = path(&c.pack_dir) else {
-        return (c.into(), None);
-    };
-    match mlengine_core::pack::Pack::open(&dir) {
-        Ok(pack) => (
-            mlengine_core::Paths::with_packs(path(&c.english), &[pack], path(&c.user_dir)),
-            None,
-        ),
-        Err(e) => (c.into(), Some(e.to_string())),
+/// The pack folders `c` names: `pack_dirs`, then the deprecated `pack_dir` if it isn't one.
+fn pack_dirs(c: &EngineConfig) -> Vec<String> {
+    let mut dirs = c.pack_dirs.clone();
+    if let Some(dir) = c.pack_dir.as_ref().filter(|d| !dirs.contains(d)) {
+        dirs.push(dir.clone());
     }
+    dirs
+}
+
+/// The engine's paths for `c`, and why each refused pack was refused ("<folder>: <reason>").
+fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Vec<String>) {
+    let path = |s: &Option<String>| s.as_ref().map(std::path::PathBuf::from);
+    let mut packs = Vec::new();
+    let mut problems = Vec::new();
+    for dir in pack_dirs(c) {
+        let dir = std::path::PathBuf::from(dir);
+        match mlengine_core::pack::Pack::open(&dir) {
+            Ok(pack) => packs.push(pack),
+            Err(e) => {
+                let name = dir.file_name().map_or_else(
+                    || dir.display().to_string(),
+                    |n| n.to_string_lossy().into_owned(),
+                );
+                problems.push(format!("{name}: {e}"));
+            }
+        }
+    }
+    if packs.is_empty() {
+        return (c.into(), problems);
+    }
+    (
+        mlengine_core::Paths::with_packs(path(&c.english), &packs, path(&c.user_dir)),
+        problems,
+    )
 }
 
 impl From<&EngineConfig> for mlengine_core::Paths {
@@ -189,7 +215,7 @@ pub struct Engine {
     lm_after_space: Option<std::time::Duration>,
     lm_deadline: Option<std::time::Duration>,
     lm_prepare: Option<std::time::Duration>,
-    pack_problem: Option<String>,
+    pack_problems: Vec<String>,
 }
 
 /// The engine's layout for `layout`; a language that isn't loaded is Latin.
@@ -230,14 +256,14 @@ impl Engine {
     #[uniffi::constructor]
     pub fn new(config: EngineConfig) -> Result<Arc<Self>, EngineError> {
         guarded(|| {
-            let (paths, pack_problem) = paths(&config);
+            let (paths, pack_problems) = paths(&config);
             let mut inner = mlengine_core::Engine::open(&paths);
             if set_active(&mut inner, &config.active).is_err() {
                 inner.set_default_active();
             }
             Arc::new(Self {
                 inner: std::sync::RwLock::new(inner),
-                pack_problem,
+                pack_problems,
                 model_deadline: millis(config.model_deadline_ms),
                 lm_prefill: millis(config.lm_prefill_ms),
                 lm_after_space: millis(config.lm_after_space_ms),
@@ -421,9 +447,10 @@ impl Engine {
     }
 
     /// Which sources loaded, for diagnostics ("english", "ml:lexicon", "ml:lm", ...).
-    /// Why the configured pack was refused; nil when it opened or none was given.
-    pub fn pack_problem(&self) -> Option<String> {
-        self.pack_problem.clone()
+    /// Why each refused pack folder was refused, one line per pack ("xx.neopack: manifest
+    /// unreadable: ..."); empty when every pack opened or none was given.
+    pub fn pack_problems(&self) -> Vec<String> {
+        self.pack_problems.clone()
     }
 
     pub fn loaded_sources(&self) -> Result<Vec<String>, EngineError> {
@@ -442,10 +469,17 @@ pub fn nn_kernel() -> String {
     mlengine_core::nn::ops::kernel().to_string()
 }
 
-/// The consonant a vowel sign would attach to, if the text ends in one.
+/// The letter at the end of `context_before` that a vowel sign typed next would attach to, if
+/// any (`ScriptRules::mark_base`), in the script `script` (a pack manifest's `script`, "mlym").
+/// Nil for a script this engine has no rules for. A free function, not an `Engine` method:
+/// the keyboard asks on every key, on the main thread, before and without the engine.
 #[uniffi::export]
-pub fn malayalam_vowel_sign_base(context_before: String) -> Result<Option<String>, EngineError> {
-    guarded(|| mlengine_core::malayalam::vowel_sign_base(&context_before).map(String::from))
+pub fn native_mark_base(script: String, context_before: String) -> Result<Option<String>, EngineError> {
+    guarded(|| {
+        mlengine_core::script::rules(&script)
+            .and_then(|rules| rules.mark_base(&context_before))
+            .map(String::from)
+    })
 }
 
 /// Timings from `NnBenchmark::run`, for the runtime spike's debug screen.
@@ -668,7 +702,7 @@ mod tests {
             ..EngineConfig::default()
         };
         let engine = Engine::new(config).unwrap();
-        assert_eq!(engine.pack_problem(), None);
+        assert!(engine.pack_problems().is_empty());
         assert_eq!(
             engine.loaded_sources().unwrap(),
             ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"]
@@ -710,13 +744,37 @@ mod tests {
     }
 
     #[test]
+    fn each_pack_folder_opens_or_says_why() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dirs: vec![
+                "/nonexistent/xx.neopack".into(),
+                format!("{root}/packs/ml.neopack"),
+            ],
+            // The deprecated field, naming a folder already listed, is not opened twice.
+            pack_dir: Some(format!("{root}/packs/ml.neopack")),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        let problems = engine.pack_problems();
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].starts_with("xx.neopack: "), "{problems:?}");
+        let ml = InputLayout::Native { language: "ml".into() };
+        assert_eq!(engine.layouts().unwrap(), [InputLayout::Latin, ml]);
+        assert!(engine.loaded_sources().unwrap().contains(&"ml:lexicon".to_string()));
+    }
+
+    #[test]
     fn a_refused_pack_says_why_and_uses_the_explicit_paths() {
         let config = EngineConfig {
             pack_dir: Some("/nonexistent/xx.neopack".into()),
             ..EngineConfig::default()
         };
         let engine = Engine::new(config).unwrap();
-        assert!(engine.pack_problem().unwrap().starts_with("manifest unreadable"));
+        let problems = engine.pack_problems();
+        assert_eq!(problems.len(), 1, "{problems:?}");
+        assert!(problems[0].starts_with("xx.neopack: manifest unreadable"), "{problems:?}");
         assert!(engine.loaded_sources().unwrap().is_empty());
     }
 
@@ -860,8 +918,11 @@ mod tests {
     }
 
     #[test]
-    fn malayalam_vowel_sign_base_crosses_ffi() {
-        assert_eq!(malayalam_vowel_sign_base("ന്റ".into()).unwrap(), Some("റ".to_string()));
-        assert_eq!(malayalam_vowel_sign_base("കി".into()).unwrap(), None);
+    fn native_mark_base_crosses_ffi() {
+        let base = |script: &str, text: &str| native_mark_base(script.into(), text.into()).unwrap();
+        assert_eq!(base("mlym", "ന്റ"), Some("റ".to_string()));
+        assert_eq!(base("mlym", "കി"), None);
+        // A script without rules has no strip.
+        assert_eq!(base("zzzz", "ക"), None);
     }
 }

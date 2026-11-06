@@ -66,9 +66,10 @@ import MLEngine
     #expect(p99 < .microseconds(200), "p99 FFI round-trip was \(p99)")
 }
 
-@Test func vowelSignBaseCrossesFFI() throws {
-    #expect(try malayalamVowelSignBase(contextBefore: "ന്റ") == "റ")
-    #expect(try malayalamVowelSignBase(contextBefore: "കി") == nil)
+@Test func markBaseCrossesFFI() throws {
+    #expect(try nativeMarkBase(script: "mlym", contextBefore: "ന്റ") == "റ")
+    #expect(try nativeMarkBase(script: "mlym", contextBefore: "കി") == nil)
+    #expect(try nativeMarkBase(script: "zzzz", contextBefore: "ക") == nil)
 }
 
 /// The committed lexicon bundle, found from this file's path.
@@ -91,8 +92,8 @@ private func bundledConfig() -> EngineConfig {
 }
 
 @Test func thePackLoadsThroughItsManifest() throws {
-    let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDir: packDir.path))
-    #expect(engine.packProblem() == nil)
+    let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDirs: [packDir.path]))
+    #expect(engine.packProblems().isEmpty)
     #expect(try engine.loadedSources() == ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"])
     #expect(try engine.layouts() == [.latin, .native(language: "ml")])
     #expect(throws: EngineError.self) { try engine.setActiveLanguages(languages: ["en", "ml", "hi"]) }

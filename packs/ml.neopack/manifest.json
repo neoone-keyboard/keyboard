@@ -33,49 +33,76 @@
   },
   "credits": [
     {
+      "id": "mlwiki",
       "name": "Malayalam Wikipedia",
       "licence": "CC BY-SA 4.0",
-      "url": "https://ml.wikipedia.org/"
+      "url": "https://ml.wikipedia.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Text of Malayalam Wikipedia articles by Wikipedia contributors, used for the word lists and to train the language model, also romanised as Manglish."
     },
     {
+      "id": "mlwikisource",
       "name": "Malayalam Wikisource",
       "licence": "CC BY-SA 4.0",
-      "url": "https://ml.wikisource.org/"
+      "url": "https://ml.wikisource.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Texts on Malayalam Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0. Used for the word lists and to train the language model."
     },
     {
+      "id": "smc-words",
       "name": "SMC Malayalam word lists",
       "licence": "CC BY-SA 3.0",
-      "url": "https://gitlab.com/smc/corpus"
+      "url": "https://gitlab.com/smc/corpus",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "attribution": "Word lists from the Malayalam Corpus by Swathanthra Malayalam Computing (SMC), prepared for the mlmorph project. Its list of English borrowings marks loanwords in the language model's Manglish text."
     },
     {
+      "id": "dakshina",
       "name": "Dakshina dataset (Google Research)",
       "licence": "CC BY-SA 4.0",
-      "url": "https://github.com/google-research-datasets/dakshina"
+      "url": "https://github.com/google-research-datasets/dakshina",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Malayalam romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator and to romanise the language model's Manglish text. https://github.com/google-research-datasets/dakshina"
     },
     {
+      "id": "aksharantar",
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
-      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution": "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator and to find English loanwords for the language model. https://huggingface.co/datasets/ai4bharat/Aksharantar"
     },
     {
+      "id": "enwiki",
       "name": "English Wikipedia",
       "licence": "CC BY-SA 4.0",
-      "url": "https://en.wikipedia.org/"
+      "url": "https://en.wikipedia.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Text of English Wikipedia articles by Wikipedia contributors, used for the word lists and to train the language model."
     },
     {
+      "id": "simplewiki",
       "name": "Simple English Wikipedia",
       "licence": "CC BY-SA 4.0",
-      "url": "https://simple.wikipedia.org/"
+      "url": "https://simple.wikipedia.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Text of Simple English Wikipedia articles by Wikipedia contributors, used to train the language model. https://simple.wikipedia.org/"
     },
     {
+      "id": "enwikinews",
       "name": "English Wikinews",
       "licence": "CC BY 2.5 and CC BY 4.0",
-      "url": "https://en.wikinews.org/"
+      "url": "https://en.wikinews.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "News articles from English Wikinews, by Wikinews contributors. This work may be attributed to 'Wikinews'. Used to train the language model. https://en.wikinews.org/"
     },
     {
+      "id": "gutenberg",
       "name": "Project Gutenberg",
       "licence": "Public domain",
-      "url": "https://www.gutenberg.org/"
+      "url": "https://www.gutenberg.org/",
+      "licenceUrl": "https://www.gutenberg.org/",
+      "attribution": "Public-domain texts from Project Gutenberg, used to train the language model. https://www.gutenberg.org/"
     }
   ]
 }

@@ -42,17 +42,19 @@ import KeyboardCore
     #expect(bar.right == nil)
 }
 
-@Test func stripPutsTheLikeliestSignsFirst() {
-    let ordered = Malayalam.orderedStripSigns(preferred: ["\u{0D41}", "\u{0D3F}"])
+@Test func stripPutsTheLikeliestSignsFirst() throws {
+    let layout = try #require(malayalamPack.layout)
+    let ordered = layout.orderedStripSigns(preferred: ["\u{0D41}", "\u{0D3F}"])
     #expect(ordered.prefix(2) == ["\u{0D41}", "\u{0D3F}"])
-    #expect(ordered.count == Malayalam.stripSigns.count)
-    #expect(Set(ordered) == Set(Malayalam.stripSigns))
-    #expect(Array(ordered.dropFirst(2)) == Malayalam.stripSigns.filter { $0 != "\u{0D41}" && $0 != "\u{0D3F}" })
+    #expect(ordered.count == layout.vowelSignStrip.count)
+    #expect(Set(ordered) == Set(layout.vowelSignStrip))
+    #expect(Array(ordered.dropFirst(2)) == layout.vowelSignStrip.filter { $0 != "\u{0D41}" && $0 != "\u{0D3F}" })
 }
 
-@Test func stripIgnoresUnknownAndRepeatedSigns() {
-    #expect(Malayalam.orderedStripSigns(preferred: ["x", "\u{0D3E}", "\u{0D3E}"]) == Malayalam.stripSigns)
-    #expect(Malayalam.orderedStripSigns(preferred: []) == Malayalam.stripSigns)
+@Test func stripIgnoresUnknownAndRepeatedSigns() throws {
+    let layout = try #require(malayalamPack.layout)
+    #expect(layout.orderedStripSigns(preferred: ["x", "\u{0D3E}", "\u{0D3E}"]) == layout.vowelSignStrip)
+    #expect(layout.orderedStripSigns(preferred: []) == layout.vowelSignStrip)
 }
 
 @Test func holdingASlotAsksToRemoveItsWord() {

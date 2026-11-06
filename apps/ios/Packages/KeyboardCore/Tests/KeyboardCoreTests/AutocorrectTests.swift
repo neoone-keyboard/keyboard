@@ -14,7 +14,7 @@ struct AutocorrectTests {
     }
 
     init() {
-        input = InputController(output: output)
+        input = InputController(output: output, languages: englishAndMalayalam)
         let log = EventLog()
         events = log
         input.onLearningEvent = { log.events.append($0) }

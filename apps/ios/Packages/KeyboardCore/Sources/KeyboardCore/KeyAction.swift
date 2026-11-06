@@ -8,19 +8,19 @@ public enum KeyAction: Hashable, Sendable {
     case nextKeyboard
     /// Switch to another page of keys. `.letters` means "the alphabet of the current language".
     case page(KeyboardPage)
-    /// Switch between English and Malayalam.
+    /// Switch to the next language (`InputController.languages`).
     case toggleLanguage
     /// Show the emoji panel in place of the keys.
     case emoji
 }
 
-public enum KeyboardPage: Hashable, Sendable, CaseIterable {
-    case letters, symbols, moreSymbols, malayalam, malayalamMore, malayalamVowels
+public enum KeyboardPage: Hashable, Sendable {
+    case letters, symbols, moreSymbols
+    /// A page of the current language's native layout, by its id in `layout.json` ("letters",
+    /// "more", "vowels").
+    case native(String)
 
-    public var isMalayalam: Bool {
-        switch self {
-        case .malayalam, .malayalamMore, .malayalamVowels: true
-        case .letters, .symbols, .moreSymbols: false
-        }
+    public var isNative: Bool {
+        if case .native = self { true } else { false }
     }
 }

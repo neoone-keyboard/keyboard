@@ -122,7 +122,7 @@ enum SuggestCheck {
             EngineConfig(
                 english: file("Lexicon", "en.fst"),
                 userDir: nil,
-                packDir: appex.appendingPathComponent("packs/ml.neopack").path,
+                packDirs: [appex.appendingPathComponent("packs/ml.neopack").path],
                 modelDeadlineMs: deadline,
                 lmPrefillMs: deadline == nil ? nil : lmPrefillMs,
                 lmAfterSpaceMs: deadline == nil ? nil : lmAfterSpaceMs,

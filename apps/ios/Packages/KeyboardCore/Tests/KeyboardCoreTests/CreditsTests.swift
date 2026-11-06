@@ -25,6 +25,9 @@ private struct Manifest: Decodable {
     var isM3bTraining: Bool { used_for?.contains("M3b LM text (training)") ?? false }
 }
 
+/// The keyboard's data sources with the bundled pack: English's own, then Malayalam's manifest's.
+private let dataSources = Credits.dataSources(packs: [malayalamPack])
+
 @Test func everyShippedManifestIsCreditedWithItsLicence() throws {
     let dir = repoRoot.appending(path: "data/manifests")
     let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
@@ -33,7 +36,7 @@ private struct Manifest: Decodable {
     let all = try files.map { try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: $0)) }
     let manifests = all.filter(\.isShipped)
     for manifest in manifests {
-        let credit = Credits.dataSources.first { $0.id == manifest.id }
+        let credit = dataSources.first { $0.id == manifest.id }
         #expect(credit?.licence == manifest.licence, "\(manifest.id) is not credited with \(manifest.licence)")
     }
     let training = all.filter(\.isM3bTraining)
@@ -41,7 +44,7 @@ private struct Manifest: Decodable {
     for manifest in training {
         #expect(manifest.isShipped, "\(manifest.id) trains the shipped LM but is not marked as shipped")
     }
-    #expect(Set(manifests.map(\.id)) == Set(Credits.dataSources.map(\.id)), "a credit has no manifest")
+    #expect(Set(manifests.map(\.id)) == Set(dataSources.map(\.id)), "a credit has no manifest")
 }
 
 /// engine/shipped-crates.txt is generated from `cargo tree -p mlengine-ffi` and kept fresh by
@@ -60,10 +63,28 @@ private struct Manifest: Decodable {
 }
 
 @Test func creditsHaveUniqueIdsAndUsableLinks() {
-    for list in [Credits.dataSources, Credits.software] {
+    for list in [dataSources, Credits.software] {
         #expect(Set(list.map(\.id)).count == list.count, "duplicate credit id")
         for credit in list {
             #expect(URL(string: credit.licenceURL)?.scheme != nil, "\(credit.id) has a bad link")
         }
     }
+}
+
+/// Every credit in a pack's manifest names its source fully: the About screen shows the
+/// attribution and links the licence.
+@Test func packCreditsAreComplete() {
+    #expect(!malayalamPack.credits.isEmpty)
+    for credit in malayalamPack.credits {
+        #expect(credit.id != credit.name, "\(credit.name) has no id")
+        #expect(credit.licenceURL.hasPrefix("http"), "\(credit.id) has no licence link")
+        #expect(credit.attribution.count > 40, "\(credit.id) has no attribution")
+    }
+}
+
+/// A source credited by English and a pack (English Wikipedia) is listed once.
+@Test func eachSourceIsListedOnce() {
+    #expect(dataSources.filter { $0.id == "enwiki" }.count == 1)
+    #expect(Array(dataSources.prefix(Credits.english.count)) == Credits.english)
+    #expect(Credits.dataSources(packs: []) == Credits.english)
 }

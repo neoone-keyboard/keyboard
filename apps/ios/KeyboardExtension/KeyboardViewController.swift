@@ -52,7 +52,7 @@ final class KeyboardViewController: UIInputViewController {
     private static let swipeTimeout: Duration = .milliseconds(250)
 
     private lazy var output = ProxyTextOutput { [unowned self] in self.textDocumentProxy }
-    private lazy var input = InputController(output: output)
+    private lazy var input = InputController(output: output, languages: EngineSuggestionProvider.defaultLanguages)
 
     private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] result in
         guard let self else { return }
@@ -304,7 +304,9 @@ final class KeyboardViewController: UIInputViewController {
         Task { [weak self, provider] in
             await provider.resume()
             await provider.warmUp(contextBefore: contextBefore)
+            let layouts = await provider.layouts()
             self?.refreshLearnedAddresses()
+            if let layouts { self?.applyLayouts(layouts) }
         }
     }
 
@@ -357,6 +359,17 @@ final class KeyboardViewController: UIInputViewController {
             let addresses = await provider.learnedAddresses()
             self?.input.learnedAddresses = addresses
         }
+    }
+
+    /// The language key cycles the engine's layouts (its active languages). Until the engine
+    /// opens it cycles `EngineSuggestionProvider.defaultLanguages`, the same list by default,
+    /// so this redraws only when the engine's list differs.
+    private func applyLayouts(_ layouts: [InputLayout]) {
+        let languages = EngineSuggestionProvider.languages(for: layouts)
+        guard !languages.isEmpty, languages != input.languages else { return }
+        input.languages = languages
+        // The keys, their labels and the bar may all change with the list.
+        applySettings()
     }
 
     override func viewWillLayoutSubviews() {
@@ -620,7 +633,7 @@ final class KeyboardViewController: UIInputViewController {
         guard let catalog = emojiPanel?.catalog, let words = Self.emojiSearchWords else { return }
         hideEmojiPanel()
         keyboardView.cancelAllTouches()
-        if input.page != .letters, !input.page.isMalayalam {
+        if input.page != .letters, !input.page.isNative {
             input.handle(.page(.letters), at: ProcessInfo.processInfo.systemUptime)
             reloadKeys()
         }
@@ -840,15 +853,15 @@ final class KeyboardViewController: UIInputViewController {
             return
         }
         let current = latest.isFor(word: word) ? latest : nil
-        if input.language == .malayalam {
+        if case .pack(let pack) = input.language, let layout = pack.layout, !layout.vowelSignStrip.isEmpty {
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
-            if let base = try? malayalamVowelSignBase(contextBefore: context) {
+            if let base = try? nativeMarkBase(script: pack.script, contextBefore: context) {
                 // Vowel signs apply to whatever consonant is there, so an older strip can stay.
                 if current == nil, awaitingResult, topBar.showsVowelSigns { return }
                 barWord = word
                 topBar.showVowelSigns(
                     base: base,
-                    signs: Malayalam.orderedStripSigns(preferred: current?.vowelSigns ?? []),
+                    signs: layout.orderedStripSigns(preferred: current?.vowelSigns ?? []),
                     completion: current?.candidates.first { $0.kind == .completion }
                 )
                 return
@@ -886,7 +899,7 @@ final class KeyboardViewController: UIInputViewController {
         // Once per reason until the bar fills: not once per key while prediction is off.
         guard reason != loggedEmptyBar else { return }
         loggedEmptyBar = reason
-        log.info("Bar empty: \(reason); word \(input.currentWord.count) chars, \(input.language == .malayalam ? "ml" : "latin"), footprint \(Diagnostics.footprint())")
+        log.info("Bar empty: \(reason); word \(input.currentWord.count) chars, \(input.language.id), footprint \(Diagnostics.footprint())")
     }
 
     /// Types a short report into the field (no Full Access, so no pasteboard): the build,

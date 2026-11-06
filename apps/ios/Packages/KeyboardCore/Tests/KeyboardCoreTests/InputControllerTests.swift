@@ -20,7 +20,7 @@ struct InputControllerTests {
     let output = RecordingOutput()
     let input: InputController
 
-    init() { input = InputController(output: output) }
+    init() { input = InputController(output: output, languages: englishAndMalayalam) }
 
     func type(_ actions: KeyAction..., startingAt time: Double = 0) {
         for (i, action) in actions.enumerated() {
@@ -121,8 +121,8 @@ struct InputControllerTests {
 
     @Test func toggleLanguageSwitchesToMalayalamAndBack() {
         type(.toggleLanguage)
-        #expect(input.language == .malayalam)
-        #expect(input.page == .malayalam)
+        #expect(input.language == malayalam)
+        #expect(input.page == .native("letters"))
         #expect(input.label(for: .space) == "മലയാളം")
         #expect(input.label(for: .toggleLanguage) == "EN")
         type(.toggleLanguage)
@@ -136,7 +136,7 @@ struct InputControllerTests {
         type(.toggleLanguage, .page(.symbols))
         #expect(input.label(for: .page(.letters)) == "കഖ")
         type(.page(.letters))
-        #expect(input.page == .malayalam)
+        #expect(input.page == .native("letters"))
     }
 
     @Test func malayalamTypingIsNeverUppercased() {
@@ -629,11 +629,11 @@ struct InputControllerTests {
         }
         #expect(english == [use("hello", after: "")])
         type(.toggleLanguage)
-        let malayalam = uses {
+        let native = uses {
             output.text = "എന്റെ വീട്"
             input.handle(.space, at: 0)
         }
-        #expect(malayalam == [WordUse(word: "വീട്", before: "എന്റെ ", language: .malayalam)])
+        #expect(native == [WordUse(word: "വീട്", before: "എന്റെ ", language: malayalam)])
     }
 
     @Test func onlyTheEndOfTheTextIsSent() {
