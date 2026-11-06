@@ -19,5 +19,6 @@
       "sha1": "7d2d99b9ca82de76ea5713d127d25f823f9d8b38",
       "path": "aswikisource-20261101-pages-articles.xml.bz2"
     }
-  ]
+  ],
+  "status": "in packs/as.neopack, a download (credited in its manifest), not in the app"
 }

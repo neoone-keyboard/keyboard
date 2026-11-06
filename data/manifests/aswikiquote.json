@@ -19,5 +19,6 @@
       "sha1": "7d434b8b59cbca8751ceed531b4a594b2f72f561",
       "path": "aswikiquote-20261101-pages-articles.xml.bz2"
     }
-  ]
+  ],
+  "status": "in packs/as.neopack, a download (credited in its manifest), not in the app"
 }

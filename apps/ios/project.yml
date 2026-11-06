@@ -55,10 +55,14 @@ targets:
       - path: KeyboardExtension/Emoji
         type: folder
         buildPhase: resources
-      # Language packs (M6): packs/ml.neopack/ with its manifest, lexicons and models.
-      - path: ../../packs
+      # The bundled language pack (M6): packs/ml.neopack/ with its manifest, lexicons and models.
+      # Only Malayalam's: the other packs in packs/ are downloads (phase 3), not app contents.
+      - path: ../../packs/ml.neopack
         type: folder
-        buildPhase: resources
+        buildPhase:
+          copyFiles:
+            destination: resources
+            subpath: packs
     info:
       path: KeyboardExtension/Info.plist
       properties:

@@ -19,5 +19,6 @@
       "sha1": "404e6f38e2cecd4ae7c645df543806a966787814",
       "path": "aswiki-20261101-pages-articles.xml.bz2"
     }
-  ]
+  ],
+  "status": "in packs/as.neopack, a download (credited in its manifest), not in the app"
 }

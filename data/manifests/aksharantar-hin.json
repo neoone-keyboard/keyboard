@@ -22,5 +22,6 @@
     "hin_train.json": "888a7b5c8a9f7815d227c0ccf9eb52e45b892298f1b7f1fc81f9d654467561d6",
     "hin_valid.json": "e4649aa371337a2dd60c94e6c5f61ac7442a0bcaac017e61f0b6de745d8c2278",
     "hin_test.json": "12eb3497f09391a31cd5b3457ec12089ae2a6e1b60c92d450b74fa810b03d269"
-  }
+  },
+  "status": "in packs/hi.neopack, a download (credited in its manifest), not in the app"
 }

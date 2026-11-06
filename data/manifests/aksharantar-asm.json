@@ -22,5 +22,6 @@
     "asm_train.json": "4732d4736e858a5afefef006ee7ca84046e932456e963e8d63c94b50cd687e81",
     "asm_valid.json": "ee51cdb34f0f45a8d1ecbcc653ca1c0511ebd5e12d045179189ba491296aca83",
     "asm_test.json": "7e6b02ad23d7e550cd778d92dfea34426753b70775ce81e683081e68e4bc2890"
-  }
+  },
+  "status": "in packs/as.neopack, a download (credited in its manifest), not in the app"
 }

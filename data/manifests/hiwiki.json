@@ -19,5 +19,6 @@
       "sha1": "a794b88a2e33727b889f33e476e4cf818479bb32",
       "path": "hiwiki-20261101-pages-articles.xml.bz2"
     }
-  ]
+  ],
+  "status": "in packs/hi.neopack, a download (credited in its manifest), not in the app"
 }
