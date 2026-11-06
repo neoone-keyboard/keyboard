@@ -447,6 +447,7 @@ dependencies = [
  "fst",
  "memmap2",
  "proptest",
+ "serde",
  "serde_json",
  "tempfile",
  "unicode-normalization",
