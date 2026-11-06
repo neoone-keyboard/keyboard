@@ -86,6 +86,11 @@ pub struct EngineConfig {
     pub lm: Option<String>,
     #[uniffi(default = None)]
     pub user_dir: Option<String>,
+    /// A language pack folder (`<id>.neopack`, M6). When it opens, its files replace
+    /// `malayalam`, `manglish`, `next_words`, `translit` and `lm`; when it is refused, those
+    /// fields are used and `Engine::pack_problem` says why.
+    #[uniffi(default = None)]
+    pub pack_dir: Option<String>,
     /// Milliseconds from the start of a suggest after which the transliterator stops and its
     /// finished spellings are used (`mlengine_core::nn::Deadline`); nil lets it run to the end.
     #[uniffi(default = None)]
@@ -106,6 +111,21 @@ pub struct EngineConfig {
 
 fn millis(ms: Option<u32>) -> Option<std::time::Duration> {
     ms.map(|ms| std::time::Duration::from_millis(ms.into()))
+}
+
+/// The engine's paths for `c`, and why its pack was refused, if it was.
+fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Option<String>) {
+    let path = |s: &Option<String>| s.as_ref().map(std::path::PathBuf::from);
+    let Some(dir) = path(&c.pack_dir) else {
+        return (c.into(), None);
+    };
+    match mlengine_core::pack::Pack::open(&dir) {
+        Ok(pack) => (
+            mlengine_core::Paths::with_pack(path(&c.english), &pack, path(&c.user_dir)),
+            None,
+        ),
+        Err(e) => (c.into(), Some(e.to_string())),
+    }
 }
 
 impl From<&EngineConfig> for mlengine_core::Paths {
@@ -153,6 +173,7 @@ pub struct Engine {
     lm_after_space: Option<std::time::Duration>,
     lm_deadline: Option<std::time::Duration>,
     lm_prepare: Option<std::time::Duration>,
+    pack_problem: Option<String>,
 }
 
 #[uniffi::export]
@@ -162,8 +183,10 @@ impl Engine {
     #[uniffi::constructor]
     pub fn new(config: EngineConfig) -> Result<Arc<Self>, EngineError> {
         guarded(|| {
+            let (paths, pack_problem) = paths(&config);
             Arc::new(Self {
-                inner: mlengine_core::Engine::open(&(&config).into()),
+                inner: mlengine_core::Engine::open(&paths),
+                pack_problem,
                 model_deadline: millis(config.model_deadline_ms),
                 lm_prefill: millis(config.lm_prefill_ms),
                 lm_after_space: millis(config.lm_after_space_ms),
@@ -304,6 +327,11 @@ impl Engine {
     }
 
     /// Which lexicons loaded, for diagnostics ("english", "malayalam", ...).
+    /// Why the configured pack was refused; nil when it opened or none was given.
+    pub fn pack_problem(&self) -> Option<String> {
+        self.pack_problem.clone()
+    }
+
     pub fn loaded_sources(&self) -> Result<Vec<String>, EngineError> {
         guarded(|| self.inner.loaded_sources().into_iter().map(String::from).collect())
     }
@@ -529,6 +557,33 @@ mod tests {
         engine.prepare("hello there ".into()).unwrap();
         let s = engine.suggest("hello th".into(), InputLayout::Latin, true).unwrap();
         assert_eq!(s.typed, "th");
+    }
+
+    #[test]
+    fn a_pack_folder_fills_the_malayalam_sources() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dir: Some(format!("{root}/packs/ml.neopack")),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(engine.pack_problem(), None);
+        assert_eq!(
+            engine.loaded_sources().unwrap(),
+            ["english", "malayalam", "manglish", "next_words", "translit", "lm"]
+        );
+    }
+
+    #[test]
+    fn a_refused_pack_says_why_and_uses_the_explicit_paths() {
+        let config = EngineConfig {
+            pack_dir: Some("/nonexistent/xx.neopack".into()),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        assert!(engine.pack_problem().unwrap().starts_with("manifest unreadable"));
+        assert!(engine.loaded_sources().unwrap().is_empty());
     }
 
     #[test]

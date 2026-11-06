@@ -53,27 +53,22 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
     static let shared = bundled()
 
-    /// Lexicons, the transliterator and the language model from the extension bundle; learned
-    /// words in the extension's own container. A file missing from the bundle is passed as nil,
-    /// which disables only that source (without the transliterator, Manglish uses the lexicons
-    /// alone; without the LM, ranking is M3a's).
+    /// English from the extension bundle and Malayalam from the bundled pack
+    /// (`packs/ml.neopack`, M6), whose manifest names its lexicons and models; learned words in
+    /// the extension's own container. A file missing from the pack disables only that source
+    /// (without the transliterator, Manglish uses the lexicons alone; without the LM, ranking
+    /// is M3a's).
     static func bundled() -> EngineSuggestionProvider {
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
         }
-        func model(_ name: String) -> String? {
-            Bundle.main.url(forResource: name, withExtension: "mlkbnn", subdirectory: "Models")?.path
-        }
+        let pack = Bundle.main.resourceURL?.appending(path: "packs/ml.neopack", directoryHint: .isDirectory)
         let userDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appending(path: "LearnedWords", directoryHint: .isDirectory).path
         return EngineSuggestionProvider(config: EngineConfig(
             english: lexicon("en"),
-            malayalam: lexicon("ml"),
-            manglish: lexicon("manglish"),
-            nextWords: lexicon("next"),
-            translit: model("translit"),
-            lm: model("lm"),
             userDir: userDir,
+            packDir: pack?.path,
             modelDeadlineMs: modelDeadlineMs,
             lmPrefillMs: lmPrefillMs,
             lmAfterSpaceMs: lmAfterSpaceMs,
@@ -332,7 +327,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
             failedAt = nil
             refusalLogged = nil
             loadedSources = (try? created.loadedSources()) ?? []
-            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) ml=\(config.malayalam != nil) translit=\(config.translit != nil) lm=\(config.lm != nil); footprint \(Diagnostics.footprint())")
+            if let problem = created.packProblem() {
+                log.error("Pack refused: \(problem)")
+            }
+            log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) pack=\(config.packDir.map { URL(fileURLWithPath: $0).lastPathComponent } ?? "none"); footprint \(Diagnostics.footprint())")
             return created
         } catch {
             log.error("Engine failed to open: \(String(describing: error)); footprint \(Diagnostics.footprint())")

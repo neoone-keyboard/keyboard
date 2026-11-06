@@ -121,12 +121,8 @@ enum SuggestCheck {
         let config = { (deadline: UInt32?) in
             EngineConfig(
                 english: file("Lexicon", "en.fst"),
-                malayalam: file("Lexicon", "ml.fst"),
-                manglish: file("Lexicon", "manglish.fst"),
-                nextWords: file("Lexicon", "next.fst"),
-                translit: file("Models", "translit.mlkbnn"),
-                lm: file("Models", "lm.mlkbnn"),
                 userDir: nil,
+                packDir: appex.appendingPathComponent("packs/ml.neopack").path,
                 modelDeadlineMs: deadline,
                 lmPrefillMs: deadline == nil ? nil : lmPrefillMs,
                 lmAfterSpaceMs: deadline == nil ? nil : lmAfterSpaceMs,

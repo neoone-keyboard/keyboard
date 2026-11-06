@@ -77,9 +77,23 @@ private let lexiconDir = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent().deletingLastPathComponent()
     .appending(path: "KeyboardExtension/Lexicon")
 
+/// The committed Malayalam pack.
+private let packDir = lexiconDir.deletingLastPathComponent().deletingLastPathComponent()
+    .deletingLastPathComponent().deletingLastPathComponent().appending(path: "packs/ml.neopack")
+
+/// The lexicons only, from the bundle and the pack: the tests time the lexicon path, so the
+/// pack's models are left out.
 private func bundledConfig() -> EngineConfig {
-    func path(_ name: String) -> String { lexiconDir.appending(path: "\(name).fst").path }
-    return EngineConfig(english: path("en"), malayalam: path("ml"), manglish: path("manglish"), nextWords: path("next"))
+    let pack = { (name: String) in packDir.appending(path: "\(name).fst").path }
+    return EngineConfig(
+        english: lexiconDir.appending(path: "en.fst").path,
+        malayalam: pack("ml"), manglish: pack("manglish"), nextWords: pack("next"))
+}
+
+@Test func thePackLoadsThroughItsManifest() throws {
+    let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDir: packDir.path))
+    #expect(engine.packProblem() == nil)
+    #expect(try engine.loadedSources() == ["english", "malayalam", "manglish", "next_words", "translit", "lm"])
 }
 
 @Test func bundledLexiconsLoadAndCorrect() throws {

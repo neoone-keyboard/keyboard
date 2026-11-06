@@ -55,8 +55,8 @@ targets:
       - path: KeyboardExtension/Emoji
         type: folder
         buildPhase: resources
-      # The int8 transliterator and the LM (`make models`), in the bundle under Models/.
-      - path: KeyboardExtension/Models
+      # Language packs (M6): packs/ml.neopack/ with its manifest, lexicons and models.
+      - path: ../../packs
         type: folder
         buildPhase: resources
     info:
