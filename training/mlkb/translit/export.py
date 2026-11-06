@@ -2,7 +2,7 @@
 
     uv run --group train python -m mlkb.translit.export \\
         --checkpoint training/build/translit.pt --out training/build/translit.mlkbnn \\
-        [--reference training/build/translit-reference.json]
+        [--reference training/build/translit-reference.json] [--lang ml]
 
 The format is documented at the top of `engine/core/src/nn/file.rs`, which reads it; keep the
 two in sync. In short: a header with the model shape, then every `state_dict` tensor under its
@@ -13,6 +13,10 @@ f32), each data block aligned to 16 bytes, then an FNV-1a checksum. The language
 `--reference` also writes, for `REFERENCE_CASES`, the encoder output and the decoder logits at
 every step, from PyTorch in eval mode on the float weights and on the dequantised int8 weights.
 The Rust forward pass is tested against such a file.
+
+For a language other than Malayalam (`--lang`), the file also carries `vocab.tgt` (raw bytes):
+the UTF-8 of the target characters in token order after the three specials, so a reader can
+take the vocabulary from the file (M6 design, Engine changes). The Malayalam file is unchanged.
 """
 
 import argparse
@@ -25,7 +29,8 @@ import numpy as np
 import torch
 
 from mlkb.translit.model import Config, Translit
-from mlkb.translit.vocab import encode_latin, encode_ml
+from mlkb import langs
+from mlkb.translit.vocab import MALAYALAM, Vocab, encode_latin, encode_ml, native
 
 MAGIC = b"MLKBNN01"
 VERSION = 1
@@ -92,9 +97,14 @@ def write(path: Path, config: dict, tensors: dict[str, np.ndarray | bytes], kind
     Path(path).write_bytes(bytes(out))
 
 
-def export_model(model: Translit, path: Path) -> None:
-    """Writes `model`'s weights (its `state_dict`, in order) and shape to `path`."""
-    tensors = {name: t.detach().cpu().float().numpy() for name, t in model.state_dict().items()}
+def export_model(model: Translit, path: Path, vocab: Vocab = MALAYALAM) -> None:
+    """Writes `model`'s weights (its `state_dict`, in order) and shape to `path`, and for a
+    vocabulary other than Malayalam's its characters as `vocab.tgt`."""
+    tensors: dict[str, np.ndarray | bytes] = {
+        name: t.detach().cpu().float().numpy() for name, t in model.state_dict().items()
+    }
+    if vocab != MALAYALAM:
+        tensors["vocab.tgt"] = "".join(vocab.chars).encode()
     write(path, model.config.to_dict(), tensors)
 
 
@@ -158,7 +168,7 @@ def dequantised_model(path: Path) -> Translit:
     """A `Translit` in eval mode holding the file's weights exactly as the engine sees them."""
     config, tensors = read(path)
     model = Translit(Config(**{k: config[k] for k in FIELDS}))
-    model.load_state_dict({k: torch.from_numpy(v) for k, v in tensors.items()})
+    model.load_state_dict({k: torch.from_numpy(v) for k, v in tensors.items() if not isinstance(v, bytes)})
     return model.eval()
 
 
@@ -174,13 +184,13 @@ def _outputs(model: Translit, src: list[int], tgt: list[int]) -> dict:
     return {"encoder": _rounded(memory[0]), "logits": _rounded(logits[0])}
 
 
-def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES) -> dict:
+def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES, vocab: Vocab = MALAYALAM) -> dict:
     """Reference outputs for each case: token ids fed in, then the encoder output `[src, d]`
     and the decoder logits after each fed token `[tgt, tgt_vocab]`, from `model` ("float")
     and from `dequantised`. Values are rounded to 5 decimals."""
     out = []
     for latin, malayalam in cases:
-        src, tgt = encode_latin(latin), encode_ml(malayalam)[:-1]
+        src, tgt = encode_latin(latin), encode_ml(malayalam, vocab)[:-1]
         out.append(
             {
                 "latin": latin,
@@ -194,9 +204,11 @@ def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES) -> 
     return {"config": {k: getattr(model.config, k) for k in FIELDS}, "cases": out}
 
 
-def write_reference(model: Translit, model_path: Path, out: Path, cases=REFERENCE_CASES) -> None:
+def write_reference(
+    model: Translit, model_path: Path, out: Path, cases=REFERENCE_CASES, vocab: Vocab = MALAYALAM
+) -> None:
     """Writes `reference` for `model` and the dequantised weights in `model_path` to `out`."""
-    ref = reference(model, dequantised_model(model_path), cases)
+    ref = reference(model, dequantised_model(model_path), cases, vocab)
     Path(out).write_text(json.dumps(ref, separators=(",", ":")) + "\n")
 
 
@@ -213,13 +225,16 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--reference", type=Path, help="also write PyTorch reference outputs (JSON)")
+    p.add_argument("--lang", default="ml", help="target language (a file in mlkb/langs)")
     args = p.parse_args(argv)
+    vocab = native(args.lang)
+    cases = REFERENCE_CASES if args.lang == "ml" else langs.load(args.lang).reference
     model = load_checkpoint(args.checkpoint)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    export_model(model, args.out)
+    export_model(model, args.out, vocab)
     print(f"wrote {args.out} ({args.out.stat().st_size:,} bytes)", file=sys.stderr)
     if args.reference:
-        write_reference(model, args.out, args.reference)
+        write_reference(model, args.out, args.reference, cases, vocab)
         print(f"wrote {args.reference}", file=sys.stderr)
 
 

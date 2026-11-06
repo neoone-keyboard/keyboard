@@ -1,0 +1,13 @@
+{
+  "id": "hi",
+  "name": "Hindi",
+  "script": "deva",
+  "block": ["0900", "097F"],
+  "pack": "packs/hi.neopack",
+  "lexicon": "hi.fst",
+  "romaniser": "packs/hi.neopack/romanisation.json",
+  "dakshina": "hi",
+  "aksharantar": {"dir": "data/raw/aksharantar-hin/extracted", "prefix": "hin"},
+  "eval": "data/eval/hi",
+  "reference": [["kya", "क्या"], ["namaste", "नमस्ते"], ["samajhna", "समझना"], ["zindagi", "ज़िंदगी"], ["bharat", "भारत"]]
+}

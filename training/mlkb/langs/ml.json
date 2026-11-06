@@ -1,0 +1,13 @@
+{
+  "id": "ml",
+  "name": "Malayalam",
+  "script": "mlym",
+  "block": ["0D00", "0D7F"],
+  "pack": "packs/ml.neopack",
+  "lexicon": "ml.fst",
+  "romaniser": "code",
+  "dakshina": "ml",
+  "aksharantar": {"dir": "data/raw/aksharantar/extracted", "prefix": "mal"},
+  "eval": "data/eval",
+  "reference": [["ente", "എന്റെ"], ["nanni", "നന്ദി"], ["enthu", "എന്തു"], ["kollamo", "കൊള്ളാമോ"], ["jishnu", "ജിഷ്ണു"]]
+}

@@ -1,7 +1,9 @@
 """Trains the transliterator on the pair files from `mlkb.data.pairs`.
 
     uv run --group train python -m mlkb.translit.train \\
-        --pairs training/build/pairs --out training/build/translit.pt
+        --pairs training/build/pairs --out training/build/translit.pt [--lang ml]
+
+`--lang` (a file in `mlkb/langs`, Malayalam by default) picks the target script's vocabulary.
 
 AdamW (lr 5e-4, 2k warmup steps, cosine decay to 10% over `--steps`), batch 512, label
 smoothing 0.1, gradient clipping at 1.0, on MPS when available.
@@ -30,7 +32,7 @@ import torch.nn.functional as F
 
 from mlkb.translit.decode import greedy_tokens
 from mlkb.translit.model import Config, Translit, param_count
-from mlkb.translit.vocab import LATIN, MALAYALAM, decode_ml, encode_latin, encode_ml, fits
+from mlkb.translit.vocab import LATIN, MALAYALAM, Vocab, decode_ml, encode_latin, encode_ml, fits, native
 
 ROOT = Path(__file__).resolve().parents[3]
 PAIRS = ROOT / "training/build/pairs"
@@ -41,38 +43,40 @@ def log(msg: str) -> None:
     print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
 
 
-def read_pairs(path: Path, max_len: int) -> tuple[list[tuple[str, str]], int]:
-    """The `latin<TAB>malayalam` rows of `path` that fit the model, and how many didn't."""
+def read_pairs(path: Path, max_len: int, vocab: Vocab = MALAYALAM) -> tuple[list[tuple[str, str]], int]:
+    """The `latin<TAB>native` rows of `path` that fit the model, and how many didn't."""
     rows, dropped = [], 0
     with path.open(encoding="utf-8") as f:
         for line in f:
             latin, ml = line.rstrip("\n").split("\t")
-            if fits(latin, ml, max_len):
+            if fits(latin, ml, max_len, vocab):
                 rows.append((latin, ml))
             else:
                 dropped += 1
     return rows, dropped
 
 
-def to_arrays(rows: list[tuple[str, str]], max_len: int) -> tuple[np.ndarray, np.ndarray]:
+def to_arrays(
+    rows: list[tuple[str, str]], max_len: int, vocab: Vocab = MALAYALAM
+) -> tuple[np.ndarray, np.ndarray]:
     """Padded token arrays `[n, max_len]` (uint8) for the Latin and Malayalam sides."""
     src = np.zeros((len(rows), max_len), dtype=np.uint8)
     tgt = np.zeros((len(rows), max_len), dtype=np.uint8)
     for i, (latin, ml) in enumerate(rows):
-        s, t = encode_latin(latin), encode_ml(ml)
+        s, t = encode_latin(latin), encode_ml(ml, vocab)
         src[i, : len(s)] = s
         tgt[i, : len(t)] = t
     return src, tgt
 
 
-def load_train(path: Path, max_len: int) -> tuple[np.ndarray, np.ndarray, int]:
+def load_train(path: Path, max_len: int, vocab: Vocab = MALAYALAM) -> tuple[np.ndarray, np.ndarray, int]:
     """Train arrays, cached next to the TSV as `.npz` until the TSV changes."""
     cache = path.with_suffix(f".{max_len}.npz")
     if cache.exists() and cache.stat().st_mtime > path.stat().st_mtime:
         z = np.load(cache)
         return z["src"], z["tgt"], int(z["dropped"])
-    rows, dropped = read_pairs(path, max_len)
-    src, tgt = to_arrays(rows, max_len)
+    rows, dropped = read_pairs(path, max_len, vocab)
+    src, tgt = to_arrays(rows, max_len, vocab)
     np.savez(cache, src=src, tgt=tgt, dropped=dropped)
     return src, tgt, dropped
 
@@ -93,17 +97,19 @@ def batch(src: np.ndarray, tgt: np.ndarray, idx: np.ndarray, device) -> tuple[to
     return torch.from_numpy(s.astype(np.int64)).to(device), torch.from_numpy(t.astype(np.int64)).to(device)
 
 
-def accuracy(model: Translit, rows: list[tuple[str, str]], device, batch_size: int = 2048) -> float:
+def accuracy(
+    model: Translit, rows: list[tuple[str, str]], device, batch_size: int = 2048, vocab: Vocab = MALAYALAM
+) -> float:
     """Exact-match top-1 of greedy decoding over `rows`."""
     model.eval()
     hits = 0
     max_len = model.config.max_len
     for start in range(0, len(rows), batch_size):
         chunk = rows[start : start + batch_size]
-        src, _ = to_arrays(chunk, max_len)
+        src, _ = to_arrays(chunk, max_len, vocab)
         s = torch.from_numpy(src[:, : int((src != 0).sum(1).max())].astype(np.int64)).to(device)
         out = greedy_tokens(model, s).cpu().tolist()
-        hits += sum(decode_ml(o) == ml for o, (_, ml) in zip(out, chunk, strict=True))
+        hits += sum(decode_ml(o, vocab) == ml for o, (_, ml) in zip(out, chunk, strict=True))
     model.train()
     return hits / max(len(rows), 1)
 
@@ -128,19 +134,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--device", default="auto")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--fresh", action="store_true", help="ignore an existing -last.pt checkpoint")
+    p.add_argument("--lang", default="ml", help="target language (a file in mlkb/langs)")
     args = p.parse_args(argv)
+    vocab = native(args.lang)
 
     torch.manual_seed(args.seed)
     device = pick_device(args.device)
-    config = Config()
+    config = Config(tgt_vocab=len(vocab))
     last_path = args.out.with_name(args.out.stem + "-last.pt")
 
     t0 = time.monotonic()
-    src, tgt, dropped = load_train(args.pairs / "train.tsv", config.max_len)
-    valid_all, _ = read_pairs(args.pairs / "valid.tsv", config.max_len)
+    src, tgt, dropped = load_train(args.pairs / "train.tsv", config.max_len, vocab)
+    valid_all, _ = read_pairs(args.pairs / "valid.tsv", config.max_len, vocab)
     valid = random.Random(args.seed).sample(valid_all, min(args.valid_rows, len(valid_all)))
     human_path = args.pairs / "valid-human.tsv"
-    valid_human = read_pairs(human_path, config.max_len)[0] if human_path.exists() else []
+    valid_human = read_pairs(human_path, config.max_len, vocab)[0] if human_path.exists() else []
     log(
         f"train {len(src):,} rows ({dropped:,} too long or unencodable dropped); valid {len(valid):,} "
         f"of {len(valid_all):,}; valid-human {len(valid_human):,}; loaded in {time.monotonic() - t0:.0f}s"
@@ -195,8 +203,8 @@ def main(argv: list[str] | None = None) -> int:
             loss_sum, loss_n, tick = 0.0, 0, time.monotonic()
         if step % args.eval_every == 0 or step == args.steps:
             ev = time.monotonic()
-            acc = accuracy(model, valid, device)
-            acc_h = accuracy(model, valid_human, device) if valid_human else acc
+            acc = accuracy(model, valid, device, vocab=vocab)
+            acc_h = accuracy(model, valid_human, device, vocab=vocab) if valid_human else acc
             score = (acc + acc_h) / 2
             history.append({"step": step, "valid": acc, "valid_human": acc_h})
             improved = score > best
