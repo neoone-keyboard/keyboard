@@ -27,23 +27,19 @@ pub const CHOICE_CAPACITY: usize = 500;
 /// so old habits fade.
 pub const HABIT_WINDOW: u32 = 200;
 
-/// A language's tag in `H` lines: `m` for Malayalam and `e` for English, as before languages
-/// were ids; any other language by its id.
-pub fn habit_tag(id: &LangId) -> &str {
-    match id.0.as_str() {
-        "ml" => "m",
-        "en" => "e",
-        other => other,
-    }
-}
-
-/// The language of an `H` line's tag (`habit_tag`).
+/// The language of an `H` line's tag, its id. A log from before languages were ids tags
+/// Malayalam `m` and English `e`; those read as `ml` and `en` (`is_old_habit_tag`).
 pub fn habit_lang(tag: &str) -> LangId {
     match tag {
         "m" => LangId("ml".into()),
         "e" => LangId::english(),
         other => LangId(other.into()),
     }
+}
+
+/// Whether an `H` line's tag is one from before languages were ids (`m` or `e`).
+pub fn is_old_habit_tag(tag: &str) -> bool {
+    matches!(tag, "m" | "e")
 }
 
 fn key(word: &str) -> String {
@@ -427,16 +423,8 @@ impl Personal {
         for (typed, c) in choices {
             text.push_str(&format!("C\t{typed}\t{}\t{}\n", c.chosen, c.count));
         }
-        // Malayalam's line, then English's, as before languages were ids (phase 2 task 9
-        // changes the format); any other language after them, by its id.
-        let mut habit: Vec<(&LangId, &u32)> = self.habit.iter().collect();
-        habit.sort_by_key(|(id, _)| match id.0.as_str() {
-            "ml" => 0,
-            "en" => 1,
-            _ => 2,
-        });
-        for (id, n) in habit {
-            text.push_str(&format!("H\t{}\t{n}\n", habit_tag(id)));
+        for (id, n) in &self.habit {
+            text.push_str(&format!("H\t{}\t{n}\n", id.0));
         }
         text
     }

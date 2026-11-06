@@ -13,10 +13,14 @@
 //! each with an optional count at the end (1 when absent; compaction writes it): `N word`
 //! a use of a known or learned word, `P previous word` a word after another in one
 //! sentence, `T before previous word` after two, `C typed chosen` a suggestion chosen
-//! over the default for a typed form, `H m` or `H e` a word from the Latin keyboard that
-//! ended up Malayalam or English. Removing or forgetting a word (`R`, `F`) drops all of
+//! over the default for a typed form, `H ml` or `H en` a word from the Latin keyboard that
+//! ended up in that language, by its id. Removing or forgetting a word (`R`, `F`) drops all of
 //! these that hold it. A log from before these lines loads as it did; an older build
-//! skips them.
+//! skips them. A log from before languages were ids tags the habit `H m` and `H e`: those
+//! read as `ml` and `en`, and opening such a log rewrites it (`compact`) in the new tags.
+//!
+//! Learned words stay in one log for every language; a word's language follows from its
+//! script and the packs. Splitting the log by language later is one more migration.
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File, OpenOptions};
@@ -57,6 +61,8 @@ pub struct UserStore {
     dirty_tail: bool,
     /// Phrases, uses, choices and the language habit (`personal`).
     personal: Personal,
+    /// A habit line with a tag from before languages were ids was replayed.
+    old_habit_tags: bool,
 }
 
 /// Lookups ignore ASCII case, so "Thom" typed at a sentence start is still the learned "Thom".
@@ -114,6 +120,9 @@ impl UserStore {
                 .and_then(|f| f.set_len(end as u64));
             store.dirty_tail = truncated.is_err();
         }
+        if store.old_habit_tags {
+            store.compact(&path);
+        }
         store
     }
 
@@ -149,6 +158,7 @@ impl UserStore {
             }
             ["H", language, n @ ..] if !language.is_empty() => {
                 if let Some(n) = count(n) {
+                    self.old_habit_tags |= personal::is_old_habit_tag(language);
                     self.personal
                         .apply_habit(&personal::habit_lang(language), n);
                 }
@@ -210,7 +220,7 @@ impl UserStore {
         }
         if let Some(lang) = habit {
             self.personal.apply_habit(lang, 1);
-            lines.push(format!("H\t{}", personal::habit_tag(lang)));
+            lines.push(format!("H\t{}", lang.0));
         }
         self.append_lines(&lines);
     }
@@ -1002,7 +1012,7 @@ mod tests {
             store.note_choice("innu", "ഇന്ന്");
         }
         let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
-        assert!(text.starts_with("N\thello\nH\te\nN\thow\nP\thello\thow\nH\te\n"));
+        assert!(text.starts_with("N\thello\nH\ten\nN\thow\nP\thello\thow\nH\ten\n"));
         assert!(text.contains("T\thow\tare\tyou\n"));
         assert!(text.ends_with("C\tinnu\tഇന്ന്\n"));
         let store = UserStore::open(dir.path());
@@ -1050,6 +1060,46 @@ mod tests {
         assert_eq!(followers(&store, Some("how"), "are"), ["you"]);
         assert_eq!(store.choice("innu"), Some("ഇന്ന്"));
         assert_eq!(ml_en(&store), (7, 1));
+    }
+
+    #[test]
+    fn habit_tags_from_before_language_ids_load_and_are_rewritten() {
+        let dir = tempfile::tempdir().unwrap();
+        // Old tags, a new tag for the same language, and enough lines to halve the counts.
+        let mut log = String::from("L\tThom\nH\tm\t5\nH\te\nH\tml\t2\nN\thow\t3\n");
+        for _ in 0..150 {
+            log.push_str("H\te\nH\tm\n");
+        }
+        log.push_str("H\ten\t4\nH\thi\n");
+        fs::write(dir.path().join(LOG_NAME), &log).unwrap();
+        // The counts as the old log gives them, replayed without the migration.
+        let mut expected = Personal::default();
+        for line in log.lines().filter(|l| l.starts_with("H\t")) {
+            let fields: Vec<&str> = line.split('\t').collect();
+            let n = fields.get(2).map_or(1, |n| n.parse().unwrap());
+            expected.apply_habit(&personal::habit_lang(fields[1]), n);
+        }
+        let store = UserStore::open(dir.path());
+        assert_eq!(store.habit(), expected.habit());
+        assert!(store.habit().contains_key(&LangId("hi".into())));
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        let tags: Vec<&str> = text
+            .lines()
+            .filter_map(|l| l.strip_prefix("H\t"))
+            .map(|l| l.split('\t').next().unwrap())
+            .collect();
+        assert_eq!(tags, ["en", "hi", "ml"], "rewritten in the new tags");
+        let reopened = UserStore::open(dir.path());
+        assert_eq!(reopened.habit(), expected.habit());
+        assert!(reopened.is_learned("Thom"));
+        assert_eq!(reopened.uses("how"), 3);
+        // A log already in the new tags is left as it is.
+        let before = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        drop(UserStore::open(dir.path()));
+        assert_eq!(
+            fs::read_to_string(dir.path().join(LOG_NAME)).unwrap(),
+            before
+        );
     }
 
     #[test]
