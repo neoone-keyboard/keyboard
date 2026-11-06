@@ -15,11 +15,12 @@ pub enum EngineError {
     Internal { message: String },
 }
 
-/// Which keyboard the text came from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+/// Which keyboard the text came from: QWERTY, or a language's native layout by its id
+/// ("ml"). A language that isn't loaded is read as Latin.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum InputLayout {
     Latin,
-    Malayalam,
+    Native { language: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -153,15 +154,6 @@ impl From<&EngineConfig> for mlengine_core::Paths {
     }
 }
 
-impl From<InputLayout> for mlengine_core::Layout {
-    fn from(layout: InputLayout) -> Self {
-        match layout {
-            InputLayout::Latin => Self::Latin,
-            InputLayout::Malayalam => Self::Malayalam,
-        }
-    }
-}
-
 impl From<mlengine_core::Kind> for CandidateKind {
     fn from(kind: mlengine_core::Kind) -> Self {
         use mlengine_core::Kind;
@@ -185,6 +177,19 @@ pub struct Engine {
     lm_deadline: Option<std::time::Duration>,
     lm_prepare: Option<std::time::Duration>,
     pack_problem: Option<String>,
+}
+
+impl Engine {
+    /// The engine's layout for `layout`; a language that isn't loaded is Latin.
+    fn layout(&self, layout: &InputLayout) -> mlengine_core::Layout {
+        match layout {
+            InputLayout::Latin => mlengine_core::Layout::Latin,
+            InputLayout::Native { language } => self
+                .inner
+                .lang_of_id(language)
+                .map_or(mlengine_core::Layout::Latin, mlengine_core::Layout::Native),
+        }
+    }
 }
 
 #[uniffi::export]
@@ -214,7 +219,7 @@ impl Engine {
         autocorrect: bool,
     ) -> Result<Suggestions, EngineError> {
         guarded(|| {
-            let layout = layout.into();
+            let layout = self.layout(&layout);
             let start = std::time::Instant::now();
             let elapsed = || start.elapsed();
             let timing = mlengine_core::Timing {
@@ -294,7 +299,10 @@ impl Engine {
         word: String,
         layout: InputLayout,
     ) -> Result<(), EngineError> {
-        guarded(|| self.inner.note_used(&context_before, &word, layout.into()))
+        guarded(|| {
+            self.inner
+                .note_used(&context_before, &word, self.layout(&layout))
+        })
     }
 
     /// The user tapped `chosen` for `typed` though the bar's middle was something else.
@@ -335,6 +343,24 @@ impl Engine {
     /// The learned emails and URLs: the keyboard treats letters that begin one as one word.
     pub fn learned_addresses(&self) -> Result<Vec<String>, EngineError> {
         guarded(|| self.inner.learned_addresses())
+    }
+
+    /// The layouts the language key cycles through, in order: Latin first if an active
+    /// language types in Latin, then each active pack's native layout.
+    pub fn layouts(&self) -> Result<Vec<InputLayout>, EngineError> {
+        guarded(|| {
+            self.inner
+                .layouts()
+                .into_iter()
+                .filter_map(|layout| match layout {
+                    mlengine_core::Layout::Latin => Some(InputLayout::Latin),
+                    mlengine_core::Layout::Native(lang) => self
+                        .inner
+                        .lang_id(lang)
+                        .map(|id| InputLayout::Native { language: id.0 }),
+                })
+                .collect()
+        })
     }
 
     /// Which sources loaded, for diagnostics ("english", "ml:lexicon", "ml:lm", ...).
@@ -584,6 +610,14 @@ mod tests {
             engine.loaded_sources().unwrap(),
             ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"]
         );
+        let ml = InputLayout::Native { language: "ml".into() };
+        assert_eq!(engine.layouts().unwrap(), [InputLayout::Latin, ml.clone()]);
+        let native = engine.suggest("എന്".into(), ml, true).unwrap();
+        assert_eq!(native.candidates[0].text, "എന്");
+        // A language that isn't loaded is typed on Latin.
+        let unknown = InputLayout::Native { language: "xx".into() };
+        let latin = engine.suggest("ente".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(engine.suggest("ente".into(), unknown, true).unwrap(), latin);
     }
 
     #[test]

@@ -49,8 +49,8 @@ impl Engine {
     }
 
     /// Suggestions for the text before the cursor, in bar order (the middle
-    /// slot first). Each item is (text, kind, score); `layout` is "latin" or
-    /// "malayalam".
+    /// slot first). Each item is (text, kind, score); `layout` is "latin", or "malayalam"
+    /// for the Malayalam pack's native layout (Latin when that pack isn't loaded).
     fn suggest(
         &self,
         context: &str,
@@ -59,7 +59,10 @@ impl Engine {
     ) -> PyResult<Vec<(String, &'static str, f32)>> {
         let layout = match layout {
             "latin" => Layout::Latin,
-            "malayalam" => Layout::Malayalam,
+            "malayalam" => self
+                .0
+                .lang_of_id("ml")
+                .map_or(Layout::Latin, Layout::Native),
             other => return Err(PyValueError::new_err(format!("unknown layout {other:?}"))),
         };
         Ok(self

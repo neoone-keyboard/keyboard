@@ -12,6 +12,9 @@ use mlengine_core::nn::{Deadline, Translit, Transliteration};
 use mlengine_core::pack::Pack;
 use mlengine_core::{Engine, Kind, Layout, Paths, Timing, rank, suffix};
 
+/// The Malayalam pack's native layout: it is the first pack loaded.
+const ML: Layout = Layout::Native(mlengine_core::lang::Lang(1));
+
 fn bundle_dir() -> PathBuf {
     std::env::var_os("MLENGINE_BUNDLE")
         .map(PathBuf::from)
@@ -293,13 +296,13 @@ fn indian_english_stays_as_typed() {
 #[test]
 fn malayalam_layout_golden() {
     for engine in engines() {
-        let s = engine.suggest("എന്റ", Layout::Malayalam, true);
+        let s = engine.suggest("എന്റ", ML, true);
         assert_eq!(
             s.candidates[0].text, "എന്റ",
             "typed text stays in the middle"
         );
         assert!(s.candidates.iter().any(|c| c.text == "എന്റെ"), "{s:?}");
-        let k = engine.suggest("ക", Layout::Malayalam, true);
+        let k = engine.suggest("ക", ML, true);
         assert!(!k.vowel_signs.is_empty());
     }
 }
@@ -895,7 +898,7 @@ fn latency_inputs() -> Vec<(String, Layout)> {
     {
         let chars: Vec<char> = w.chars().collect();
         for end in 1..=chars.len() {
-            inputs.push((chars[..end].iter().collect(), Layout::Malayalam));
+            inputs.push((chars[..end].iter().collect(), ML));
         }
     }
     inputs

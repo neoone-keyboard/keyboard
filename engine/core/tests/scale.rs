@@ -7,6 +7,9 @@ use mlengine_core::user::UserStore;
 use mlengine_core::lang::LangId;
 use mlengine_core::{Engine, Layout, PackSources, Sources};
 
+/// The Malayalam pack's native layout: it is the first pack loaded.
+const ML: Layout = Layout::Native(mlengine_core::lang::Lang(1));
+
 /// More decoys than any bounded scan visits.
 const DECOYS: usize = 3_500;
 
@@ -115,7 +118,7 @@ fn ka_finds_karyam_among_thousands_of_words() {
         },
         UserStore::in_memory(),
     );
-    let got = texts(&engine, "ക", Layout::Malayalam);
+    let got = texts(&engine, "ക", ML);
     assert_eq!(got[0], "ക");
     assert_eq!(got[1], "കാര്യം");
 }
@@ -136,6 +139,6 @@ fn vowel_strip_is_ordered_by_whole_subtree_counts() {
         },
         UserStore::in_memory(),
     );
-    let s = engine.suggest("ഖ", Layout::Malayalam, true);
+    let s = engine.suggest("ഖ", ML, true);
     assert_eq!(s.vowel_signs, ['\u{0D3E}', '\u{0D3F}']);
 }

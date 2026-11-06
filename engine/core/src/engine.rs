@@ -47,10 +47,10 @@ pub const STRIP_SIGNS: [char; 15] = [
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Layout {
-    /// QWERTY: English and Manglish.
+    /// QWERTY: English and every pack's romanised typing (Manglish).
     Latin,
-    /// The native Malayalam layout: what was typed always stays in the middle.
-    Malayalam,
+    /// A pack's native-script layout: what was typed always stays in the middle.
+    Native(Lang),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -403,8 +403,34 @@ impl Engine {
     fn layout_pack(&self, layout: Layout) -> Option<(Lang, &PackSources)> {
         match layout {
             Layout::Latin => None,
-            Layout::Malayalam => self.pack_in_script("mlym"),
+            Layout::Native(lang) => self.packs_active().find(|(l, _)| *l == lang),
         }
+    }
+
+    /// The `Lang` of a loaded language's id ("en", "ml"), active or not.
+    pub fn lang_of_id(&self, id: &str) -> Option<Lang> {
+        if id == LangId::english().0 {
+            return Some(EN);
+        }
+        self.sources
+            .packs
+            .iter()
+            .position(|p| p.id.0 == id)
+            .map(pack_lang)
+    }
+
+    /// The layouts the language key cycles through, in order: Latin first if any active
+    /// language types in Latin (English, or a pack with romanised typing), then each active
+    /// pack's native layout, in the active list's order.
+    pub fn layouts(&self) -> Vec<Layout> {
+        let latin =
+            self.active.english() || self.packs_active().any(|(_, p)| p.romanised.is_some());
+        let native = self.packs_active().map(|(lang, _)| Layout::Native(lang));
+        latin
+            .then_some(Layout::Latin)
+            .into_iter()
+            .chain(native)
+            .collect()
     }
 
     /// The LM: the first active pack's that has one, with the pack.
@@ -452,7 +478,7 @@ impl Engine {
         let counted = self.is_known_or_learned(&word);
         let habit = match layout {
             Layout::Latin => self.word_lang(&word).and_then(|lang| self.lang_id(lang)),
-            Layout::Malayalam => None,
+            Layout::Native(_) => None,
         };
         self.user().note_used(
             &word,
@@ -944,7 +970,7 @@ impl Engine {
                     &own,
                 )
             }
-            (_, Script::Native(_)) | (Layout::Malayalam, _) => {
+            (_, Script::Native(_)) | (Layout::Native(_), _) => {
                 let pack = self
                     .pack_of_word(&typed_n)
                     .or_else(|| self.layout_pack(layout));
@@ -2671,6 +2697,9 @@ mod tests {
     use super::*;
     use crate::lexicon::build;
 
+    /// The native layout of the test engines' one pack, Malayalam.
+    const ML: Layout = Layout::Native(Lang(1));
+
     fn lex(words: &[(&str, u64)]) -> Option<Lexicon> {
         Some(
             Lexicon::from_bytes(
@@ -2913,7 +2942,7 @@ mod tests {
         assert_eq!(lang("പണി"), Some(ml));
         assert_eq!(engine.lang_id(ml), Some(LangId("ml".into())));
         assert_eq!(engine.lang_id(EN), Some(LangId::english()));
-        let native = engine.suggest("എന്", Layout::Malayalam, true);
+        let native = engine.suggest("എന്", ML, true);
         assert!(native.candidates.iter().all(|c| c.lang == ml), "{native:?}");
     }
 
@@ -3011,7 +3040,7 @@ mod tests {
             deltas: [("എന്ത്", 3.0)].into(),
             ..Fake::default()
         };
-        let s = engine().suggest_scored("എന്", Layout::Malayalam, true, &fake);
+        let s = engine().suggest_scored("എന്", ML, true, &fake);
         assert_eq!(texts(&s), ["എന്", "എന്ത്", "എന്റെ"]);
     }
 
@@ -3228,18 +3257,18 @@ mod tests {
 
     #[test]
     fn malayalam_layout_keeps_the_typed_word_in_the_middle() {
-        let s = engine().suggest("എന്", Layout::Malayalam, true);
+        let s = engine().suggest("എന്", ML, true);
         assert_eq!(texts(&s), ["എന്", "എന്റെ", "എന്ത്"]);
         assert_eq!(s.candidates[1].kind, Kind::Completion);
     }
 
     #[test]
     fn vowel_signs_follow_the_lexicon() {
-        let s = engine().suggest("ക", Layout::Malayalam, true);
+        let s = engine().suggest("ക", ML, true);
         assert_eq!(s.vowel_signs, ['\u{0D3E}', '\u{0D3F}', '\u{0D40}']);
         assert!(
             engine()
-                .suggest("കി", Layout::Malayalam, true)
+                .suggest("കി", ML, true)
                 .vowel_signs
                 .is_empty()
         );
@@ -3309,12 +3338,12 @@ mod tests {
         );
         engine.remove_word("എന്റെ");
         assert_eq!(
-            texts(&engine.suggest("എന്", Layout::Malayalam, true)),
+            texts(&engine.suggest("എന്", ML, true)),
             ["എന്", "എന്ത്"]
         );
         // The verbatim slot is what was typed, removed or not.
         assert_eq!(
-            texts(&engine.suggest("എന്റെ", Layout::Malayalam, true))[0],
+            texts(&engine.suggest("എന്റെ", ML, true))[0],
             "എന്റെ"
         );
     }
@@ -3533,7 +3562,7 @@ mod tests {
         assert_eq!(bar(&engine, "call 984"), ["984", "5550112345"]);
         assert_eq!(bar(&engine, "call 98"), ["98"], "two digits are too few");
         assert_eq!(engine.learned_addresses(), ["5550112345"]);
-        for layout in [Layout::Latin, Layout::Malayalam] {
+        for layout in [Layout::Latin, ML] {
             let (typed, shown) = typed_and_bar(&engine, "9847", layout);
             assert_eq!((typed.as_str(), shown[1].as_str()), ("9847", "5550112345"));
         }
@@ -3591,7 +3620,7 @@ mod tests {
             assert_eq!(shown[0], typed.rsplit(' ').next().unwrap(), "{typed}");
             assert_eq!(shown.len(), 1, "{typed}");
         }
-        let (_, shown) = typed_and_bar(&engine, "55501", Layout::Malayalam);
+        let (_, shown) = typed_and_bar(&engine, "55501", ML);
         assert_eq!(shown, ["55501"]);
     }
 
@@ -3751,11 +3780,11 @@ mod tests {
     fn malayalam_typing_learns_phrases_too() {
         let engine = hello_engine();
         let malayalam = |context: &str| {
-            let s = engine.suggest(context, Layout::Malayalam, true);
+            let s = engine.suggest(context, ML, true);
             s.candidates.into_iter().map(|c| c.text).collect::<Vec<_>>()
         };
         assert_eq!(malayalam("എന്റെ ക"), ["ക", "കാര്യം", "കിളി"]);
-        commit(&engine, "എന്റെ കിളി", Layout::Malayalam);
+        commit(&engine, "എന്റെ കിളി", ML);
         assert_eq!(malayalam("എന്റെ ക"), ["ക", "കിളി", "കാര്യം"]);
         assert_eq!(malayalam("എന്റെ "), ["കിളി"]);
         assert!(
@@ -3791,5 +3820,19 @@ mod tests {
         assert_eq!(with_habit(english + 0.1, -rank::HABIT_MAX), english + 0.01);
         assert_eq!(with_habit(0.0, 0.5), 0.5);
         assert_eq!(with_habit(1.0, 0.0), 1.0);
+    }
+
+    #[test]
+    fn layouts_are_latin_then_each_native_one() {
+        let engine = engine();
+        assert_eq!(engine.layouts(), [Layout::Latin, ML]);
+        assert_eq!(engine.lang_of_id("en"), Some(EN));
+        assert_eq!(engine.lang_of_id("ml"), Some(Lang(1)));
+        assert_eq!(engine.lang_of_id("hi"), None);
+        // Latin letters on a native layout whose pack isn't loaded stay as typed, alone.
+        assert_eq!(
+            texts(&engine.suggest("hel", Layout::Native(Lang(9)), true)),
+            ["hel"]
+        );
     }
 }

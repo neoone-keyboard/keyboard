@@ -13,7 +13,7 @@ import MLEngine
 
 @Test func suggestHandlesMalayalam() throws {
     let engine = try Engine(config: EngineConfig())
-    let result = try engine.suggest(contextBefore: "ഞാൻ എന്റ", layout: .malayalam, autocorrect: true)
+    let result = try engine.suggest(contextBefore: "ഞാൻ എന്റ", layout: .native(language: "ml"), autocorrect: true)
     #expect(result.candidates.map(\.text) == ["എന്റ"])
 }
 
@@ -58,7 +58,7 @@ import MLEngine
     samples.reserveCapacity(10_000)
     for _ in 0..<10_000 {
         let start = clock.now
-        _ = try engine.suggest(contextBefore: "ഞാൻ ഇന്ന് വീട്ടിൽ പോ", layout: .malayalam, autocorrect: true)
+        _ = try engine.suggest(contextBefore: "ഞാൻ ഇന്ന് വീട്ടിൽ പോ", layout: .native(language: "ml"), autocorrect: true)
         samples.append(clock.now - start)
     }
     samples.sort()
@@ -94,6 +94,7 @@ private func bundledConfig() -> EngineConfig {
     let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDir: packDir.path))
     #expect(engine.packProblem() == nil)
     #expect(try engine.loadedSources() == ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"])
+    #expect(try engine.layouts() == [.latin, .native(language: "ml")])
 }
 
 @Test func bundledLexiconsLoadAndCorrect() throws {

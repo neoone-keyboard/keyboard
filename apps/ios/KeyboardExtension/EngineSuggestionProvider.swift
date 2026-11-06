@@ -128,7 +128,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         let start = ContinuousClock.now
         let result = try engine.suggest(
             contextBefore: request.contextBefore,
-            layout: request.language == .malayalam ? .malayalam : .latin,
+            layout: request.language == .malayalam ? .native(language: "ml") : .latin,
             autocorrect: request.autocorrect
         )
         let elapsed = ContinuousClock.now - start
@@ -210,7 +210,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     func noteUse(_ use: WordUse) {
         ahead = nil
         guard let engine = try? loadedEngine() else { return }
-        let layout: InputLayout = use.language == .malayalam ? .malayalam : .latin
+        let layout: InputLayout = use.language == .malayalam ? .native(language: "ml") : .latin
         try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: layout)
         if let typed = use.chosenFor {
             try? engine.noteChoice(typed: typed, chosen: use.word)

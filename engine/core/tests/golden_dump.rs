@@ -47,11 +47,22 @@ fn lines(name: &str, max: usize) -> Vec<String> {
         .collect()
 }
 
-fn layout_for(line: &str) -> Layout {
+fn layout_for(e: &Engine, line: &str) -> Layout {
     if line.chars().any(|c| ('\u{0d00}'..='\u{0d7f}').contains(&c)) {
-        Layout::Malayalam
+        Layout::Native(e.lang_of_id("ml").expect("the Malayalam pack"))
     } else {
         Layout::Latin
+    }
+}
+
+/// `layout` as the file has always shown it: Malayalam's native layout is `Malayalam`.
+fn layout_name(e: &Engine, layout: Layout) -> String {
+    match layout {
+        Layout::Latin => "Latin".into(),
+        Layout::Native(lang) if e.lang_id(lang).is_some_and(|id| id.0 == "ml") => {
+            "Malayalam".into()
+        }
+        Layout::Native(lang) => format!("Native({})", lang.0),
     }
 }
 
@@ -71,7 +82,8 @@ fn row(out: &mut String, section: &str, e: &Engine, ctx: &str, layout: Layout) {
         .map(|c| format!("{}|{}|{:.3}", c.text, kind_name(e, c), c.score))
         .collect();
     let signs: String = s.vowel_signs.iter().collect();
-    writeln!(out, "{section}\t{layout:?}\t{ctx}\t{}\t{signs}", shown.join(" ")).unwrap();
+    let layout = layout_name(e, layout);
+    writeln!(out, "{section}\t{layout}\t{ctx}\t{}\t{signs}", shown.join(" ")).unwrap();
 }
 
 #[test]
@@ -87,7 +99,7 @@ fn golden_dump() {
     let e = engine();
     for name in INPUTS {
         for line in lines(name, max) {
-            let layout = layout_for(&line);
+            let layout = layout_for(&e, &line);
             for (i, c) in line.char_indices() {
                 row(&mut out, name, &e, &line[..i + c.len_utf8()], layout);
             }
@@ -98,7 +110,7 @@ fn golden_dump() {
     let e = engine();
     for name in ["chat-golden.tsv", "language-choice.tsv"] {
         for line in lines(name, max) {
-            let layout = layout_for(&line);
+            let layout = layout_for(&e, &line);
             let mut ctx = String::new();
             for word in line.split(' ').filter(|w| !w.is_empty()) {
                 e.note_used(&ctx, word, layout);

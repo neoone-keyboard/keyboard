@@ -6,6 +6,9 @@ use std::process::Command;
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::{Engine, Layout, PackPaths, Paths};
 
+/// The Malayalam pack's native layout: it is the first pack loaded.
+const ML: Layout = Layout::Native(mlengine_core::lang::Lang(1));
+
 #[test]
 fn builds_a_bundle_the_engine_can_use() {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
@@ -50,9 +53,9 @@ fn builds_a_bundle_the_engine_can_use() {
     assert_eq!(first("londn", Layout::Latin), "London");
     assert_eq!(first("I ", Layout::Latin), "am");
     assert_eq!(first("ende", Layout::Latin), "എന്റെ");
-    let ml = engine.suggest("എന്", Layout::Malayalam, true);
+    let ml = engine.suggest("എന്", ML, true);
     assert_eq!(ml.candidates[1].text, "എന്റെ");
-    let names = engine.suggest("കൊ", Layout::Malayalam, true);
+    let names = engine.suggest("കൊ", ML, true);
     assert!(
         names.candidates.iter().any(|c| c.text == "കൊച്ചി"),
         "SMC list words are included"
