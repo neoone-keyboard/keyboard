@@ -24,9 +24,10 @@ fn root() -> PathBuf {
 fn engine() -> Engine {
     let dir = root().join("apps/ios/KeyboardExtension");
     let pack = mlengine_core::pack::Pack::open(&dir.join("../../../packs/ml.neopack")).unwrap();
-    let mut engine = Engine::open(&Paths {
-        translit: None,
-        ..Paths::with_pack(Some(dir.join("Lexicon/en.fst")), &pack, None)
+    let mut engine = Engine::open(&{
+        let mut paths = Paths::with_packs(Some(dir.join("Lexicon/en.fst")), &[pack], None);
+        paths.packs[0].translit = None;
+        paths
     });
     if let Ok(w) = std::env::var("SWIPE_WEIGHTS") {
         let v: Vec<f32> = w.split(',').map(|x| x.parse().unwrap()).collect();

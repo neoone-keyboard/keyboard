@@ -46,11 +46,10 @@ fn bundle_paths(translit: Option<PathBuf>, lm: Option<PathBuf>) -> Paths {
         dir.display()
     );
     let pack = Pack::open(&pack_dir()).expect("the Malayalam pack");
-    Paths {
-        translit,
-        lm,
-        ..Paths::with_pack(Some(dir.join("en.fst")), &pack, None)
-    }
+    let mut paths = Paths::with_packs(Some(dir.join("en.fst")), &[pack], None);
+    paths.packs[0].translit = translit;
+    paths.packs[0].lm = lm;
+    paths
 }
 
 /// The LM: MLENGINE_LM, else the bundled one, else the training output.
@@ -116,7 +115,7 @@ fn middle(engine: &Engine, context: &str) -> (String, Kind) {
 fn every_bundle_file_loads() {
     assert_eq!(
         engine().loaded_sources(),
-        ["english", "malayalam", "manglish", "next_words"]
+        ["english", "ml:lexicon", "ml:romanised", "ml:next_words"]
     );
 }
 
@@ -246,7 +245,7 @@ fn manglish_words_are_not_made_english() {
                 Kind::Correction,
                 "{typed}: {bar:?}"
             );
-            if engine.loaded_sources().contains(&"translit") {
+            if engine.loaded_sources().contains(&"ml:translit".to_string()) {
                 assert_eq!(bar[0], want, "{typed}: {bar:?}");
             }
         }
@@ -468,7 +467,7 @@ fn agglutinated_manglish_splits_into_stem_and_suffix() {
         // Without Malayalam context, a rarer stem's split waits in a side slot,
         // unless the model reads it confidently (`rank::MANGLISH_MODEL_CONFIDENT`).
         let s = texts(&engine, "poyirunno");
-        let has_model = engine.loaded_sources().contains(&"translit");
+        let has_model = engine.loaded_sources().contains(&"ml:translit".to_string());
         assert_eq!(
             s[0],
             if has_model {
@@ -513,7 +512,7 @@ fn suffix_splitting_leaves_english_and_whole_forms_alone() {
         // (പട്ടിക + ണം). Neither is frequent enough to convert on its own; the
         // model's confident reading converts the whole form.
         let s = texts(&engine, "padikkanam");
-        let has_model = engine.loaded_sources().contains(&"translit");
+        let has_model = engine.loaded_sources().contains(&"ml:translit".to_string());
         assert_eq!(
             s[0],
             if has_model {
@@ -539,7 +538,7 @@ fn suffix_splitting_leaves_english_and_whole_forms_alone() {
 #[test]
 fn the_model_loads_as_a_source() {
     let Some(engine) = model_engine() else { return };
-    assert!(engine.loaded_sources().contains(&"translit"));
+    assert!(engine.loaded_sources().contains(&"ml:translit".to_string()));
 }
 
 /// Chat words the model's ranking converts.
@@ -645,19 +644,17 @@ fn translit_model_leaves_english_as_typed() {
 #[test]
 fn lm_loads_only_with_the_lexicons_it_was_built_for() {
     let Some(engine) = lm_engine() else { return };
-    assert!(engine.loaded_sources().contains(&"lm"));
+    assert!(engine.loaded_sources().contains(&"ml:lm".to_string()));
     let other = Engine::open(&Paths {
         english: None,
         ..bundle_paths(None, lm_path())
     });
-    assert!(!other.loaded_sources().contains(&"lm"));
-    let swapped = bundle_paths(None, lm_path());
-    let other = Engine::open(&Paths {
-        english: swapped.malayalam.clone(),
-        malayalam: swapped.english.clone(),
-        ..swapped
-    });
-    assert!(!other.loaded_sources().contains(&"lm"));
+    assert!(!other.loaded_sources().contains(&"ml:lm".to_string()));
+    let mut swapped = bundle_paths(None, lm_path());
+    let english = swapped.english.take();
+    swapped.english = std::mem::replace(&mut swapped.packs[0].lexicon, english);
+    let other = Engine::open(&swapped);
+    assert!(!other.loaded_sources().contains(&"ml:lm".to_string()));
 }
 
 /// The typos M3a gets wrong (design §1), in sentences: context picks the meant word. Without

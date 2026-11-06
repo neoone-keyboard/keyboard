@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.weights:
         engine.set_lm_weights(**{k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(","))})
     print(f"sources: {engine.loaded_sources()}")
-    if args.lm and "lm" not in engine.loaded_sources():
+    if args.lm and "ml:lm" not in engine.loaded_sources():
         print(f"lm: {args.lm} did not load (missing, or built against other lexicons)")
         return 1
     if args.tune:

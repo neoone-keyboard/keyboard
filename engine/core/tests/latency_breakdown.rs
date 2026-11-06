@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::nn::{Search, Translit};
-use mlengine_core::{Engine, Layout, Paths};
+use mlengine_core::{Engine, Layout, PackPaths, Paths};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -18,12 +18,15 @@ fn open(model: bool) -> Engine {
     let pack = root().join("packs/ml.neopack");
     Engine::open(&Paths {
         english: Some(dir.join("en.fst")),
-        malayalam: Some(pack.join("ml.fst")),
-        manglish: Some(pack.join("manglish.fst")),
-        romanisation: Some(pack.join("romanisation.json")),
-        next_words: Some(pack.join("next.fst")),
-        lm: None,
-        translit: model.then(|| root().join("packs/ml.neopack/translit.mlkbnn")),
+        packs: vec![PackPaths {
+            lexicon: Some(pack.join("ml.fst")),
+            romanised: Some(pack.join("manglish.fst")),
+            romanisation: Some(pack.join("romanisation.json")),
+            next_words: Some(pack.join("next.fst")),
+            lm: None,
+            translit: model.then(|| root().join("packs/ml.neopack/translit.mlkbnn")),
+            ..PackPaths::new("ml", "mlym")
+        }],
         user_dir: None,
     })
 }

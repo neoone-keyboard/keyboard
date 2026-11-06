@@ -1,6 +1,6 @@
 //! Language packs (M6 design): a folder `<id>.neopack/` holding `manifest.json` and the
 //! language's data files. The manifest maps roles (`lexicon`, `romanisedLexicon`, …) to file
-//! names in the folder; `Pack::open` reads and checks it, and `Paths::with_pack` turns it into
+//! names in the folder; `Pack::open` reads and checks it, and `Paths::with_packs` turns it into
 //! the paths the engine opens.
 
 use std::collections::BTreeMap;
@@ -9,7 +9,8 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use crate::Paths;
+use crate::lang::LangId;
+use crate::{PackPaths, Paths};
 
 /// The pack format this engine reads.
 pub const FORMAT: u32 = 1;
@@ -128,17 +129,28 @@ impl Pack {
     }
 }
 
+impl Pack {
+    /// The paths of this pack's files, as the engine opens them.
+    pub fn paths(&self) -> PackPaths {
+        PackPaths {
+            id: LangId(self.manifest.id.clone()),
+            script: self.manifest.script.clone(),
+            lexicon: self.file("lexicon"),
+            romanised: self.file("romanisedLexicon"),
+            romanisation: self.file("romanisation"),
+            next_words: self.file("nextWords"),
+            translit: self.file("translit"),
+            lm: self.file("lm"),
+        }
+    }
+}
+
 impl Paths {
-    /// The paths for English at `english` plus `pack`'s language; `user_dir` is kept.
-    pub fn with_pack(english: Option<PathBuf>, pack: &Pack, user_dir: Option<PathBuf>) -> Self {
+    /// The paths for English at `english` plus `packs`' languages, in order; `user_dir` is kept.
+    pub fn with_packs(english: Option<PathBuf>, packs: &[Pack], user_dir: Option<PathBuf>) -> Self {
         Self {
             english,
-            malayalam: pack.file("lexicon"),
-            manglish: pack.file("romanisedLexicon"),
-            romanisation: pack.file("romanisation"),
-            next_words: pack.file("nextWords"),
-            translit: pack.file("translit"),
-            lm: pack.file("lm"),
+            packs: packs.iter().map(Pack::paths).collect(),
             user_dir,
         }
     }
@@ -221,13 +233,17 @@ mod tests {
         let pack = Pack::open(dir.path()).unwrap();
         let en = PathBuf::from("/x/en.fst");
         let user = PathBuf::from("/u");
-        let paths = Paths::with_pack(Some(en.clone()), &pack, Some(user.clone()));
+        let paths = Paths::with_packs(Some(en.clone()), &[pack], Some(user.clone()));
         assert_eq!(paths.english, Some(en));
         assert_eq!(paths.user_dir, Some(user));
-        assert_eq!(paths.malayalam, Some(dir.path().join("ml.fst")));
-        assert_eq!(paths.manglish, Some(dir.path().join("manglish.fst")));
-        assert_eq!(paths.next_words, Some(dir.path().join("next.fst")));
-        assert_eq!(paths.translit, Some(dir.path().join("translit.mlkbnn")));
-        assert_eq!(paths.lm, Some(dir.path().join("lm.mlkbnn")));
+        let [ml] = &paths.packs[..] else { panic!("{paths:?}") };
+        assert_eq!(ml.id.0, "ml");
+        assert_eq!(ml.script, "mlym");
+        assert_eq!(ml.lexicon, Some(dir.path().join("ml.fst")));
+        assert_eq!(ml.romanised, Some(dir.path().join("manglish.fst")));
+        assert_eq!(ml.romanisation, None);
+        assert_eq!(ml.next_words, Some(dir.path().join("next.fst")));
+        assert_eq!(ml.translit, Some(dir.path().join("translit.mlkbnn")));
+        assert_eq!(ml.lm, Some(dir.path().join("lm.mlkbnn")));
     }
 }

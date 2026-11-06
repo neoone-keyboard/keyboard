@@ -3,7 +3,8 @@
 
 use mlengine_core::lexicon::{Lexicon, build};
 use mlengine_core::user::UserStore;
-use mlengine_core::{Engine, Kind, Layout, Sources, manglish};
+use mlengine_core::lang::LangId;
+use mlengine_core::{Engine, Kind, Layout, PackSources, Sources, manglish};
 
 #[rustfmt::skip]
 const ENGLISH: &[(&str, u64)] = &[
@@ -43,16 +44,21 @@ fn engine() -> Engine {
     let ml: Vec<(String, u64)> = MALAYALAM.iter().map(|(w, c)| (w.to_string(), *c)).collect();
     let sources = Sources {
         english: lexicon(en),
-        malayalam: lexicon(
-            ml.iter()
-                .map(|(w, c)| (w.as_bytes().to_vec(), *c))
-                .collect(),
-        ),
-        manglish: lexicon(manglish::entries(&tables(), &ml)),
-        romanisation: Some(tables()),
-        next_words: None,
-        translit: None,
-        lm: None,
+        english_next: None,
+        packs: vec![PackSources {
+            romanised: lexicon(manglish::entries(&tables(), &ml)),
+            romanisation: Some(tables()),
+            ..PackSources::new(
+                LangId("ml".into()),
+                mlengine_core::script::rules("mlym").unwrap(),
+                lexicon(
+                    ml.iter()
+                        .map(|(w, c)| (w.as_bytes().to_vec(), *c))
+                        .collect(),
+                )
+                .unwrap(),
+            )
+        }],
     };
     Engine::new(sources, UserStore::in_memory())
 }

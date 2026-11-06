@@ -121,7 +121,7 @@ fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Option<String>) {
     };
     match mlengine_core::pack::Pack::open(&dir) {
         Ok(pack) => (
-            mlengine_core::Paths::with_pack(path(&c.english), &pack, path(&c.user_dir)),
+            mlengine_core::Paths::with_packs(path(&c.english), &[pack], path(&c.user_dir)),
             None,
         ),
         Err(e) => (c.into(), Some(e.to_string())),
@@ -131,18 +131,23 @@ fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Option<String>) {
 impl From<&EngineConfig> for mlengine_core::Paths {
     fn from(c: &EngineConfig) -> Self {
         let path = |s: &Option<String>| s.as_ref().map(std::path::PathBuf::from);
-        Self {
-            english: path(&c.english),
-            malayalam: path(&c.malayalam),
-            manglish: path(&c.manglish),
-            // Without a pack, the romanisation tables sit beside the romanised lexicon, as
-            // they do in packs/ml.neopack.
+        // Without a pack folder, the explicit fields describe one Malayalam pack.
+        let ml = mlengine_core::PackPaths {
+            lexicon: path(&c.malayalam),
+            romanised: path(&c.manglish),
+            // The romanisation tables sit beside the romanised lexicon, as they do in
+            // packs/ml.neopack.
             romanisation: path(&c.manglish)
                 .map(|m| m.with_file_name("romanisation.json"))
                 .filter(|p| p.exists()),
             next_words: path(&c.next_words),
             translit: path(&c.translit),
             lm: path(&c.lm),
+            ..mlengine_core::PackPaths::new("ml", "mlym")
+        };
+        Self {
+            english: path(&c.english),
+            packs: vec![ml],
             user_dir: path(&c.user_dir),
         }
     }
@@ -331,14 +336,14 @@ impl Engine {
         guarded(|| self.inner.learned_addresses())
     }
 
-    /// Which lexicons loaded, for diagnostics ("english", "malayalam", ...).
+    /// Which sources loaded, for diagnostics ("english", "ml:lexicon", "ml:lm", ...).
     /// Why the configured pack was refused; nil when it opened or none was given.
     pub fn pack_problem(&self) -> Option<String> {
         self.pack_problem.clone()
     }
 
     pub fn loaded_sources(&self) -> Result<Vec<String>, EngineError> {
-        guarded(|| self.inner.loaded_sources().into_iter().map(String::from).collect())
+        guarded(|| self.inner.loaded_sources())
     }
 }
 
@@ -558,7 +563,7 @@ mod tests {
         };
         let engine = Engine::new(config).unwrap();
         // No lexicons: the LM was built against others, so it is not loaded.
-        assert!(!engine.loaded_sources().unwrap().contains(&"lm".to_string()));
+        assert!(!engine.loaded_sources().unwrap().contains(&"ml:lm".to_string()));
         engine.prepare("hello there ".into()).unwrap();
         let s = engine.suggest("hello th".into(), InputLayout::Latin, true).unwrap();
         assert_eq!(s.typed, "th");
@@ -576,7 +581,7 @@ mod tests {
         assert_eq!(engine.pack_problem(), None);
         assert_eq!(
             engine.loaded_sources().unwrap(),
-            ["english", "malayalam", "manglish", "next_words", "translit", "lm"]
+            ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"]
         );
     }
 

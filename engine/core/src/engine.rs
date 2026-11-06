@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
+use crate::lang::LangId;
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::malayalam;
@@ -17,6 +18,7 @@ use crate::normalize::normalize;
 use crate::personal::{FOLLOWERS_PER_CONTEXT, Habit};
 use crate::rank::{self, apply_case, capitalize};
 use crate::romanisation::Romanisation;
+use crate::script::{self, ScriptRules};
 use crate::suffix;
 use crate::swipe;
 use crate::text::{self, Script};
@@ -79,21 +81,57 @@ pub struct Suggestions {
     pub vowel_signs: Vec<char>,
 }
 
+/// What the engine suggests from: English plus the loaded packs, in load order. Every part is
+/// optional; a pack is here only if its lexicon loaded.
 #[derive(Debug, Default)]
 pub struct Sources {
     pub english: Option<Lexicon>,
-    pub malayalam: Option<Lexicon>,
-    pub manglish: Option<Lexicon>,
-    /// The pack's `romanisation.json`: the walk and skeleton `manglish` is keyed by. Without
-    /// it there is no romanised typing, so `open` leaves out `manglish` and `translit` too.
+    /// English-only next words, for when English is active without a pack (phase 3). None for
+    /// now: English next words still come from the pack's `next.fst`, which holds English and
+    /// Malayalam pairs in one file (`PackSources::next_words`).
+    pub english_next: Option<Lexicon>,
+    pub packs: Vec<PackSources>,
+}
+
+/// One pack's loaded files.
+#[derive(Debug)]
+pub struct PackSources {
+    /// The manifest's `id`: "ml".
+    pub id: LangId,
+    /// The rules for the manifest's `script`.
+    pub rules: &'static dyn ScriptRules,
+    /// The pack's `romanisation.json`: the walk and skeleton `romanised` is keyed by. Without
+    /// it there is no romanised typing, so `Sources::open` leaves out `romanised` and
+    /// `translit` too.
     pub romanisation: Option<Romanisation>,
+    /// The native-script lexicon.
+    pub lexicon: Lexicon,
+    /// The romanised lexicon (Manglish for "ml"), keyed by skeleton.
+    pub romanised: Option<Lexicon>,
+    /// `next.fst`: next-word pairs, today both the pack's and English's.
     pub next_words: Option<Lexicon>,
-    /// The neural transliterator (`nn::Translit`). Without it, Manglish ranking is M2's:
+    /// The neural transliterator (`nn::Translit`). Without it, romanised ranking is M2's:
     /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
     pub translit: Option<Translit>,
     /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
-    /// ranking is M3a's: the previous word sets the Manglish bias, `next.fst` the next words.
+    /// ranking is M3a's: the previous word sets the romanised bias, `next.fst` the next words.
     pub lm: Option<Lm>,
+}
+
+impl PackSources {
+    /// A pack with only its lexicon; the rest is set by struct update.
+    pub fn new(id: LangId, rules: &'static dyn ScriptRules, lexicon: Lexicon) -> Self {
+        Self {
+            id,
+            rules,
+            romanisation: None,
+            lexicon,
+            romanised: None,
+            next_words: None,
+            translit: None,
+            lm: None,
+        }
+    }
 }
 
 /// When each optional stage of a suggest must stop (design §4), measured from the start of the
@@ -131,8 +169,22 @@ impl<'a> Timing<'a> {
 #[derive(Debug, Clone, Default)]
 pub struct Paths {
     pub english: Option<PathBuf>,
-    pub malayalam: Option<PathBuf>,
-    pub manglish: Option<PathBuf>,
+    /// The packs, in load order (`Paths::with_packs` fills them from opened packs).
+    pub packs: Vec<PackPaths>,
+    /// Directory for learned words; None keeps them in memory only.
+    pub user_dir: Option<PathBuf>,
+}
+
+/// One pack's files. Without a loadable `lexicon`, or with a `script` this engine has no rules
+/// for, the pack is left out.
+#[derive(Debug, Clone)]
+pub struct PackPaths {
+    /// The manifest's `id`.
+    pub id: LangId,
+    /// The manifest's `script` (ISO 15924, lower case).
+    pub script: String,
+    pub lexicon: Option<PathBuf>,
+    pub romanised: Option<PathBuf>,
     /// The pack's `romanisation.json`.
     pub romanisation: Option<PathBuf>,
     pub next_words: Option<PathBuf>,
@@ -140,71 +192,110 @@ pub struct Paths {
     pub translit: Option<PathBuf>,
     /// The language model (`.mlkbnn`).
     pub lm: Option<PathBuf>,
-    /// Directory for learned words; None keeps them in memory only.
-    pub user_dir: Option<PathBuf>,
+}
+
+impl PackPaths {
+    /// A pack `id` in `script` with no files yet; they are set by struct update.
+    pub fn new(id: &str, script: &str) -> Self {
+        Self {
+            id: LangId(id.into()),
+            script: script.into(),
+            lexicon: None,
+            romanised: None,
+            romanisation: None,
+            next_words: None,
+            translit: None,
+            lm: None,
+        }
+    }
 }
 
 impl Sources {
     pub fn open(paths: &Paths) -> Self {
-        let open = |p: &Option<PathBuf>| p.as_deref().and_then(|p| Lexicon::open(p).ok());
-        let (english, malayalam) = (open(&paths.english), open(&paths.malayalam));
+        let english = open_lexicon(&paths.english);
+        let packs = paths
+            .packs
+            .iter()
+            .filter_map(|p| Self::open_pack(p, english.as_ref()))
+            .collect();
+        Self {
+            english,
+            english_next: None,
+            packs,
+        }
+    }
+
+    fn open_pack(paths: &PackPaths, english: Option<&Lexicon>) -> Option<PackSources> {
+        let rules = script::rules(&paths.script)?;
+        let lexicon = open_lexicon(&paths.lexicon)?;
         let lm = paths
             .lm
             .as_deref()
             .and_then(|p| Lm::open(p).ok())
-            .filter(|lm| Self::lm_fits(lm, english.as_ref(), malayalam.as_ref()));
-        let romanisation = paths.romanisation.as_deref().and_then(|p| Romanisation::load(p).ok());
+            .filter(|lm| Self::lm_fits(lm, english, &lexicon));
+        let romanisation = paths
+            .romanisation
+            .as_deref()
+            .and_then(|p| Romanisation::load(p).ok());
         let romanised = romanisation.is_some();
-        Self {
-            english,
-            malayalam,
-            manglish: open(&paths.manglish).filter(|_| romanised),
+        Some(PackSources {
+            id: paths.id.clone(),
+            rules,
+            romanised: open_lexicon(&paths.romanised).filter(|_| romanised),
             romanisation,
-            next_words: open(&paths.next_words),
+            next_words: open_lexicon(&paths.next_words),
             translit: paths
                 .translit
                 .as_deref()
                 .and_then(|p| Translit::open(p).ok())
                 .filter(|_| romanised),
+            lexicon,
             lm,
-        }
+        })
     }
 
     /// Whether `lm`'s tables were built from exactly these lexicons (design §3): its
     /// first-token tables describe them, so with any others it is not loaded.
-    fn lm_fits(lm: &Lm, english: Option<&Lexicon>, malayalam: Option<&Lexicon>) -> bool {
-        let (Some(en), Some(ml)) = (english, malayalam) else {
+    fn lm_fits(lm: &Lm, english: Option<&Lexicon>, lexicon: &Lexicon) -> bool {
+        let Some(en) = english else {
             return false;
         };
         let mut want = [0u8; 16];
         want[..8].copy_from_slice(&en.fingerprint());
-        want[8..].copy_from_slice(&ml.fingerprint());
+        want[8..].copy_from_slice(&lexicon.fingerprint());
         lm.tables().fingerprint == want
     }
 
-    /// Names of the sources that loaded, for diagnostics.
-    pub fn loaded(&self) -> Vec<&'static str> {
+    /// Names of the sources that loaded, for diagnostics: "english", then each pack's as
+    /// "<id>:lexicon", "<id>:romanised", "<id>:next_words", "<id>:translit", "<id>:lm".
+    pub fn loaded(&self) -> Vec<String> {
         let mut names = Vec::new();
         if self.english.is_some() {
-            names.push("english");
+            names.push("english".to_string());
         }
-        if self.malayalam.is_some() {
-            names.push("malayalam");
+        if self.english_next.is_some() {
+            names.push("english_next".to_string());
         }
-        if self.manglish.is_some() {
-            names.push("manglish");
-        }
-        if self.next_words.is_some() {
-            names.push("next_words");
-        }
-        if self.translit.is_some() {
-            names.push("translit");
-        }
-        if self.lm.is_some() {
-            names.push("lm");
+        for p in &self.packs {
+            let parts = [
+                ("lexicon", true),
+                ("romanised", p.romanised.is_some()),
+                ("next_words", p.next_words.is_some()),
+                ("translit", p.translit.is_some()),
+                ("lm", p.lm.is_some()),
+            ];
+            for (name, loaded) in parts {
+                if loaded {
+                    names.push(format!("{}:{name}", p.id));
+                }
+            }
         }
         names
     }
+}
+
+fn open_lexicon(path: &Option<PathBuf>) -> Option<Lexicon> {
+    path.as_deref().and_then(|p| Lexicon::open(p).ok())
 }
 
 #[derive(Debug)]
@@ -246,8 +337,13 @@ impl Engine {
         self.swipe_weights = weights;
     }
 
-    pub fn loaded_sources(&self) -> Vec<&'static str> {
+    pub fn loaded_sources(&self) -> Vec<String> {
         self.sources.loaded()
+    }
+
+    /// The Malayalam pack, until candidates carry a language (phase 2, task 5): the first pack.
+    fn ml(&self) -> Option<&PackSources> {
+        self.sources.packs.first()
     }
 
     /// A poisoned lock still holds usable data; never panic over it.
@@ -535,7 +631,7 @@ impl Engine {
         }
         let start = Instant::now();
         let more = || budget.is_none_or(|b| start.elapsed() < b);
-        let lm_ctx = self.sources.lm.as_ref().map(|lm| {
+        let lm_ctx = self.ml().and_then(|p| p.lm.as_ref()).map(|lm| {
             let mut ctx = self.lm_context();
             let words = lm_words(context_before);
             let ready = ctx.sync(lm, &words, &more) && !words.iter().all(String::is_empty);
@@ -584,7 +680,7 @@ impl Engine {
                 });
             }
         }
-        if let Some(mg) = &self.sources.manglish {
+        if let Some(mg) = self.ml().and_then(|p| p.romanised.as_ref()) {
             for f in swipe::decode(mg, &map, &path, true)
                 .into_iter()
                 .take(swipe::SKELETONS)
@@ -642,7 +738,7 @@ impl Engine {
     /// Fills the LM's context for the text before the cursor ahead of typing (when the
     /// keyboard appears), for at most `budget`; what is left is resumed by the next suggest.
     pub fn prepare(&self, context_before: &str, budget: Option<Duration>) {
-        let Some(lm) = &self.sources.lm else {
+        let Some(lm) = self.ml().and_then(|p| p.lm.as_ref()) else {
             return;
         };
         let start = Instant::now();
@@ -655,7 +751,7 @@ impl Engine {
     /// Whether the LM is loaded and its context caught up with the last text it was given:
     /// for tests and diagnostics.
     pub fn lm_ready(&self) -> bool {
-        self.sources.lm.is_some() && self.lm_context().is_ready()
+        self.ml().is_some_and(|p| p.lm.is_some()) && self.lm_context().is_ready()
     }
 
     /// Syncs the LM's context, while `more(after_space)` allows, then suggests with it if it
@@ -668,7 +764,7 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         more: &dyn Fn(bool) -> bool,
     ) -> Suggestions {
-        let Some(lm) = &self.sources.lm else {
+        let Some(lm) = self.ml().and_then(|p| p.lm.as_ref()) else {
             return self.suggest_with(context_before, layout, autocorrect, deadline, None);
         };
         let (typed, _) = self.current_word(context_before);
@@ -812,10 +908,8 @@ impl Engine {
         match text::script(word) {
             Script::Latin => self.english_count(word).is_some(),
             Script::Native(_) => self
-                .sources
-                .malayalam
-                .as_ref()
-                .is_some_and(|l| l.get(word.as_bytes()).is_some()),
+                .ml()
+                .is_some_and(|p| p.lexicon.get(word.as_bytes()).is_some()),
             Script::Other => true, // numbers and the like are never learned
         }
     }
@@ -853,7 +947,10 @@ impl Engine {
             return 0.0;
         };
         let own = s.weighted(text);
-        match (malayalam::other_final_u(text), &self.sources.malayalam) {
+        match (
+            malayalam::other_final_u(text),
+            self.ml().map(|p| &p.lexicon),
+        ) {
             (Some(other), Some(ml)) if ml.get(other.as_bytes()).is_some() => {
                 own.max(s.weighted(&other))
             }
@@ -1421,7 +1518,10 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
         let mut found = ManglishCandidates::default();
-        let (Some(lex), Some(r)) = (&self.sources.manglish, &self.sources.romanisation) else {
+        let (Some(lex), Some(r)) = (
+            self.ml().and_then(|p| p.romanised.as_ref()),
+            self.ml().and_then(|p| p.romanisation.as_ref()),
+        ) else {
             return found;
         };
         // One letter matches half the lexicon; an apostrophe is English.
@@ -1501,7 +1601,8 @@ impl Engine {
     /// below `MIN_REPLACE` (`rank::MANGLISH_CHAT_FORM_RELIEF`), except where English is
     /// likely (after an English word, or a capital), as for the model's confident readings.
     fn add_chat_form(&self, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
-        let (Some(word), Some(ml)) = (chat_forms::lookup(typed_n), &self.sources.malayalam) else {
+        let (Some(word), Some(ml)) = (chat_forms::lookup(typed_n), self.ml().map(|p| &p.lexicon))
+        else {
             return;
         };
         let Some(count) = ml.get(word.as_bytes()) else {
@@ -1530,7 +1631,7 @@ impl Engine {
     /// candidate may take it (`rank::MANGLISH_NEIGHBOUR_PROMOTION`), else as a
     /// side slot (`rank::MANGLISH_NEIGHBOUR_PENALTY`).
     fn add_standard_neighbour(&self, found: &mut ManglishCandidates) {
-        let Some(ml) = &self.sources.malayalam else {
+        let Some(ml) = self.ml().map(|p| &p.lexicon) else {
             return;
         };
         let best = found
@@ -1596,7 +1697,7 @@ impl Engine {
 
     /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
     fn scored_splits(&self, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
-        let Some(r) = &self.sources.romanisation else {
+        let Some(r) = self.ml().and_then(|p| p.romanisation.as_ref()) else {
             return Vec::new();
         };
         let mut splits: Vec<ScoredSplit> =
@@ -1679,9 +1780,11 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
     ) -> Option<String> {
-        let (Some(model), Some(ml), Some(r)) =
-            (&self.sources.translit, &self.sources.malayalam, &self.sources.romanisation)
-        else {
+        let (Some(model), Some(ml), Some(r)) = (
+            self.ml().and_then(|p| p.translit.as_ref()),
+            self.ml().map(|p| &p.lexicon),
+            self.ml().and_then(|p| p.romanisation.as_ref()),
+        ) else {
             return None;
         };
         let split_words: Vec<String> = splits.iter().map(|s| s.word.clone()).collect();
@@ -1761,7 +1864,7 @@ impl Engine {
     ) -> Vec<Candidate> {
         let typed_n = normalize(typed);
         let mut others = Vec::new();
-        if let Some(lex) = &self.sources.malayalam {
+        if let Some(lex) = self.ml().map(|p| &p.lexicon) {
             for (key, count) in lex.top_completions(typed_n.as_bytes(), TOP_K) {
                 if key.len() <= typed_n.len() {
                     continue;
@@ -1993,10 +2096,8 @@ impl Engine {
 
     /// The count of a Malayalam word in the lexicon, 0 for none.
     fn malayalam_count(&self, word: &str) -> u64 {
-        self.sources
-            .malayalam
-            .as_ref()
-            .and_then(|ml| ml.get(word.as_bytes()))
+        self.ml()
+            .and_then(|p| p.lexicon.get(word.as_bytes()))
             .unwrap_or(0)
     }
 
@@ -2005,14 +2106,15 @@ impl Engine {
         if p.latin {
             self.sources.english.as_ref()
         } else {
-            self.sources.malayalam.as_ref()
+            self.ml().map(|pack| &pack.lexicon)
         }
     }
 
     /// The followers `next.fst` keeps for `previous`, commonest first, each with its share of
     /// their counts: P(word | previous), given that it is one of them.
     fn followers(&self, previous: Option<&str>) -> Vec<(String, f64)> {
-        let (Some(lex), Some(previous)) = (&self.sources.next_words, previous) else {
+        let (Some(lex), Some(previous)) = (self.ml().and_then(|p| p.next_words.as_ref()), previous)
+        else {
             return Vec::new();
         };
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
@@ -2038,7 +2140,7 @@ impl Engine {
     /// M3a's next words: `next.fst`'s commonest followers of the previous word.
     fn bigram_next_words(&self, context_before: &str) -> Vec<Candidate> {
         let (Some(lex), Some((previous, sentence_end))) = (
-            &self.sources.next_words,
+            self.ml().and_then(|p| p.next_words.as_ref()),
             text::previous_word(context_before),
         ) else {
             return Vec::new();
@@ -2078,7 +2180,7 @@ impl Engine {
     /// keyboard appends them in aksharamala order.
     fn vowel_signs(&self, context_before: &str, typed: &str) -> Vec<char> {
         let (Some(lex), Some(_)) = (
-            &self.sources.malayalam,
+            self.ml().map(|p| &p.lexicon),
             malayalam::vowel_sign_base(context_before),
         ) else {
             return Vec::new();
@@ -2337,6 +2439,12 @@ mod tests {
         Engine::new(engine_sources(), UserStore::in_memory())
     }
 
+    /// A Malayalam pack over `lexicon` (an empty one for None), nothing else loaded.
+    fn ml_pack(lexicon: Option<Lexicon>) -> PackSources {
+        let lexicon = lexicon.or_else(|| lex(&[])).unwrap();
+        PackSources::new(LangId("ml".into()), script::rules("mlym").unwrap(), lexicon)
+    }
+
     fn engine_sources() -> Sources {
         Sources {
             english: lex(&[
@@ -2347,23 +2455,22 @@ mod tests {
                 ("London", 30),
                 ("I", 200),
             ]),
-            malayalam: lex(&[
-                ("എന്റെ", 100),
-                ("എന്ത്", 80),
-                ("കാര്യം", 10),
-                ("കിളി", 5),
-                ("കീ", 1),
-            ]),
-            manglish: None,
-            romanisation: None,
-            translit: None,
-            lm: None,
-            next_words: lex(&[
-                ("i\0am", 30),
-                ("i\0have", 20),
-                ("i\0was", 10),
-                ("i\0will", 5),
-            ]),
+            english_next: None,
+            packs: vec![PackSources {
+                next_words: lex(&[
+                    ("i\0am", 30),
+                    ("i\0have", 20),
+                    ("i\0was", 10),
+                    ("i\0will", 5),
+                ]),
+                ..ml_pack(lex(&[
+                    ("എന്റെ", 100),
+                    ("എന്ത്", 80),
+                    ("കാര്യം", 10),
+                    ("കിളി", 5),
+                    ("കീ", 1),
+                ]))
+            }],
         }
     }
 
@@ -2377,10 +2484,8 @@ mod tests {
     }
 
     fn engine_with_lm(lm: Lm) -> Engine {
-        let sources = Sources {
-            lm: Some(lm),
-            ..engine_sources()
-        };
+        let mut sources = engine_sources();
+        sources.packs[0].lm = Some(lm);
         Engine::new(sources, UserStore::in_memory())
     }
 
@@ -2388,7 +2493,7 @@ mod tests {
     fn an_expired_prefill_gives_the_m3a_bar_and_resumes_later() {
         let Some(lm) = tiny_lm() else { return };
         let engine = engine_with_lm(lm);
-        assert!(engine.loaded_sources().contains(&"lm"));
+        assert!(engine.loaded_sources().contains(&"ml:lm".to_string()));
         let late = || Duration::from_millis(100);
         let timing = Timing::keyboard(&late); // every cutoff already passed
         let expired = engine.suggest_timed("I ", Layout::Latin, true, Some(&timing));
@@ -2492,11 +2597,13 @@ mod tests {
                 ("feel", 300),
                 ("pain", 900),
             ]),
-            malayalam: lex(&words),
-            manglish: Some(
-                Lexicon::from_bytes(build(manglish::entries(crate::romanisation::ml(), &malayalam)).unwrap()).unwrap(),
-            ),
-            romanisation: Some(crate::romanisation::load_ml()),
+            packs: vec![PackSources {
+                romanised: Some(
+                    Lexicon::from_bytes(build(manglish::entries(crate::romanisation::ml(), &malayalam)).unwrap()).unwrap(),
+                ),
+                romanisation: Some(crate::romanisation::load_ml()),
+                ..ml_pack(lex(&words))
+            }],
             ..Sources::default()
         };
         Engine::new(sources, UserStore::in_memory())
@@ -2623,7 +2730,7 @@ mod tests {
         let engine = Engine::new(
             Sources {
                 english: lex(&[("have", 400), ("the", 1000)]),
-                malayalam: lex(&[("വീട്", 50), ("വീട്ടിൽ", 30)]),
+                packs: vec![ml_pack(lex(&[("വീട്", 50), ("വീട്ടിൽ", 30)]))],
                 ..Sources::default()
             },
             UserStore::in_memory(),
@@ -2676,7 +2783,10 @@ mod tests {
         let engine = Engine::new(
             Sources {
                 english: lex(&[("I", 500), ("we", 500), ("they", 500)]),
-                next_words: lex(&[("so\0i", 90), ("so\0we", 10)]),
+                packs: vec![PackSources {
+                    next_words: lex(&[("so\0i", 90), ("so\0we", 10)]),
+                    ..ml_pack(None)
+                }],
                 ..Sources::default()
             },
             UserStore::in_memory(),
@@ -2703,7 +2813,7 @@ mod tests {
     #[test]
     fn without_an_lm_nothing_changes() {
         let engine = engine();
-        assert!(!engine.loaded_sources().contains(&"lm"));
+        assert!(!engine.loaded_sources().contains(&"ml:lm".to_string()));
         assert_eq!(
             texts(&engine.suggest("I ", Layout::Latin, true)),
             ["am", "have", "was"]
@@ -2794,7 +2904,10 @@ mod tests {
     fn next_words_are_capitalised_after_a_full_stop() {
         let engine = Engine::new(
             Sources {
-                next_words: lex(&[("rains\0it", 3)]),
+                packs: vec![PackSources {
+                    next_words: lex(&[("rains\0it", 3)]),
+                    ..ml_pack(None)
+                }],
                 ..Sources::default()
             },
             UserStore::in_memory(),
@@ -2945,12 +3058,14 @@ mod tests {
                 ("mail", 20),
                 ("please", 20),
             ]),
-            malayalam: lex(&[("എന്റെ", 100), ("കാര്യം", 10), ("കിളി", 5)]),
-            next_words: lex(&[
-                ("hello\0kitty", 50),
-                ("hello\0there", 20),
-                ("hello\0world", 10),
-            ]),
+            packs: vec![PackSources {
+                next_words: lex(&[
+                    ("hello\0kitty", 50),
+                    ("hello\0there", 20),
+                    ("hello\0world", 10),
+                ]),
+                ..ml_pack(lex(&[("എന്റെ", 100), ("കാര്യം", 10), ("കിളി", 5)]))
+            }],
             ..Sources::default()
         }
     }

@@ -93,12 +93,12 @@ private func bundledConfig() -> EngineConfig {
 @Test func thePackLoadsThroughItsManifest() throws {
     let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDir: packDir.path))
     #expect(engine.packProblem() == nil)
-    #expect(try engine.loadedSources() == ["english", "malayalam", "manglish", "next_words", "translit", "lm"])
+    #expect(try engine.loadedSources() == ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"])
 }
 
 @Test func bundledLexiconsLoadAndCorrect() throws {
     let engine = try Engine(config: bundledConfig())
-    #expect(try engine.loadedSources() == ["english", "malayalam", "manglish", "next_words"])
+    #expect(try engine.loadedSources() == ["english", "ml:lexicon", "ml:romanised", "ml:next_words"])
     let result = try engine.suggest(contextBefore: "I said teh", layout: .latin, autocorrect: true)
     #expect(result.candidates.first?.text == "the")
     #expect(result.candidates.first?.kind == .correction)

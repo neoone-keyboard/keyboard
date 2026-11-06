@@ -9,7 +9,7 @@ use mlengine_core::lexicon::Lexicon;
 use mlengine_core::lm_context::LmWeights;
 use mlengine_core::nn::tokenizer::{BOS, flag};
 use mlengine_core::nn::{Cache, LmScratch};
-use mlengine_core::{Engine as Core, Kind, Layout, Paths, rank};
+use mlengine_core::{Engine as Core, Kind, Layout, PackPaths, Paths, rank};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -32,14 +32,18 @@ impl Engine {
         lm: Option<PathBuf>,
         romanisation: Option<PathBuf>,
     ) -> Self {
-        Engine(Core::open(&Paths {
-            english,
-            malayalam,
-            manglish,
+        let ml = PackPaths {
+            lexicon: malayalam,
+            romanised: manglish,
             romanisation,
             next_words,
             translit,
             lm,
+            ..PackPaths::new("ml", "mlym")
+        };
+        Engine(Core::open(&Paths {
+            english,
+            packs: vec![ml],
             user_dir: None,
         }))
     }
@@ -67,8 +71,8 @@ impl Engine {
             .collect())
     }
 
-    /// Names of the sources that loaded, e.g. ["english", "malayalam"].
-    fn loaded_sources(&self) -> Vec<&'static str> {
+    /// Names of the sources that loaded, e.g. ["english", "ml:lexicon", "ml:lm"].
+    fn loaded_sources(&self) -> Vec<String> {
         self.0.loaded_sources()
     }
 

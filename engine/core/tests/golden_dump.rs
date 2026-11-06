@@ -24,7 +24,7 @@ fn root() -> PathBuf {
 fn engine() -> Engine {
     let pack = Pack::open(&root().join("packs/ml.neopack")).expect("the Malayalam pack");
     let en = root().join("apps/ios/KeyboardExtension/Lexicon/en.fst");
-    Engine::open(&Paths::with_pack(Some(en), &pack, None))
+    Engine::open(&Paths::with_packs(Some(en), &[pack], None))
 }
 
 const INPUTS: &[&str] = &[

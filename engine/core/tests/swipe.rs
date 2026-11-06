@@ -14,9 +14,10 @@ fn bundle() -> PathBuf {
 fn engine() -> Engine {
     let dir = bundle();
     let pack = mlengine_core::pack::Pack::open(&dir.join("../../../packs/ml.neopack")).unwrap();
-    Engine::open(&Paths {
-        translit: None,
-        ..Paths::with_pack(Some(dir.join("Lexicon/en.fst")), &pack, None)
+    Engine::open(&{
+        let mut paths = Paths::with_packs(Some(dir.join("Lexicon/en.fst")), &[pack], None);
+        paths.packs[0].translit = None;
+        paths
     })
 }
 

@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use mlengine_core::lexicon::Lexicon;
-use mlengine_core::{Engine, Layout, Paths};
+use mlengine_core::{Engine, Layout, PackPaths, Paths};
 
 #[test]
 fn builds_a_bundle_the_engine_can_use() {
@@ -26,18 +26,19 @@ fn builds_a_bundle_the_engine_can_use() {
 
     let paths = Paths {
         english: Some(out.path().join("en.fst")),
-        malayalam: Some(out.path().join("ml.fst")),
-        manglish: Some(out.path().join("manglish.fst")),
-        romanisation: Some(fixtures.join("../../../../packs/ml.neopack/romanisation.json")),
-        next_words: Some(out.path().join("next.fst")),
-        translit: None,
-        lm: None,
+        packs: vec![PackPaths {
+            lexicon: Some(out.path().join("ml.fst")),
+            romanised: Some(out.path().join("manglish.fst")),
+            romanisation: Some(fixtures.join("../../../../packs/ml.neopack/romanisation.json")),
+            next_words: Some(out.path().join("next.fst")),
+            ..PackPaths::new("ml", "mlym")
+        }],
         user_dir: None,
     };
     let engine = Engine::open(&paths);
     assert_eq!(
         engine.loaded_sources(),
-        ["english", "malayalam", "manglish", "next_words"]
+        ["english", "ml:lexicon", "ml:romanised", "ml:next_words"]
     );
 
     let first = |context: &str, layout| {

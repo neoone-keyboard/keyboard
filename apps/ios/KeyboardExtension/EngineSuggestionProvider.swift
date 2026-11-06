@@ -285,8 +285,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// For the diagnostics report: what is open now, and why not if nothing is.
     func status() -> String {
         if engine != nil {
-            let model = loadedSources.contains("translit") ? "yes" : "no"
-            let lm = loadedSources.contains("lm") ? "yes" : "no"
+            // Pack sources are named "<pack id>:<part>" ("ml:translit").
+            let model = loadedSources.contains { $0.hasSuffix(":translit") } ? "yes" : "no"
+            let lm = loadedSources.contains { $0.hasSuffix(":lm") } ? "yes" : "no"
             return "engine open; sources \(loadedSources.joined(separator: ",")); model loaded \(model); lm loaded \(lm)"
         }
         if shed { return "engine unloaded (memory)" }

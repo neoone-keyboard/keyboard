@@ -4,7 +4,8 @@
 
 use mlengine_core::lexicon::{Lexicon, build};
 use mlengine_core::user::UserStore;
-use mlengine_core::{Engine, Layout, Sources};
+use mlengine_core::lang::LangId;
+use mlengine_core::{Engine, Layout, PackSources, Sources};
 
 /// More decoys than any bounded scan visits.
 const DECOYS: usize = 3_500;
@@ -12,6 +13,12 @@ const DECOYS: usize = 3_500;
 fn lex(entries: Vec<(String, u64)>) -> Option<Lexicon> {
     let bytes = build(entries.into_iter().map(|(w, c)| (w.into_bytes(), c))).unwrap();
     Some(Lexicon::from_bytes(bytes).unwrap())
+}
+
+/// A Malayalam pack over `entries`, nothing else loaded.
+fn ml_pack(entries: Vec<(String, u64)>) -> PackSources {
+    let rules = mlengine_core::script::rules("mlym").unwrap();
+    PackSources::new(LangId("ml".into()), rules, lex(entries).unwrap())
 }
 
 /// `n` distinct strings, each `len` characters from `alphabet`.
@@ -76,7 +83,10 @@ fn next_words_are_the_most_frequent_followers() {
     ]);
     let engine = Engine::new(
         Sources {
-            next_words: lex(entries),
+            packs: vec![PackSources {
+                next_words: lex(entries),
+                ..ml_pack(Vec::new())
+            }],
             ..Sources::default()
         },
         UserStore::in_memory(),
@@ -100,7 +110,7 @@ fn ka_finds_karyam_among_thousands_of_words() {
     entries.push(("കാര്യം".into(), 90_000));
     let engine = Engine::new(
         Sources {
-            malayalam: lex(entries),
+            packs: vec![ml_pack(entries)],
             ..Sources::default()
         },
         UserStore::in_memory(),
@@ -121,7 +131,7 @@ fn vowel_strip_is_ordered_by_whole_subtree_counts() {
     entries.push(("ഖിളി".into(), 3_500));
     let engine = Engine::new(
         Sources {
-            malayalam: lex(entries),
+            packs: vec![ml_pack(entries)],
             ..Sources::default()
         },
         UserStore::in_memory(),
