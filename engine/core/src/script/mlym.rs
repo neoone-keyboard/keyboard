@@ -30,6 +30,10 @@ impl ScriptRules for Mlym {
     fn other_final_u(&self, word: &str) -> Option<String> {
         crate::malayalam::other_final_u(word)
     }
+    /// The whole block, digits and signs too, as `text::words` has always split Malayalam.
+    fn is_word_char(&self, c: char) -> bool {
+        self.block().contains(&c)
+    }
     fn join_suffix(&self, stem: &str, suffix: &str, how: crate::suffix::Join) -> Option<String> {
         crate::suffix::join(stem, suffix, how)
     }

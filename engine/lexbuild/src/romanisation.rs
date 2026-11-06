@@ -13,6 +13,7 @@ use std::{fs, io};
 
 use mlengine_core::lexicon::SEPARATOR;
 use mlengine_core::romanisation::Romanisation;
+use mlengine_core::script::ScriptRules;
 use unicode_normalization::UnicodeNormalization;
 
 const ZWNJ: char = '\u{200C}';
@@ -22,32 +23,19 @@ fn nfc(s: &str) -> String {
     s.nfc().collect()
 }
 
-/// What lexbuild needs to know about a script that `romanisation.json` doesn't say: its
-/// 128-code-point block (the base of `pack`) and the chars in it that are not part of words
-/// (dandas, digits, number signs).
+/// The engine's rules for the script (`mlengine_core::script`): its block, the base of `pack`,
+/// and which chars of it are letters. One definition, so lexbuild and the runtime split and
+/// classify words alike.
 struct Script {
     base: char,
-    not_letters: &'static [(char, char)],
+    rules: &'static dyn ScriptRules,
 }
 
 fn script(code: &str) -> Option<Script> {
-    Some(match code {
-        "deva" => Script {
-            base: '\u{0900}',
-            // danda, double danda, digits, abbreviation sign
-            not_letters: &[('\u{0964}', '\u{0970}')],
-        },
-        "beng" => Script {
-            base: '\u{0980}',
-            // digits, currency and fraction signs, isshar
-            not_letters: &[('\u{09E6}', '\u{09FB}'), ('\u{09FD}', '\u{09FD}')],
-        },
-        "mlym" => Script {
-            base: '\u{0D00}',
-            // digits, fractions, number signs, date mark
-            not_letters: &[('\u{0D66}', '\u{0D79}')],
-        },
-        _ => return None,
+    let rules = mlengine_core::script::rules(code)?;
+    Some(Script {
+        base: *rules.block().start(),
+        rules,
     })
 }
 
@@ -82,13 +70,7 @@ impl Table {
 
     /// A char of the script that can be part of a word: in the block, not punctuation or a digit.
     pub fn is_letter(&self, c: char) -> bool {
-        let base = self.script.base as u32;
-        (base..base + 0x80).contains(&(c as u32))
-            && !self
-                .script
-                .not_letters
-                .iter()
-                .any(|&(lo, hi)| (lo..=hi).contains(&c))
+        self.script.rules.is_letter(c)
     }
 
     /// Every char is a letter of the script (`is_letter`) or a joiner, and at least one is a letter.

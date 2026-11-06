@@ -334,6 +334,37 @@ mod tests {
         Lang::open(&path).unwrap()
     }
 
+    /// The engine's beng plug-in normalises and classifies as this config built `as.fst`, so
+    /// typed text meets the lexicon: on every char of the block, and on random strings of the
+    /// chars the replacements and NFC act on.
+    #[test]
+    fn the_engine_beng_rules_match_the_config() {
+        let lang = assamese();
+        let rules = mlengine_core::script::rules("beng").unwrap();
+        for c in '\u{0980}'..='\u{09FF}' {
+            assert_eq!(rules.is_letter(c), lang.is_word_char(c), "{c:?}");
+            let s = c.to_string();
+            assert_eq!(rules.normalize(&s), lang.normalize(&s), "{c:?}");
+        }
+        let alphabet: Vec<char> =
+            "অআকতমৰৱবযডঢৎািীুেোৌ়্ংঁঃ'’ \u{200C}\u{200D}\u{09DC}\u{09DD}\u{09DF}\u{09B0}"
+                .chars()
+                .collect();
+        let mut seed: u64 = 20261107;
+        for _ in 0..20_000 {
+            let len = (seed >> 33) as usize % 9;
+            let text: String = (0..len)
+                .map(|_| {
+                    seed = seed
+                        .wrapping_mul(6364136223846793005)
+                        .wrapping_add(1442695040888963407);
+                    alphabet[(seed >> 33) as usize % alphabet.len()]
+                })
+                .collect();
+            assert_eq!(rules.normalize(&text), lang.normalize(&text), "{text:?}");
+        }
+    }
+
     #[test]
     fn assamese_letters_are_kept_and_bengali_ra_folds_to_them() {
         let lang = assamese();

@@ -270,9 +270,12 @@ fn is_apostrophe(c: char) -> bool {
     matches!(c, '\'' | '\u{2019}')
 }
 
-/// A grapheme belongs to a word if it starts with a letter, digit or apostrophe.
+/// A grapheme belongs to a word if it starts with a letter, digit or apostrophe, and not with
+/// a script's phrase end (Bengali ৷ is a numeric sign typed for a danda).
 fn is_word_grapheme(g: &str) -> bool {
-    g.chars().next().is_some_and(|c| c.is_alphanumeric() || is_apostrophe(c))
+    g.chars().next().is_some_and(|c| {
+        (c.is_alphanumeric() || is_apostrophe(c)) && !crate::script::ends_phrase(c)
+    })
 }
 
 /// Which writing system a word is in. Only `Latin` and `Native` words go into a lexicon.
@@ -281,7 +284,9 @@ pub enum Script {
     /// ASCII letters, optionally with apostrophes inside (don't).
     Latin,
     /// Letters and signs of one registered native script (`script::rules`), by its ISO 15924
-    /// code, plus ZWJ and ZWNJ. For Malayalam: U+0D00–U+0D63 and U+0D7A–U+0D7F.
+    /// code, plus ZWJ and ZWNJ, and apostrophes inside the word where the script has them
+    /// (`ScriptRules::inner_apostrophe`: Assamese হ'ল). For Malayalam: U+0D00–U+0D63 and
+    /// U+0D7A–U+0D7F.
     Native(&'static str),
     /// Anything else: digits, mixed scripts, other alphabets.
     Other,
@@ -303,7 +308,13 @@ pub fn script(word: &str) -> Script {
     }
     for rules in crate::script::all() {
         let letter = |c: char| rules.is_letter(c);
-        if word.chars().all(|c| letter(c) || c == '\u{200C}' || c == '\u{200D}') && word.chars().any(letter) {
+        // An apostrophe inside the word, never first or last, where the script has them.
+        let inner = rules.inner_apostrophe() && !word.starts_with('\'') && !word.ends_with('\'');
+        if word
+            .chars()
+            .all(|c| letter(c) || c == '\u{200C}' || c == '\u{200D}' || (inner && c == '\''))
+            && word.chars().any(letter)
+        {
             return Script::Native(rules.code());
         }
     }
@@ -313,7 +324,11 @@ pub fn script(word: &str) -> Script {
 /// A char that can be part of a word when tokenising a corpus line. Cheaper
 /// than grapheme segmentation, which matters for 500M words.
 fn is_token_char(c: char) -> bool {
-    c.is_alphanumeric() || crate::script::in_any_block(c) || matches!(c, '\u{200C}' | '\u{200D}') || is_apostrophe(c)
+    (c.is_alphanumeric()
+        || crate::script::is_word_char(c)
+        || matches!(c, '\u{200C}' | '\u{200D}')
+        || is_apostrophe(c))
+        && !crate::script::ends_phrase(c)
 }
 
 /// Splits a line of corpus text into words. Apostrophes are kept inside words
@@ -333,8 +348,9 @@ pub fn previous_word(context_before: &str) -> Option<(&str, bool)> {
     }
     let trimmed = context_before.trim_end();
     // A line break ends a sentence too (a new line in a chat is a new message).
-    let sentence_end =
-        trimmed.ends_with(['.', '?', '!']) || context_before[trimmed.len()..].contains('\n');
+    let sentence_end = trimmed.ends_with(['.', '?', '!'])
+        || trimmed.ends_with(crate::script::ends_phrase)
+        || context_before[trimmed.len()..].contains('\n');
     let without_punct = trimmed.trim_end_matches(|c: char| !is_token_char(c) || is_apostrophe(c));
     match current_word(without_punct) {
         "" => None,
@@ -470,6 +486,38 @@ mod tests {
         assert_eq!(script("café"), Script::Other);
         assert_eq!(script("'"), Script::Other);
         assert_eq!(script(""), Script::Other);
+    }
+
+    #[test]
+    fn devanagari_and_bengali_scripts() {
+        assert_eq!(script("नमस्ते"), Script::Native("deva"));
+        assert_eq!(script("ज\u{093C}िंदगी"), Script::Native("deva"));
+        assert_eq!(script("नमस्ते।"), Script::Other, "a danda is no letter");
+        assert_eq!(script("२०२०"), Script::Other);
+        assert_eq!(script("क'"), Script::Other, "Devanagari has no apostrophe words");
+        assert_eq!(script("অসমীয\u{09BC}া"), Script::Native("beng"));
+        assert_eq!(script("হ'ল"), Script::Native("beng"));
+        assert_eq!(script("'হল"), Script::Other);
+        assert_eq!(script("হল'"), Script::Other);
+        assert_eq!(script("০৯"), Script::Other);
+        assert_eq!(script("नमস"), Script::Other, "two scripts");
+        assert_eq!(script("എന്റെ"), Script::MALAYALAM);
+    }
+
+    #[test]
+    fn devanagari_and_bengali_words_stay_whole() {
+        assert_eq!(current_word("मैं समझ"), "समझ");
+        assert_eq!(current_word("क्\u{200D}ष"), "क्\u{200D}ष");
+        assert_eq!(current_word("ज\u{093C}"), "ज\u{093C}");
+        assert_eq!(current_word("नमस्ते।"), "");
+        assert_eq!(current_word("মই হ'ল"), "হ'ল");
+        assert_eq!(current_word("মই ৷"), "");
+        let got: Vec<&str> = words("क्या हाल है। ठीक॥ ক্ষমা হ'ল৷ মই").collect();
+        assert_eq!(got, ["क्या", "हाल", "है", "ठीक", "ক্ষমা", "হ'ল", "মই"]);
+        assert_eq!(previous_word("नमस्ते। "), Some(("नमस्ते", true)));
+        assert_eq!(previous_word("हाल है "), Some(("है", false)));
+        assert_eq!(previous_word("মই হ'ল৷ "), Some(("হ'ল", true)));
+        assert_eq!(phrase_words("क्या। हाल "), (Some("हाल"), None));
     }
 
     #[test]
