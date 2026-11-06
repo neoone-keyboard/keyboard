@@ -17,40 +17,51 @@ const SHORTLIST: usize = 16;
 const ZWNJ: char = '\u{200C}';
 const ZWJ: char = '\u{200D}';
 
-/// One byte per character: U+0D00–U+0D7F become 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02.
-/// None if the word has any other character.
-pub fn pack(word: &str) -> Option<Vec<u8>> {
+/// The first code point of the script block `r`'s words are packed from (`pack`): its
+/// script plug-in's (U+0D00 for Malayalam, U+0900 for Devanagari).
+pub fn block_base(r: &Romanisation) -> char {
+    crate::script::rules(r.script()).map_or('\u{0D00}', |rules| *rules.block().start())
+}
+
+/// One byte per character: the 128 code points of the script block from `base` become
+/// 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02, and the apostrophe 0x27 (Assamese হ'ল; never in a
+/// Malayalam word). None if the word has any other character.
+pub fn pack(word: &str, base: char) -> Option<Vec<u8>> {
     word.chars()
         .map(|c| match c {
             ZWNJ => Some(0x01),
             ZWJ => Some(0x02),
-            '\u{0D00}'..='\u{0D7F}' => Some(0x80 + (c as u32 - 0x0D00) as u8),
-            _ => None,
+            '\'' => Some(b'\''),
+            _ => {
+                let offset = (c as u32).checked_sub(base as u32)?;
+                (offset < 0x80).then(|| 0x80 + offset as u8)
+            }
         })
         .collect()
 }
 
 /// The inverse of `pack`; None for bytes `pack` never writes.
-pub fn unpack(bytes: &[u8]) -> Option<String> {
+pub fn unpack(bytes: &[u8], base: char) -> Option<String> {
     bytes
         .iter()
         .map(|&b| match b {
             0x01 => Some(ZWNJ),
             0x02 => Some(ZWJ),
-            0x80..=0xFF => char::from_u32(0x0D00 + u32::from(b - 0x80)),
+            b'\'' => Some('\''),
+            0x80..=0xFF => char::from_u32(base as u32 + u32::from(b - 0x80)),
             _ => None,
         })
         .collect()
 }
 
-/// The `manglish.fst` key for a Malayalam word; None if it has no skeleton or can't be packed.
+/// The romanised-lexicon key for a native word; None if it has no skeleton or can't be packed.
 pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
     let mut key = r.word_skeleton(word).into_bytes();
     if key.is_empty() {
         return None;
     }
     key.push(SEPARATOR);
-    key.extend(pack(word)?);
+    key.extend(pack(word, block_base(r))?);
     Some(key)
 }
 
@@ -91,6 +102,7 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     let mut keys = lexicon.top_completions(&exact_prefix, TOP_K);
     keys.extend(lexicon.top_completions(typed_skeleton.as_bytes(), TOP_K));
 
+    let base = block_base(r);
     let mut shortlist: Vec<(f32, Match)> = Vec::with_capacity(keys.len());
     let mut seen = std::collections::HashSet::new();
     for (key, count) in keys {
@@ -100,7 +112,7 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
         let Some(sep) = key.iter().position(|&b| b == SEPARATOR) else {
             continue;
         };
-        let Some(word) = unpack(&key[sep + 1..]) else {
+        let Some(word) = unpack(&key[sep + 1..], base) else {
             continue;
         };
         let missing = sep.saturating_sub(typed_skeleton.len());
@@ -129,9 +141,9 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
         .collect()
 }
 
-/// Malayalam words whose skeleton is exactly `skeleton`, most frequent first,
-/// with their counts. One bounded lookup.
-pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str) -> Vec<(String, u64)> {
+/// Native words whose skeleton is exactly `skeleton`, most frequent first, with their counts,
+/// unpacked from the script block at `base` (`block_base`). One bounded lookup.
+pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(String, u64)> {
     if skeleton.is_empty() {
         return Vec::new();
     }
@@ -140,7 +152,7 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str) -> Vec<(String, u64)> {
     lexicon
         .top_completions(&prefix, TOP_K)
         .into_iter()
-        .filter_map(|(key, count)| Some((unpack(&key[prefix.len()..])?, count)))
+        .filter_map(|(key, count)| Some((unpack(&key[prefix.len()..], base)?, count)))
         .collect()
 }
 
@@ -234,12 +246,21 @@ mod tests {
     }
 
     #[test]
-    fn packing_round_trips_malayalam_only() {
+    fn packing_round_trips_the_script_only() {
+        const ML: char = '\u{0D00}';
         for word in ["എന്റെ", "അവൻ", "ന\u{0D4D}\u{200D}", "ക\u{200C}ഷ"] {
-            assert_eq!(unpack(&pack(word).unwrap()).as_deref(), Some(word));
+            assert_eq!(unpack(&pack(word, ML).unwrap(), ML).as_deref(), Some(word));
         }
-        assert_eq!(pack("abc"), None);
-        assert_eq!(unpack(b"abc"), None);
+        assert_eq!(pack("abc", ML), None);
+        assert_eq!(unpack(b"abc", ML), None);
+        assert_eq!(pack("क्या", ML), None, "another script's letters don't pack");
+        const DEVA: char = '\u{0900}';
+        assert_eq!(pack("है", DEVA), Some(b"\xB9\xC8".to_vec()));
+        assert_eq!(unpack(b"\xB9\xC8", DEVA).as_deref(), Some("है"));
+        const BENG: char = '\u{0980}';
+        let packed = pack("হ'ল", BENG).unwrap();
+        assert_eq!(packed[1], b'\'');
+        assert_eq!(unpack(&packed, BENG).as_deref(), Some("হ'ল"));
     }
 
     #[test]

@@ -16,7 +16,10 @@ use crate::{PackPaths, Paths};
 /// The pack format this engine reads.
 pub const FORMAT: u32 = 1;
 /// This engine's pack level: a pack whose `minEngine` is higher needs a newer app.
-pub const PACK_ENGINE: u32 = 1;
+/// 1: phase 1 (Malayalam, its tables compiled in). 2: phase 2, which reads format 1 with the
+/// `romanisation`, `suffixes`, `chatForms` and `layout` roles, any number of packs, and the
+/// script plug-ins `mlym`, `deva` and `beng` (Hindi and Assamese need it).
+pub const PACK_ENGINE: u32 = 2;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -31,7 +34,11 @@ pub struct Manifest {
     #[serde(default)]
     pub romanised: Option<Romanised>,
     pub min_engine: u32,
-    /// The `en.fst` the pack's LM and next words were built against; checked in phase 3.
+    /// The `en.fst` the pack's LM and next words were built against (FNV-1a of the file, as
+    /// `Lexicon::fingerprint`, 16 hex digits, little-endian bytes in order). Not checked when a
+    /// pack opens: an LM is only loaded when its own tables fit the lexicons (`lm_fits`), and
+    /// with another `en.fst` next words still work, only the English pairs are a little off.
+    /// Phase 3's installer compares it with the base's to offer an update.
     #[serde(default)]
     pub english_fingerprint: Option<String>,
     /// Role → file name in the pack folder.
@@ -215,8 +222,8 @@ mod tests {
     fn refuses_what_it_cannot_read() {
         let cases = [
             (FULL.replace("\"format\": 1", "\"format\": 2"), "Format"),
-            (FULL.replace("\"mlym\"", "\"deva\""), "Script"),
-            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 9"), "Engine"),
+            (FULL.replace("\"mlym\"", "\"taml\""), "Script"),
+            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 3"), "Engine"),
         ];
         for (manifest, want) in cases {
             let dir = pack_dir(&manifest, &["ml.fst"]);
@@ -229,6 +236,18 @@ mod tests {
         assert!(matches!(Pack::open(dir.path()), Err(PackError::Malformed(_))));
         let dir = tempfile::tempdir().unwrap();
         assert!(matches!(Pack::open(dir.path()), Err(PackError::Unreadable(_))));
+    }
+
+    #[test]
+    fn the_committed_packs_open() {
+        let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
+        for (id, script, min_engine) in [("ml", "mlym", 1), ("hi", "deva", 2), ("as", "beng", 2)] {
+            let pack = Pack::open(&packs.join(format!("{id}.neopack"))).unwrap();
+            assert_eq!(pack.manifest.id, id);
+            assert_eq!(pack.manifest.script, script);
+            assert_eq!(pack.manifest.min_engine, min_engine);
+            assert!(pack.file("romanisation").is_some(), "{id}");
+        }
     }
 
     #[test]

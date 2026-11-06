@@ -891,10 +891,11 @@ impl Engine {
                 });
             }
         }
-        for (lang, mg) in self
-            .packs_active()
-            .filter_map(|(lang, p)| p.romanised.as_ref().map(|mg| (lang, mg)))
-        {
+        for (lang, mg, base) in self.packs_active().filter_map(|(lang, p)| {
+            p.romanised
+                .as_ref()
+                .map(|mg| (lang, mg, *p.rules.block().start()))
+        }) {
             let bias = priors.get(lang);
             for f in swipe::decode(mg, &map, &path, true)
                 .into_iter()
@@ -904,7 +905,7 @@ impl Engine {
                     continue;
                 };
                 let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key));
-                for (text, count) in manglish::same_skeleton(mg, skeleton)
+                for (text, count) in manglish::same_skeleton(mg, skeleton, base)
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)
                 {
