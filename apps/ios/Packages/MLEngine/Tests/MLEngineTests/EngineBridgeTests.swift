@@ -95,6 +95,11 @@ private func bundledConfig() -> EngineConfig {
     #expect(engine.packProblem() == nil)
     #expect(try engine.loadedSources() == ["english", "ml:lexicon", "ml:romanised", "ml:next_words", "ml:translit", "ml:lm"])
     #expect(try engine.layouts() == [.latin, .native(language: "ml")])
+    #expect(throws: EngineError.self) { try engine.setActiveLanguages(languages: ["en", "ml", "hi"]) }
+    try engine.setActiveLanguages(languages: ["ml"])
+    #expect(try engine.activeLanguages() == ["ml"])
+    let result = try engine.suggest(contextBefore: "hello wor", layout: .latin, autocorrect: true)
+    #expect(result.candidates.first?.text == "wor")
 }
 
 @Test func bundledLexiconsLoadAndCorrect() throws {

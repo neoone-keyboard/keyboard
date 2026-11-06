@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
-use crate::lang::{Active, EN, Lang, LangId, MAX_ACTIVE};
+use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::malayalam;
@@ -329,19 +329,60 @@ impl Engine {
     }
 
     pub fn new(sources: Sources, user: UserStore) -> Self {
-        // Until the keyboard chooses (`set_active`, phase 2 task 8): English and the first
-        // loaded packs, as many as `MAX_ACTIVE` allows.
-        let order = std::iter::once(EN)
-            .chain((0..sources.packs.len()).map(pack_lang))
-            .take(MAX_ACTIVE)
-            .collect();
         Self {
-            active: Active::new(order).expect("English alone is a valid list"),
+            active: Self::default_active(&sources),
             sources,
             user: Mutex::new(user),
             lm_context: Mutex::new(LmContext::default()),
             lm_weights: LmWeights::default(),
             swipe_weights: swipe::Weights::default(),
+        }
+    }
+
+    /// Until the keyboard chooses (`set_active`): English and the first loaded packs, as many
+    /// as `MAX_ACTIVE` allows.
+    fn default_active(sources: &Sources) -> Active {
+        let order = std::iter::once(EN)
+            .chain((0..sources.packs.len()).map(pack_lang))
+            .take(MAX_ACTIVE)
+            .collect();
+        Active::new(order).expect("English alone is a valid list")
+    }
+
+    /// The active languages, in the user's order.
+    pub fn active_languages(&self) -> Vec<LangId> {
+        self.active.iter().filter_map(|l| self.lang_id(l)).collect()
+    }
+
+    /// Makes `ids` the active languages, in that order: only they offer candidates and
+    /// layouts. Refused, leaving the list as it was, for none, more than `MAX_ACTIVE`, a
+    /// repeat, or an id that is neither "en" nor a loaded pack's. English may be left out:
+    /// its lexicon then only describes the context (and still fits the LM, `lm_fits`).
+    pub fn set_active(&mut self, ids: &[LangId]) -> Result<(), ActiveError> {
+        if ids.len() > MAX_ACTIVE {
+            return Err(ActiveError::TooMany(ids.len()));
+        }
+        let order = ids
+            .iter()
+            .map(|id| {
+                self.lang_of_id(&id.0)
+                    .ok_or_else(|| ActiveError::Unknown(id.0.clone()))
+            })
+            .collect::<Result<Vec<Lang>, _>>()?;
+        self.set_order(Active::new(order)?);
+        Ok(())
+    }
+
+    /// Back to the list `new` starts with: English and the first loaded packs.
+    pub fn set_default_active(&mut self) {
+        self.set_order(Self::default_active(&self.sources));
+    }
+
+    fn set_order(&mut self, active: Active) {
+        if active != self.active {
+            // Another LM may answer now: its context starts afresh.
+            *self.lm_context.get_mut().unwrap_or_else(|p| p.into_inner()) = LmContext::default();
+            self.active = active;
         }
     }
 
@@ -394,9 +435,31 @@ impl Engine {
         }
     }
 
-    /// The language a word is shown as: its script's pack, else English.
+    /// The language a word is shown as: its script's pack, else the Latin layout's
+    /// (`latin_lang`).
     fn lang_of_word(&self, word: &str) -> Lang {
-        self.pack_of_word(word).map_or(EN, |(lang, _)| lang)
+        self.pack_of_word(word)
+            .map_or_else(|| self.latin_lang(), |(lang, _)| lang)
+    }
+
+    /// The language of what is typed on the Latin layout and is no lexicon's word (the typed
+    /// word, learned words, addresses): English while it is active, else the first active
+    /// pack with romanised typing.
+    fn latin_lang(&self) -> Lang {
+        if self.active.english() {
+            return EN;
+        }
+        self.packs_active()
+            .find(|(_, p)| p.romanised.is_some())
+            .map_or(EN, |(lang, _)| lang)
+    }
+
+    /// The English lexicon while English is active: its words are offered only then.
+    fn english(&self) -> Option<&Lexicon> {
+        self.sources
+            .english
+            .as_ref()
+            .filter(|_| self.active.english())
     }
 
     /// The pack whose layout `layout` is, if active.
@@ -564,6 +627,10 @@ impl Engine {
     /// ±`rank::HABIT_MAX`, and nothing until `rank::HABIT_MIN_WORDS` words of the active
     /// languages were counted.
     fn add_habit(&self, mut priors: Priors) -> Priors {
+        // The habit weighs each pack against English; without English it says nothing.
+        if !self.active.english() {
+            return priors;
+        }
         let counts: Vec<(Lang, u32)> = {
             let user = self.user();
             let habit = user.habit();
@@ -780,7 +847,7 @@ impl Engine {
                 - w.length * swipe::length_cost(&map, &path, letters)
         };
         let mut out: Vec<Candidate> = Vec::new();
-        if let Some(en) = &self.sources.english {
+        if let Some(en) = self.english() {
             for f in swipe::decode(en, &map, &path, false) {
                 let Ok(text) = String::from_utf8(f.key) else {
                     continue;
@@ -845,7 +912,7 @@ impl Engine {
                     text: word,
                     kind: Kind::Completion,
                     score,
-                    lang: EN,
+                    lang: self.latin_lang(),
                 });
             }
         }
@@ -976,7 +1043,7 @@ impl Engine {
                     .or_else(|| self.layout_pack(layout));
                 self.suggest_malayalam(typed, pack, scores, &own)
             }
-            _ => vec![verbatim(typed, 0.0, EN)],
+            _ => vec![verbatim(typed, 0.0, self.latin_lang())],
         };
         suggestions.truncate(SHOWN);
         Suggestions {
@@ -1034,7 +1101,7 @@ impl Engine {
 
     fn is_known(&self, word: &str) -> bool {
         match text::script(word) {
-            Script::Latin => self.english_count(word).is_some(),
+            Script::Latin => self.active.english() && self.english_count(word).is_some(),
             Script::Native(_) => self
                 .pack_of_word(word)
                 .is_some_and(|(_, p)| p.lexicon.get(word.as_bytes()).is_some()),
@@ -1159,7 +1226,7 @@ impl Engine {
         let mut completions = Vec::new();
         let mut manglish: Option<ManglishCandidates> = None;
 
-        if let Some(lex) = &self.sources.english {
+        if let Some(lex) = self.english() {
             let score_of = |count: u64| lex.log_prob(count) + rank::KNOWN_BONUS;
             let variants = lex.case_variants(typed_n.as_bytes());
             for (key, count) in &variants {
@@ -1352,7 +1419,7 @@ impl Engine {
             .map(|word| Candidate {
                 text: word,
                 kind: Kind::Completion,
-                lang: EN,
+                lang: self.latin_lang(),
                 score: rank::LEARNED_COMPLETION,
             })
             .collect();
@@ -1361,7 +1428,7 @@ impl Engine {
             completions.push(Candidate {
                 text: show(&word),
                 kind: Kind::Completion,
-                lang: EN,
+                lang: self.latin_lang(),
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
@@ -1372,7 +1439,7 @@ impl Engine {
                 completions.push(Candidate {
                     text: show(word),
                     kind: Kind::Completion,
-                    lang: EN,
+                    lang: self.lang_of_word(word),
                     score: rank::OWN_COMPLETION,
                 });
             }
@@ -1479,7 +1546,11 @@ impl Engine {
             known_score = known_score.map(|s| s + own_term(typed_n));
         }
 
-        let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN), EN);
+        let typed_c = verbatim(
+            typed,
+            known_score.unwrap_or(rank::UNKNOWN),
+            self.latin_lang(),
+        );
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
         let capitals = Capitals::of(typed_n, mid_sentence);
@@ -1623,7 +1694,11 @@ impl Engine {
         // where a replacement may (not for a word in the lexicon, a learned one, or a name),
         // else in the first side slot.
         let chosen = self.user().choice(typed_n).map(str::to_string);
-        let replacement = match chosen.filter(|c| !self.user().is_removed(c)) {
+        // Without English, a Latin word chosen before is offered only if learned.
+        let offered = |c: &String| {
+            self.active.english() || text::script(c) != Script::Latin || self.user().is_learned(c)
+        };
+        let replacement = match chosen.filter(|c| !self.user().is_removed(c) && offered(c)) {
             Some(text) => {
                 let malayalam = matches!(text::script(&text), Script::Native(_));
                 let lang = self.lang_of_word(&text);
@@ -1658,7 +1733,7 @@ impl Engine {
     /// Log-probability of all English words that start with `typed` and are
     /// longer than it; minus infinity for none, or for a single letter.
     fn english_prefix_log_prob(&self, typed: &str) -> f32 {
-        let Some(lex) = self.sources.english.as_ref().filter(|_| typed.len() >= 2) else {
+        let Some(lex) = self.english().filter(|_| typed.len() >= 2) else {
             return f32::NEG_INFINITY;
         };
         let own: u64 = lex
@@ -2041,11 +2116,12 @@ impl Engine {
                 score: rank::LEARNED_COMPLETION,
                 text: word,
                 kind: Kind::Completion,
-                lang: EN,
+                lang: self.latin_lang(),
             })
             .collect();
         self.drop_removed(&mut others);
-        arrange(verbatim(typed, 0.0, EN), typed_n, others, None, Vec::new())
+        let typed = verbatim(typed, 0.0, self.latin_lang());
+        arrange(typed, typed_n, others, None, Vec::new())
     }
 
     /// Native-script typing, completed from `pack`'s lexicon (the typed word's script's, or
@@ -2319,7 +2395,7 @@ impl Engine {
     /// The lexicon a next-word piece's words come from: English's, or `lm_pack`'s.
     fn next_lexicon(&self, p: &NextPiece) -> Option<&Lexicon> {
         if p.latin {
-            self.sources.english.as_ref()
+            self.english()
         } else {
             self.lm_pack().map(|(_, pack)| &pack.lexicon)
         }
@@ -2379,6 +2455,10 @@ impl Engine {
                 let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
                     continue;
                 };
+                // `next.fst` holds English pairs too: offered only while English is active.
+                if !self.active.english() && text::script(next) == Script::Latin {
+                    continue;
+                }
                 let text = if sentence_end {
                     capitalize(next)
                 } else {
@@ -3834,5 +3914,38 @@ mod tests {
             texts(&engine.suggest("hel", Layout::Native(Lang(9)), true)),
             ["hel"]
         );
+    }
+
+    #[test]
+    fn english_switched_off_is_not_known_and_offers_nothing() {
+        let mut engine = engine();
+        let ids = |ids: &[&str]| {
+            ids.iter()
+                .map(|id| LangId(id.to_string()))
+                .collect::<Vec<_>>()
+        };
+        engine.set_active(&ids(&["ml"])).unwrap();
+        // The test pack has no romanised typing: its native layout is the only one.
+        assert_eq!(engine.layouts(), [ML]);
+        let s = engine.suggest("hel", Layout::Latin, true);
+        assert_eq!(texts(&s), ["hel"]);
+        assert!(
+            engine
+                .suggest("I ", Layout::Latin, true)
+                .candidates
+                .is_empty()
+        );
+        // An English word is no known word now: committed twice, it is learned as typed.
+        engine.note_committed("hello");
+        engine.note_committed("hello");
+        assert!(engine.user().is_learned("hello"));
+        // Its pack still answers.
+        assert_eq!(texts(&engine.suggest("എന്", ML, true))[1], "എന്റെ");
+        // With English back, an English word is known and never learned.
+        engine.set_active(&ids(&["en", "ml"])).unwrap();
+        engine.forget_learned();
+        engine.note_committed("hello");
+        engine.note_committed("hello");
+        assert!(!engine.user().is_learned("hello"));
     }
 }

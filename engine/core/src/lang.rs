@@ -36,6 +36,8 @@ pub enum ActiveError {
     Empty,
     TooMany(usize),
     Repeated(Lang),
+    /// An id that is neither English nor a loaded pack's.
+    Unknown(String),
 }
 
 impl fmt::Display for ActiveError {
@@ -44,6 +46,7 @@ impl fmt::Display for ActiveError {
             Self::Empty => write!(f, "at least one language must be active"),
             Self::TooMany(n) => write!(f, "{n} languages, at most {MAX_ACTIVE} can be active"),
             Self::Repeated(l) => write!(f, "language {} is listed twice", l.0),
+            Self::Unknown(id) => write!(f, "language {id:?} is not loaded"),
         }
     }
 }

@@ -45,6 +45,23 @@ fn english_words_come_first() {
     }
 }
 
+/// With English switched off, a swipe gives only Malayalam words.
+#[test]
+fn english_switched_off_swipes_no_english() {
+    let mut engine = engine();
+    engine
+        .set_active(&[mlengine_core::lang::LangId("ml".into())])
+        .unwrap();
+    for (drawn, before) in [("hello", ""), ("ningal", "ഇത് "), ("the", "I saw ")] {
+        let found = swipe(&engine, drawn, before);
+        assert!(!found.is_empty(), "{drawn}");
+        assert!(
+            found.iter().all(|(_, k)| *k == Kind::Romanised),
+            "{drawn}: {found:?}"
+        );
+    }
+}
+
 #[test]
 fn manglish_skeletons_give_malayalam_words() {
     let engine = engine();

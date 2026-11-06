@@ -13,6 +13,9 @@ uniffi::setup_scaffolding!();
 pub enum EngineError {
     #[error("internal engine failure: {message}")]
     Internal { message: String },
+    /// A request the engine refused, such as an active list it can't use.
+    #[error("refused: {message}")]
+    Refused { message: String },
 }
 
 /// Which keyboard the text came from: QWERTY, or a language's native layout by its id
@@ -108,6 +111,11 @@ pub struct EngineConfig {
     /// How long `prepare` may fill the LM's context; nil, until it is done.
     #[uniffi(default = None)]
     pub lm_prepare_ms: Option<u32>,
+    /// The active languages' ids in the user's order ("en", "ml"), at most
+    /// `mlengine_core::lang::MAX_ACTIVE`. Empty, or a list the engine refuses (a language
+    /// that didn't load), means every loaded language up to that many, English first.
+    #[uniffi(default = [])]
+    pub active: Vec<String>,
 }
 
 fn millis(ms: Option<u32>) -> Option<std::time::Duration> {
@@ -170,7 +178,7 @@ impl From<mlengine_core::Kind> for CandidateKind {
 
 #[derive(uniffi::Object)]
 pub struct Engine {
-    inner: mlengine_core::Engine,
+    inner: std::sync::RwLock<mlengine_core::Engine>,
     model_deadline: Option<std::time::Duration>,
     lm_prefill: Option<std::time::Duration>,
     lm_after_space: Option<std::time::Duration>,
@@ -179,16 +187,34 @@ pub struct Engine {
     pack_problem: Option<String>,
 }
 
+/// The engine's layout for `layout`; a language that isn't loaded is Latin.
+fn core_layout(engine: &mlengine_core::Engine, layout: &InputLayout) -> mlengine_core::Layout {
+    match layout {
+        InputLayout::Latin => mlengine_core::Layout::Latin,
+        InputLayout::Native { language } => engine
+            .lang_of_id(language)
+            .map_or(mlengine_core::Layout::Latin, mlengine_core::Layout::Native),
+    }
+}
+
+/// `ids` as the engine's active list; empty is its default list.
+fn set_active(engine: &mut mlengine_core::Engine, ids: &[String]) -> Result<(), String> {
+    if ids.is_empty() {
+        engine.set_default_active();
+        return Ok(());
+    }
+    let ids: Vec<mlengine_core::lang::LangId> = ids
+        .iter()
+        .map(|id| mlengine_core::lang::LangId(id.clone()))
+        .collect();
+    engine.set_active(&ids).map_err(|e| e.to_string())
+}
+
 impl Engine {
-    /// The engine's layout for `layout`; a language that isn't loaded is Latin.
-    fn layout(&self, layout: &InputLayout) -> mlengine_core::Layout {
-        match layout {
-            InputLayout::Latin => mlengine_core::Layout::Latin,
-            InputLayout::Native { language } => self
-                .inner
-                .lang_of_id(language)
-                .map_or(mlengine_core::Layout::Latin, mlengine_core::Layout::Native),
-        }
+    /// The engine, read-locked: only `set_active_languages` writes. A poisoned lock still
+    /// holds a usable engine.
+    fn inner(&self) -> std::sync::RwLockReadGuard<'_, mlengine_core::Engine> {
+        self.inner.read().unwrap_or_else(|p| p.into_inner())
     }
 }
 
@@ -200,8 +226,12 @@ impl Engine {
     pub fn new(config: EngineConfig) -> Result<Arc<Self>, EngineError> {
         guarded(|| {
             let (paths, pack_problem) = paths(&config);
+            let mut inner = mlengine_core::Engine::open(&paths);
+            if set_active(&mut inner, &config.active).is_err() {
+                inner.set_default_active();
+            }
             Arc::new(Self {
-                inner: mlengine_core::Engine::open(&paths),
+                inner: std::sync::RwLock::new(inner),
                 pack_problem,
                 model_deadline: millis(config.model_deadline_ms),
                 lm_prefill: millis(config.lm_prefill_ms),
@@ -219,7 +249,8 @@ impl Engine {
         autocorrect: bool,
     ) -> Result<Suggestions, EngineError> {
         guarded(|| {
-            let layout = self.layout(&layout);
+            let inner = self.inner();
+            let layout = core_layout(&inner, &layout);
             let start = std::time::Instant::now();
             let elapsed = || start.elapsed();
             let timing = mlengine_core::Timing {
@@ -229,7 +260,7 @@ impl Engine {
                 lm_after_space: self.lm_after_space,
                 lm_deadline: self.lm_deadline,
             };
-            let s = self.inner.suggest_timed(&context_before, layout, autocorrect, Some(&timing));
+            let s = inner.suggest_timed(&context_before, layout, autocorrect, Some(&timing));
             Suggestions {
                 typed: s.typed,
                 candidates: s
@@ -266,7 +297,7 @@ impl Engine {
                     })
                 })
                 .collect();
-            self.inner
+            self.inner()
                 .swipe(&path, &keys, &context_before, self.lm_after_space)
                 .into_iter()
                 .map(|c| Candidate { text: c.text, kind: c.kind.into() })
@@ -277,17 +308,17 @@ impl Engine {
     /// Fills the LM's context for the text before the cursor, within `lm_prepare_ms`, so the
     /// first suggest in a field already has it. Call when the keyboard appears.
     pub fn prepare(&self, context_before: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.prepare(&context_before, self.lm_prepare))
+        guarded(|| self.inner().prepare(&context_before, self.lm_prepare))
     }
 
     /// The user undid an autocorrect or tapped what they typed: never replace this word.
     pub fn learn(&self, word: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.learn(&word))
+        guarded(|| self.inner().learn(&word))
     }
 
     /// A word was committed as typed; an unknown word is learned the second time.
     pub fn note_committed(&self, word: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.note_committed(&word))
+        guarded(|| self.inner().note_committed(&word))
     }
 
     /// A word was committed after `context_before` (typed, corrected or tapped), from
@@ -300,62 +331,83 @@ impl Engine {
         layout: InputLayout,
     ) -> Result<(), EngineError> {
         guarded(|| {
-            self.inner
-                .note_used(&context_before, &word, self.layout(&layout))
+            let inner = self.inner();
+            inner.note_used(&context_before, &word, core_layout(&inner, &layout))
         })
     }
 
     /// The user tapped `chosen` for `typed` though the bar's middle was something else.
     pub fn note_choice(&self, typed: String, chosen: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.note_choice(&typed, &chosen))
+        guarded(|| self.inner().note_choice(&typed, &chosen))
     }
 
     /// Forgets learned words and words removed from the bar.
     pub fn forget_learned(&self) -> Result<(), EngineError> {
-        guarded(|| self.inner.forget_learned())
+        guarded(|| self.inner().forget_learned())
     }
 
     /// The user held a suggestion and chose Remove: never suggest it again until learned.
     pub fn remove_word(&self, word: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.remove_word(&word))
+        guarded(|| self.inner().remove_word(&word))
     }
 
     /// Every learned word, as shown, most recently used first: for the "Your words" screen.
     pub fn learned_words(&self) -> Result<Vec<String>, EngineError> {
-        guarded(|| self.inner.learned_words())
+        guarded(|| self.inner().learned_words())
     }
 
     /// The words removed from the bar, most recently removed first (ASCII lowercased).
     pub fn removed_words(&self) -> Result<Vec<String>, EngineError> {
-        guarded(|| self.inner.removed_words())
+        guarded(|| self.inner().removed_words())
     }
 
     /// Forgets one learned word without blocking it, unlike `remove_word`.
     pub fn forget_word(&self, word: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.forget_word(&word))
+        guarded(|| self.inner().forget_word(&word))
     }
 
     /// Un-removes a word removed from the bar; it is not learned by this.
     pub fn restore_word(&self, word: String) -> Result<(), EngineError> {
-        guarded(|| self.inner.restore_word(&word))
+        guarded(|| self.inner().restore_word(&word))
     }
 
     /// The learned emails and URLs: the keyboard treats letters that begin one as one word.
     pub fn learned_addresses(&self) -> Result<Vec<String>, EngineError> {
-        guarded(|| self.inner.learned_addresses())
+        guarded(|| self.inner().learned_addresses())
+    }
+
+    /// Makes `languages` the active ones, in that order ("en", "ml"; at most
+    /// `mlengine_core::lang::MAX_ACTIVE`): only they offer suggestions and layouts. Empty
+    /// means every loaded language up to that many, English first. Refused, keeping the
+    /// list as it was, for too many, a repeat, or a language that isn't loaded.
+    pub fn set_active_languages(&self, languages: Vec<String>) -> Result<(), EngineError> {
+        let mut inner = self.inner.write().unwrap_or_else(|p| p.into_inner());
+        guarded(|| set_active(&mut inner, &languages))?
+            .map_err(|message| EngineError::Refused { message })
+    }
+
+    /// The active languages' ids, in order.
+    pub fn active_languages(&self) -> Result<Vec<String>, EngineError> {
+        guarded(|| {
+            self.inner()
+                .active_languages()
+                .into_iter()
+                .map(|id| id.0)
+                .collect()
+        })
     }
 
     /// The layouts the language key cycles through, in order: Latin first if an active
     /// language types in Latin, then each active pack's native layout.
     pub fn layouts(&self) -> Result<Vec<InputLayout>, EngineError> {
         guarded(|| {
-            self.inner
+            let inner = self.inner();
+            inner
                 .layouts()
                 .into_iter()
                 .filter_map(|layout| match layout {
                     mlengine_core::Layout::Latin => Some(InputLayout::Latin),
-                    mlengine_core::Layout::Native(lang) => self
-                        .inner
+                    mlengine_core::Layout::Native(lang) => inner
                         .lang_id(lang)
                         .map(|id| InputLayout::Native { language: id.0 }),
                 })
@@ -370,7 +422,7 @@ impl Engine {
     }
 
     pub fn loaded_sources(&self) -> Result<Vec<String>, EngineError> {
-        guarded(|| self.inner.loaded_sources())
+        guarded(|| self.inner().loaded_sources())
     }
 }
 
@@ -544,21 +596,27 @@ mod tests {
     #[test]
     fn guarded_turns_panics_into_errors() {
         let err = guarded(|| -> u8 { panic!("boom") }).unwrap_err();
-        let EngineError::Internal { message } = err;
+        let EngineError::Internal { message } = err else {
+            panic!("not an internal error")
+        };
         assert!(message.contains("boom"), "message was {message:?}");
     }
 
     #[test]
     fn guarded_reports_formatted_string_payloads() {
         let err = guarded(|| -> u8 { panic!("x {}", 1) }).unwrap_err();
-        let EngineError::Internal { message } = err;
+        let EngineError::Internal { message } = err else {
+            panic!("not an internal error")
+        };
         assert!(message.contains("x 1"), "message was {message:?}");
     }
 
     #[test]
     fn guarded_reports_unknown_payloads() {
         let err = guarded(|| -> u8 { std::panic::panic_any(5_u8) }).unwrap_err();
-        let EngineError::Internal { message } = err;
+        let EngineError::Internal { message } = err else {
+            panic!("not an internal error")
+        };
         assert_eq!(message, "unknown panic");
     }
 
@@ -618,6 +676,32 @@ mod tests {
         let unknown = InputLayout::Native { language: "xx".into() };
         let latin = engine.suggest("ente".into(), InputLayout::Latin, true).unwrap();
         assert_eq!(engine.suggest("ente".into(), unknown, true).unwrap(), latin);
+
+        // The active list: refused when too long, empty is the default.
+        let refused = engine.set_active_languages(vec!["en".into(), "ml".into(), "hi".into()]);
+        assert!(
+            matches!(refused, Err(EngineError::Refused { .. })),
+            "{refused:?}"
+        );
+        engine.set_active_languages(vec!["ml".into()]).unwrap();
+        assert_eq!(engine.active_languages().unwrap(), ["ml"]);
+        let s = engine
+            .suggest("hello wor".into(), InputLayout::Latin, true)
+            .unwrap();
+        assert_eq!(s.candidates[0].text, "wor");
+        engine.set_active_languages(vec![]).unwrap();
+        assert_eq!(engine.active_languages().unwrap(), ["en", "ml"]);
+        // In the config, as at start; a list that can't be used is the default.
+        let config = |active: &[&str]| EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dir: Some(format!("{root}/packs/ml.neopack")),
+            active: active.iter().map(|id| id.to_string()).collect(),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config(&["ml"])).unwrap();
+        assert_eq!(engine.active_languages().unwrap(), ["ml"]);
+        let engine = Engine::new(config(&["hi"])).unwrap();
+        assert_eq!(engine.active_languages().unwrap(), ["en", "ml"]);
     }
 
     #[test]

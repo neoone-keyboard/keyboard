@@ -7,6 +7,7 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use mlengine_core::lang::{ActiveError, EN, LangId};
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::nn::{Deadline, Translit, Transliteration};
 use mlengine_core::pack::Pack;
@@ -1079,4 +1080,82 @@ fn translit_latency() {
         samples[samples.len() * 99 / 100],
         samples[samples.len() - 1]
     );
+}
+
+/// English switched off (`set_active(["ml"])`), with the whole pack as the keyboard opens it.
+fn ml_only() -> Engine {
+    let paths = bundle_paths(model_path(), lm_path());
+    let mut engine = Engine::open(&paths);
+    engine.set_active(&[LangId("ml".into())]).unwrap();
+    engine
+}
+
+/// Without English, nothing English is offered and Latin letters that aren't Manglish stay
+/// as typed; Manglish still converts.
+#[test]
+fn english_switched_off_offers_no_english() {
+    let engine = ml_only();
+    assert_eq!(engine.layouts(), [Layout::Latin, ML]);
+    for context in [
+        "hello wor",
+        "hello",
+        "I said teh",
+        "thnaks",
+        "hello ",
+        "I want to ",
+    ] {
+        let s = engine.suggest(context, Layout::Latin, true);
+        println!(
+            "{context:?}: {:?}",
+            s.candidates.iter().map(|c| &c.text).collect::<Vec<_>>()
+        );
+        assert!(
+            s.candidates.iter().all(|c| c.lang != EN),
+            "{context:?}: {s:?}"
+        );
+    }
+    let s = engine.suggest("hello wor", Layout::Latin, true);
+    assert_eq!(s.candidates[0].text, "wor");
+    assert_eq!(s.candidates[0].kind, Kind::Verbatim);
+    assert_eq!(
+        middle(&engine, "ente"),
+        ("എന്റെ".to_string(), Kind::Romanised)
+    );
+    let s = engine.suggest("എന്റ", ML, true);
+    assert_eq!(s.candidates[1].text, "എന്റെ");
+}
+
+#[test]
+fn the_active_list_is_checked() {
+    let mut engine = engine();
+    let ids = |ids: &[&str]| {
+        ids.iter()
+            .map(|id| LangId(id.to_string()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(engine.active_languages(), ids(&["en", "ml"]));
+    assert_eq!(
+        engine.set_active(&ids(&["en", "ml", "hi"])),
+        Err(ActiveError::TooMany(3))
+    );
+    assert_eq!(
+        engine.set_active(&ids(&["hi"])),
+        Err(ActiveError::Unknown("hi".into()))
+    );
+    assert_eq!(engine.set_active(&[]), Err(ActiveError::Empty));
+    assert_eq!(
+        engine.active_languages(),
+        ids(&["en", "ml"]),
+        "a refusal changes nothing"
+    );
+    engine.set_active(&ids(&["ml", "en"])).unwrap();
+    assert_eq!(engine.active_languages(), ids(&["ml", "en"]));
+    engine.set_active(&ids(&["en"])).unwrap();
+    assert_eq!(engine.layouts(), [Layout::Latin]);
+    assert!(
+        texts(&engine, "ente").iter().all(|w| w.is_ascii()),
+        "Malayalam is off"
+    );
+    engine.set_default_active();
+    assert_eq!(engine.active_languages(), ids(&["en", "ml"]));
 }

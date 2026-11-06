@@ -65,17 +65,23 @@ eval-swipe:
 	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture
 
 # Every suggestion over the eval inputs (engine/core/tests/golden_dump.rs), for refactors that
-# must not change output. golden-save records it in data/golden/m6p1.tsv.gz; golden-check
-# fails on any difference from that record.
+# must not change output: with the default languages (data/golden/m6p1.tsv.gz) and with English
+# switched off (data/golden/ml-only.tsv.gz). golden-save records both; golden-check fails on any
+# difference from either record.
 GOLDEN := data/golden/m6p1.tsv.gz
+GOLDEN_ML_ONLY := data/golden/ml-only.tsv.gz
 golden:
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test golden_dump -- --ignored
 golden-save: golden
 	mkdir -p data/golden && gzip -9nc build/golden/now.tsv > $(GOLDEN)
+	gzip -9nc build/golden/ml-only.tsv > $(GOLDEN_ML_ONLY)
 golden-check: golden
 	@gzip -dc $(GOLDEN) | diff - build/golden/now.tsv > build/golden/diff.txt \
 	  && echo "golden: identical" \
 	  || { echo "golden: $$(grep -c '^>' build/golden/diff.txt) lines differ (build/golden/diff.txt)"; head -20 build/golden/diff.txt; exit 1; }
+	@gzip -dc $(GOLDEN_ML_ONLY) | diff - build/golden/ml-only.tsv > build/golden/diff-ml-only.txt \
+	  && echo "golden ml-only: identical" \
+	  || { echo "golden ml-only: $$(grep -c '^>' build/golden/diff-ml-only.txt) lines differ (build/golden/diff-ml-only.txt)"; head -20 build/golden/diff-ml-only.txt; exit 1; }
 
 # The Malayalam pack as a .neopack file (a zip of packs/ml.neopack), for import or download.
 pack:

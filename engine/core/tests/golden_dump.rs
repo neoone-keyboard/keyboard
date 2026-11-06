@@ -8,12 +8,14 @@
 //! are covered too.
 //!
 //! OUT sets the output file (default `build/golden/now.tsv`); MAXLINES caps the lines read
-//! from each input (default 200).
+//! from each input (default 200). `golden_dump_ml_only` writes the same rows with English
+//! switched off.
 
 use std::fmt::Write as _;
 use std::io::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use mlengine_core::lang::LangId;
 use mlengine_core::pack::Pack;
 use mlengine_core::{Candidate, Engine, Kind, Layout, Paths};
 
@@ -89,14 +91,43 @@ fn row(out: &mut String, section: &str, e: &Engine, ctx: &str, layout: Layout) {
 #[test]
 #[ignore]
 fn golden_dump() {
-    let max: usize = std::env::var("MAXLINES").ok().and_then(|s| s.parse().ok()).unwrap_or(200);
     let out_path = std::env::var_os("OUT")
         .map(PathBuf::from)
         .unwrap_or_else(|| root().join("build/golden/now.tsv"));
+    dump(&[], &out_path);
+}
+
+/// The same inputs with English switched off (`set_active(["ml"])`): no English candidate,
+/// Manglish and native Malayalam as with English on. OUT_ML_ONLY sets the output file
+/// (default `build/golden/ml-only.tsv`).
+#[test]
+#[ignore]
+fn golden_dump_ml_only() {
+    let out_path = std::env::var_os("OUT_ML_ONLY")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root().join("build/golden/ml-only.tsv"));
+    dump(&["ml"], &out_path);
+}
+
+/// An engine with `active` as its active list (none: the default).
+fn engine_with(active: &[&str]) -> Engine {
+    let mut e = engine();
+    if !active.is_empty() {
+        let ids: Vec<LangId> = active.iter().map(|id| LangId(id.to_string())).collect();
+        e.set_active(&ids).unwrap();
+    }
+    e
+}
+
+fn dump(active: &[&str], out_path: &Path) {
+    let max: usize = std::env::var("MAXLINES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(200);
     std::fs::create_dir_all(out_path.parent().unwrap()).unwrap();
     let mut out = String::new();
 
-    let e = engine();
+    let e = engine_with(active);
     for name in INPUTS {
         for line in lines(name, max) {
             let layout = layout_for(&e, &line);
@@ -107,7 +138,7 @@ fn golden_dump() {
     }
 
     // Learning: a fresh engine commits each word, then is asked at every space.
-    let e = engine();
+    let e = engine_with(active);
     for name in ["chat-golden.tsv", "language-choice.tsv"] {
         for line in lines(name, max) {
             let layout = layout_for(&e, &line);
@@ -122,6 +153,9 @@ fn golden_dump() {
         }
     }
 
-    std::fs::File::create(&out_path).unwrap().write_all(out.as_bytes()).unwrap();
+    std::fs::File::create(out_path)
+        .unwrap()
+        .write_all(out.as_bytes())
+        .unwrap();
     println!("{}: {} lines", out_path.display(), out.lines().count());
 }
