@@ -42,6 +42,7 @@ test-engine:
 
 test-data:
 	python3 -I scripts/pack.py packs/ml.neopack --check
+	python3 -I scripts/pack.py packs/as.neopack --check
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
