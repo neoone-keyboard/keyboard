@@ -15,7 +15,7 @@ use crate::malayalam;
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
-use crate::personal::{FOLLOWERS_PER_CONTEXT, Habit};
+use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
 use crate::romanisation::Romanisation;
 use crate::script::{self, ScriptRules};
@@ -450,19 +450,16 @@ impl Engine {
         let previous = previous.map(normalize).filter(|w| phrase_word(w));
         let earlier = earlier.map(normalize).filter(|w| phrase_word(w));
         let counted = self.is_known_or_learned(&word);
-        let habit = match (layout, text::script(&word)) {
-            (Layout::Latin, Script::Native(_)) => Some(Habit::Malayalam),
-            (Layout::Latin, Script::Latin) if self.english_count(&word).is_some() => {
-                Some(Habit::English)
-            }
-            _ => None,
+        let habit = match layout {
+            Layout::Latin => self.word_lang(&word).and_then(|lang| self.lang_id(lang)),
+            Layout::Malayalam => None,
         };
         self.user().note_used(
             &word,
             previous.as_deref(),
             earlier.as_deref(),
             counted,
-            habit,
+            habit.as_ref(),
         );
     }
 
@@ -536,16 +533,31 @@ impl Engine {
         }
     }
 
-    /// The language habit (`UserStore::habit`) as a Manglish bias: `rank::HABIT_WEIGHT` ×
-    /// ln((Malayalam + 1) / (English + 1)), within ±`rank::HABIT_MAX`, and nothing until
-    /// `rank::HABIT_MIN_WORDS` words were counted.
-    fn habit_bias(&self) -> f32 {
-        let (ml, en) = self.user().habit();
-        if ml + en < rank::HABIT_MIN_WORDS {
-            return 0.0;
+    /// `priors` with the language habit (`UserStore::habit`) added to each active pack's
+    /// (`with_habit`): `rank::HABIT_WEIGHT` × ln((n_pack + 1) / (n_en + 1)), within
+    /// ±`rank::HABIT_MAX`, and nothing until `rank::HABIT_MIN_WORDS` words of the active
+    /// languages were counted.
+    fn add_habit(&self, mut priors: Priors) -> Priors {
+        let counts: Vec<(Lang, u32)> = {
+            let user = self.user();
+            let habit = user.habit();
+            let n = |id: &LangId| habit.get(id).copied().unwrap_or(0);
+            self.active
+                .iter()
+                .map(|lang| (lang, self.lang_id(lang).map_or(0, |id| n(&id))))
+                .collect()
+        };
+        let n_en = counts.iter().find(|(l, _)| *l == EN).map_or(0, |(_, n)| *n);
+        let total = counts.iter().fold(0u32, |a, (_, n)| a.saturating_add(*n));
+        if total < rank::HABIT_MIN_WORDS {
+            return priors;
         }
-        let ratio = (ml as f32 + 1.0) / (en as f32 + 1.0);
-        (rank::HABIT_WEIGHT * ratio.ln()).clamp(-rank::HABIT_MAX, rank::HABIT_MAX)
+        for (lang, n) in counts.into_iter().filter(|(l, _)| *l != EN) {
+            let ratio = (n as f32 + 1.0) / (n_en as f32 + 1.0);
+            let habit = (rank::HABIT_WEIGHT * ratio.ln()).clamp(-rank::HABIT_MAX, rank::HABIT_MAX);
+            priors.set(lang, with_habit(priors.get(lang), habit));
+        }
+        priors
     }
 
     /// A word was committed as typed. Unknown words are learned the second
@@ -567,7 +579,18 @@ impl Engine {
     fn would_replace(&self, word: &str) -> bool {
         text::script(word) == Script::Latin
             && self
-                .suggest_latin(word, word, true, false, false, false, 0.0, None, None, &[])
+                .suggest_latin(
+                    word,
+                    word,
+                    true,
+                    false,
+                    false,
+                    false,
+                    &Priors::default(),
+                    None,
+                    None,
+                    &[],
+                )
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
     }
@@ -712,9 +735,9 @@ impl Engine {
             })
         });
         let scores = view.as_ref().map(|v| v as &dyn ContextScores);
-        let bias = scores.map_or_else(
-            || self.manglish_bias(text::previous_word(context_before).map(|(w, _)| w)),
-            |s| s.manglish_bias(),
+        let priors = self.with_lm(
+            self.priors(text::previous_word(context_before).map(|(w, _)| w)),
+            scores,
         );
         let user = self.user();
         let w = self.swipe_weights;
@@ -752,6 +775,7 @@ impl Engine {
             .packs_active()
             .filter_map(|(lang, p)| p.romanised.as_ref().map(|mg| (lang, mg)))
         {
+            let bias = priors.get(lang);
             for f in swipe::decode(mg, &map, &path, true)
                 .into_iter()
                 .take(swipe::SKELETONS)
@@ -903,16 +927,18 @@ impl Engine {
                 let previous = text::previous_word(before);
                 let sentence_start = previous.is_some_and(|(_, end)| end);
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
-                let previous_bias = self.manglish_bias(previous.map(|(word, _)| word));
-                let bias = scores.map_or(previous_bias, |s| s.manglish_bias());
+                let previous = previous.map(|(word, _)| word);
+                let after_english =
+                    previous.is_some_and(|w| self.word_lang(&normalize(w)) == Some(EN));
+                let priors = self.add_habit(self.with_lm(self.priors(previous), scores));
                 self.suggest_latin(
                     typed,
                     &typed_n,
                     autocorrect,
                     sentence_start,
                     mid_sentence,
-                    previous_bias <= rank::CONTEXT_AFTER_ENGLISH,
-                    with_habit(bias, self.habit_bias()),
+                    after_english,
+                    &priors,
                     deadline,
                     scores,
                     &own,
@@ -1000,17 +1026,42 @@ impl Engine {
             .max()
     }
 
-    /// How much the previous word's language favours Manglish over English.
-    fn manglish_bias(&self, previous: Option<&str>) -> f32 {
-        let Some(word) = previous else {
-            return rank::CONTEXT_AT_START;
-        };
-        let word = normalize(word);
-        match text::script(&word) {
-            Script::Native(_) => rank::CONTEXT_AFTER_MALAYALAM,
-            Script::Latin if self.english_count(&word).is_some() => rank::CONTEXT_AFTER_ENGLISH,
-            _ => 0.0,
+    /// The language a (normalised) word is known in: a native-script word its active pack's,
+    /// a Latin word in the English lexicon English's; None for any other.
+    fn word_lang(&self, word: &str) -> Option<Lang> {
+        match text::script(word) {
+            Script::Native(_) => self.pack_of_word(word).map(|(lang, _)| lang),
+            Script::Latin if self.english_count(word).is_some() => Some(EN),
+            _ => None,
         }
+    }
+
+    /// Each active pack's prior from the previous word's language: `rank::CONTEXT_AT_START`
+    /// at the start, `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM`
+    /// after the pack's own word, and 0 otherwise (another pack's word, or one in no
+    /// lexicon). English's is always 0: only the differences matter.
+    fn priors(&self, previous: Option<&str>) -> Priors {
+        let previous = previous.map(|w| self.word_lang(&normalize(w)));
+        let mut priors = Priors::default();
+        for (lang, _) in self.packs_active() {
+            let prior = match previous {
+                None => rank::CONTEXT_AT_START,
+                Some(Some(EN)) => rank::CONTEXT_AFTER_ENGLISH,
+                Some(Some(l)) if l == lang => rank::CONTEXT_AFTER_MALAYALAM,
+                Some(_) => 0.0,
+            };
+            priors.set(lang, prior);
+        }
+        priors
+    }
+
+    /// `priors` with the LM's bias (`ContextScores::manglish_bias`), when it is ready, in
+    /// place of its pack's previous-word prior.
+    fn with_lm(&self, mut priors: Priors, scores: Option<&dyn ContextScores>) -> Priors {
+        if let (Some(s), Some((lang, _))) = (scores, self.lm_pack()) {
+            priors.set(lang, s.manglish_bias());
+        }
+        priors
     }
 
     /// The LM's tier-0 term for a candidate (`ContextScores::weighted`), 0 without the LM. A
@@ -1038,8 +1089,8 @@ impl Engine {
     /// `sentence_start`: a word before it ended a sentence. `mid_sentence`: a word
     /// before it didn't (neither at the very start of the text). `after_english`: the word
     /// before it is English.
-    /// `manglish_bias` comes from the previous word's language (`manglish_bias`), or from
-    /// the LM. `scores`: the LM's in-context corrections (design §6), when it is ready.
+    /// `priors`: each language's prior (`priors`, `with_lm`, `add_habit`), added to its
+    /// romanised words. `scores`: the LM's in-context corrections (design §6), when it is ready.
     /// `own`: the user's own continuations of the words before it (`own_followers`).
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
@@ -1050,7 +1101,7 @@ impl Engine {
         sentence_start: bool,
         mid_sentence: bool,
         after_english: bool,
-        manglish_bias: f32,
+        priors: &Priors,
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
         own: &[String],
@@ -1112,7 +1163,7 @@ impl Engine {
                 }
             }
 
-            let found = self.manglish(typed_n, manglish_bias, known_score.is_some(), deadline);
+            let found = self.manglish(typed_n, priors, known_score.is_some(), deadline);
             // Letters that spell a Malayalam word are not a mistyped English one: the
             // long-word search's extra reach (`rank::LONG_WORD`) is not used for them.
             let long = typed_n.len() >= rank::LONG_WORD && found.exact.is_empty();
@@ -1312,7 +1363,7 @@ impl Engine {
         let mut dominant = dominant.filter(|c| !self.is_removed(c));
 
         let mut manglish =
-            manglish.unwrap_or_else(|| self.manglish(typed_n, manglish_bias, false, deadline));
+            manglish.unwrap_or_else(|| self.manglish(typed_n, priors, false, deadline));
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
         // Floors were checked on scores without it; the final one below takes it back out.
@@ -1407,12 +1458,15 @@ impl Engine {
         // correction may replace: space never commits an unfinished word.
         let capitals = Capitals::of(typed_n, mid_sentence);
         let may_replace = autocorrect && !learned && !capitals.acronym;
-        // A Malayalam word the typed letters spell out counts for more against English,
-        // unless an English word comes before it (`rank::MANGLISH_SPELLED_OVER_CORRECTION`).
-        let spelled_bonus = if manglish_bias <= rank::CONTEXT_AFTER_ENGLISH {
-            0.0
-        } else {
-            rank::MANGLISH_SPELLED_OVER_CORRECTION
+        // A pack's word the typed letters spell out counts for more against English, unless
+        // English is likely for that pack (`rank::MANGLISH_SPELLED_OVER_CORRECTION`).
+        let english_likely = |lang: Lang| priors.get(lang) <= rank::CONTEXT_AFTER_ENGLISH;
+        let spelled_bonus = |lang: Lang| {
+            if english_likely(lang) {
+                0.0
+            } else {
+                rank::MANGLISH_SPELLED_OVER_CORRECTION
+            }
         };
         // Candidates that take the first side slots whatever their scores.
         let mut first_sides: Vec<Candidate> = Vec::new();
@@ -1482,15 +1536,15 @@ impl Engine {
                 .exact
                 .iter()
                 .map(|(c, spelled)| {
-                    let against_english = c.score + if *spelled { spelled_bonus } else { 0.0 };
+                    let against_english =
+                        c.score + if *spelled { spelled_bonus(c.lang) } else { 0.0 };
                     (c.clone(), against_english)
                 })
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 // A capitalised word after an English word is a name in English text, whatever
                 // the LM's bias: `Add Rahul and Priya` (−1.4 there) became പ്രിയ.
-                .filter(|_| {
-                    !(capitals.deliberate
-                        && (after_english || manglish_bias <= rank::CONTEXT_AFTER_ENGLISH))
+                .filter(|(c, _)| {
+                    !(capitals.deliberate && (after_english || english_likely(c.lang)))
                 });
             match (english, malayalam) {
                 // Too close to call: keep what was typed and offer both.
@@ -1596,12 +1650,13 @@ impl Engine {
     fn manglish(
         &self,
         typed_n: &str,
-        bias: f32,
+        priors: &Priors,
         english_word: bool,
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
         let mut all: Option<ManglishCandidates> = None;
         for (lang, pack) in self.packs_active() {
+            let bias = priors.get(lang);
             let found = self.romanised(lang, pack, typed_n, bias, english_word, deadline);
             match &mut all {
                 Some(all) => all.absorb(found),
@@ -1675,7 +1730,9 @@ impl Engine {
             None
         } else {
             let want_free = found.exact.is_empty() && found.side.is_empty();
-            Self::add_model(pack, typed_n, &splits, bias, want_free, deadline, &mut found)
+            Self::add_model(
+                pack, typed_n, &splits, bias, want_free, deadline, &mut found,
+            )
         };
         // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
         // is a variant of it: offer the common one beside it.
@@ -2025,7 +2082,13 @@ impl Engine {
         }
         self.drop_removed(&mut others);
         // Native Malayalam is never replaced: the typed word always stays in the middle.
-        arrange(verbatim(typed, 0.0, lang), &typed_n, others, None, Vec::new())
+        arrange(
+            verbatim(typed, 0.0, lang),
+            &typed_n,
+            others,
+            None,
+            Vec::new(),
+        )
     }
 
     /// Next words after a space: the user's own continuations of the words before
@@ -2219,36 +2282,36 @@ impl Engine {
             .unwrap_or(0)
     }
 
-    /// The pack the LM's next words are read with: the LM's own, else (for tests that stand
-    /// in for the LM) the first active one.
-    fn next_pack(&self) -> Option<(Lang, &PackSources)> {
+    /// The pack the LM's scores are about (its bias, its next words): the LM's own, else (for
+    /// tests that stand in for the LM) the first active one.
+    fn lm_pack(&self) -> Option<(Lang, &PackSources)> {
         self.lm()
             .map(|(lang, pack, _)| (lang, pack))
             .or_else(|| self.packs_active().next())
     }
 
-    /// The lexicon a next-word piece's words come from: English's, or `next_pack`'s.
+    /// The lexicon a next-word piece's words come from: English's, or `lm_pack`'s.
     fn next_lexicon(&self, p: &NextPiece) -> Option<&Lexicon> {
         if p.latin {
             self.sources.english.as_ref()
         } else {
-            self.next_pack().map(|(_, pack)| &pack.lexicon)
+            self.lm_pack().map(|(_, pack)| &pack.lexicon)
         }
     }
 
     /// The language of a next-word piece's words, as `next_lexicon`.
     fn next_lang(&self, p: &NextPiece) -> Lang {
-        match self.next_pack() {
+        match self.lm_pack() {
             Some((lang, _)) if !p.latin => lang,
             _ => EN,
         }
     }
 
-    /// The followers `next_pack`'s `next.fst` keeps for `previous`, commonest first, each
+    /// The followers `lm_pack`'s `next.fst` keeps for `previous`, commonest first, each
     /// with its share of their counts: P(word | previous), given that it is one of them.
     fn followers(&self, previous: Option<&str>) -> Vec<(String, f64)> {
         let (Some(lex), Some(previous)) = (
-            self.next_pack().and_then(|(_, p)| p.next_words.as_ref()),
+            self.lm_pack().and_then(|(_, p)| p.next_words.as_ref()),
             previous,
         ) else {
             return Vec::new();
@@ -2282,7 +2345,10 @@ impl Engine {
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let mut found: Vec<Candidate> = Vec::new();
-        for lex in self.packs_active().filter_map(|(_, p)| p.next_words.as_ref()) {
+        for lex in self
+            .packs_active()
+            .filter_map(|(_, p)| p.next_words.as_ref())
+        {
             for (k, count) in lex.top_completions(&key, TOP_K) {
                 let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
                     continue;
@@ -2486,7 +2552,7 @@ fn starts_with_ignoring_case(word: &str, prefix: &str) -> bool {
         && word.as_bytes()[..prefix.len()].eq_ignore_ascii_case(prefix.as_bytes())
 }
 
-/// The Manglish bias with the language habit (`Engine::habit_bias`) added, never carried
+/// A pack's prior with its language habit (`Engine::add_habit`) added, never carried
 /// across `rank::CONTEXT_AFTER_ENGLISH`: below it English is likely (the model keeps its
 /// distance penalty, a spelled word gets no bonus), and a prior must not decide that.
 fn with_habit(bias: f32, habit: f32) -> f32 {
@@ -2495,6 +2561,25 @@ fn with_habit(bias: f32, habit: f32) -> f32 {
         bias
     } else {
         (bias + habit).max(english + 0.01)
+    }
+}
+
+/// A prior per language (`Engine::priors`), indexed by `Lang`, added to its romanised words.
+/// English's is always 0, and so is that of a language with none set.
+#[derive(Debug, Clone, Default, PartialEq)]
+struct Priors(Vec<f32>);
+
+impl Priors {
+    fn get(&self, lang: Lang) -> f32 {
+        self.0.get(usize::from(lang.0)).copied().unwrap_or(0.0)
+    }
+
+    fn set(&mut self, lang: Lang, prior: f32) {
+        let i = usize::from(lang.0);
+        if self.0.len() <= i {
+            self.0.resize(i + 1, 0.0);
+        }
+        self.0[i] = prior;
     }
 }
 
@@ -2767,6 +2852,54 @@ mod tests {
             ..Sources::default()
         };
         Engine::new(sources, UserStore::in_memory())
+    }
+
+    /// With English and one pack, the priors are phase 1's single Manglish bias: the pack's
+    /// prior less English's (always 0) is the old `with_habit(bias, habit_bias())`, worked
+    /// out here by hand.
+    #[test]
+    fn priors_are_the_manglish_bias_with_two_languages() {
+        let engine = hello_engine();
+        let ml = Lang(1);
+        let lead = |p: &Priors| p.get(ml) - p.get(EN);
+        // The previous word: none, English, Malayalam, a word in no lexicon.
+        assert_eq!(lead(&engine.priors(None)), -1.0);
+        assert_eq!(lead(&engine.priors(Some("hello"))), -2.0);
+        assert_eq!(lead(&engine.priors(Some("എന്റെ"))), 2.0);
+        assert_eq!(lead(&engine.priors(Some("sheri"))), 0.0);
+        assert_eq!(engine.priors(Some("hello")).get(EN), 0.0);
+        // The LM's bias replaces its pack's previous-word prior.
+        let fake = Fake {
+            bias: 1.25,
+            ..Fake::default()
+        };
+        let with_lm = engine.with_lm(engine.priors(Some("hello")), Some(&fake));
+        assert_eq!(lead(&with_lm), 1.25);
+        assert_eq!(
+            engine.with_lm(engine.priors(None), None),
+            engine.priors(None)
+        );
+        // Habit: 30 Malayalam words and 10 English ones. 0.25 × ln(31 / 11) = 0.259022.
+        for _ in 0..30 {
+            commit(&engine, "എന്റെ", Layout::Latin);
+        }
+        for _ in 0..10 {
+            commit(&engine, "hello", Layout::Latin);
+        }
+        let old_habit =
+            (rank::HABIT_WEIGHT * (31.0f32 / 11.0).ln()).clamp(-rank::HABIT_MAX, rank::HABIT_MAX);
+        assert!((old_habit - 0.259_022).abs() < 1e-6);
+        let at_start = engine.add_habit(engine.priors(None));
+        assert_eq!(lead(&at_start), with_habit(-1.0, old_habit));
+        assert!((lead(&at_start) - -0.740_978).abs() < 1e-6);
+        let after_ml = engine.add_habit(engine.priors(Some("എന്റെ")));
+        assert_eq!(lead(&after_ml), with_habit(2.0, old_habit));
+        assert!((lead(&after_ml) - 2.259_022).abs() < 1e-6);
+        // After English the habit adds nothing: it never crosses `CONTEXT_AFTER_ENGLISH`.
+        let after_en = engine.add_habit(engine.priors(Some("hello")));
+        assert_eq!(lead(&after_en), -2.0);
+        let lm = engine.add_habit(with_lm);
+        assert_eq!(lead(&lm), with_habit(1.25, old_habit));
     }
 
     #[test]
@@ -3625,9 +3758,8 @@ mod tests {
         commit(&engine, "എന്റെ കിളി", Layout::Malayalam);
         assert_eq!(malayalam("എന്റെ ക"), ["ക", "കിളി", "കാര്യം"]);
         assert_eq!(malayalam("എന്റെ "), ["കിളി"]);
-        assert_eq!(
-            engine.user().habit(),
-            (0, 0),
+        assert!(
+            engine.user().habit().is_empty(),
             "no habit from the Malayalam keyboard"
         );
     }
@@ -3635,21 +3767,24 @@ mod tests {
     #[test]
     fn the_language_habit_leans_the_manglish_bias_within_bounds() {
         let engine = hello_engine();
-        assert_eq!(engine.habit_bias(), 0.0);
+        let ml = Lang(1);
+        let habit = |e: &Engine| e.add_habit(Priors::default()).get(ml);
+        assert_eq!(habit(&engine), 0.0);
         for _ in 0..rank::HABIT_MIN_WORDS - 1 {
             commit(&engine, "എന്റെ", Layout::Latin);
         }
-        assert_eq!(engine.habit_bias(), 0.0, "too few words yet");
+        assert_eq!(habit(&engine), 0.0, "too few words yet");
         commit(&engine, "എന്റെ", Layout::Latin);
-        assert_eq!(engine.habit_bias(), rank::HABIT_MAX);
+        assert_eq!(habit(&engine), rank::HABIT_MAX);
         for _ in 0..1000 {
             commit(&engine, "hello", Layout::Latin);
         }
-        assert_eq!(engine.habit_bias(), -rank::HABIT_MAX);
+        assert_eq!(habit(&engine), -rank::HABIT_MAX);
+        assert_eq!(engine.add_habit(Priors::default()).get(EN), 0.0);
         // Words in no lexicon say nothing of the language (`sheri` left as typed).
-        let before = engine.user().habit();
+        let before = engine.user().habit().clone();
         commit(&engine, "sheri", Layout::Latin);
-        assert_eq!(engine.user().habit(), before);
+        assert_eq!(engine.user().habit(), &before);
         // The habit never carries the bias across the English threshold.
         let english = rank::CONTEXT_AFTER_ENGLISH;
         assert_eq!(with_habit(english, rank::HABIT_MAX), english);

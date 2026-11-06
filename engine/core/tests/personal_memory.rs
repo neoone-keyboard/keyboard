@@ -5,9 +5,8 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicIsize, Ordering};
 
-use mlengine_core::personal::{
-    CHOICE_CAPACITY, Habit, PAIR_CAPACITY, TRIGRAM_CAPACITY, USAGE_CAPACITY,
-};
+use mlengine_core::lang::LangId;
+use mlengine_core::personal::{CHOICE_CAPACITY, PAIR_CAPACITY, TRIGRAM_CAPACITY, USAGE_CAPACITY};
 use mlengine_core::user::{CAPACITY, UserStore};
 
 struct Counting;
@@ -56,7 +55,7 @@ fn a_full_store_takes_little_memory() {
             Some(&b),
             Some(&a),
             true,
-            Some(Habit::English),
+            Some(&LangId::english()),
         );
     }
     for i in 0..USAGE_CAPACITY {

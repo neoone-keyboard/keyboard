@@ -217,7 +217,8 @@ pub const MANGLISH_NEIGHBOUR_PENALTY: f32 = 1.0;
 /// It is often a near-duplicate of a lexicon word (കൊല്ലമൊ beside കൊല്ലമോ)
 /// and may outscore it, so it never competes for the middle.
 pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
-/// Manglish bias from the previous word: after Malayalam, after English, at the start.
+/// A pack's prior from the previous word (`Engine::priors`): after the pack's own word, after
+/// English, at the start. English's prior is 0.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;
 pub const CONTEXT_AT_START: f32 = -1.0;
@@ -292,8 +293,8 @@ pub const OWN_PHRASE_BONUS: f32 = 1.0;
 /// any candidate, so it is no likelier to be replaced.
 pub const USE_WEIGHT: f32 = 0.25;
 pub const USE_MAX: f32 = 1.0;
-/// The language habit (`personal::Habit`): + this × ln((Malayalam + 1) / (English + 1)) to
-/// the Manglish bias, within ±`HABIT_MAX`, once `HABIT_MIN_WORDS` words were counted. A
+/// The language habit (`personal::Personal::habit`): + this × ln((pack + 1) / (English + 1))
+/// to each pack's prior, within ±`HABIT_MAX`, once `HABIT_MIN_WORDS` words were counted. A
 /// quarter of the previous-word constants' range: context (the LM, the previous word) says
 /// more than habit. Never across `CONTEXT_AFTER_ENGLISH` (`engine::with_habit`).
 pub const HABIT_WEIGHT: f32 = 0.25;

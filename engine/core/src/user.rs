@@ -18,12 +18,13 @@
 //! these that hold it. A log from before these lines loads as it did; an older build
 //! skips them.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::personal::{Followed, Habit, Personal};
+use crate::lang::LangId;
+use crate::personal::{self, Followed, Personal};
 use crate::text;
 
 /// Most words kept; the least recently used are evicted beyond this.
@@ -146,14 +147,10 @@ impl UserStore {
                     self.personal.apply_choice(typed, chosen, n);
                 }
             }
-            ["H", language, n @ ..] => {
-                let habit = match *language {
-                    "m" => Some(Habit::Malayalam),
-                    "e" => Some(Habit::English),
-                    _ => None,
-                };
-                if let (Some(habit), Some(n)) = (habit, count(n)) {
-                    self.personal.apply_habit(habit, n);
+            ["H", language, n @ ..] if !language.is_empty() => {
+                if let Some(n) = count(n) {
+                    self.personal
+                        .apply_habit(&personal::habit_lang(language), n);
                 }
             }
             _ => {}
@@ -191,7 +188,7 @@ impl UserStore {
         previous: Option<&str>,
         before_previous: Option<&str>,
         counted: bool,
-        habit: Option<Habit>,
+        habit: Option<&LangId>,
     ) {
         if !in_phrase(word) {
             return;
@@ -211,10 +208,9 @@ impl UserStore {
                 lines.push(format!("T\t{before}\t{previous}\t{word}"));
             }
         }
-        if let Some(habit) = habit {
-            self.personal.apply_habit(habit, 1);
-            let tag = if habit == Habit::Malayalam { "m" } else { "e" };
-            lines.push(format!("H\t{tag}"));
+        if let Some(lang) = habit {
+            self.personal.apply_habit(lang, 1);
+            lines.push(format!("H\t{}", personal::habit_tag(lang)));
         }
         self.append_lines(&lines);
     }
@@ -254,8 +250,8 @@ impl UserStore {
         self.personal.choice(typed)
     }
 
-    /// Recent Latin-keyboard words that ended up Malayalam, and English (`Personal::habit`).
-    pub fn habit(&self) -> (u32, u32) {
+    /// Recent Latin-keyboard words by the language they ended up in (`Personal::habit`).
+    pub fn habit(&self) -> &BTreeMap<LangId, u32> {
         self.personal.habit()
     }
 
@@ -961,6 +957,13 @@ mod tests {
         assert!(store.is_learned("still"));
     }
 
+    /// The habit's Malayalam and English counts.
+    fn ml_en(store: &UserStore) -> (u32, u32) {
+        let h = store.habit();
+        let n = |id: LangId| h.get(&id).copied().unwrap_or(0);
+        (n(LangId("ml".into())), n(LangId::english()))
+    }
+
     fn followers(store: &UserStore, before: Option<&str>, previous: &str) -> Vec<String> {
         store
             .followers(before, previous, 5)
@@ -971,16 +974,22 @@ mod tests {
 
     /// "hello how are you", committed word by word as the engine notes it.
     fn type_hello_how_are_you(store: &mut UserStore) {
-        store.note_used("hello", None, None, true, Some(Habit::English));
-        store.note_used("how", Some("hello"), None, true, Some(Habit::English));
+        store.note_used("hello", None, None, true, Some(&LangId::english()));
+        store.note_used("how", Some("hello"), None, true, Some(&LangId::english()));
         store.note_used(
             "are",
             Some("how"),
             Some("hello"),
             true,
-            Some(Habit::English),
+            Some(&LangId::english()),
         );
-        store.note_used("you", Some("are"), Some("how"), true, Some(Habit::English));
+        store.note_used(
+            "you",
+            Some("are"),
+            Some("how"),
+            true,
+            Some(&LangId::english()),
+        );
     }
 
     #[test]
@@ -989,7 +998,7 @@ mod tests {
         {
             let mut store = UserStore::open(dir.path());
             type_hello_how_are_you(&mut store);
-            store.note_used("ഇന്ന്", Some("you"), None, true, Some(Habit::Malayalam));
+            store.note_used("ഇന്ന്", Some("you"), None, true, Some(&LangId("ml".into())));
             store.note_choice("innu", "ഇന്ന്");
         }
         let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
@@ -1001,7 +1010,7 @@ mod tests {
         assert_eq!(followers(&store, Some("how"), "are"), ["you"]);
         assert_eq!(store.uses("HOW"), 1);
         assert_eq!(store.choice("Innu"), Some("ഇന്ന്"));
-        assert_eq!(store.habit(), (1, 4));
+        assert_eq!(ml_en(&store), (1, 4));
         assert_eq!(store.learned_count(), 0, "using known words learns no word");
     }
 
@@ -1040,7 +1049,7 @@ mod tests {
         );
         assert_eq!(followers(&store, Some("how"), "are"), ["you"]);
         assert_eq!(store.choice("innu"), Some("ഇന്ന്"));
-        assert_eq!(store.habit(), (7, 1));
+        assert_eq!(ml_en(&store), (7, 1));
     }
 
     #[test]
@@ -1096,7 +1105,7 @@ mod tests {
         store.note_choice("innu", "ഇന്ന്");
         store.forget_all();
         assert!(store.personal.is_empty());
-        assert_eq!(store.habit(), (0, 0));
+        assert_eq!(ml_en(&store), (0, 0));
         let reopened = UserStore::open(dir.path());
         assert!(reopened.personal.is_empty());
         assert!(reopened.followers(None, "hello", 5).is_empty());
@@ -1124,7 +1133,7 @@ mod tests {
         assert_eq!(reopened.uses("how"), 2);
         assert!(reopened.uses("ok") > CAPACITY as u32 * 4);
         assert_eq!(reopened.choice("innu"), Some("ഇന്ന്"));
-        assert_eq!(reopened.habit(), (0, 8));
+        assert_eq!(ml_en(&reopened), (0, 8));
         assert!(reopened.is_removed("there"));
     }
 
@@ -1143,7 +1152,7 @@ mod tests {
             for i in 0..PAIR_CAPACITY + 100 {
                 let (a, b) = (format!("first{round}x{i}"), format!("second{i}"));
                 let c = format!("third{i}");
-                store.note_used(&c, Some(&b), Some(&a), true, Some(Habit::English));
+                store.note_used(&c, Some(&b), Some(&a), true, Some(&LangId::english()));
                 largest = largest.max(size(dir.path()));
             }
         }

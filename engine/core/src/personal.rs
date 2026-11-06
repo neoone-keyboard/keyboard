@@ -9,7 +9,9 @@
 //! time so that eviction scans the table rarely. Clocks are per apply, so replaying the log (or
 //! its compacted form, written oldest first) gives the same tables.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+
+use crate::lang::LangId;
 
 /// Most word pairs (previous word → word) kept.
 pub const PAIR_CAPACITY: usize = 6_000;
@@ -21,9 +23,28 @@ pub const FOLLOWERS_PER_CONTEXT: usize = 8;
 pub const USAGE_CAPACITY: usize = 3_000;
 /// Most typed forms with a chosen suggestion.
 pub const CHOICE_CAPACITY: usize = 500;
-/// The language habit counts at most this many recent words: past it both counts are halved,
+/// The language habit counts at most this many recent words: past it every count is halved,
 /// so old habits fade.
 pub const HABIT_WINDOW: u32 = 200;
+
+/// A language's tag in `H` lines: `m` for Malayalam and `e` for English, as before languages
+/// were ids; any other language by its id.
+pub fn habit_tag(id: &LangId) -> &str {
+    match id.0.as_str() {
+        "ml" => "m",
+        "en" => "e",
+        other => other,
+    }
+}
+
+/// The language of an `H` line's tag (`habit_tag`).
+pub fn habit_lang(tag: &str) -> LangId {
+    match tag {
+        "m" => LangId("ml".into()),
+        "e" => LangId::english(),
+        other => LangId(other.into()),
+    }
+}
 
 fn key(word: &str) -> String {
     word.to_ascii_lowercase()
@@ -164,23 +185,14 @@ struct Choice {
     last_used: u32,
 }
 
-/// The language a word committed from the Latin keyboard ended up in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Habit {
-    /// Malayalam script: Manglish typing converted.
-    Malayalam,
-    /// A word of the English lexicon.
-    English,
-}
-
 #[derive(Debug)]
 pub struct Personal {
     pairs: Phrases,
     trigrams: Phrases,
     uses: HashMap<Box<str>, Uses>,
     choices: HashMap<Box<str>, Choice>,
-    malayalam: u32,
-    english: u32,
+    /// Recent words from the Latin keyboard, by the language they ended up in.
+    habit: BTreeMap<LangId, u32>,
     clock: u32,
 }
 
@@ -191,8 +203,7 @@ impl Default for Personal {
             trigrams: Phrases::new(TRIGRAM_CAPACITY),
             uses: HashMap::new(),
             choices: HashMap::new(),
-            malayalam: 0,
-            english: 0,
+            habit: BTreeMap::new(),
             clock: 0,
         }
     }
@@ -272,15 +283,19 @@ impl Personal {
         }
     }
 
-    pub fn apply_habit(&mut self, habit: Habit, n: u32) {
-        match habit {
-            Habit::Malayalam => self.malayalam = self.malayalam.saturating_add(n),
-            Habit::English => self.english = self.english.saturating_add(n),
+    /// `n` more words from the Latin keyboard ended up in `lang`.
+    pub fn apply_habit(&mut self, lang: &LangId, n: u32) {
+        match self.habit.get_mut(lang) {
+            Some(count) => *count = count.saturating_add(n),
+            None => {
+                self.habit.insert(lang.clone(), n);
+            }
         }
-        while self.malayalam.saturating_add(self.english) > HABIT_WINDOW {
-            self.malayalam /= 2;
-            self.english /= 2;
+        let total = |h: &BTreeMap<LangId, u32>| h.values().fold(0u32, |a, &n| a.saturating_add(n));
+        while total(&self.habit) > HABIT_WINDOW {
+            self.habit.values_mut().for_each(|n| *n /= 2);
         }
+        self.habit.retain(|_, n| *n > 0);
     }
 
     /// Forgets everything about `word`: its uses, the phrases it is in, and the choices it
@@ -375,14 +390,15 @@ impl Personal {
         self.choices.get(key(typed).as_str()).map(|c| &*c.chosen)
     }
 
-    /// Recent words from the Latin keyboard that ended up Malayalam, and English.
-    pub fn habit(&self) -> (u32, u32) {
-        (self.malayalam, self.english)
+    /// Recent words from the Latin keyboard, by the language they ended up in. A language
+    /// with none is left out.
+    pub fn habit(&self) -> &BTreeMap<LangId, u32> {
+        &self.habit
     }
 
     /// Entries in every table: as many lines as `lines` writes.
     pub fn len(&self) -> usize {
-        let habit = usize::from(self.malayalam > 0) + usize::from(self.english > 0);
+        let habit = self.habit.len();
         self.uses.len() + self.pairs.len + self.trigrams.len + self.choices.len() + habit
     }
 
@@ -411,11 +427,16 @@ impl Personal {
         for (typed, c) in choices {
             text.push_str(&format!("C\t{typed}\t{}\t{}\n", c.chosen, c.count));
         }
-        if self.malayalam > 0 {
-            text.push_str(&format!("H\tm\t{}\n", self.malayalam));
-        }
-        if self.english > 0 {
-            text.push_str(&format!("H\te\t{}\n", self.english));
+        // Malayalam's line, then English's, as before languages were ids (phase 2 task 9
+        // changes the format); any other language after them, by its id.
+        let mut habit: Vec<(&LangId, &u32)> = self.habit.iter().collect();
+        habit.sort_by_key(|(id, _)| match id.0.as_str() {
+            "ml" => 0,
+            "en" => 1,
+            _ => 2,
+        });
+        for (id, n) in habit {
+            text.push_str(&format!("H\t{}\t{n}\n", habit_tag(id)));
         }
         text
     }
@@ -541,10 +562,12 @@ mod tests {
 
     #[test]
     fn the_habit_fades() {
+        let (ml, en) = (LangId("ml".into()), LangId::english());
         let mut p = Personal::default();
-        p.apply_habit(Habit::English, HABIT_WINDOW);
-        assert_eq!(p.habit(), (0, HABIT_WINDOW));
-        p.apply_habit(Habit::Malayalam, 1);
-        assert_eq!(p.habit(), (0, HABIT_WINDOW / 2));
+        p.apply_habit(&en, HABIT_WINDOW);
+        assert_eq!(p.habit().get(&en), Some(&HABIT_WINDOW));
+        p.apply_habit(&ml, 1);
+        assert_eq!(p.habit().get(&en), Some(&(HABIT_WINDOW / 2)));
+        assert_eq!(p.habit().get(&ml), None, "halved to nothing");
     }
 }
