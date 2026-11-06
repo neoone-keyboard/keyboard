@@ -25,7 +25,7 @@ import numpy as np
 import torch
 
 from mlkb.translit.model import Config, Translit
-from mlkb.translit.vocab import encode_latin, encode_ml
+from mlkb.translit.vocab import MALAYALAM, Vocab, encode_latin, encode_ml, native
 
 MAGIC = b"MLKBNN01"
 VERSION = 1
@@ -44,6 +44,17 @@ REFERENCE_CASES = (
     ("kollamo", "കൊള്ളാമോ"),
     ("jishnu", "ജിഷ്ണു"),
 )
+# The same for other languages' transliterators (`--lang`).
+REFERENCE_CASES_BY_LANG = {
+    "ml": REFERENCE_CASES,
+    "as": (
+        ("moi", "মই"),
+        ("tumi", "তুমি"),
+        ("hol", "হ'ল"),
+        ("oxom", "অসম"),
+        ("khyoma", "ক্ষমা"),
+    ),
+}
 
 
 def fnv1a(data: bytes) -> int:
@@ -174,13 +185,13 @@ def _outputs(model: Translit, src: list[int], tgt: list[int]) -> dict:
     return {"encoder": _rounded(memory[0]), "logits": _rounded(logits[0])}
 
 
-def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES) -> dict:
+def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES, vocab: Vocab = MALAYALAM) -> dict:
     """Reference outputs for each case: token ids fed in, then the encoder output `[src, d]`
     and the decoder logits after each fed token `[tgt, tgt_vocab]`, from `model` ("float")
     and from `dequantised`. Values are rounded to 5 decimals."""
     out = []
     for latin, malayalam in cases:
-        src, tgt = encode_latin(latin), encode_ml(malayalam)[:-1]
+        src, tgt = encode_latin(latin), encode_ml(malayalam, vocab)[:-1]
         out.append(
             {
                 "latin": latin,
@@ -194,9 +205,11 @@ def reference(model: Translit, dequantised: Translit, cases=REFERENCE_CASES) -> 
     return {"config": {k: getattr(model.config, k) for k in FIELDS}, "cases": out}
 
 
-def write_reference(model: Translit, model_path: Path, out: Path, cases=REFERENCE_CASES) -> None:
+def write_reference(
+    model: Translit, model_path: Path, out: Path, cases=REFERENCE_CASES, vocab: Vocab = MALAYALAM
+) -> None:
     """Writes `reference` for `model` and the dequantised weights in `model_path` to `out`."""
-    ref = reference(model, dequantised_model(model_path), cases)
+    ref = reference(model, dequantised_model(model_path), cases, vocab)
     Path(out).write_text(json.dumps(ref, separators=(",", ":")) + "\n")
 
 
@@ -213,13 +226,14 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--reference", type=Path, help="also write PyTorch reference outputs (JSON)")
+    p.add_argument("--lang", default="ml", help="the reference cases' language")
     args = p.parse_args(argv)
     model = load_checkpoint(args.checkpoint)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     export_model(model, args.out)
     print(f"wrote {args.out} ({args.out.stat().st_size:,} bytes)", file=sys.stderr)
     if args.reference:
-        write_reference(model, args.out, args.reference)
+        write_reference(model, args.out, args.reference, REFERENCE_CASES_BY_LANG[args.lang], native(args.lang))
         print(f"wrote {args.reference}", file=sys.stderr)
 
 

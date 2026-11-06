@@ -7,7 +7,7 @@ training-time validation and for measuring the model alone.
 import torch
 
 from mlkb.translit.model import Translit
-from mlkb.translit.vocab import MALAYALAM, decode_ml, encode_latin
+from mlkb.translit.vocab import MALAYALAM, Vocab, decode_ml, encode_latin
 
 
 def _normalised(logprob: float, length: int) -> float:
@@ -15,7 +15,9 @@ def _normalised(logprob: float, length: int) -> float:
 
 
 @torch.no_grad()
-def beam(model: Translit, latin: str, width: int, max_len: int = 32) -> list[tuple[str, float]]:
+def beam(
+    model: Translit, latin: str, width: int, max_len: int = 32, vocab: Vocab = MALAYALAM
+) -> list[tuple[str, float]]:
     """Up to `width` distinct Malayalam spellings of `latin` with their total log probability,
     best first by log probability per generated token (eos included). Runs on the model's
     device; one word at a time is meant for the CPU."""
@@ -56,7 +58,7 @@ def beam(model: Translit, latin: str, width: int, max_len: int = 32) -> list[tup
     out: list[tuple[str, float]] = []
     seen = set()
     for tokens, lp in done:
-        text = decode_ml(tokens)
+        text = decode_ml(tokens, vocab)
         if text not in seen:
             seen.add(text)
             out.append((text, lp))
@@ -81,7 +83,7 @@ def greedy_tokens(model: Translit, src: torch.Tensor, max_len: int | None = None
     return out
 
 
-def greedy(model: Translit, words: list[str]) -> list[str]:
+def greedy(model: Translit, words: list[str], vocab: Vocab = MALAYALAM) -> list[str]:
     """The greedy Malayalam spelling of each Latin word, on the model's device."""
     was_training = model.training
     model.eval()
@@ -91,4 +93,4 @@ def greedy(model: Translit, words: list[str]) -> list[str]:
     src = torch.tensor([e + [0] * (width - len(e)) for e in encoded], device=device)
     tokens = greedy_tokens(model, src).cpu().tolist()
     model.train(was_training)
-    return [decode_ml(t) for t in tokens]
+    return [decode_ml(t, vocab) for t in tokens]
