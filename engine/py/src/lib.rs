@@ -105,7 +105,7 @@ fn kind_name(kind: Kind) -> &'static str {
         Kind::Verbatim => "verbatim",
         Kind::Completion => "completion",
         Kind::Correction => "correction",
-        Kind::Manglish => "manglish",
+        Kind::Romanised => "manglish",
         Kind::NextWord => "next_word",
     }
 }

@@ -57,7 +57,7 @@ fn manglish_skeletons_give_malayalam_words() {
             found
                 .iter()
                 .take(3)
-                .any(|(w, k)| w == word && *k == Kind::Manglish),
+                .any(|(w, k)| w == word && *k == Kind::Romanised),
             "{drawn}: {found:?}"
         );
     }

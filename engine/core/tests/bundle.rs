@@ -321,7 +321,7 @@ fn manglish_golden() {
         ] {
             assert_eq!(
                 middle(&engine, typed),
-                (want.to_string(), Kind::Manglish),
+                (want.to_string(), Kind::Romanised),
                 "{typed}"
             );
         }
@@ -359,7 +359,7 @@ fn manglish_beats_english_corrections_when_nothing_points_to_english() {
         ] {
             assert_eq!(
                 middle(&engine, typed),
-                (want.to_string(), Kind::Manglish),
+                (want.to_string(), Kind::Romanised),
                 "{typed}: {:?}",
                 texts(&engine, typed)
             );
@@ -367,7 +367,7 @@ fn manglish_beats_english_corrections_when_nothing_points_to_english() {
         // Known gap: എന്തു (the older spelling, five times as common in the
         // corpus) wins over എന്ത്; both romanise as `enthu`. Either is Malayalam.
         let (word, kind) = middle(&engine, "enthu");
-        assert_eq!(kind, Kind::Manglish);
+        assert_eq!(kind, Kind::Romanised);
         assert!(["എന്ത്", "എന്തു"].contains(&word.as_str()), "{word}");
     }
 }
@@ -459,7 +459,7 @@ fn agglutinated_manglish_splits_into_stem_and_suffix() {
         ] {
             assert_eq!(
                 middle(&engine, typed),
-                (want.to_string(), Kind::Manglish),
+                (want.to_string(), Kind::Romanised),
                 "{typed}: {:?}",
                 texts(&engine, typed)
             );
@@ -553,7 +553,7 @@ fn translit_model_converts_in_the_middle() {
     ] {
         assert_eq!(
             middle(&engine, typed),
-            (want.to_string(), Kind::Manglish),
+            (want.to_string(), Kind::Romanised),
             "{typed}: {:?}",
             texts(&engine, typed)
         );
@@ -572,7 +572,7 @@ fn translit_model_forgives_loose_spellings() {
         let bar = texts(&engine, context);
         assert_eq!(
             middle(&engine, context),
-            ("ആവശ്യം".to_string(), Kind::Manglish),
+            ("ആവശ്യം".to_string(), Kind::Romanised),
             "{context}: {bar:?}"
         );
         assert!(bar.contains(&"ആവിശ്യം".to_string()), "{context}: {bar:?}");
@@ -596,7 +596,7 @@ fn translit_model_known_misses() {
     let Some(engine) = model_engine() else { return };
     assert_eq!(
         middle(&engine, "kollamo"),
-        ("കൊള്ളാമോ".to_string(), Kind::Manglish),
+        ("കൊള്ളാമോ".to_string(), Kind::Romanised),
         "{:?}",
         texts(&engine, "kollamo")
     );
@@ -619,7 +619,7 @@ fn chat_forms_convert() {
         ] {
             assert_eq!(
                 middle(&engine, typed),
-                (want.to_string(), Kind::Manglish),
+                (want.to_string(), Kind::Romanised),
                 "{typed}: {:?}",
                 texts(&engine, typed)
             );

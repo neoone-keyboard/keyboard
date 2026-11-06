@@ -15,7 +15,7 @@ use std::io::Write as _;
 use std::path::PathBuf;
 
 use mlengine_core::pack::Pack;
-use mlengine_core::{Engine, Layout, Paths};
+use mlengine_core::{Candidate, Engine, Kind, Layout, Paths};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -55,12 +55,20 @@ fn layout_for(line: &str) -> Layout {
     }
 }
 
+/// `kind` as the file has always shown it: a romanised Malayalam word is `Manglish`.
+fn kind_name(e: &Engine, c: &Candidate) -> String {
+    match c.kind {
+        Kind::Romanised if e.lang_id(c.lang).is_some_and(|id| id.0 == "ml") => "Manglish".into(),
+        kind => format!("{kind:?}"),
+    }
+}
+
 fn row(out: &mut String, section: &str, e: &Engine, ctx: &str, layout: Layout) {
     let s = e.suggest(ctx, layout, true);
     let shown: Vec<String> = s
         .candidates
         .iter()
-        .map(|c| format!("{}|{:?}|{:.3}", c.text, c.kind, c.score))
+        .map(|c| format!("{}|{}|{:.3}", c.text, kind_name(e, c), c.score))
         .collect();
     let signs: String = s.vowel_signs.iter().collect();
     writeln!(out, "{section}\t{layout:?}\t{ctx}\t{}\t{signs}", shown.join(" ")).unwrap();

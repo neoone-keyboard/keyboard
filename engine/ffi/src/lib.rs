@@ -169,7 +169,8 @@ impl From<mlengine_core::Kind> for CandidateKind {
             Kind::Verbatim => Self::Verbatim,
             Kind::Completion => Self::Completion,
             Kind::Correction => Self::Correction,
-            Kind::Manglish => Self::Manglish,
+            // Swift still calls a romanised word `manglish`.
+            Kind::Romanised => Self::Manglish,
             Kind::NextWord => Self::NextWord,
         }
     }

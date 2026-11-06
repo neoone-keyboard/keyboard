@@ -73,7 +73,7 @@ fn has(engine: &Engine, context: &str, text: &str) -> bool {
         .suggest(context, Layout::Latin, true)
         .candidates
         .iter()
-        .any(|c| c.text == text && c.kind == Kind::Manglish)
+        .any(|c| c.text == text && c.kind == Kind::Romanised)
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn ente_becomes_malayalam() {
     for typed in ["ente", "ende", "entey", "അവൻ ente", "ഞാൻ ende"] {
         assert_eq!(
             middle(&engine, typed),
-            ("എന്റെ".into(), Kind::Manglish),
+            ("എന്റെ".into(), Kind::Romanised),
             "{typed}"
         );
     }
@@ -91,7 +91,7 @@ fn ente_becomes_malayalam() {
 #[test]
 fn manglish_words_people_type() {
     let engine = engine();
-    assert_eq!(middle(&engine, "njan"), ("ഞാൻ".into(), Kind::Manglish));
+    assert_eq!(middle(&engine, "njan"), ("ഞാൻ".into(), Kind::Romanised));
     assert_eq!(middle(&engine, "veedu").0, "വീട്");
     assert_eq!(middle(&engine, "avan").0, "അവൻ");
     assert_eq!(middle(&engine, "illa").0, "ഇല്ല");
@@ -124,7 +124,7 @@ fn malayalam_shows_in_a_side_slot_for_english_words() {
     assert!(
         s.candidates
             .iter()
-            .any(|c| c.text == "മാൻ" && c.kind == Kind::Manglish)
+            .any(|c| c.text == "മാൻ" && c.kind == Kind::Romanised)
     );
 }
 
@@ -154,7 +154,7 @@ fn unknown_names_get_a_transliteration_in_a_side_slot() {
         assert!(
             s.candidates[1..]
                 .iter()
-                .any(|c| c.kind == Kind::Manglish && c.text == "ജിഷ്ണു"),
+                .any(|c| c.kind == Kind::Romanised && c.text == "ജിഷ്ണു"),
             "{typed}: {s:?}"
         );
     }
@@ -201,7 +201,7 @@ fn without_the_manglish_source_latin_stays_english() {
     );
     let s = engine.suggest("ente", Layout::Latin, true);
     assert_eq!(s.candidates[0].text, "ente");
-    assert!(s.candidates.iter().all(|c| c.kind != Kind::Manglish));
+    assert!(s.candidates.iter().all(|c| c.kind != Kind::Romanised));
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn agglutinated_forms_split_into_stem_and_suffix() {
     ] {
         assert_eq!(
             middle(&engine, typed),
-            (want.to_string(), Kind::Manglish),
+            (want.to_string(), Kind::Romanised),
             "{typed}: {:?}",
             engine.suggest(typed, Layout::Latin, true)
         );
@@ -257,7 +257,7 @@ fn chat_forms_reach_their_word() {
     {
         assert_eq!(
             middle(&engine, typed),
-            (want.into(), Kind::Manglish),
+            (want.into(), Kind::Romanised),
             "{typed}"
         );
     }
@@ -278,7 +278,7 @@ fn a_capitalised_word_after_english_stays_a_name() {
 #[test]
 fn a_removed_manglish_word_is_not_suggested() {
     let engine = engine();
-    assert_eq!(middle(&engine, "ente"), ("എന്റെ".into(), Kind::Manglish));
+    assert_eq!(middle(&engine, "ente"), ("എന്റെ".into(), Kind::Romanised));
     engine.remove_word("എന്റെ");
     assert!(!has(&engine, "ente", "എന്റെ"));
     assert_ne!(middle(&engine, "ente").0, "എന്റെ");

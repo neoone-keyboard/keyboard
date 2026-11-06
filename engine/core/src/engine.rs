@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::chat_forms;
 use crate::fuzzy::{self, WeightedEdit};
-use crate::lang::LangId;
+use crate::lang::{Active, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::malayalam;
@@ -58,7 +58,8 @@ pub enum Kind {
     Verbatim,
     Completion,
     Correction,
-    Manglish,
+    /// A pack's word typed in Latin letters (Manglish for "ml").
+    Romanised,
     NextWord,
 }
 
@@ -67,6 +68,9 @@ pub struct Candidate {
     pub text: String,
     pub kind: Kind,
     pub score: f32,
+    /// The language it is a word of: `EN` for English, a pack's for its words in either
+    /// script, and the layout's for the text as typed.
+    pub lang: Lang,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -306,6 +310,13 @@ pub struct Engine {
     lm_context: Mutex<LmContext>,
     lm_weights: LmWeights,
     swipe_weights: swipe::Weights,
+    /// The languages that offer candidates (`packs_active`).
+    active: Active,
+}
+
+/// A pack's `Lang`: its place in `Sources::packs`, after English's.
+fn pack_lang(index: usize) -> Lang {
+    Lang(u8::try_from(index + 1).expect("fewer than 255 packs"))
 }
 
 impl Engine {
@@ -318,7 +329,14 @@ impl Engine {
     }
 
     pub fn new(sources: Sources, user: UserStore) -> Self {
+        // Until the keyboard chooses (`set_active`, phase 2 task 8): English and the first
+        // loaded packs, as many as `MAX_ACTIVE` allows.
+        let order = std::iter::once(EN)
+            .chain((0..sources.packs.len()).map(pack_lang))
+            .take(MAX_ACTIVE)
+            .collect();
         Self {
+            active: Active::new(order).expect("English alone is a valid list"),
             sources,
             user: Mutex::new(user),
             lm_context: Mutex::new(LmContext::default()),
@@ -341,9 +359,58 @@ impl Engine {
         self.sources.loaded()
     }
 
-    /// The Malayalam pack, until candidates carry a language (phase 2, task 5): the first pack.
-    fn ml(&self) -> Option<&PackSources> {
-        self.sources.packs.first()
+    /// The id of a candidate's language ("en", "ml"); None for a `Lang` no loaded pack has.
+    pub fn lang_id(&self, lang: Lang) -> Option<LangId> {
+        if lang == EN {
+            return Some(LangId::english());
+        }
+        self.pack(lang).map(|p| p.id.clone())
+    }
+
+    /// The loaded pack of `lang`; None for English.
+    fn pack(&self, lang: Lang) -> Option<&PackSources> {
+        usize::from(lang.0)
+            .checked_sub(1)
+            .and_then(|i| self.sources.packs.get(i))
+    }
+
+    /// The active packs, in the active list's order, each with its `Lang`.
+    fn packs_active(&self) -> impl Iterator<Item = (Lang, &PackSources)> {
+        self.active
+            .iter()
+            .filter_map(|lang| self.pack(lang).map(|p| (lang, p)))
+    }
+
+    /// The active pack written in the script `code` (`ScriptRules::code`).
+    fn pack_in_script(&self, code: &str) -> Option<(Lang, &PackSources)> {
+        self.packs_active().find(|(_, p)| p.rules.code() == code)
+    }
+
+    /// The active pack a native-script word belongs to; None for any other word.
+    fn pack_of_word(&self, word: &str) -> Option<(Lang, &PackSources)> {
+        match text::script(word) {
+            Script::Native(code) => self.pack_in_script(code),
+            _ => None,
+        }
+    }
+
+    /// The language a word is shown as: its script's pack, else English.
+    fn lang_of_word(&self, word: &str) -> Lang {
+        self.pack_of_word(word).map_or(EN, |(lang, _)| lang)
+    }
+
+    /// The pack whose layout `layout` is, if active.
+    fn layout_pack(&self, layout: Layout) -> Option<(Lang, &PackSources)> {
+        match layout {
+            Layout::Latin => None,
+            Layout::Malayalam => self.pack_in_script("mlym"),
+        }
+    }
+
+    /// The LM: the first active pack's that has one, with the pack.
+    fn lm(&self) -> Option<(Lang, &PackSources, &Lm)> {
+        self.packs_active()
+            .find_map(|(lang, p)| p.lm.as_ref().map(|lm| (lang, p, lm)))
     }
 
     /// A poisoned lock still holds usable data; never panic over it.
@@ -631,7 +698,7 @@ impl Engine {
         }
         let start = Instant::now();
         let more = || budget.is_none_or(|b| start.elapsed() < b);
-        let lm_ctx = self.ml().and_then(|p| p.lm.as_ref()).map(|lm| {
+        let lm_ctx = self.lm().map(|(_, _, lm)| {
             let mut ctx = self.lm_context();
             let words = lm_words(context_before);
             let ready = ctx.sync(lm, &words, &more) && !words.iter().all(String::is_empty);
@@ -677,10 +744,14 @@ impl Engine {
                     text,
                     kind: Kind::Completion,
                     score,
+                    lang: EN,
                 });
             }
         }
-        if let Some(mg) = self.ml().and_then(|p| p.romanised.as_ref()) {
+        for (lang, mg) in self
+            .packs_active()
+            .filter_map(|(lang, p)| p.romanised.as_ref().map(|mg| (lang, mg)))
+        {
             for f in swipe::decode(mg, &map, &path, true)
                 .into_iter()
                 .take(swipe::SKELETONS)
@@ -700,8 +771,9 @@ impl Engine {
                         + personal(&text);
                     out.push(Candidate {
                         text,
-                        kind: Kind::Manglish,
+                        kind: Kind::Romanised,
                         score,
+                        lang,
                     });
                 }
             }
@@ -723,6 +795,7 @@ impl Engine {
                     text: word,
                     kind: Kind::Completion,
                     score,
+                    lang: EN,
                 });
             }
         }
@@ -738,7 +811,7 @@ impl Engine {
     /// Fills the LM's context for the text before the cursor ahead of typing (when the
     /// keyboard appears), for at most `budget`; what is left is resumed by the next suggest.
     pub fn prepare(&self, context_before: &str, budget: Option<Duration>) {
-        let Some(lm) = self.ml().and_then(|p| p.lm.as_ref()) else {
+        let Some((_, _, lm)) = self.lm() else {
             return;
         };
         let start = Instant::now();
@@ -751,7 +824,7 @@ impl Engine {
     /// Whether the LM is loaded and its context caught up with the last text it was given:
     /// for tests and diagnostics.
     pub fn lm_ready(&self) -> bool {
-        self.ml().is_some_and(|p| p.lm.is_some()) && self.lm_context().is_ready()
+        self.lm().is_some() && self.lm_context().is_ready()
     }
 
     /// Syncs the LM's context, while `more(after_space)` allows, then suggests with it if it
@@ -764,7 +837,7 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         more: &dyn Fn(bool) -> bool,
     ) -> Suggestions {
-        let Some(lm) = self.ml().and_then(|p| p.lm.as_ref()) else {
+        let Some((_, _, lm)) = self.lm() else {
             return self.suggest_with(context_before, layout, autocorrect, deadline, None);
         };
         let (typed, _) = self.current_word(context_before);
@@ -846,9 +919,12 @@ impl Engine {
                 )
             }
             (_, Script::Native(_)) | (Layout::Malayalam, _) => {
-                self.suggest_malayalam(typed, scores, &own)
+                let pack = self
+                    .pack_of_word(&typed_n)
+                    .or_else(|| self.layout_pack(layout));
+                self.suggest_malayalam(typed, pack, scores, &own)
             }
-            _ => vec![verbatim(typed, 0.0)],
+            _ => vec![verbatim(typed, 0.0, EN)],
         };
         suggestions.truncate(SHOWN);
         Suggestions {
@@ -908,8 +984,8 @@ impl Engine {
         match text::script(word) {
             Script::Latin => self.english_count(word).is_some(),
             Script::Native(_) => self
-                .ml()
-                .is_some_and(|p| p.lexicon.get(word.as_bytes()).is_some()),
+                .pack_of_word(word)
+                .is_some_and(|(_, p)| p.lexicon.get(word.as_bytes()).is_some()),
             Script::Other => true, // numbers and the like are never learned
         }
     }
@@ -938,7 +1014,7 @@ impl Engine {
     }
 
     /// The LM's tier-0 term for a candidate (`ContextScores::weighted`), 0 without the LM. A
-    /// Malayalam word whose other final-u spelling (`malayalam::other_final_u`) is in the
+    /// pack's word whose other final-u spelling (`ScriptRules::other_final_u`) is in its
     /// lexicon gets the better of the two spellings' terms: the LM learned both orthographies
     /// and leans to the older one (ഇന്നു over ഇന്ന്, അതു over അത്), so between the two the
     /// lexicon decides, as in M3a.
@@ -947,11 +1023,11 @@ impl Engine {
             return 0.0;
         };
         let own = s.weighted(text);
-        match (
-            malayalam::other_final_u(text),
-            self.ml().map(|p| &p.lexicon),
-        ) {
-            (Some(other), Some(ml)) if ml.get(other.as_bytes()).is_some() => {
+        let Some((_, pack)) = self.pack_of_word(text) else {
+            return own;
+        };
+        match pack.rules.other_final_u(text) {
+            Some(other) if pack.lexicon.get(other.as_bytes()).is_some() => {
                 own.max(s.weighted(&other))
             }
             _ => own,
@@ -1027,6 +1103,7 @@ impl Engine {
                     let candidate = Candidate {
                         text: show(word),
                         kind: Kind::Correction,
+                        lang: EN,
                         score: score_of(*count),
                     };
                     if case_fix.as_ref().is_none_or(|c| candidate.score > c.score) {
@@ -1082,6 +1159,7 @@ impl Engine {
                                 candidate: Candidate {
                                     text: show(word),
                                     kind: Kind::Correction,
+                                    lang: EN,
                                     score: middle,
                                 },
                                 matched: key[..key.len() - extra].to_vec(),
@@ -1091,6 +1169,7 @@ impl Engine {
                         completions.push(Candidate {
                             text: show(word),
                             kind: Kind::Completion,
+                            lang: EN,
                             score: lex.log_prob(count)
                                 - rank::EDIT_PENALTY * f32::from(cost)
                                 - rank::COMPLETION_PENALTY
@@ -1109,6 +1188,7 @@ impl Engine {
                     let candidate = Candidate {
                         text: show(word),
                         kind: Kind::Correction,
+                        lang: EN,
                         score: score_of(count) - penalty,
                     };
                     if apostrophes_only
@@ -1173,6 +1253,7 @@ impl Engine {
                     completions.push(Candidate {
                         text: show(word),
                         kind: Kind::Completion,
+                        lang: EN,
                         score: lex.log_prob(count)
                             - rank::COMPLETION_PENALTY
                             - rank::COMPLETION_PER_CHAR * extra,
@@ -1194,6 +1275,7 @@ impl Engine {
             .map(|word| Candidate {
                 text: word,
                 kind: Kind::Completion,
+                lang: EN,
                 score: rank::LEARNED_COMPLETION,
             })
             .collect();
@@ -1202,6 +1284,7 @@ impl Engine {
             completions.push(Candidate {
                 text: show(&word),
                 kind: Kind::Completion,
+                lang: EN,
                 score: rank::LEARNED_COMPLETION - rank::COMPLETION_PER_CHAR * extra,
             });
         }
@@ -1212,6 +1295,7 @@ impl Engine {
                 completions.push(Candidate {
                     text: show(word),
                     kind: Kind::Completion,
+                    lang: EN,
                     score: rank::OWN_COMPLETION,
                 });
             }
@@ -1275,7 +1359,7 @@ impl Engine {
             }
             // The standard spelling keeps its place against the rare one, whatever context
             // says of each: it is the rare form's word.
-            if let Some((text, rare, offset)) = &manglish.neighbour {
+            for (text, rare, offset) in &manglish.neighbours {
                 let rare = manglish
                     .exact
                     .iter()
@@ -1318,7 +1402,7 @@ impl Engine {
             known_score = known_score.map(|s| s + own_term(typed_n));
         }
 
-        let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN));
+        let typed_c = verbatim(typed, known_score.unwrap_or(rank::UNKNOWN), EN);
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
         let capitals = Capitals::of(typed_n, mid_sentence);
@@ -1462,10 +1546,12 @@ impl Engine {
         let replacement = match chosen.filter(|c| !self.user().is_removed(c)) {
             Some(text) => {
                 let malayalam = matches!(text::script(&text), Script::Native(_));
+                let lang = self.lang_of_word(&text);
                 let chosen = Candidate {
+                    lang,
                     text: if malayalam { text } else { show(&text) },
                     kind: if malayalam {
-                        Kind::Manglish
+                        Kind::Romanised
                     } else {
                         Kind::Correction
                     },
@@ -1506,10 +1592,7 @@ impl Engine {
         }
     }
 
-    /// Malayalam candidates for a Latin word, scored to compete with English.
-    /// `english_word`: the typed word is in the English lexicon, so it isn't
-    /// split into stem and suffix.
-    /// `deadline`: as in `suggest_until`.
+    /// Every active pack's candidates for a Latin word (`romanised`), together.
     fn manglish(
         &self,
         typed_n: &str,
@@ -1517,13 +1600,37 @@ impl Engine {
         english_word: bool,
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
-        let mut found = ManglishCandidates::default();
-        let (Some(lex), Some(r)) = (
-            self.ml().and_then(|p| p.romanised.as_ref()),
-            self.ml().and_then(|p| p.romanisation.as_ref()),
-        ) else {
+        let mut all: Option<ManglishCandidates> = None;
+        for (lang, pack) in self.packs_active() {
+            let found = self.romanised(lang, pack, typed_n, bias, english_word, deadline);
+            match &mut all {
+                Some(all) => all.absorb(found),
+                None => all = Some(found),
+            }
+        }
+        all.unwrap_or_else(|| ManglishCandidates::new(EN))
+    }
+
+    /// `pack`'s words for a Latin word, scored to compete with English.
+    /// `english_word`: the typed word is in the English lexicon, so it isn't
+    /// split into stem and suffix.
+    /// `deadline`: as in `suggest_until`.
+    fn romanised(
+        &self,
+        lang: Lang,
+        pack: &PackSources,
+        typed_n: &str,
+        bias: f32,
+        english_word: bool,
+        deadline: Option<Deadline<'_>>,
+    ) -> ManglishCandidates {
+        let mut found = ManglishCandidates::new(lang);
+        let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
+        // Chat forms, suffix splits and the rule-based spelling are Malayalam's tables, until
+        // they move into the pack (phase 2, task 10).
+        let malayalam = pack.rules.code() == "mlym";
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
             return found;
@@ -1548,10 +1655,12 @@ impl Engine {
                 rank::MIN_REPLACE,
             );
         }
-        self.add_chat_form(typed_n, bias, &mut found);
+        if malayalam {
+            Self::add_chat_form(pack, typed_n, bias, &mut found);
+        }
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
-        let splits = if found.exact.is_empty() && !english_word {
-            self.scored_splits(lex, typed_n)
+        let splits = if malayalam && found.exact.is_empty() && !english_word {
+            Self::scored_splits(r, lex, typed_n)
         } else {
             Vec::new()
         };
@@ -1566,23 +1675,25 @@ impl Engine {
             None
         } else {
             let want_free = found.exact.is_empty() && found.side.is_empty();
-            self.add_model(typed_n, &splits, bias, want_free, deadline, &mut found)
+            Self::add_model(pack, typed_n, &splits, bias, want_free, deadline, &mut found)
         };
         // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
         // is a variant of it: offer the common one beside it.
-        self.add_standard_neighbour(&mut found);
+        Self::add_standard_neighbour(pack, &mut found);
         // Names and rare words: the model's own spelling (or, without the model, the
         // rule-based one), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
             let guess = match free {
                 Some(text) => Some((text, rank::MANGLISH_MODEL_FREE)),
-                None => transliterate(typed_n).map(|text| (text, rank::UNKNOWN)),
+                None if malayalam => transliterate(typed_n).map(|text| (text, rank::UNKNOWN)),
+                None => None,
             };
             if let Some((text, score)) = guess {
                 found.side.push(Candidate {
                     text,
-                    kind: Kind::Manglish,
+                    kind: Kind::Romanised,
                     score,
+                    lang,
                 });
             }
         }
@@ -1600,9 +1711,8 @@ impl Engine {
     /// table is curated evidence, not a guess, so the word may take the middle a little
     /// below `MIN_REPLACE` (`rank::MANGLISH_CHAT_FORM_RELIEF`), except where English is
     /// likely (after an English word, or a capital), as for the model's confident readings.
-    fn add_chat_form(&self, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
-        let (Some(word), Some(ml)) = (chat_forms::lookup(typed_n), self.ml().map(|p| &p.lexicon))
-        else {
+    fn add_chat_form(pack: &PackSources, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
+        let (Some(word), ml) = (chat_forms::lookup(typed_n), &pack.lexicon) else {
             return;
         };
         let Some(count) = ml.get(word.as_bytes()) else {
@@ -1630,10 +1740,8 @@ impl Engine {
     /// (`rank::MANGLISH_NEIGHBOUR_GAIN`): in its place for the middle when that
     /// candidate may take it (`rank::MANGLISH_NEIGHBOUR_PROMOTION`), else as a
     /// side slot (`rank::MANGLISH_NEIGHBOUR_PENALTY`).
-    fn add_standard_neighbour(&self, found: &mut ManglishCandidates) {
-        let Some(ml) = self.ml().map(|p| &p.lexicon) else {
-            return;
-        };
+    fn add_standard_neighbour(pack: &PackSources, found: &mut ManglishCandidates) {
+        let ml = &pack.lexicon;
         let best = found
             .exact
             .iter()
@@ -1654,7 +1762,7 @@ impl Engine {
             return;
         };
         let mut neighbour: Option<(String, f32)> = None;
-        for variant in malayalam::vowel_sign_drops(&best.text) {
+        for variant in pack.rules.vowel_sign_drops(&best.text) {
             let Some(log_prob) = ml.get(variant.as_bytes()).map(|c| ml.log_prob(c)) else {
                 continue;
             };
@@ -1672,23 +1780,26 @@ impl Engine {
         } else {
             -rank::MANGLISH_NEIGHBOUR_PENALTY
         };
-        found.neighbour = Some((text.clone(), best.text.clone(), offset));
+        let (best_text, best_score) = (best.text.clone(), best.score);
+        found.neighbours.push((text.clone(), best_text, offset));
         match middle_spelled {
             // The rare form would take the middle: the standard one takes it
             // instead, on the rare form's evidence, and the rare form moves aside.
             Some(spelled) => {
                 let candidate = Candidate {
                     text,
-                    kind: Kind::Manglish,
-                    score: best.score + rank::MANGLISH_NEIGHBOUR_PROMOTION,
+                    kind: Kind::Romanised,
+                    score: best_score + rank::MANGLISH_NEIGHBOUR_PROMOTION,
+                    lang: found.lang,
                 };
                 found.exact.push((candidate, spelled));
             }
             None => {
                 let candidate = Candidate {
                     text,
-                    kind: Kind::Manglish,
-                    score: best.score - rank::MANGLISH_NEIGHBOUR_PENALTY,
+                    kind: Kind::Romanised,
+                    score: best_score - rank::MANGLISH_NEIGHBOUR_PENALTY,
+                    lang: found.lang,
                 };
                 found.side.push(candidate);
             }
@@ -1696,10 +1807,7 @@ impl Engine {
     }
 
     /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
-    fn scored_splits(&self, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
-        let Some(r) = self.ml().and_then(|p| p.romanisation.as_ref()) else {
-            return Vec::new();
-        };
+    fn scored_splits(r: &Romanisation, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
         let mut splits: Vec<ScoredSplit> =
             suffix::splits(r, lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
                 .into_iter()
@@ -1753,8 +1861,9 @@ impl Engine {
             } else if rare_whole.is_finite() {
                 found.side.push(Candidate {
                     text: word,
-                    kind: Kind::Manglish,
+                    kind: Kind::Romanised,
                     score: (unfitted + fit).min(rare_whole - 0.01),
+                    lang: found.lang,
                 });
             } else {
                 found.push(word, unfitted, fit, 0, spelled, rank::MIN_REPLACE);
@@ -1772,7 +1881,7 @@ impl Engine {
     /// Nothing without the model or the Malayalam lexicon it is held to. `free`: run the
     /// free beam too. `deadline`: as in `suggest_until`.
     fn add_model(
-        &self,
+        pack: &PackSources,
         typed_n: &str,
         splits: &[ScoredSplit],
         bias: f32,
@@ -1780,10 +1889,10 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
     ) -> Option<String> {
-        let (Some(model), Some(ml), Some(r)) = (
-            self.ml().and_then(|p| p.translit.as_ref()),
-            self.ml().map(|p| &p.lexicon),
-            self.ml().and_then(|p| p.romanisation.as_ref()),
+        let (Some(model), ml, Some(r)) = (
+            pack.translit.as_ref(),
+            &pack.lexicon,
+            pack.romanisation.as_ref(),
         ) else {
             return None;
         };
@@ -1849,22 +1958,26 @@ impl Engine {
                 score: rank::LEARNED_COMPLETION,
                 text: word,
                 kind: Kind::Completion,
+                lang: EN,
             })
             .collect();
         self.drop_removed(&mut others);
-        arrange(verbatim(typed, 0.0), typed_n, others, None, Vec::new())
+        arrange(verbatim(typed, 0.0, EN), typed_n, others, None, Vec::new())
     }
 
-    /// `scores` and `own`: as in `suggest_latin`, on the completions.
+    /// Native-script typing, completed from `pack`'s lexicon (the typed word's script's, or
+    /// the layout's). `scores` and `own`: as in `suggest_latin`, on the completions.
     fn suggest_malayalam(
         &self,
         typed: &str,
+        pack: Option<(Lang, &PackSources)>,
         scores: Option<&dyn ContextScores>,
         own: &[String],
     ) -> Vec<Candidate> {
         let typed_n = normalize(typed);
+        let lang = pack.map_or(EN, |(lang, _)| lang);
         let mut others = Vec::new();
-        if let Some(lex) = self.ml().map(|p| &p.lexicon) {
+        if let Some(lex) = pack.map(|(_, p)| &p.lexicon) {
             for (key, count) in lex.top_completions(typed_n.as_bytes(), TOP_K) {
                 if key.len() <= typed_n.len() {
                     continue;
@@ -1881,12 +1994,14 @@ impl Engine {
                     text: word.to_string(),
                     kind: Kind::Completion,
                     score,
+                    lang,
                 });
             }
         }
         for word in self.user().completions(&typed_n, 2) {
             let score = rank::LEARNED_COMPLETION;
             others.push(Candidate {
+                lang: self.lang_of_word(&word),
                 text: word,
                 kind: Kind::Completion,
                 score,
@@ -1899,6 +2014,7 @@ impl Engine {
                     text: word.clone(),
                     kind: Kind::Completion,
                     score: rank::OWN_COMPLETION,
+                    lang: self.lang_of_word(word),
                 });
             }
         }
@@ -1909,7 +2025,7 @@ impl Engine {
         }
         self.drop_removed(&mut others);
         // Native Malayalam is never replaced: the typed word always stays in the middle.
-        arrange(verbatim(typed, 0.0), &typed_n, others, None, Vec::new())
+        arrange(verbatim(typed, 0.0, lang), &typed_n, others, None, Vec::new())
     }
 
     /// Next words after a space: the user's own continuations of the words before
@@ -1928,6 +2044,7 @@ impl Engine {
         let mut out: Vec<Candidate> = own
             .into_iter()
             .map(|text| Candidate {
+                lang: self.lang_of_word(&text),
                 text,
                 kind: Kind::NextWord,
                 score: 0.0,
@@ -2012,6 +2129,7 @@ impl Engine {
                 text,
                 kind: Kind::NextWord,
                 score,
+                lang: self.next_lang(p),
             })
         };
         // Each follower with its first piece: a piece's words can only have the bigrams of
@@ -2094,27 +2212,45 @@ impl Engine {
         }
     }
 
-    /// The count of a Malayalam word in the lexicon, 0 for none.
+    /// The count of a native-script word in its pack's lexicon, 0 for none.
     fn malayalam_count(&self, word: &str) -> u64 {
-        self.ml()
-            .and_then(|p| p.lexicon.get(word.as_bytes()))
+        self.pack_of_word(word)
+            .and_then(|(_, p)| p.lexicon.get(word.as_bytes()))
             .unwrap_or(0)
     }
 
-    /// The lexicon a next-word piece's words come from.
+    /// The pack the LM's next words are read with: the LM's own, else (for tests that stand
+    /// in for the LM) the first active one.
+    fn next_pack(&self) -> Option<(Lang, &PackSources)> {
+        self.lm()
+            .map(|(lang, pack, _)| (lang, pack))
+            .or_else(|| self.packs_active().next())
+    }
+
+    /// The lexicon a next-word piece's words come from: English's, or `next_pack`'s.
     fn next_lexicon(&self, p: &NextPiece) -> Option<&Lexicon> {
         if p.latin {
             self.sources.english.as_ref()
         } else {
-            self.ml().map(|pack| &pack.lexicon)
+            self.next_pack().map(|(_, pack)| &pack.lexicon)
         }
     }
 
-    /// The followers `next.fst` keeps for `previous`, commonest first, each with its share of
-    /// their counts: P(word | previous), given that it is one of them.
+    /// The language of a next-word piece's words, as `next_lexicon`.
+    fn next_lang(&self, p: &NextPiece) -> Lang {
+        match self.next_pack() {
+            Some((lang, _)) if !p.latin => lang,
+            _ => EN,
+        }
+    }
+
+    /// The followers `next_pack`'s `next.fst` keeps for `previous`, commonest first, each
+    /// with its share of their counts: P(word | previous), given that it is one of them.
     fn followers(&self, previous: Option<&str>) -> Vec<(String, f64)> {
-        let (Some(lex), Some(previous)) = (self.ml().and_then(|p| p.next_words.as_ref()), previous)
-        else {
+        let (Some(lex), Some(previous)) = (
+            self.next_pack().and_then(|(_, p)| p.next_words.as_ref()),
+            previous,
+        ) else {
             return Vec::new();
         };
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
@@ -2137,31 +2273,32 @@ impl Engine {
             .collect()
     }
 
-    /// M3a's next words: `next.fst`'s commonest followers of the previous word.
+    /// M3a's next words: each active pack's `next.fst`'s commonest followers of the previous
+    /// word.
     fn bigram_next_words(&self, context_before: &str) -> Vec<Candidate> {
-        let (Some(lex), Some((previous, sentence_end))) = (
-            self.ml().and_then(|p| p.next_words.as_ref()),
-            text::previous_word(context_before),
-        ) else {
+        let Some((previous, sentence_end)) = text::previous_word(context_before) else {
             return Vec::new();
         };
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let mut found: Vec<Candidate> = Vec::new();
-        for (k, count) in lex.top_completions(&key, TOP_K) {
-            let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
-                continue;
-            };
-            let text = if sentence_end {
-                capitalize(next)
-            } else {
-                next.to_string()
-            };
-            found.push(Candidate {
-                text,
-                kind: Kind::NextWord,
-                score: count as f32,
-            });
+        for lex in self.packs_active().filter_map(|(_, p)| p.next_words.as_ref()) {
+            for (k, count) in lex.top_completions(&key, TOP_K) {
+                let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
+                    continue;
+                };
+                let text = if sentence_end {
+                    capitalize(next)
+                } else {
+                    next.to_string()
+                };
+                found.push(Candidate {
+                    lang: self.lang_of_word(&text),
+                    text,
+                    kind: Kind::NextWord,
+                    score: count as f32,
+                });
+            }
         }
         self.drop_removed(&mut found);
         // Scores are counts here: the use bonus scales them as it adds to a log probability.
@@ -2179,12 +2316,14 @@ impl Engine {
     /// prefix in the Malayalam lexicon. Signs never seen are left out; the
     /// keyboard appends them in aksharamala order.
     fn vowel_signs(&self, context_before: &str, typed: &str) -> Vec<char> {
-        let (Some(lex), Some(_)) = (
-            self.ml().map(|p| &p.lexicon),
+        // The strip is Malayalam's (`STRIP_SIGNS`).
+        let (Some((_, pack)), Some(_)) = (
+            self.pack_in_script("mlym"),
             malayalam::vowel_sign_base(context_before),
         ) else {
             return Vec::new();
         };
+        let lex = &pack.lexicon;
         let prefix = normalize(typed);
         let mut totals: Vec<(char, u64)> = STRIP_SIGNS
             .iter()
@@ -2217,9 +2356,10 @@ struct ScoredSplit {
     spelled: bool,
 }
 
-/// Manglish candidates for one typed word, by the role each may play.
-#[derive(Default)]
+/// Romanised candidates for one typed word, by the role each may play.
 struct ManglishCandidates {
+    /// The language `push` files words under: the pack's.
+    lang: Lang,
     /// Same skeleton as typed and common enough: may take the middle, like a
     /// correction. The flag is `manglish::Match::spelled`.
     exact: Vec<(Candidate, bool)>,
@@ -2228,9 +2368,9 @@ struct ManglishCandidates {
     /// Side slots only, and they don't stop a correction: rare words with the
     /// typed skeleton, or else the transliteration (names, words not in the list).
     side: Vec<Candidate>,
-    /// The standard spelling offered for a rare one (`Engine::add_standard_neighbour`): its
-    /// text, the rare form's, and its score's offset from the rare form's.
-    neighbour: Option<(String, String, f32)>,
+    /// The standard spellings offered for rare ones (`Engine::add_standard_neighbour`), at
+    /// most one per pack: its text, the rare form's, and its score's offset from the rare form's.
+    neighbours: Vec<(String, String, f32)>,
 }
 
 /// A long typed word read as a near match of a key's first letters (`matched`) plus a
@@ -2242,6 +2382,24 @@ struct NearCompletion {
 }
 
 impl ManglishCandidates {
+    fn new(lang: Lang) -> Self {
+        Self {
+            lang,
+            exact: Vec::new(),
+            completions: Vec::new(),
+            side: Vec::new(),
+            neighbours: Vec::new(),
+        }
+    }
+
+    /// Adds another pack's candidates to these.
+    fn absorb(&mut self, other: Self) {
+        self.exact.extend(other.exact);
+        self.completions.extend(other.completions);
+        self.side.extend(other.side);
+        self.neighbours.extend(other.neighbours);
+    }
+
     /// Files a Malayalam word by role. `unfitted` is its score before the
     /// `fit` bonus for how much of its skeleton was typed; `missing` and
     /// `spelled` are as in `manglish::Match`. `floor` is the least `unfitted`
@@ -2258,8 +2416,9 @@ impl ManglishCandidates {
     ) {
         let candidate = Candidate {
             text,
-            kind: Kind::Manglish,
+            kind: Kind::Romanised,
             score: unfitted + fit,
+            lang: self.lang,
         };
         if missing > 0 {
             self.completions.push(candidate);
@@ -2344,11 +2503,12 @@ fn phrase_word(word: &str) -> bool {
     text::script(word) != Script::Other && !text::is_address(word)
 }
 
-fn verbatim(typed: &str, score: f32) -> Candidate {
+fn verbatim(typed: &str, score: f32, lang: Lang) -> Candidate {
     Candidate {
         text: typed.to_string(),
         kind: Kind::Verbatim,
         score,
+        lang,
     }
 }
 
@@ -2607,6 +2767,21 @@ mod tests {
             ..Sources::default()
         };
         Engine::new(sources, UserStore::in_memory())
+    }
+
+    #[test]
+    fn candidates_carry_their_language() {
+        let engine = manglish_engine();
+        let ml = Lang(1);
+        let s = engine.suggest("I feel pani", Layout::Latin, true);
+        let lang = |w: &str| s.candidates.iter().find(|c| c.text == w).map(|c| c.lang);
+        assert_eq!(lang("pani"), Some(EN), "typed on the Latin layout: {s:?}");
+        assert_eq!(lang("pain"), Some(EN));
+        assert_eq!(lang("പണി"), Some(ml));
+        assert_eq!(engine.lang_id(ml), Some(LangId("ml".into())));
+        assert_eq!(engine.lang_id(EN), Some(LangId::english()));
+        let native = engine.suggest("എന്", Layout::Malayalam, true);
+        assert!(native.candidates.iter().all(|c| c.lang == ml), "{native:?}");
     }
 
     #[test]
