@@ -20,6 +20,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>MLActiveLanguages</key>
+	<string>$(ML_ACTIVE_LANGUAGES)</string>
 	<key>MLGitCommit</key>
 	<string>$(ML_GIT_COMMIT)</string>
 	<key>NSExtension</key>
