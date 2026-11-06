@@ -1,0 +1,43 @@
+# Malayalam's chat suffixes: clitics, auxiliaries and case endings that chat glues onto words
+# (സുഖമാണോ, കഴിച്ചോ, വരുന്നുണ്ടോ). The engine reads a typed Latin word with no whole-form match
+# as a stem plus one or two of these (engine/core/src/suffix.rs). Small and explicit: every row
+# is a guess about words the engine has never seen, so each must be common.
+#
+# Columns, tab-separated:
+#   latin   the ways people type it, comma-separated, matched against the end of the typed word
+#   native  the suffix in Malayalam
+#   join    how it fuses with its stem (the mlym plug-in's joins, suffix.rs `Join`):
+#           vowel      starts with a vowel: the vowel becomes a sign on the stem (ആണോ, ഉണ്ട്)
+#           case       a vowel-initial case ending; as vowel, but not after a stem in ം (ഇൽ)
+#           consonant  starts with a consonant; appended after a vowel, ർ or ൾ (ക്ക്)
+#           oblique    the oblique ending of a stem in ം, which it replaces (ത്തിൽ)
+#   inner   optional: "inner" if another suffix may follow it (വരുന്നു + ഉണ്ട് + ഓ)
+# Row order matters: among cuts of equal length, earlier rows and spellings are tried first.
+# Lines starting with # and blank lines are skipped.
+
+# Question, copula, existence, negation.
+o,oo	ഓ	vowel
+ano,aano	ആണോ	vowel
+anu,aanu	ആണ്	vowel
+und,undu	ഉണ്ട്	vowel	inner
+undo,undoo	ഉണ്ടോ	vowel
+illa	ഇല്ല	vowel
+ille,illey	ഇല്ലേ	vowel
+alla	അല്ല	vowel
+alle,alley	അല്ലേ	vowel
+ayirunnu,aayirunnu,ayrunnu	ആയിരുന്നു	vowel	inner
+ennu,enn	എന്ന്	vowel
+um	ഉം	vowel
+# Case endings.
+il	ഇൽ	case	inner
+ude	ഉടെ	case
+inte,inde	ഇന്റെ	case
+odu,ode,od	ഓട്	case
+thil	ത്തിൽ	oblique	inner
+thinte,thinde	ത്തിന്റെ	oblique
+thinu	ത്തിന്	oblique
+thodu,thode	ത്തോട്	oblique
+# Consonant-initial: dative, permissive, obligation.
+kku,kk	ക്ക്	consonant
+tte	ട്ടെ	consonant
+nam	ണം	consonant

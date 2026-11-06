@@ -2,15 +2,21 @@
 //! endings onto words (സുഖമാണോ, കഴിച്ചോ, വരുന്നുണ്ടോ), and many such forms
 //! never occur in the corpus `manglish.fst` is built from. When a typed word
 //! has no whole-form match, it is read as a stem plus one or two suffixes
-//! from `SUFFIXES`: the stem is looked up by skeleton like any Manglish word,
-//! and the Malayalam stem and suffix are joined by `join`.
+//! from the pack's `suffixes.tsv` (manifest role `suffixes`; the format is in
+//! Malayalam's file and `Suffixes::parse`): the stem is looked up by skeleton like
+//! any Manglish word, and the native stem and suffix are joined by the script's
+//! `ScriptRules::join_suffix` (Malayalam's is `join`).
 //!
 //! Only suffixes whose spelling ends the typed word are tried, and at most
-//! `MAX_LOOKUPS` stem skeletons are looked up per word.
+//! `MAX_LOOKUPS` stem skeletons are looked up per word. A pack without a suffix
+//! file is never split.
+
+use std::path::Path;
 
 use crate::lexicon::Lexicon;
 use crate::manglish;
 use crate::romanisation::Romanisation;
+use crate::script::ScriptRules;
 
 /// Shorter typed words are not split: too many read as some stem plus -o.
 pub const MIN_LETTERS: usize = 5;
@@ -40,61 +46,93 @@ pub enum Join {
     Oblique,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Suffix {
     /// Ways people type it, matched against the end of the typed word.
-    pub latin: &'static [&'static str],
-    pub malayalam: &'static str,
+    pub latin: Vec<String>,
+    /// The suffix in the pack's script.
+    pub native: String,
     pub join: Join,
     /// May have another suffix after it (വരുന്നു + ഉണ്ട് + ഓ).
     pub inner: bool,
 }
 
-const fn suffix(
-    latin: &'static [&'static str],
-    malayalam: &'static str,
-    join: Join,
-    inner: bool,
-) -> Suffix {
-    Suffix {
-        latin,
-        malayalam,
-        join,
-        inner,
+/// A pack's suffix table, in file order (the order breaks ties between cuts).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Suffixes {
+    list: Vec<Suffix>,
+}
+
+impl Suffixes {
+    pub fn load(path: &Path) -> Result<Self, String> {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        Self::parse(&text).map_err(|e| format!("{}: {e}", path.display()))
+    }
+
+    /// `suffixes.tsv`: per line `latin<TAB>native<TAB>join[<TAB>inner]`, where `latin` is
+    /// comma-separated lower-case spellings and `join` one of `vowel`, `case`, `consonant`,
+    /// `oblique`. Lines starting with `#` and blank lines are skipped; anything else malformed
+    /// is an error, so a typo can't silently drop a suffix.
+    pub fn parse(text: &str) -> Result<Self, String> {
+        let mut list = Vec::new();
+        for (i, line) in text.lines().enumerate() {
+            if line.trim().is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let bad = |why: &str| format!("line {}: {why}: {line:?}", i + 1);
+            let fields: Vec<&str> = line.split('\t').collect();
+            let (latin, native, join, inner) = match fields.as_slice() {
+                [latin, native, join] => (latin, native, join, false),
+                [latin, native, join, "inner"] => (latin, native, join, true),
+                _ => return Err(bad("want latin, native, join and an optional \"inner\"")),
+            };
+            let latin: Vec<String> = latin.split(',').map(str::to_string).collect();
+            if latin
+                .iter()
+                .any(|l| l.is_empty() || !l.bytes().all(|b| b.is_ascii_lowercase()))
+            {
+                return Err(bad("a spelling is not lower-case a–z"));
+            }
+            if native.is_empty() {
+                return Err(bad("no native suffix"));
+            }
+            let join = match *join {
+                "vowel" => Join::Vowel,
+                "case" => Join::Case,
+                "consonant" => Join::Consonant,
+                "oblique" => Join::Oblique,
+                _ => return Err(bad("join is vowel, case, consonant or oblique")),
+            };
+            list.push(Suffix {
+                latin,
+                native: native.to_string(),
+                join,
+                inner,
+            });
+        }
+        Ok(Self { list })
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, Suffix> {
+        self.list.iter()
     }
 }
 
-/// The common chat suffixes. Small and explicit: every entry is a guess the
-/// engine makes about words it has never seen, so each must be common.
-#[rustfmt::skip]
-pub const SUFFIXES: &[Suffix] = &[
-    // Question, copula, existence, negation.
-    suffix(&["o", "oo"], "ഓ", Join::Vowel, false),
-    suffix(&["ano", "aano"], "ആണോ", Join::Vowel, false),
-    suffix(&["anu", "aanu"], "ആണ്", Join::Vowel, false),
-    suffix(&["und", "undu"], "ഉണ്ട്", Join::Vowel, true),
-    suffix(&["undo", "undoo"], "ഉണ്ടോ", Join::Vowel, false),
-    suffix(&["illa"], "ഇല്ല", Join::Vowel, false),
-    suffix(&["ille", "illey"], "ഇല്ലേ", Join::Vowel, false),
-    suffix(&["alla"], "അല്ല", Join::Vowel, false),
-    suffix(&["alle", "alley"], "അല്ലേ", Join::Vowel, false),
-    suffix(&["ayirunnu", "aayirunnu", "ayrunnu"], "ആയിരുന്നു", Join::Vowel, true),
-    suffix(&["ennu", "enn"], "എന്ന്", Join::Vowel, false),
-    suffix(&["um"], "ഉം", Join::Vowel, false),
-    // Case endings.
-    suffix(&["il"], "ഇൽ", Join::Case, true),
-    suffix(&["ude"], "ഉടെ", Join::Case, false),
-    suffix(&["inte", "inde"], "ഇന്റെ", Join::Case, false),
-    suffix(&["odu", "ode", "od"], "ഓട്", Join::Case, false),
-    suffix(&["thil"], "ത്തിൽ", Join::Oblique, true),
-    suffix(&["thinte", "thinde"], "ത്തിന്റെ", Join::Oblique, false),
-    suffix(&["thinu"], "ത്തിന്", Join::Oblique, false),
-    suffix(&["thodu", "thode"], "ത്തോട്", Join::Oblique, false),
-    // Consonant-initial: dative, permissive, obligation.
-    suffix(&["kku", "kk"], "ക്ക്", Join::Consonant, false),
-    suffix(&["tte"], "ട്ടെ", Join::Consonant, false),
-    suffix(&["nam"], "ണം", Join::Consonant, false),
-];
+/// Malayalam's table from `packs/ml.neopack`, for the engine's unit tests.
+#[cfg(test)]
+pub(crate) fn ml() -> &'static Suffixes {
+    static ML: std::sync::OnceLock<Suffixes> = std::sync::OnceLock::new();
+    ML.get_or_init(load_ml)
+}
+
+/// An owned copy of `ml()`, for a test's `Sources`.
+#[cfg(test)]
+pub(crate) fn load_ml() -> Suffixes {
+    Suffixes::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/suffixes.tsv"),
+    )
+    .unwrap()
+}
 
 const VIRAMA: char = '\u{0D4D}';
 const ANUSVARA: char = 'ം';
@@ -153,7 +191,8 @@ fn glide(last: char) -> Option<char> {
     }
 }
 
-/// Joins a Malayalam stem and suffix with the sandhi `how` calls for; None
+/// Malayalam's joins (the mlym plug-in's `ScriptRules::join_suffix`): joins a stem and suffix
+/// with the sandhi `how` calls for; None
 /// when they don't join (a case ending on a stem in ം, say).
 ///
 /// A vowel-initial suffix: a final ം becomes മ + the vowel sign (സുഖം + ആണോ
@@ -238,10 +277,10 @@ fn stem_spellings(latin: &str, how: Join) -> Vec<String> {
 }
 
 /// The suffixes in `table` that end `latin`, each with the letters before it.
-fn endings<'a>(
+fn endings<'a, 't>(
     latin: &'a str,
-    table: &'static [Suffix],
-) -> impl Iterator<Item = (&'static Suffix, &'a str, usize)> {
+    table: &'t Suffixes,
+) -> impl Iterator<Item = (&'t Suffix, &'a str, usize)> {
     table.iter().flat_map(move |s| {
         s.latin.iter().filter_map(move |spelling| {
             let stem = latin.strip_suffix(spelling)?;
@@ -250,10 +289,18 @@ fn endings<'a>(
     })
 }
 
-/// Malayalam readings of `typed` as a stem plus one or two suffixes, for
-/// stems at least `min_log_prob` likely. Unordered; may repeat a word.
-pub fn splits(r: &Romanisation, lexicon: &Lexicon, typed: &str, min_log_prob: f32) -> Vec<Split> {
-    splits_with(r, typed, |key| {
+/// Readings of `typed` as a native stem from `lexicon` plus one or two of
+/// `suffixes`, joined by `rules`, for stems at least `min_log_prob` likely.
+/// Unordered; may repeat a word.
+pub fn splits(
+    rules: &dyn ScriptRules,
+    r: &Romanisation,
+    suffixes: &Suffixes,
+    lexicon: &Lexicon,
+    typed: &str,
+    min_log_prob: f32,
+) -> Vec<Split> {
+    splits_with(rules, r, suffixes, typed, |key| {
         let mut stems: Vec<(String, f32)> = manglish::same_skeleton(lexicon, key)
             .into_iter()
             .map(|(word, count)| (word, lexicon.log_prob(count)))
@@ -267,9 +314,9 @@ pub fn splits(r: &Romanisation, lexicon: &Lexicon, typed: &str, min_log_prob: f3
 
 /// Every way to cut `latin` into a stem and one or two suffixes: one suffix
 /// first, and a longer suffix before a shorter one.
-fn cuts(latin: &str) -> Vec<Cut<'static>> {
+fn cuts<'t>(latin: &str, suffixes: &'t Suffixes) -> Vec<Cut<'t>> {
     let mut cuts: Vec<Cut> = Vec::new();
-    for (outer, before, len) in endings(latin, SUFFIXES) {
+    for (outer, before, len) in endings(latin, suffixes) {
         for stem in stem_spellings(before, outer.join) {
             cuts.push(Cut {
                 stem,
@@ -277,7 +324,7 @@ fn cuts(latin: &str) -> Vec<Cut<'static>> {
                 suffix_len: len,
             });
         }
-        for (inner, stem, inner_len) in endings(before, SUFFIXES).filter(|(s, _, _)| s.inner) {
+        for (inner, stem, inner_len) in endings(before, suffixes).filter(|(s, _, _)| s.inner) {
             for stem in stem_spellings(stem, inner.join) {
                 cuts.push(Cut {
                     stem,
@@ -293,7 +340,13 @@ fn cuts(latin: &str) -> Vec<Cut<'static>> {
 
 /// `splits`, with the stems of a skeleton found by `lookup` (called at most
 /// `MAX_LOOKUPS` times).
-fn splits_with(r: &Romanisation, typed: &str, mut lookup: impl FnMut(&str) -> Vec<(String, f32)>) -> Vec<Split> {
+fn splits_with(
+    rules: &dyn ScriptRules,
+    r: &Romanisation,
+    suffixes: &Suffixes,
+    typed: &str,
+    mut lookup: impl FnMut(&str) -> Vec<(String, f32)>,
+) -> Vec<Split> {
     let latin: String = typed
         .chars()
         .filter(char::is_ascii_alphabetic)
@@ -302,7 +355,7 @@ fn splits_with(r: &Romanisation, typed: &str, mut lookup: impl FnMut(&str) -> Ve
     if latin.len() < MIN_LETTERS || latin.len() != typed.len() {
         return Vec::new();
     }
-    let cuts = cuts(&latin);
+    let cuts = cuts(&latin, suffixes);
     let mut looked_up: Vec<(String, Vec<(String, f32)>)> = Vec::new();
     let mut out = Vec::new();
     for cut in &cuts {
@@ -317,10 +370,9 @@ fn splits_with(r: &Romanisation, typed: &str, mut lookup: impl FnMut(&str) -> Ve
             None => continue,
         };
         for (stem, log_prob) in &looked_up[i].1 {
-            let word = cut
-                .suffixes
-                .iter()
-                .try_fold(stem.clone(), |w, s| join(&w, s.malayalam, s.join));
+            let word = cut.suffixes.iter().try_fold(stem.clone(), |w, s| {
+                rules.join_suffix(&w, &s.native, s.join)
+            });
             if let Some(word) = word {
                 out.push(Split {
                     word,
@@ -336,8 +388,32 @@ fn splits_with(r: &Romanisation, typed: &str, mut lookup: impl FnMut(&str) -> Ve
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::romanisation::ml;
     use crate::lexicon::build;
+    use crate::romanisation;
+    use crate::script::rules;
+
+    fn mlym() -> &'static dyn ScriptRules {
+        rules("mlym").unwrap()
+    }
+
+    #[test]
+    fn malformed_lines_are_errors() {
+        let ok = Suffixes::parse("# c\n\no,oo\tഓ\tvowel\nund\tഉണ്ട്\tvowel\tinner\n").unwrap();
+        let list: Vec<&Suffix> = ok.iter().collect();
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].latin, ["o", "oo"]);
+        assert!(!list[0].inner && list[1].inner);
+        for bad in [
+            "o\tഓ\n",
+            "o\tഓ\tvowels\n",
+            "O\tഓ\tvowel\n",
+            "o,\tഓ\tvowel\n",
+            "o\t\tvowel\n",
+            "o\tഓ\tvowel\touter\n",
+        ] {
+            assert!(Suffixes::parse(bad).is_err(), "{bad:?}");
+        }
+    }
 
     #[test]
     fn vowel_suffixes_fuse_with_the_stem() {
@@ -391,12 +467,12 @@ mod tests {
 
     #[test]
     fn every_suffix_starts_the_way_its_join_expects() {
-        for s in SUFFIXES {
-            let first = s.malayalam.chars().next().unwrap();
+        for s in ml().iter() {
+            let first = s.native.chars().next().unwrap();
             match s.join {
                 Join::Vowel | Join::Case => assert!(sign_of(first).is_some(), "{s:?}"),
                 Join::Consonant => assert!(is_consonant(first), "{s:?}"),
-                Join::Oblique => assert!(s.malayalam.starts_with("ത്ത"), "{s:?}"),
+                Join::Oblique => assert!(s.native.starts_with("ത്ത"), "{s:?}"),
             }
             assert!(
                 s.latin
@@ -408,14 +484,21 @@ mod tests {
 
     fn lexicon(words: &[(&str, u64)]) -> Lexicon {
         let vocab: Vec<(String, u64)> = words.iter().map(|(w, c)| (w.to_string(), *c)).collect();
-        Lexicon::from_bytes(build(manglish::entries(ml(), &vocab)).unwrap()).unwrap()
+        Lexicon::from_bytes(build(manglish::entries(romanisation::ml(), &vocab)).unwrap()).unwrap()
     }
 
     fn words(lex: &Lexicon, typed: &str) -> Vec<String> {
-        splits(ml(), lex, typed, f32::NEG_INFINITY)
-            .into_iter()
-            .map(|s| s.word)
-            .collect()
+        splits(
+            mlym(),
+            romanisation::ml(),
+            ml(),
+            lex,
+            typed,
+            f32::NEG_INFINITY,
+        )
+        .into_iter()
+        .map(|s| s.word)
+        .collect()
     }
 
     #[test]
@@ -438,7 +521,14 @@ mod tests {
             words(&lex, "marathil").contains(&"മരത്തിൽ".to_string()),
             "oblique"
         );
-        let two = splits(ml(), &lex, "varunnundo", f32::NEG_INFINITY);
+        let two = splits(
+            mlym(),
+            romanisation::ml(),
+            ml(),
+            &lex,
+            "varunnundo",
+            f32::NEG_INFINITY,
+        );
         assert!(two.iter().any(|s| s.suffixes == 2), "{two:?}");
     }
 
@@ -454,19 +544,32 @@ mod tests {
     #[test]
     fn rare_stems_are_left_out() {
         let lex = lexicon(&[("വന്നു", 1), ("ഇഷ്ടം", 1_000_000)]);
-        assert!(splits(ml(), &lex, "vanno", lex.log_prob(1) + 0.1).is_empty());
+        assert!(
+            splits(
+                mlym(),
+                romanisation::ml(),
+                ml(),
+                &lex,
+                "vanno",
+                lex.log_prob(1) + 0.1
+            )
+            .is_empty()
+        );
     }
 
     #[test]
     fn lookups_are_bounded() {
         // Many suffix spellings end this word; only a few stems are looked up.
         let typed = "marathilundoo";
-        let mut skeletons: Vec<String> = cuts(typed).iter().map(|c| ml().skeleton(&c.stem)).collect();
+        let mut skeletons: Vec<String> = cuts(typed, ml())
+            .iter()
+            .map(|c| romanisation::ml().skeleton(&c.stem))
+            .collect();
         skeletons.sort();
         skeletons.dedup();
         assert!(skeletons.len() > MAX_LOOKUPS, "{skeletons:?}");
         let mut calls = 0;
-        let _ = splits_with(ml(), typed, |_| {
+        let _ = splits_with(mlym(), romanisation::ml(), ml(), typed, |_| {
             calls += 1;
             Vec::new()
         });

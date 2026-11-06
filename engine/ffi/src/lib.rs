@@ -140,15 +140,20 @@ fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Option<String>) {
 impl From<&EngineConfig> for mlengine_core::Paths {
     fn from(c: &EngineConfig) -> Self {
         let path = |s: &Option<String>| s.as_ref().map(std::path::PathBuf::from);
-        // Without a pack folder, the explicit fields describe one Malayalam pack.
+        // Without a pack folder, the explicit fields describe one Malayalam pack. Its tables
+        // sit beside the romanised lexicon, as they do in packs/ml.neopack.
+        let beside = |name: &str| {
+            path(&c.manglish)
+                .map(|m| m.with_file_name(name))
+                .filter(|p| p.exists())
+        };
         let ml = mlengine_core::PackPaths {
             lexicon: path(&c.malayalam),
             romanised: path(&c.manglish),
-            // The romanisation tables sit beside the romanised lexicon, as they do in
-            // packs/ml.neopack.
-            romanisation: path(&c.manglish)
-                .map(|m| m.with_file_name("romanisation.json"))
-                .filter(|p| p.exists()),
+            romanisation: beside("romanisation.json"),
+            suffixes: beside("suffixes.tsv"),
+            chat_forms: beside("chat-forms.tsv"),
+            layout: beside("layout.json"),
             next_words: path(&c.next_words),
             translit: path(&c.translit),
             lm: path(&c.lm),

@@ -18,10 +18,17 @@ fn lex(entries: Vec<(String, u64)>) -> Option<Lexicon> {
     Some(Lexicon::from_bytes(bytes).unwrap())
 }
 
-/// A Malayalam pack over `entries`, nothing else loaded.
+/// A Malayalam pack over `entries` with the pack's vowel-sign strip, nothing else loaded.
 fn ml_pack(entries: Vec<(String, u64)>) -> PackSources {
     let rules = mlengine_core::script::rules("mlym").unwrap();
-    PackSources::new(LangId("ml".into()), rules, lex(entries).unwrap())
+    let layout =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/layout.json");
+    PackSources {
+        vowel_sign_strip: mlengine_core::pack_layout::PackLayout::load(&layout)
+            .unwrap()
+            .vowel_sign_strip,
+        ..PackSources::new(LangId("ml".into()), rules, lex(entries).unwrap())
+    }
 }
 
 /// `n` distinct strings, each `len` characters from `alphabet`.

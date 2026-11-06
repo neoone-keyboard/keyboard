@@ -6,20 +6,20 @@ use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use crate::chat_forms;
+use crate::chat_forms::ChatForms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
-use crate::malayalam;
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Translit};
 use crate::normalize::normalize;
+use crate::pack_layout::PackLayout;
 use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
 use crate::romanisation::Romanisation;
 use crate::script::{self, ScriptRules};
-use crate::suffix;
+use crate::suffix::{self, Suffixes};
 use crate::swipe;
 use crate::text::{self, Script};
 use crate::translit::transliterate;
@@ -38,12 +38,6 @@ const NUMBER_PREFIX_DIGITS: usize = 3;
 /// keyboard's deadline (`suggest_until`). Width 3 saved a quarter of the decoder rows but moved
 /// the eval both ways (chat 0.7950 → 0.7919 top-1, human 0.5665 → 0.5715).
 const MODEL_WIDTH: usize = 4;
-
-/// The vowel signs the strip offers, in aksharamala order (KeyboardCore's `Malayalam.stripSigns`).
-pub const STRIP_SIGNS: [char; 15] = [
-    '\u{0D3E}', '\u{0D3F}', '\u{0D40}', '\u{0D41}', '\u{0D42}', '\u{0D43}', '\u{0D46}', '\u{0D47}',
-    '\u{0D48}', '\u{0D4A}', '\u{0D4B}', '\u{0D57}', '\u{0D02}', '\u{0D03}', '\u{0D4D}',
-];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Layout {
@@ -120,6 +114,14 @@ pub struct PackSources {
     /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
     /// ranking is M3a's: the previous word sets the romanised bias, `next.fst` the next words.
     pub lm: Option<Lm>,
+    /// `suffixes.tsv`: romanised words are read as stem plus suffixes (`suffix::splits`) only
+    /// with it.
+    pub suffixes: Option<Suffixes>,
+    /// `chat-forms.tsv`: irregular romanised spellings (`nanni` → നന്ദി).
+    pub chat_forms: Option<ChatForms>,
+    /// `layout.json`'s vowel-sign strip, in the order shown when nothing is preferred; empty
+    /// without a layout, and then there is no strip.
+    pub vowel_sign_strip: Vec<char>,
 }
 
 impl PackSources {
@@ -134,6 +136,9 @@ impl PackSources {
             next_words: None,
             translit: None,
             lm: None,
+            suffixes: None,
+            chat_forms: None,
+            vowel_sign_strip: Vec::new(),
         }
     }
 }
@@ -196,6 +201,12 @@ pub struct PackPaths {
     pub translit: Option<PathBuf>,
     /// The language model (`.mlkbnn`).
     pub lm: Option<PathBuf>,
+    /// `suffixes.tsv`.
+    pub suffixes: Option<PathBuf>,
+    /// `chat-forms.tsv`.
+    pub chat_forms: Option<PathBuf>,
+    /// `layout.json`.
+    pub layout: Option<PathBuf>,
 }
 
 impl PackPaths {
@@ -210,6 +221,9 @@ impl PackPaths {
             next_words: None,
             translit: None,
             lm: None,
+            suffixes: None,
+            chat_forms: None,
+            layout: None,
         }
     }
 }
@@ -255,6 +269,20 @@ impl Sources {
                 .filter(|_| romanised),
             lexicon,
             lm,
+            suffixes: paths
+                .suffixes
+                .as_deref()
+                .and_then(|p| Suffixes::load(p).ok()),
+            chat_forms: paths
+                .chat_forms
+                .as_deref()
+                .and_then(|p| ChatForms::load(p).ok()),
+            vowel_sign_strip: paths
+                .layout
+                .as_deref()
+                .and_then(|p| PackLayout::load(p).ok())
+                .map(|l| l.vowel_sign_strip)
+                .unwrap_or_default(),
         })
     }
 
@@ -1784,8 +1812,7 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // Chat forms, suffix splits and the rule-based spelling are Malayalam's tables, until
-        // they move into the pack (phase 2, task 10).
+        // The rule-based spelling is Malayalam's, until it moves into the plug-in (phase 2).
         let malayalam = pack.rules.code() == "mlym";
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
@@ -1811,14 +1838,13 @@ impl Engine {
                 rank::MIN_REPLACE,
             );
         }
-        if malayalam {
-            Self::add_chat_form(pack, typed_n, bias, &mut found);
-        }
+        Self::add_chat_form(pack, typed_n, bias, &mut found);
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
-        let splits = if malayalam && found.exact.is_empty() && !english_word {
-            Self::scored_splits(r, lex, typed_n)
-        } else {
-            Vec::new()
+        let splits = match &pack.suffixes {
+            Some(suffixes) if found.exact.is_empty() && !english_word => {
+                Self::scored_splits(pack.rules, r, suffixes, lex, typed_n)
+            }
+            _ => Vec::new(),
         };
         if !splits.is_empty() {
             Self::add_splits(&splits, bias, &mut found);
@@ -1864,13 +1890,16 @@ impl Engine {
         found
     }
 
-    /// A chat spelling in `data/chat-forms.tsv` (`nanni` → നന്ദി) offers its word as if the
+    /// A chat spelling in the pack's `chat-forms.tsv` (`nanni` → നന്ദി) offers its word as if the
     /// typed letters spelled it out, scored like a skeleton match with no distance. The
     /// table is curated evidence, not a guess, so the word may take the middle a little
     /// below `MIN_REPLACE` (`rank::MANGLISH_CHAT_FORM_RELIEF`), except where English is
     /// likely (after an English word, or a capital), as for the model's confident readings.
     fn add_chat_form(pack: &PackSources, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
-        let (Some(word), ml) = (chat_forms::lookup(typed_n), &pack.lexicon) else {
+        let (Some(word), ml) = (
+            pack.chat_forms.as_ref().and_then(|f| f.lookup(typed_n)),
+            &pack.lexicon,
+        ) else {
             return;
         };
         let Some(count) = ml.get(word.as_bytes()) else {
@@ -1965,22 +1994,33 @@ impl Engine {
     }
 
     /// Suffix splits (`suffix::splits`) of `typed_n`, best first, each word once.
-    fn scored_splits(r: &Romanisation, lex: &Lexicon, typed_n: &str) -> Vec<ScoredSplit> {
-        let mut splits: Vec<ScoredSplit> =
-            suffix::splits(r, lex, typed_n, rank::MANGLISH_SPLIT_STEM_MIN)
-                .into_iter()
-                .map(|split| {
-                    let (spelled, distance) = manglish::fit(r, typed_n, &split.word, false);
-                    let log_prob =
-                        split.log_prob - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32;
-                    ScoredSplit {
-                        word: split.word,
-                        log_prob,
-                        distance,
-                        spelled,
-                    }
-                })
-                .collect();
+    fn scored_splits(
+        rules: &dyn ScriptRules,
+        r: &Romanisation,
+        suffixes: &Suffixes,
+        lex: &Lexicon,
+        typed_n: &str,
+    ) -> Vec<ScoredSplit> {
+        let mut splits: Vec<ScoredSplit> = suffix::splits(
+            rules,
+            r,
+            suffixes,
+            lex,
+            typed_n,
+            rank::MANGLISH_SPLIT_STEM_MIN,
+        )
+        .into_iter()
+        .map(|split| {
+            let (spelled, distance) = manglish::fit(r, typed_n, &split.word, false);
+            let log_prob = split.log_prob - rank::MANGLISH_SPLIT_PER_SUFFIX * split.suffixes as f32;
+            ScoredSplit {
+                word: split.word,
+                log_prob,
+                distance,
+                spelled,
+            }
+        })
+        .collect();
         splits.sort_by(|a, b| {
             let score = |s: &ScoredSplit| s.log_prob - rank::MANGLISH_DISTANCE * s.distance as f32;
             score(b).total_cmp(&score(a))
@@ -2484,20 +2524,19 @@ impl Engine {
         found
     }
 
-    /// Orders the strip's vowel signs by how often each follows the typed
-    /// prefix in the Malayalam lexicon. Signs never seen are left out; the
-    /// keyboard appends them in aksharamala order.
+    /// Orders the strip's vowel signs (the pack's `layout.json`) by how often each follows
+    /// the typed prefix in the lexicon of the active pack whose letter ends the context.
+    /// Signs never seen are left out; the keyboard appends them in the strip's order.
     fn vowel_signs(&self, context_before: &str, typed: &str) -> Vec<char> {
-        // The strip is Malayalam's (`STRIP_SIGNS`).
-        let (Some((_, pack)), Some(_)) = (
-            self.pack_in_script("mlym"),
-            malayalam::vowel_sign_base(context_before),
-        ) else {
+        let Some((_, pack)) = self.packs_active().find(|(_, p)| {
+            !p.vowel_sign_strip.is_empty() && p.rules.mark_base(context_before).is_some()
+        }) else {
             return Vec::new();
         };
         let lex = &pack.lexicon;
         let prefix = normalize(typed);
-        let mut totals: Vec<(char, u64)> = STRIP_SIGNS
+        let mut totals: Vec<(char, u64)> = pack
+            .vowel_sign_strip
             .iter()
             .map(|&sign| {
                 let mut probe = prefix.clone();
@@ -2793,10 +2832,16 @@ mod tests {
         Engine::new(engine_sources(), UserStore::in_memory())
     }
 
-    /// A Malayalam pack over `lexicon` (an empty one for None), nothing else loaded.
+    /// A Malayalam pack over `lexicon` (an empty one for None), with the pack's tables
+    /// (suffixes, chat forms, the vowel-sign strip) and no other file loaded.
     fn ml_pack(lexicon: Option<Lexicon>) -> PackSources {
         let lexicon = lexicon.or_else(|| lex(&[])).unwrap();
-        PackSources::new(LangId("ml".into()), script::rules("mlym").unwrap(), lexicon)
+        PackSources {
+            suffixes: Some(crate::suffix::load_ml()),
+            chat_forms: Some(crate::chat_forms::load_ml()),
+            vowel_sign_strip: crate::pack_layout::load_ml().vowel_sign_strip,
+            ..PackSources::new(LangId("ml".into()), script::rules("mlym").unwrap(), lexicon)
+        }
     }
 
     fn engine_sources() -> Sources {
@@ -3352,6 +3397,42 @@ mod tests {
                 .vowel_signs
                 .is_empty()
         );
+        // The strip is the pack's (`layout.json`); without one there is none.
+        let mut sources = engine_sources();
+        sources.packs[0].vowel_sign_strip.clear();
+        let bare = Engine::new(sources, UserStore::in_memory());
+        assert!(bare.suggest("ക", ML, true).vowel_signs.is_empty());
+    }
+
+    #[test]
+    fn chat_forms_and_suffix_splits_need_the_packs_files() {
+        let words = [("നന്ദി", 100), ("സുഖം", 100)];
+        let open = |files: bool| {
+            let mut sources = engine_sources();
+            let pack = &mut sources.packs[0];
+            let ml: Vec<(String, u64)> = words.iter().map(|(w, c)| (w.to_string(), *c)).collect();
+            pack.lexicon = lex(&words).unwrap();
+            pack.romanisation = Some(crate::romanisation::load_ml());
+            pack.romanised = Some(
+                Lexicon::from_bytes(
+                    build(manglish::entries(crate::romanisation::ml(), &ml)).unwrap(),
+                )
+                .unwrap(),
+            );
+            if !files {
+                pack.chat_forms = None;
+                pack.suffixes = None;
+            }
+            Engine::new(sources, UserStore::in_memory())
+        };
+        let offers = |e: &Engine, typed: &str, word: &str| {
+            texts(&e.suggest(typed, Layout::Latin, true)).contains(&word)
+        };
+        let (with, without) = (open(true), open(false));
+        assert!(offers(&with, "nanni", "നന്ദി"));
+        assert!(offers(&with, "sukhamano", "സുഖമാണോ"));
+        assert!(!offers(&without, "nanni", "നന്ദി"));
+        assert!(!offers(&without, "sukhamano", "സുഖമാണോ"));
     }
 
     #[test]

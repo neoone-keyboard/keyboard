@@ -1,5 +1,5 @@
-//! Malayalam (mlym). The bodies still live in `malayalam.rs` and `normalize.rs`; this file is
-//! the plug-in face the engine sees.
+//! Malayalam (mlym). The bodies still live in `malayalam.rs`, `normalize.rs` and `suffix.rs`
+//! (the joins); this file is the plug-in face the engine sees.
 
 use std::ops::RangeInclusive;
 
@@ -29,5 +29,8 @@ impl ScriptRules for Mlym {
     }
     fn other_final_u(&self, word: &str) -> Option<String> {
         crate::malayalam::other_final_u(word)
+    }
+    fn join_suffix(&self, stem: &str, suffix: &str, how: crate::suffix::Join) -> Option<String> {
+        crate::suffix::join(stem, suffix, how)
     }
 }

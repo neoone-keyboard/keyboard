@@ -3,7 +3,9 @@
 
 use mlengine_core::lexicon::{Lexicon, build};
 use mlengine_core::user::UserStore;
+use mlengine_core::chat_forms::ChatForms;
 use mlengine_core::lang::LangId;
+use mlengine_core::suffix::Suffixes;
 use mlengine_core::{Engine, Kind, Layout, PackSources, Sources, manglish};
 
 #[rustfmt::skip]
@@ -30,10 +32,15 @@ fn lexicon(entries: Vec<(Vec<u8>, u64)>) -> Option<Lexicon> {
     Some(Lexicon::from_bytes(build(entries).unwrap()).unwrap())
 }
 
+fn pack_file(name: &str) -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../packs/ml.neopack")
+        .join(name)
+}
+
 /// Malayalam's romanisation tables, from the pack.
 fn tables() -> mlengine_core::romanisation::Romanisation {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    mlengine_core::romanisation::Romanisation::load(&root.join("packs/ml.neopack/romanisation.json")).unwrap()
+    mlengine_core::romanisation::Romanisation::load(&pack_file("romanisation.json")).unwrap()
 }
 
 fn engine() -> Engine {
@@ -48,6 +55,8 @@ fn engine() -> Engine {
         packs: vec![PackSources {
             romanised: lexicon(manglish::entries(&tables(), &ml)),
             romanisation: Some(tables()),
+            suffixes: Some(Suffixes::load(&pack_file("suffixes.tsv")).unwrap()),
+            chat_forms: Some(ChatForms::load(&pack_file("chat-forms.tsv")).unwrap()),
             ..PackSources::new(
                 LangId("ml".into()),
                 mlengine_core::script::rules("mlym").unwrap(),
@@ -250,7 +259,7 @@ fn short_words_are_not_split() {
 
 #[test]
 fn chat_forms_reach_their_word() {
-    // `data/chat-forms.tsv`: nanni is നന്ദി as said, though ന്ദ romanises nd and the
+    // The pack's `chat-forms.tsv`: nanni is നന്ദി as said, though ന്ദ romanises nd and the
     // skeleton lookup alone finds only നണ്ണി. nte is എന്റെ with the vowel dropped.
     let engine = engine();
     for (typed, want) in [("nanni", "നന്ദി"), ("Nanni", "നന്ദി"), ("nte", "എന്റെ")]

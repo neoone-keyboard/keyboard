@@ -260,7 +260,8 @@ def transliterated(words: Iterable[str]) -> dict[str, list[str]]:
     """Malayalam word -> the English words whose first transliteration (the bundled M3a
     transliterator and Malayalam lexicons, no English lexicon) it is."""
     engine = mlengine.Engine(
-        malayalam=str(PACK / "ml.fst"), manglish=str(PACK / "manglish.fst"), romanisation=str(PACK / "romanisation.json"), translit=str(TRANSLIT),
+        malayalam=str(PACK / "ml.fst"), manglish=str(PACK / "manglish.fst"), romanisation=str(PACK / "romanisation.json"),
+        suffixes=str(PACK / "suffixes.tsv"), chat_forms=str(PACK / "chat-forms.tsv"), translit=str(TRANSLIT),
     )
     out: dict[str, list[str]] = {}
     for word in words:

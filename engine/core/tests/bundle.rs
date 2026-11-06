@@ -606,7 +606,7 @@ fn translit_model_known_misses() {
     );
 }
 
-/// Chat spellings from `data/chat-forms.tsv`. `nanni` (നന്ദി as said; user-reported on
+/// Chat spellings from the pack's `chat-forms.tsv`. `nanni` (നന്ദി as said; user-reported on
 /// device, 2026-11-03): neither source reaches it. The model can't spell it (after നന്, ദ
 /// is its 23rd token), and the skeleton lookup doesn't match it (ന്ദ romanises nd). Its
 /// confident runner-up നണ്ണി (−12.45, −0.44 per token) took the middle through
@@ -983,10 +983,19 @@ fn transliterations(
     manglish: &Lexicon,
     typed: &str,
 ) -> Vec<Transliteration> {
-    let splits: Vec<String> = suffix::splits(&tables(), manglish, typed, rank::MANGLISH_SPLIT_STEM_MIN)
-        .into_iter()
-        .map(|s| s.word)
-        .collect();
+    let suffixes = suffix::Suffixes::load(&pack_dir().join("suffixes.tsv")).unwrap();
+    let mlym = mlengine_core::script::rules("mlym").unwrap();
+    let splits: Vec<String> = suffix::splits(
+        mlym,
+        &tables(),
+        &suffixes,
+        manglish,
+        typed,
+        rank::MANGLISH_SPLIT_STEM_MIN,
+    )
+    .into_iter()
+    .map(|s| s.word)
+    .collect();
     t.candidates_with_splits(typed, ml, &splits, 4)
 }
 

@@ -1,5 +1,6 @@
 //! Language packs (M6 design): a folder `<id>.neopack/` holding `manifest.json` and the
-//! language's data files. The manifest maps roles (`lexicon`, `romanisedLexicon`, …) to file
+//! language's data files. The manifest maps roles (`lexicon`, `romanisedLexicon`,
+//! `romanisation`, `nextWords`, `translit`, `lm`, `suffixes`, `chatForms`, `layout`) to file
 //! names in the folder; `Pack::open` reads and checks it, and `Paths::with_packs` turns it into
 //! the paths the engine opens.
 
@@ -141,6 +142,9 @@ impl Pack {
             next_words: self.file("nextWords"),
             translit: self.file("translit"),
             lm: self.file("lm"),
+            suffixes: self.file("suffixes"),
+            chat_forms: self.file("chatForms"),
+            layout: self.file("layout"),
         }
     }
 }

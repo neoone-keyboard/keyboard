@@ -324,7 +324,7 @@ train	vaiki	വൈകി
 	avishyam	ആവശ്യം
 # User-reported, 2026-11-03: nanni is നന്ദി (said and typed with nn); the row without context is above.
 ചേട്ടാ	nanni	നന്ദി
-# Chat forms in data/chat-forms.tsv (initial vowel dropped; pwoli for പൊളി).
+# Chat forms in packs/ml.neopack/chat-forms.tsv (initial vowel dropped; pwoli for പൊളി).
 	nde	എന്റെ
 	nthu	എന്ത്
 	pwoli	പൊളി

@@ -19,5 +19,4 @@ cache-keys = [
     { file = "src/**/*.rs" },
     { file = "../core/Cargo.toml" },
     { file = "../core/src/**/*.rs" },
-    { file = "../../data/chat-forms.tsv" },
 ]

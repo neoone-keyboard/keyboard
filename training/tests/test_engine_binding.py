@@ -12,6 +12,9 @@ def engine():
         malayalam=str(PACK / "ml.fst"),
         manglish=str(PACK / "manglish.fst"),
         romanisation=str(PACK / "romanisation.json"),
+        suffixes=str(PACK / "suffixes.tsv"),
+        chat_forms=str(PACK / "chat-forms.tsv"),
+        layout=str(PACK / "layout.json"),
         next_words=str(PACK / "next.fst"),
     )
 

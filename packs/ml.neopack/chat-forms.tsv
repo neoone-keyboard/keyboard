@@ -1,7 +1,7 @@
 # Chat spellings of common Malayalam words that no general rule reaches: latin<TAB>malayalam.
-# Hand-written for this repository; see data/manifests/chat-forms.json. Compiled into the
-# engine (engine/core/src/chat_forms.rs). A typed word matching a row (ignoring case) offers
-# its Malayalam word as if the letters spelled it out.
+# Hand-written for this repository; see data/manifests/chat-forms.json. The Malayalam pack's
+# "chatForms" file, read by the engine (engine/core/src/chat_forms.rs). A typed word matching a
+# row (ignoring case) offers its Malayalam word as if the letters spelled it out.
 #
 # Only genuinely irregular forms belong here. Before adding a row, check that the skeleton
 # lookup and the transliterator don't already reach the word, and that the irregularity is

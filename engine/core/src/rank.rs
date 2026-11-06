@@ -176,14 +176,14 @@ pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
 /// −0.44, after നന്നി at −0.11) in the middle through this relief. Granting it only to
 /// the model's first lexicon spelling cost chat top-1 0.782 → 0.773 (ഇപ്പോ, വേണ്ടേ,
 /// പുട്ട് lost) and left `bank` in the middle, so the relief stays; `nanni` is a chat
-/// form (`data/chat-forms.tsv`) instead.
+/// form (the pack's `chat-forms.tsv`) instead.
 pub const MANGLISH_MODEL_CONFIDENT: f32 = -0.5;
 /// At most `MANGLISH_EXACT_BONUS`, so a candidate let in by the relief still
 /// clears `MIN_REPLACE` once the fit bonus is added (the final check in
 /// `suggest_latin`). 1.0 helped less (chat 0.765, human 0.497 at −0.5).
 pub const MANGLISH_MODEL_CONFIDENT_RELIEF: f32 = 1.5;
 const _: () = assert!(MANGLISH_MODEL_CONFIDENT_RELIEF <= MANGLISH_EXACT_BONUS);
-/// Manglish: a chat spelling from `data/chat-forms.tsv` (`nanni` → നന്ദി, `pwoli` → പൊളി)
+/// Manglish: a chat spelling from the pack's `chat-forms.tsv` (`nanni` → നന്ദി, `pwoli` → പൊളി)
 /// may take the middle this far below `MIN_REPLACE`, like a confident model reading:
 /// a hand-checked row is evidence the word is meant. Not where English is likely.
 /// പൊളി (−12.9, −13.9 at the start) needs it; നന്ദി and എന്റെ clear the floor anyway.

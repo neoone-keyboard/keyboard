@@ -30,6 +30,11 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn other_final_u(&self, _word: &str) -> Option<String> {
         None
     }
+    /// A stem and a pack suffix (`suffix::Suffixes`) joined the way `how` says, or None when
+    /// they don't join. A script without joins never joins, so its packs are never split.
+    fn join_suffix(&self, _stem: &str, _suffix: &str, _how: crate::suffix::Join) -> Option<String> {
+        None
+    }
 }
 
 static REGISTRY: &[&dyn ScriptRules] = &[&mlym::Mlym];

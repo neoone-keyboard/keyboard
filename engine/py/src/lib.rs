@@ -22,7 +22,8 @@ struct Engine(Core);
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None))]
+    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None, suffixes=None, chat_forms=None, layout=None))]
+    #[allow(clippy::too_many_arguments)]
     fn new(
         english: Option<PathBuf>,
         malayalam: Option<PathBuf>,
@@ -31,11 +32,17 @@ impl Engine {
         translit: Option<PathBuf>,
         lm: Option<PathBuf>,
         romanisation: Option<PathBuf>,
+        suffixes: Option<PathBuf>,
+        chat_forms: Option<PathBuf>,
+        layout: Option<PathBuf>,
     ) -> Self {
         let ml = PackPaths {
             lexicon: malayalam,
             romanised: manglish,
             romanisation,
+            suffixes,
+            chat_forms,
+            layout,
             next_words,
             translit,
             lm,
