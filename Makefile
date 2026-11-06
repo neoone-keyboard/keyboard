@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
+.PHONY: golden golden-save golden-check pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
 
 all: build
 
@@ -62,6 +62,19 @@ eval:
 # Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json.
 eval-swipe:
 	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture
+
+# Every suggestion over the eval inputs (engine/core/tests/golden_dump.rs), for refactors that
+# must not change output. golden-save records it in data/golden/m6p1.tsv.gz; golden-check
+# fails on any difference from that record.
+GOLDEN := data/golden/m6p1.tsv.gz
+golden:
+	cd engine && $(CARGO) test -q --release -p mlengine-core --test golden_dump -- --ignored
+golden-save: golden
+	mkdir -p data/golden && gzip -9nc build/golden/now.tsv > $(GOLDEN)
+golden-check: golden
+	@gzip -dc $(GOLDEN) | diff - build/golden/now.tsv > build/golden/diff.txt \
+	  && echo "golden: identical" \
+	  || { echo "golden: $$(grep -c '^>' build/golden/diff.txt) lines differ (build/golden/diff.txt)"; head -20 build/golden/diff.txt; exit 1; }
 
 # The Malayalam pack as a .neopack file (a zip of packs/ml.neopack), for import or download.
 pack:
