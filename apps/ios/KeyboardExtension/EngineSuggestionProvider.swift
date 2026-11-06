@@ -58,10 +58,22 @@ actor EngineSuggestionProvider: SuggestionProvider {
     static let packs: [PackDescriptor] = Bundle.main.resourceURL
         .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
 
+    /// The active languages a debug build sets when the engine opens (Info.plist
+    /// `MLActiveLanguages`, "ml,hi", from `make twopacks`); nil, the engine's default, when empty.
+    static let configuredActive: [String]? = {
+        let ids = (Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? "")
+            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return ids.isEmpty ? nil : ids
+    }()
+
     /// The languages the language key cycles before the engine has said (`layouts`): English,
-    /// then the first pack with a keyboard, as the engine's default active list has it.
+    /// then the first pack with a keyboard, as the engine's default active list has it (or the
+    /// configured list's packs with a keyboard).
     static var defaultLanguages: [Language] {
-        [.english] + packs.prefix(1).filter { $0.layout != nil }.map(Language.pack)
+        guard let active = configuredActive else {
+            return [.english] + packs.prefix(1).filter { $0.layout != nil }.map(Language.pack)
+        }
+        return [.english] + active.compactMap { id in packs.first { $0.id == id && $0.layout != nil } }.map(Language.pack)
     }
 
     /// The keyboard's languages for the engine's layouts, in order: Latin is English, a
@@ -363,6 +375,13 @@ actor EngineSuggestionProvider: SuggestionProvider {
             loadedSources = (try? created.loadedSources()) ?? []
             for problem in created.packProblems() {
                 log.error("Pack refused: \(problem)")
+            }
+            if let active = Self.configuredActive {
+                do {
+                    try created.setActiveLanguages(languages: active)
+                } catch {
+                    log.error("Active languages \(active.joined(separator: ",")) refused: \(String(describing: error))")
+                }
             }
             log.info("Engine open in \(Diagnostics.milliseconds(ContinuousClock.now - start)); sources \(loadedSources.joined(separator: ",")); kernel \(nnKernel()); config en=\(config.english != nil) packs=\(config.packDirs.isEmpty ? "none" : config.packDirs.map { URL(fileURLWithPath: $0).lastPathComponent }.joined(separator: ",")); footprint \(Diagnostics.footprint())")
             return created

@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check pack all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
+.PHONY: golden golden-save golden-check pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
 
 all: build
 
@@ -33,6 +33,15 @@ device: tools project $(XCFRAMEWORK)
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
+
+# Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack bundled beside
+# Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
+# build is untouched. Builds only; install it by hand:
+#   xcrun devicectl device install app --device $(DEVICE) build/DerivedData-twopacks/Build/Products/Debug-iphoneos/KeyboardApp.app
+twopacks: tools project $(XCFRAMEWORK)
+	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
+	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData-twopacks -allowProvisioningUpdates \
+	  ML_GIT_COMMIT=$(GIT_COMMIT) ML_DEBUG_PACKS=hi ML_ACTIVE_LANGUAGES=ml,hi build -quiet
 
 test: test-engine test-data test-training test-swift eval
 
