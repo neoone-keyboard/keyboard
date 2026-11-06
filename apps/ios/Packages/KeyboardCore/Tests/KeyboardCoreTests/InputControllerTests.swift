@@ -71,6 +71,25 @@ struct InputControllerTests {
         }
     }
 
+    @Test func contextAfterSpaceIsWhatASpaceTapLeaves() {
+        let cases: [(text: String, suggestions: SuggestionResult?, fullStop: Bool)] = [
+            ("I said hello", nil, false),
+            ("I said teh", corrected("teh", to: "the"), false),
+            ("I said teh", corrected("teh", to: "the"), true),
+            ("I said hello", nil, true),
+        ]
+        for c in cases {
+            let output = RecordingOutput()
+            let input = InputController(output: output)
+            output.text = c.text
+            if let suggestions = c.suggestions { input.updateSuggestions(suggestions) }
+            if c.fullStop { input.handle(.character("."), at: 0) }
+            let predicted = input.contextAfterSpace()
+            input.handle(.space, at: 1)
+            #expect(predicted == output.text, "\(c.text) \(c.fullStop)")
+        }
+    }
+
     @Test func labelsFollowShiftState() {
         #expect(input.label(for: .character("a")) == "a")
         #expect(input.label(for: .shift) == "⇧")

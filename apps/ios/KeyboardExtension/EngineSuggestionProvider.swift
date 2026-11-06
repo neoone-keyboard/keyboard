@@ -145,6 +145,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
         try? engine.prepare(contextBefore: contextBefore)
     }
 
+    /// Returns once the work queued on the actor before it is done.
+    func idle() {}
+
     /// Best effort: a failure only means the word isn't learned.
     func handle(_ event: LearningEvent) {
         ahead = nil

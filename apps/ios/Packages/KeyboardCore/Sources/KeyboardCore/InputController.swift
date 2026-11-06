@@ -328,6 +328,18 @@ public final class InputController {
         return showsUppercase ? c.uppercased() : c
     }
 
+    /// The text before the cursor once a space tap has done its work: the word corrected if
+    /// the tap would correct it (after a held full stop too), then the space.
+    public func contextAfterSpace() -> String {
+        let context = output.contextBefore ?? ""
+        if let stop = heldStop, context.hasSuffix(stop.word + ".") {
+            guard let replacement = stop.replacement else { return context + " " }
+            return String(context.dropLast(stop.word.count + 1)) + replacement + ". "
+        }
+        guard let (word, replacement) = correction(endingAt: context) else { return context + " " }
+        return String(context.dropLast(word.count)) + replacement + " "
+    }
+
     public func label(for action: KeyAction) -> String {
         switch action {
         case .character(let c): Self.isLoneMark(c) ? "\u{25CC}" + c : showsUppercase ? c.uppercased() : c

@@ -258,6 +258,8 @@ final class KeyboardViewController: UIInputViewController {
         registerForTraitChanges([UITraitVerticalSizeClass.self]) { (self: Self, _: UITraitCollection) in
             self.updateHeight()
         }
+        Self.lastLoad = .now
+        Self.sessions += 1
         let emptied = emptyIdleControllers()
         log.info("Keyboard loaded; \(Diagnostics.buildDescription); iOS \(UIDevice.current.systemVersion); "
                  + "\(Self.alive.count) controllers alive, \(emptied) off screen emptied; footprint \(Diagnostics.footprint())")
@@ -302,6 +304,40 @@ final class KeyboardViewController: UIInputViewController {
         hideYourWords()
         hideEmojiPanel()
         hideEmojiSearch()
+        Self.restartIfBloated(provider: provider)
+    }
+
+    /// iOS keeps part of every keyboard session alive in the process, and nothing here can free
+    /// it: TextInputUI's input manager keeps each session's text proxy, and UIKit each session's
+    /// input view with its layout engine and constraints (`heap` on the Simulator: one of each
+    /// per session, about 120 KB; the phone's footprint at load rose about 0.3 MB a session until
+    /// the memory gate turned prediction off). So once the footprint has grown past this, the
+    /// process ends itself while no keyboard shows, and iOS starts a fresh one when it is needed.
+    private static let restartFootprint: UInt64 = 24 * 1_048_576
+    /// How long nothing must show, and no controller have loaded, before that.
+    private static let restartDelay: Duration = .seconds(5)
+    private static var lastLoad = ContinuousClock.now
+    private static var sessions = 0
+
+    private static func restartIfBloated(provider: EngineSuggestionProvider) {
+        Task { @MainActor in
+            try? await Task.sleep(for: restartDelay)
+            func idle() -> Bool {
+                ContinuousClock.now - lastLoad >= restartDelay
+                    && alive.allSatisfy { $0.controller?.viewIfLoaded?.window == nil }
+            }
+            let footprint = MemoryMonitor.footprintBytes()
+            guard idle(), footprint >= restartFootprint else { return }
+            // Learning queued on the engine's actor before this is written by now.
+            await provider.idle()
+            guard idle() else { return }
+            Diagnostics(category: "keyboard").info(
+                "Restarting to free what iOS keeps of past sessions; footprint "
+                    + "\(Diagnostics.megabytes(footprint)) after \(sessions) sessions"
+            )
+            Diagnostics.file?.flush()
+            exit(0)
+        }
     }
 
     /// Gives the input controller the engine's learned addresses, so letters that begin one
@@ -874,9 +910,16 @@ final class KeyboardViewController: UIInputViewController {
 
     /// A finger is on a letter: the engine starts on the suggestions its key-up will ask for
     /// (`EngineSuggestionProvider.prefetch`). The key-up still makes its own request.
+    /// On space it only brings the LM's context up to the finished word: the key-up reports
+    /// the word's use, which would drop a result made ahead, but the LM's context is kept.
     private func prefetchSuggestions(after action: KeyAction) {
-        guard suggestions.isEnabled, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil,
-              let text = input.insertion(for: action) else { return }
+        guard suggestions.isEnabled, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil else { return }
+        if action == .space {
+            let context = String(input.contextAfterSpace().suffix(64))
+            Task { [provider] in await provider.warmUp(contextBefore: context) }
+            return
+        }
+        guard let text = input.insertion(for: action) else { return }
         let request = suggestionRequest(contextBefore: (textDocumentProxy.documentContextBeforeInput ?? "") + text)
         Task { [provider] in await provider.prefetch(request) }
     }
