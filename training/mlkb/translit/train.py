@@ -3,7 +3,7 @@
     uv run --group train python -m mlkb.translit.train \\
         --pairs training/build/pairs --out training/build/translit.pt [--lang ml]
 
-`--lang` (a file in `mlkb/langs`, Malayalam by default) picks the target script's vocabulary.
+`--lang` (Malayalam by default; see `mlkb.translit.vocab.native`) picks the target vocabulary.
 
 AdamW (lr 5e-4, 2k warmup steps, cosine decay to 10% over `--steps`), batch 512, label
 smoothing 0.1, gradient clipping at 1.0, on MPS when available.
@@ -134,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--device", default="auto")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--fresh", action="store_true", help="ignore an existing -last.pt checkpoint")
-    p.add_argument("--lang", default="ml", help="target language (a file in mlkb/langs)")
+    p.add_argument("--lang", default="ml", help="target language (`mlkb.translit.vocab.native`)")
     args = p.parse_args(argv)
     vocab = native(args.lang)
 

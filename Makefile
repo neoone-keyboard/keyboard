@@ -84,29 +84,43 @@ pack:
 lexicons:
 	./data/build-lexicons.sh
 
-# A pack whose romanisation is data (packs/<lang>.neopack/romanisation.json), not Malayalam:
-# its lexicons from the sources in data/lang/$(PACK_LANG).conf (`lexicons` first if en.fst changed),
-# then its transliterator: training pairs (needs that language's Dakshina and Aksharantar extracts,
-# see data/manifests), training (about 1.5 hours; skipped when training/build/$(PACK_LANG)/translit.pt
-# exists), int8 export, held-out accuracy on data/eval/$(PACK_LANG)/translit-human.tsv, and the copy
-# into the pack. No LM yet: the LM pipeline is Malayalam's only.
+# A pack whose romanisation is data (packs/<lang>.neopack/romanisation.json), not Malayalam.
+# Two kinds of pack language, told apart by their config:
+#  - training/mlkb/langs/$(PACK_LANG).json + data/lang/$(PACK_LANG).conf (hi): lexicons by
+#    lexbuild --lang from the conf's sources; pairs by mlkb.data.pairs (Dakshina and Aksharantar
+#    extracts, see data/manifests); held-out accuracy by mlkb.translit.accuracy into
+#    data/eval/$(PACK_LANG)/translit-accuracy.json.
+#  - data/langs/$(PACK_LANG)/lang.json (as): lexicons by lexbuild-native and the romanisation
+#    tables there; pairs by mlkb.langs.pairs (Aksharantar); held-out accuracy printed by
+#    mlkb.langs.eval_translit.
+# pack-lexicons builds the lexicons (`lexicons` first if en.fst changed); pack-models the
+# transliterator: training pairs, training (about 1.5 hours; skipped when
+# training/build/$(PACK_LANG)/translit.pt exists), int8 export, held-out accuracy on
+# data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. No LM yet: the LM
+# pipeline is Malayalam's only.  make pack-lexicons pack-models PACK_LANG=as
 PACK_LANG ?= hi
 PACK_DIR := packs/$(PACK_LANG).neopack
 PACK_BUILD := build/$(PACK_LANG)
+PACK_KIND := $(if $(wildcard training/mlkb/langs/$(PACK_LANG).json),data,langs)
 pack-lexicons:
 	./data/build-pack-lexicons.sh $(PACK_LANG)
 
 pack-models:
 	@if [ ! -f training/$(PACK_BUILD)/translit.pt ]; then \
-	  cd training && uv run --group train python -m mlkb.data.pairs --lang $(PACK_LANG) --out $(PACK_BUILD)/pairs && \
+	  cd training && uv run --group train python -m mlkb.$(PACK_KIND).pairs --lang $(PACK_LANG) --out $(PACK_BUILD)/pairs && \
 	  uv run --group train python -m mlkb.translit.train --lang $(PACK_LANG) --pairs $(PACK_BUILD)/pairs \
 	    --out $(PACK_BUILD)/translit.pt; \
 	fi
 	cd training && uv run --group train python -m mlkb.translit.export --lang $(PACK_LANG) \
 	  --checkpoint $(PACK_BUILD)/translit.pt --out $(PACK_BUILD)/translit.mlkbnn \
 	  --reference $(PACK_BUILD)/translit-reference.json
+ifeq ($(PACK_KIND),data)
 	cd training && uv run --group train python -m mlkb.translit.accuracy --lang $(PACK_LANG) \
 	  --model $(PACK_BUILD)/translit.mlkbnn --out $(CURDIR)/data/eval/$(PACK_LANG)/translit-accuracy.json
+else
+	cd training && uv run --group train python -m mlkb.langs.eval_translit --lang $(PACK_LANG) \
+	  --model $(PACK_BUILD)/translit.mlkbnn
+endif
 	cp training/$(PACK_BUILD)/translit.mlkbnn $(PACK_DIR)/translit.mlkbnn
 	python3 -I scripts/pack.py $(PACK_DIR) --write
 

@@ -8,6 +8,7 @@ use std::fs;
 use std::io::{self, BufRead};
 use std::path::Path;
 
+pub mod native;
 pub mod romanisation;
 
 use mlengine_core::lexicon::{SEPARATOR, build};
@@ -26,7 +27,7 @@ pub const PAIR_PRUNE_THRESHOLD: usize = 20_000_000;
 
 /// Calls `f` with each valid UTF-8 line (up to `max_lines` lines read). Lines
 /// that aren't valid UTF-8 are skipped, not fatal.
-fn for_each_line(
+pub(crate) fn for_each_line(
     mut reader: impl BufRead,
     max_lines: Option<usize>,
     mut f: impl FnMut(&str),
@@ -254,7 +255,7 @@ pub fn malayalam_vocab(
     vocab
 }
 
-fn sort_and_cap(vocab: &mut Vec<(String, u64)>, max: usize) {
+pub(crate) fn sort_and_cap(vocab: &mut Vec<(String, u64)>, max: usize) {
     vocab.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     vocab.truncate(max);
 }
@@ -267,6 +268,9 @@ pub struct NextWords {
     previous_allowed: usize,
     pairs: HashMap<(u32, u32), PairCount>,
     prune_at: usize,
+    /// A pack language's normal form, words and phrase breaks (`native`), in place of the
+    /// engine's English and Malayalam ones.
+    lang: Option<native::Lang>,
 }
 
 /// How often a pair was seen, and how often the second word had a capital there.
@@ -293,7 +297,14 @@ impl NextWords {
             previous_allowed: config.next_word_max,
             pairs: HashMap::new(),
             prune_at: PAIR_PRUNE_THRESHOLD,
+            lang: None,
         }
+    }
+
+    /// Reads the corpus as text of `lang`: its normal form, its words, its phrase breaks.
+    pub fn with_lang(mut self, lang: native::Lang) -> Self {
+        self.lang = Some(lang);
+        self
     }
 
     /// Overrides when singletons are pruned (tests use a tiny value).
@@ -311,10 +322,25 @@ impl NextWords {
         }
     }
 
+    /// Counts the pairs of a corpus: as text of the `with_lang` language if one was set, else
+    /// with the engine's normal form, words and phrase breaks.
     pub fn add_corpus(&mut self, reader: impl BufRead, max_lines: Option<usize>) -> io::Result<()> {
-        self.add_corpus_with(reader, max_lines, is_phrase_break, |phrase| {
-            words(phrase).collect()
-        })
+        match self.lang.take() {
+            Some(lang) => {
+                let result = self.add_corpus_normalised(
+                    reader,
+                    max_lines,
+                    |line| lang.normalize(line),
+                    |c| lang.is_phrase_break(c),
+                    |phrase| lang.words(phrase).collect(),
+                );
+                self.lang = Some(lang);
+                result
+            }
+            None => self.add_corpus_with(reader, max_lines, is_phrase_break, |phrase| {
+                words(phrase).collect()
+            }),
+        }
     }
 
     /// `add_corpus` with another script's phrase breaks and tokeniser (`native_words`).
@@ -325,8 +351,20 @@ impl NextWords {
         is_break: impl Fn(char) -> bool,
         tokens: impl Fn(&str) -> Vec<&str>,
     ) -> io::Result<()> {
+        self.add_corpus_normalised(reader, max_lines, normalize, is_break, tokens)
+    }
+
+    /// `add_corpus_with` and a normal form other than the engine's.
+    fn add_corpus_normalised(
+        &mut self,
+        reader: impl BufRead,
+        max_lines: Option<usize>,
+        normalise: impl Fn(&str) -> String,
+        is_break: impl Fn(char) -> bool,
+        tokens: impl Fn(&str) -> Vec<&str>,
+    ) -> io::Result<()> {
         for_each_line(reader, max_lines, |line| {
-            let line = normalize(line);
+            let line = normalise(line);
             // A pair never spans punctuation: "i.e." is not "i" followed by "e".
             for phrase in line.split(&is_break) {
                 let mut previous: Option<u32> = None;
@@ -394,7 +432,7 @@ fn is_roman_one(word: &str, before: Option<&str>) -> bool {
         || (word == "I" && before.is_some_and(|b| b.starts_with(|c: char| c.is_uppercase())))
 }
 
-fn is_phrase_break(c: char) -> bool {
+pub(crate) fn is_phrase_break(c: char) -> bool {
     matches!(
         c,
         '.' | ','

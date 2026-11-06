@@ -28,8 +28,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from mlkb.translit.model import Config, Translit
 from mlkb import langs
+from mlkb.translit.model import Config, Translit
 from mlkb.translit.vocab import MALAYALAM, Vocab, encode_latin, encode_ml, native
 
 MAGIC = b"MLKBNN01"
@@ -49,6 +49,18 @@ REFERENCE_CASES = (
     ("kollamo", "കൊള്ളാമോ"),
     ("jishnu", "ജിഷ്ണു"),
 )
+# The same for other languages' transliterators (`--lang`); a language not listed here takes
+# the `reference` of its `mlkb/langs/<id>.json`.
+REFERENCE_CASES_BY_LANG = {
+    "ml": REFERENCE_CASES,
+    "as": (
+        ("moi", "মই"),
+        ("tumi", "তুমি"),
+        ("hol", "হ'ল"),
+        ("oxom", "অসম"),
+        ("khyoma", "ক্ষমা"),
+    ),
+}
 
 
 def fnv1a(data: bytes) -> int:
@@ -225,10 +237,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--checkpoint", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--reference", type=Path, help="also write PyTorch reference outputs (JSON)")
-    p.add_argument("--lang", default="ml", help="target language (a file in mlkb/langs)")
+    p.add_argument("--lang", default="ml", help="target language (`mlkb.translit.vocab.native`)")
     args = p.parse_args(argv)
     vocab = native(args.lang)
-    cases = REFERENCE_CASES if args.lang == "ml" else langs.load(args.lang).reference
+    cases = REFERENCE_CASES_BY_LANG.get(args.lang) or langs.load(args.lang).reference
     model = load_checkpoint(args.checkpoint)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     export_model(model, args.out, vocab)

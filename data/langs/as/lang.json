@@ -1,0 +1,45 @@
+{
+  "id": "as",
+  "name": "Assamese",
+  "script": "beng",
+  "block": ["0980", "09FF"],
+  "notWord": [["09E6", "09EF"], ["09F2", "09FE"]],
+  "firstLetter": [
+    ["0985", "0994"],
+    ["0995", "09B9"],
+    ["09DC", "09DF"],
+    ["09F0", "09F1"]
+  ],
+  "virama": "09CD",
+  "signs": [
+    ["09BE", "09CC"],
+    ["09D7", "09D7"],
+    ["09E2", "09E3"],
+    ["09CD", "09CD"]
+  ],
+  "bases": [
+    ["0995", "09B9"],
+    ["09BC", "09BC"],
+    ["09DC", "09DF"],
+    ["09F0", "09F1"]
+  ],
+  "apostrophe": true,
+  "replace": [
+    ["ত্‍", "ৎ"],
+    ["র", "ৰ"],
+    ["াে", "ো"],
+    ["অা", "আ"]
+  ],
+  "phraseBreaks": ["।", "॥", "৷"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "asm",
+  "notes": {
+    "block": "Bengali-Assamese, U+0980-U+09FF. Words are runs of these letters and signs, ZWJ, ZWNJ, and apostrophes inside a word (হ'ল, ক'ত: Assamese marks the vowel o with one).",
+    "notWord": "Digits ০-৯ and the currency and fraction signs are not word letters; ৰ U+09F0 and ৱ U+09F1 are.",
+    "replace": "After NFC, before the engine's joiner rules: ত + virama + ZWJ is the old encoding of khanda ta ৎ; the Bengali ra র (U+09B0) is not an Assamese letter and is folded to ৰ (U+09F0), since Assamese text often has it from Bengali fonts and input methods (তোমার for তোমাৰ, প্রথম for প্ৰথম). ৰ, ৱ and ব are kept as they are. NFC leaves য়, ড়, ঢ় as base + nukta (U+09BC), since U+09DC/09DD/09DF are composition exclusions. Two mis-encodings common in the dumps are mended: া + ে (the halves of ো in visual order: মােৰ) becomes ো, and অ + া becomes আ (অাৰু).",
+    "phraseBreaks": "Assamese ends a sentence with the danda । (U+0964); ॥ ends verse, and ৷ (U+09F7) is often typed for a danda. Next-word pairs never span one.",
+    "signs": "A vowel sign or virama must follow a consonant or nukta (a base): a word with one after a vowel or another sign is mis-encoded text (আু, অৰুি) and is not counted."
+  }
+}
