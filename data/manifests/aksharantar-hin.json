@@ -1,0 +1,26 @@
+{
+  "id": "aksharantar-hin",
+  "name": "Aksharantar (AI4Bharat), Hindi",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/blob/main/README.md (Licensing Information: the mined data is packaged under CC0, and AI4Bharat waives all rights to the manually collected data); paper arXiv:2205.03018 §1: \"the Aksharantar benchmark and all data we created manually are available under the CC-BY license, whereas all the mined data is available under the CC0 license.\" As for Malayalam (aksharantar.json), only rows whose source is mined (IndicCorp, Samanantar), Wikidata or AI4Bharat's own manual collection (AK-*) are used; Dakshina rows (CC BY-SA 4.0, taken from the Dakshina release instead) and 'Existing sources' rows (licence not traced) are dropped.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "Same filter as the Malayalam release: keep IndicCorp (mining score >= -0.2), Samanantar, Wikidata and AK-* rows; drop Dakshina and Existing rows.",
+  "used_for": "hin_train.json rows from the kept sources, as Hindi transliterator training pairs (training/mlkb/data/human.py with --lang hi), minus every Dakshina hi dev/test word. hin_valid.json and hin_test.json are not used.",
+  "retrieved": "2026-11-06",
+  "notes": "Fetched 2026-11-06. Extract with: unzip hin.zip -d data/raw/aksharantar-hin/extracted. hin_train.json has 1,299,155 rows: IndicCorp 956,190, Samanantar 152,778, Existing 131,773, Dakshina 24,727, Wikidata 24,528, AK-Freq 9,159. Existing and Dakshina rows are dropped for licence. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/hin.zip",
+      "sha256": "208c2d1b128234e6dc777b750779b4f5e6214ab43244039349b530bf9868bdaf",
+      "path": "hin.zip"
+    }
+  ],
+  "extracted": {
+    "hin_train.json": "888a7b5c8a9f7815d227c0ccf9eb52e45b892298f1b7f1fc81f9d654467561d6",
+    "hin_valid.json": "e4649aa371337a2dd60c94e6c5f61ac7442a0bcaac017e61f0b6de745d8c2278",
+    "hin_test.json": "12eb3497f09391a31cd5b3457ec12089ae2a6e1b60c92d450b74fa810b03d269"
+  }
+}

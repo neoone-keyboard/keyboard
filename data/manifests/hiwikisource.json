@@ -1,0 +1,23 @@
+{
+  "id": "hiwikisource",
+  "name": "Hindi Wikisource",
+  "homepage": "https://hi.wikisource.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "The footer of hi.wikisource.org pages links https://creativecommons.org/licenses/by-sa/4.0/deed.hi (checked 2026-11-06).",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "Texts on Hindi Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
+  "used_for": "Hindi pack: Hindi word frequencies (whole 2026-11-01 dump, main and Page namespaces). Also the Hindi LM's training text: it is part of data/raw/text/hi.txt.",
+  "retrieved": "2026-11-06",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/hiwikisource/20261101/hiwikisource-20261101-pages-articles.xml.bz2",
+      "sha1": "e83f236eadb3a27e72c2c1577b4ac62e323c0118",
+      "path": "hiwikisource-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}

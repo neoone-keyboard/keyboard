@@ -1,0 +1,23 @@
+{
+  "id": "hiwiki",
+  "name": "Hindi Wikipedia",
+  "homepage": "https://hi.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "licence_source": "The footer of hi.wikipedia.org pages links https://creativecommons.org/licenses/by-sa/4.0/deed.hi (checked 2026-11-06).",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "attribution": "Text of Hindi Wikipedia articles by Wikipedia contributors.",
+  "used_for": "Hindi pack (packs/hi.neopack): Hindi word frequencies (hi.fst), Hinglish lookup (hinglish.fst) and next-word pairs (next.fst), from the whole 2026-11-01 dump. Also the Hindi LM's training text, with synthetic Hinglish derived from it.",
+  "retrieved": "2026-11-06",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/hiwiki/20261101/hiwiki-20261101-pages-articles.xml.bz2",
+      "sha1": "a794b88a2e33727b889f33e476e4cf818479bb32",
+      "path": "hiwiki-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}
