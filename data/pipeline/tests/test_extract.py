@@ -128,6 +128,16 @@ def test_malayalam_words_broken_across_printed_lines_are_joined():
     assert list(paragraphs(text)) == ["ഇഷ്ടാനുരൂപം തപോനിഷ്ഠയാ വസിക്ക സന്തുഷ്ട്യാ താപസകുലം വാഴുന്നു"]
 
 
+def test_assamese_words_broken_across_printed_lines_are_joined():
+    text = "মই আজি ঘৰলৈ যা-\nওঁ বুলি ক'লে"
+    assert list(paragraphs(text)) == ["মই আজি ঘৰলৈ যাওঁ বুলি ক'লে"]
+
+
+def test_assamese_category_and_file_links_are_removed():
+    text = "অসম ভাৰতৰ এখন ৰাজ্য [[শ্ৰেণী:ভাৰতৰ ৰাজ্য]] [[চিত্ৰ:x.jpg|থাম্ব]] [[গুৱাহাটী]]"
+    assert strip_wikitext(text).split() == ["অসম", "ভাৰতৰ", "এখন", "ৰাজ্য", "গুৱাহাটী"]
+
+
 def test_english_line_end_hyphens_are_left_alone():
     text = "the town is well-\nknown for its old fort"
     assert list(paragraphs(text)) == ["the town is well-", "known for its old fort"]

@@ -34,6 +34,10 @@ struct RawConfig {
     first_letter: Vec<[String; 2]>,
     virama: String,
     #[serde(default)]
+    signs: Vec<[String; 2]>,
+    #[serde(default)]
+    bases: Vec<[String; 2]>,
+    #[serde(default)]
     apostrophe: bool,
     #[serde(default)]
     replace: Vec<[String; 2]>,
@@ -53,6 +57,9 @@ pub struct Lang {
     not_word: Vec<(char, char)>,
     first_letter: Vec<(char, char)>,
     pub virama: char,
+    /// Vowel signs and the virama, which must follow a `bases` letter.
+    signs: Vec<(char, char)>,
+    bases: Vec<(char, char)>,
     /// Apostrophes may stand inside a word (Assamese হ'ল).
     pub apostrophe: bool,
     replace: Vec<(String, String)>,
@@ -60,6 +67,10 @@ pub struct Lang {
     pub max_chars: usize,
     pub max_words: usize,
     pub min_count: u64,
+}
+
+fn in_ranges(ranges: &[(char, char)], c: char) -> bool {
+    ranges.iter().any(|&(a, b)| (a..=b).contains(&c))
 }
 
 fn code_point(hex: &str) -> io::Result<char> {
@@ -102,6 +113,8 @@ impl Lang {
                 .map(range)
                 .collect::<io::Result<_>>()?,
             virama: code_point(&raw.virama)?,
+            signs: raw.signs.iter().map(range).collect::<io::Result<_>>()?,
+            bases: raw.bases.iter().map(range).collect::<io::Result<_>>()?,
             apostrophe: raw.apostrophe,
             replace: raw.replace.into_iter().map(|[a, b]| (a, b)).collect(),
             phrase_breaks: raw
@@ -131,7 +144,14 @@ impl Lang {
     }
 
     fn is_first_letter(&self, c: char) -> bool {
-        self.first_letter.iter().any(|&(a, b)| (a..=b).contains(&c))
+        in_ranges(&self.first_letter, c)
+    }
+
+    /// Every sign follows a base letter (a consonant or nukta), as in well-formed text.
+    fn signs_follow_bases(&self, chars: &[char]) -> bool {
+        chars.iter().enumerate().all(|(i, &c)| {
+            !in_ranges(&self.signs, c) || (i > 0 && in_ranges(&self.bases, chars[i - 1]))
+        })
     }
 
     pub fn is_phrase_break(&self, c: char) -> bool {
@@ -170,8 +190,8 @@ impl Lang {
     }
 
     /// Whether a token is a word of the language: only its letters and signs (joiners, and
-    /// one apostrophe inside if the language has them), starting with a letter, not a lone
-    /// consonant + virama, at most `max_chars` long.
+    /// one apostrophe inside if the language has them), starting with a letter, every sign
+    /// after a base letter, not a lone consonant + virama, at most `max_chars` long.
     pub fn is_word(&self, word: &str) -> bool {
         let chars: Vec<char> = word.chars().collect();
         let apostrophes = chars.iter().filter(|&&c| c == '\'').count();
@@ -183,6 +203,7 @@ impl Lang {
         letters_only
             && apostrophes <= 1
             && starts
+            && self.signs_follow_bases(&chars)
             && !lone_virama
             && chars.len() <= self.max_chars
             && chars.last() != Some(&'\'')
@@ -357,6 +378,20 @@ mod tests {
         assert!(!lang.is_word("২০২০"));
         assert!(!lang.is_word("কa"));
         assert!(lang.is_word("ৰ"));
+        // A sign after a vowel or another sign is mis-encoded text.
+        assert!(!lang.is_word("আু"));
+        assert!(!lang.is_word("অৰুি"));
+        assert!(lang.is_word("খাওঁ"));
+        assert!(lang.is_word("কোনো"));
+    }
+
+    #[test]
+    fn visual_order_o_is_mended() {
+        let lang = assamese();
+        // া + ে, the halves of ো typed in the order they are drawn.
+        assert_eq!(lang.normalize("মােৰ"), "মোৰ");
+        assert_eq!(lang.normalize("অাৰু"), "আৰু");
+        assert!(lang.is_word(&lang.normalize("মােৰ")));
     }
 
     #[test]

@@ -1,0 +1,7 @@
+as tokens: 19813428, distinct forms: 977024
+next.fst pairs: 149697 as, 149977 English
+as.fst: 253459 keys, 2546600 bytes
+next.fst: 299674 keys, 4433339 bytes
+as top 20: আৰু এই কৰা হয় কৰে তেওঁ কৰি পৰা আছিল তেওঁৰ কৰিছিল বাবে বা সেই এটা চনত হৈছে হৈছিল হৈ বুলি
+romanised keys skipped: 0
+romanised.fst: 253459 keys, 4412236 bytes
