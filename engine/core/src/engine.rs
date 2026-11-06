@@ -17,6 +17,7 @@ use crate::normalize::normalize;
 use crate::personal::{FOLLOWERS_PER_CONTEXT, Habit};
 use crate::rank::{self, apply_case, capitalize};
 use crate::suffix;
+use crate::swipe;
 use crate::text::{self, Script};
 use crate::translit::transliterate;
 use crate::user::UserStore;
@@ -203,6 +204,7 @@ pub struct Engine {
     /// The LM's context, kept in step with the text by each suggest (`LmContext::sync`).
     lm_context: Mutex<LmContext>,
     lm_weights: LmWeights,
+    swipe_weights: swipe::Weights,
 }
 
 impl Engine {
@@ -220,12 +222,18 @@ impl Engine {
             user: Mutex::new(user),
             lm_context: Mutex::new(LmContext::default()),
             lm_weights: LmWeights::default(),
+            swipe_weights: swipe::Weights::default(),
         }
     }
 
     /// Weights other than `rank`'s for the LM terms: for the eval harness's sweeps only.
     pub fn set_lm_weights(&mut self, weights: LmWeights) {
         self.lm_weights = weights;
+    }
+
+    /// For the swipe eval's sweeps; the keyboard keeps the defaults.
+    pub fn set_swipe_weights(&mut self, weights: swipe::Weights) {
+        self.swipe_weights = weights;
     }
 
     pub fn loaded_sources(&self) -> Vec<&'static str> {
@@ -494,6 +502,131 @@ impl Engine {
             cutoff.is_none_or(|c| (t.elapsed)() < c)
         };
         self.suggest_lm(context_before, layout, autocorrect, deadline, &more)
+    }
+
+    /// The words a swipe could have drawn (`swipe`), best first: English words and the
+    /// Malayalam words of Manglish skeletons, ranked with the context as typed words are.
+    /// `path` and `keys` are in the app's units; `context_before` ends where the word will go.
+    /// The LM's context fill stops at `budget` (none: no limit), and without it the previous
+    /// word sets the Manglish bias.
+    pub fn swipe(
+        &self,
+        path: &[(f32, f32)],
+        keys: &[swipe::Key],
+        context_before: &str,
+        budget: Option<Duration>,
+    ) -> Vec<Candidate> {
+        let Some(map) = swipe::KeyMap::new(keys) else {
+            return Vec::new();
+        };
+        let path = swipe::resample(&map.scale(path), swipe::STEP, swipe::MAX_POINTS);
+        if path.len() < 2 {
+            return Vec::new();
+        }
+        let start = Instant::now();
+        let more = || budget.is_none_or(|b| start.elapsed() < b);
+        let lm_ctx = self.sources.lm.as_ref().map(|lm| {
+            let mut ctx = self.lm_context();
+            let words = lm_words(context_before);
+            let ready = ctx.sync(lm, &words, &more) && !words.iter().all(String::is_empty);
+            (lm, ctx, ready)
+        });
+        let view = lm_ctx.as_ref().and_then(|(lm, ctx, ready)| {
+            ready.then(|| LmView {
+                lm,
+                ctx,
+                weights: self.lm_weights,
+            })
+        });
+        let scores = view.as_ref().map(|v| v as &dyn ContextScores);
+        let bias = scores.map_or_else(
+            || self.manglish_bias(text::previous_word(context_before).map(|(w, _)| w)),
+            |s| s.manglish_bias(),
+        );
+        let user = self.user();
+        let w = self.swipe_weights;
+        let personal = |text: &str| {
+            if user.has_uses() {
+                w.uses * (1.0 + user.uses(text) as f32).ln()
+            } else {
+                0.0
+            }
+        };
+        let fit = |cost: f32, letters: &[u8]| {
+            -w.align * cost
+                - w.shape * swipe::shape_cost(&map, &path, letters)
+                - w.length * swipe::length_cost(&map, &path, letters)
+        };
+        let mut out: Vec<Candidate> = Vec::new();
+        if let Some(en) = &self.sources.english {
+            for f in swipe::decode(en, &map, &path, false) {
+                let Ok(text) = String::from_utf8(f.key) else {
+                    continue;
+                };
+                let score = fit(f.cost, text.as_bytes())
+                    + en.log_prob(f.count)
+                    + self.lm_term(scores, &text)
+                    + personal(&text);
+                out.push(Candidate {
+                    text,
+                    kind: Kind::Completion,
+                    score,
+                });
+            }
+        }
+        if let Some(mg) = &self.sources.manglish {
+            for f in swipe::decode(mg, &map, &path, true)
+                .into_iter()
+                .take(swipe::SKELETONS)
+            {
+                let Ok(skeleton) = std::str::from_utf8(&f.key) else {
+                    continue;
+                };
+                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key));
+                for (text, count) in manglish::same_skeleton(mg, skeleton)
+                    .into_iter()
+                    .take(swipe::WORDS_PER_SKELETON)
+                {
+                    let score = shape
+                        + mg.log_prob(count)
+                        + bias
+                        + self.lm_term(scores, &text)
+                        + personal(&text);
+                    out.push(Candidate {
+                        text,
+                        kind: Kind::Manglish,
+                        score,
+                    });
+                }
+            }
+        }
+        for word in user.learned_words() {
+            if !word
+                .bytes()
+                .all(|b| b.is_ascii_alphabetic() || b == b'\'' || b == b'-')
+            {
+                continue;
+            }
+            let cost = swipe::fit(&map, &path, &word);
+            if cost.is_finite() {
+                let score = fit(cost, word.as_bytes())
+                    + w.learned
+                    + self.lm_term(scores, &word)
+                    + personal(&word);
+                out.push(Candidate {
+                    text: word,
+                    kind: Kind::Completion,
+                    score,
+                });
+            }
+        }
+        out.retain(|c| !user.is_removed(&c.text));
+        drop(user);
+        out.sort_by(|a, b| b.score.total_cmp(&a.score));
+        let mut seen = std::collections::HashSet::new();
+        out.retain(|c| seen.insert(c.text.clone()));
+        out.truncate(swipe::CANDIDATES);
+        out
     }
 
     /// Fills the LM's context for the text before the cursor ahead of typing (when the

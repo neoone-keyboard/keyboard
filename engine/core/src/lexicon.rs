@@ -256,6 +256,12 @@ impl Lexicon {
         true
     }
 
+    /// The FST's nodes, for searches that step one byte at a time and keep their own frontier
+    /// (`swipe`). Reserved keys start with bytes below `FIRST_WORD_BYTE`; such a walk skips them.
+    pub fn raw(&self) -> &fst::raw::Fst<impl AsRef<[u8]>> {
+        self.map.as_fst()
+    }
+
     fn precomputed_count(&self, lower: &[u8]) -> Option<u64> {
         if lower.len() > MAX_PRECOMPUTED_PREFIX {
             return None;

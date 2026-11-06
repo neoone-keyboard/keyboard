@@ -28,6 +28,15 @@ public enum LearningEvent: Equatable, Sendable {
     case learn(String)
 }
 
+public enum SwipeOutcome: Equatable, Sendable {
+    /// The word stayed: something else came next.
+    case kept
+    /// Swapped for another word from the bar.
+    case replaced
+    /// Deleted by the next backspace.
+    case deleted
+}
+
 /// A word that went into the text, typed, corrected or tapped: the engine learns from it
 /// which words follow which, how often each is used, and which language the user writes.
 public struct WordUse: Equatable, Sendable {
@@ -71,6 +80,10 @@ public final class InputController {
     public var onWordUsed: (@MainActor (WordUse) -> Void)?
     /// The latest suggestions; space and punctuation commit their middle slot.
     public private(set) var suggestions: SuggestionResult = .empty
+    /// What became of each swipe: for the diagnostics' count of words fixed straight away.
+    public var onSwipeOutcome: (@MainActor (SwipeOutcome) -> Void)?
+    /// The bar shows the last swipe's word and its alternatives until the next key.
+    public var showsSwipe: Bool { lastSwipe != nil }
     /// Whether space and punctuation may replace the word. The extension sets
     /// this from the user's setting and the host field's traits.
     public var autocorrectEnabled = true
@@ -90,6 +103,22 @@ public final class InputController {
 
     /// A full stop after a word that whitespace has not yet followed (`holdFullStop`).
     private var heldStop: HeldStop?
+
+    /// The last swipe, until the next key: backspace deletes it, a bar slot replaces it.
+    /// Its word is reported only once it stays (`settleSwipe`).
+    private var lastSwipe: Swipe?
+
+    private struct Swipe {
+        /// As it went in, with shift applied, and the space after it.
+        let text: String
+        let before: String
+        let capitalisation: ShiftState
+    }
+
+    /// Typed straight after a swipe, these take the place of its space: `hello` + `,` is `hello,`.
+    private static let closingPunctuation: Set<String> = [".", ",", "?", "!", ":", ";"]
+    /// After these a swipe needs no space before it.
+    private static let openingMarks: Set<Character> = ["(", "[", "{", "\"", "'", "\u{201C}", "\u{2018}"]
 
     private struct Replacement {
         let typed: String
@@ -126,6 +155,14 @@ public final class InputController {
 
     /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
     public func handle(_ action: KeyAction, at time: TimeInterval) {
+        if let swipe = takeSwipe() {
+            if action == .backspace, deleteSwipe(swipe) { return }
+            settleSwipe(swipe)
+            if case .character(let c) = action, Self.closingPunctuation.contains(c),
+               (output.contextBefore ?? "").hasSuffix(swipe.text) {
+                output.deleteBackward() // The swipe's space.
+            }
+        }
         let undoable = lastReplacement
         lastReplacement = nil
         let stop = heldStop
@@ -181,6 +218,7 @@ public final class InputController {
 
     /// Types a long-press alternate; follows shift like a normal letter.
     public func insertAlternate(_ text: String) {
+        settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
         type(text)
@@ -188,6 +226,7 @@ public final class InputController {
 
     /// Types an emoji from the panel as it is, with no space. Never reported for learning.
     public func insertEmoji(_ emoji: String) {
+        settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
         output.insertText(emoji)
@@ -250,6 +289,7 @@ public final class InputController {
     }
 
     private func forgetPendingState() {
+        settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
         suggestions = .empty
@@ -263,13 +303,91 @@ public final class InputController {
 
     /// A tap on a bar slot. Tapping the quoted typed word keeps it and learns it.
     public func commitSuggestion(_ slot: SuggestionSlot) {
+        if let swipe = takeSwipe() {
+            if replaceSwipe(swipe, with: slot.suggestion.text) { return }
+            settleSwipe(swipe)
+        }
         if slot.quoted { report(.learn(slot.suggestion.text)) }
         insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted, chosenFor: choice(slot))
     }
 
     /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
     public func commitSuggestion(_ text: String) {
+        settlePendingSwipe()
         insert(suggestion: text, reportsCommit: true, chosenFor: nil)
+    }
+
+    // MARK: Swipes
+
+    /// Types a swiped word: a space first unless one is there already, the word as shift
+    /// has it, and a space after. The bar shows the word and `alternatives`.
+    public func insertSwipe(_ word: Suggestion, alternatives: [Suggestion]) {
+        settlePendingSwipe()
+        lastReplacement = nil
+        heldStop = nil
+        let context = output.contextBefore ?? ""
+        if let last = context.last, !last.isWhitespace, !Self.openingMarks.contains(last) {
+            output.insertText(" ")
+        }
+        let before = output.contextBefore ?? context + " "
+        let capitalisation = shift
+        let text = Self.cased(word.text, capitalisation) + " "
+        output.insertText(text)
+        shift = shift.afterCharacter
+        if shift == .off { shiftIsAutomatic = false }
+        lastSwipe = Swipe(text: text, before: before, capitalisation: capitalisation)
+        suggestions = SuggestionResult(typed: "", candidates: [word] + alternatives)
+    }
+
+    private func takeSwipe() -> Swipe? {
+        defer { lastSwipe = nil }
+        return lastSwipe
+    }
+
+    private func settlePendingSwipe() {
+        if let swipe = takeSwipe() { settleSwipe(swipe) }
+    }
+
+    /// The swiped word stays: it is used and committed, as a tapped suggestion is.
+    private func settleSwipe(_ swipe: Swipe) {
+        reportSwiped(swipe)
+        onSwipeOutcome?(.kept)
+    }
+
+    private func reportSwiped(_ swipe: Swipe) {
+        let word = String(swipe.text.dropLast())
+        report(.committed(word))
+        reportUse(word, before: swipe.before)
+    }
+
+    private func deleteSwipe(_ swipe: Swipe) -> Bool {
+        let context = output.contextBefore ?? ""
+        guard context.hasSuffix(swipe.text) else { return false }
+        delete(swipe.text, from: context)
+        suggestions = .empty
+        onSwipeOutcome?(.deleted)
+        return true
+    }
+
+    private func replaceSwipe(_ swipe: Swipe, with word: String) -> Bool {
+        let context = output.contextBefore ?? ""
+        guard context.hasSuffix(swipe.text) else { return false }
+        delete(swipe.text, from: context)
+        let replacement = Swipe(text: Self.cased(word, swipe.capitalisation) + " ", before: swipe.before,
+                                capitalisation: swipe.capitalisation)
+        output.insertText(replacement.text)
+        suggestions = .empty
+        reportSwiped(replacement)
+        onSwipeOutcome?(.replaced)
+        return true
+    }
+
+    private static func cased(_ word: String, _ shift: ShiftState) -> String {
+        switch shift {
+        case .off: word
+        case .once: word.prefix(1).uppercased() + word.dropFirst()
+        case .locked: word.uppercased()
+        }
     }
 
     /// The typed letters `slot` is a choice for: a correction or Malayalam word tapped

@@ -47,6 +47,24 @@ pub struct Suggestions {
     pub vowel_signs: Vec<String>,
 }
 
+/// A point of a swipe's path, in the keyboard view's points.
+#[derive(Debug, Clone, Copy, PartialEq, uniffi::Record)]
+pub struct SwipePoint {
+    pub x: f32,
+    pub y: f32,
+}
+
+/// A letter key as drawn, in the same points as the path.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct SwipeKey {
+    /// One ASCII letter.
+    pub letter: String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
 /// File paths of the bundled lexicons and the directory for learned words.
 /// Any of them may be nil: that source is simply switched off.
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -182,6 +200,38 @@ impl Engine {
                     .collect(),
                 vowel_signs: s.vowel_signs.into_iter().map(String::from).collect(),
             }
+        })
+    }
+
+    /// The words a swipe across the letter keys could have drawn, best first (design
+    /// `2026-11-06-m4-swipe-design.md`): English words and Manglish words in Malayalam script.
+    /// The LM's context is filled within `lm_after_space_ms`, as after a space.
+    pub fn swipe(
+        &self,
+        path: Vec<SwipePoint>,
+        keys: Vec<SwipeKey>,
+        context_before: String,
+    ) -> Result<Vec<Candidate>, EngineError> {
+        guarded(|| {
+            let path: Vec<(f32, f32)> = path.iter().map(|p| (p.x, p.y)).collect();
+            let keys: Vec<mlengine_core::swipe::Key> = keys
+                .iter()
+                .filter_map(|k| {
+                    let &[letter] = k.letter.as_bytes() else { return None };
+                    letter.is_ascii_alphabetic().then(|| mlengine_core::swipe::Key {
+                        letter: letter.to_ascii_lowercase(),
+                        x: k.x,
+                        y: k.y,
+                        width: k.width,
+                        height: k.height,
+                    })
+                })
+                .collect();
+            self.inner
+                .swipe(&path, &keys, &context_before, self.lm_after_space)
+                .into_iter()
+                .map(|c| Candidate { text: c.text, kind: c.kind.into() })
+                .collect()
         })
     }
 

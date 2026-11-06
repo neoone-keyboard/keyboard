@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) data/chat-forms.tsv
 
-.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval spike-assets
+.PHONY: all tools engine project build device test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets
 
 all: build
 
@@ -57,6 +57,10 @@ LM_MODEL := apps/ios/KeyboardExtension/Models/lm.mlkbnn
 eval:
 	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
 	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
+
+# Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json.
+eval-swipe:
+	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:

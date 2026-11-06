@@ -30,6 +30,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
     private var aheadMade = 0
     private var aheadUsed = 0
     private static let aheadLogEvery = 200
+    /// Swipe timings and what became of each swipe, logged every `swipeLogEvery` swipes:
+    /// counts and milliseconds only, never a word.
+    private var swipeTimes: [Duration] = []
+    private var swipesFailed = 0
+    private var swipesReplaced = 0
+    private var swipesDeleted = 0
+    private static let swipeLogEvery = 100
+    /// Past this a swipe is logged as slow.
+    private static let slowSwipe: Duration = .milliseconds(25)
 
     init(config: EngineConfig) {
         self.config = config
@@ -136,6 +145,50 @@ actor EngineSuggestionProvider: SuggestionProvider {
             candidates: result.candidates.map { Suggestion($0.text, kind: Self.kind($0.kind)) },
             vowelSigns: result.vowelSigns
         )
+    }
+
+    /// The words a swipe along `path` (the keyboard view's points) may have meant, best first;
+    /// nil when the engine can't be used or found none. `keys` are the letter keys' frames
+    /// in the same points.
+    func swipe(_ path: [SwipePoint], keys: [SwipeKey], contextBefore: String) -> [Suggestion]? {
+        ahead = nil
+        guard let engine = try? loadedEngine() else {
+            noteSwipe(nil)
+            return nil
+        }
+        let start = ContinuousClock.now
+        let candidates = (try? engine.swipe(path: path, keys: keys, contextBefore: contextBefore)) ?? []
+        let elapsed = ContinuousClock.now - start
+        if elapsed > Self.slowSwipe {
+            log.warning("Slow swipe: \(Diagnostics.milliseconds(elapsed)) for \(path.count) points, \(candidates.count) candidates")
+        }
+        noteSwipe(candidates.isEmpty ? nil : elapsed)
+        guard !candidates.isEmpty else { return nil }
+        return candidates.map { Suggestion($0.text, kind: Self.kind($0.kind)) }
+    }
+
+    func noteSwipeOutcome(_ outcome: SwipeOutcome) {
+        switch outcome {
+        case .kept: break
+        case .replaced: swipesReplaced += 1
+        case .deleted: swipesDeleted += 1
+        }
+    }
+
+    /// `elapsed` is nil for a swipe that gave no word.
+    private func noteSwipe(_ elapsed: Duration?) {
+        if let elapsed { swipeTimes.append(elapsed) } else { swipesFailed += 1 }
+        let count = swipeTimes.count + swipesFailed
+        guard count >= Self.swipeLogEvery else { return }
+        let sorted = swipeTimes.sorted()
+        func percentile(_ p: Double) -> String {
+            sorted.isEmpty ? "-" : Diagnostics.milliseconds(sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))])
+        }
+        log.info("Swipes: \(count), \(swipesFailed) without a word, \(swipesReplaced) replaced from the bar, \(swipesDeleted) deleted straight away; p50 \(percentile(0.5)), p90 \(percentile(0.9))")
+        swipeTimes = []
+        swipesFailed = 0
+        swipesReplaced = 0
+        swipesDeleted = 0
     }
 
     /// Opens the lexicons ahead of the first request, once the keys are showing, and fills the

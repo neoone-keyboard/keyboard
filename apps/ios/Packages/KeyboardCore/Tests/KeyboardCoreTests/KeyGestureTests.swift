@@ -171,3 +171,50 @@ private func periodGesture() -> KeyGesture {
     #expect(g.moved(to: CGPoint(x: 100, y: 35)) == [.highlightAlternate(7)])
     #expect(g.ended() == [.commitAlternate("'")])
 }
+
+// MARK: Swipe
+
+@Test func slidingFromALetterPastAKeyWidthSwipes() {
+    var g = gesture(Key(.character("h"), alternates: ["ĥ"]))
+    #expect(g.moved(to: CGPoint(x: 110, y: 10)) == [])
+    #expect(!g.isSwiping)
+    #expect(g.moved(to: CGPoint(x: 135, y: 12)) == [])
+    #expect(g.isSwiping)
+    #expect(g.moved(to: CGPoint(x: 160, y: 30)) == [])
+    #expect(g.tick(at: 1.0) == [], "a swipe never long-presses")
+    #expect(g.ended() == [.swipe([CGPoint(x: 100, y: 10), CGPoint(x: 110, y: 10), CGPoint(x: 135, y: 12), CGPoint(x: 160, y: 30)])])
+}
+
+@Test func aShortWobbleStillTaps() {
+    var g = gesture(Key(.character("a")))
+    _ = g.moved(to: CGPoint(x: 112, y: 14))
+    #expect(!g.isSwiping)
+    #expect(g.ended() == [.tap(.character("a"))])
+}
+
+@Test func afterTheLongPressSlidingPicksAnAlternate() {
+    var g = gesture(Key(.character("e"), alternates: ["3", "é", "è"]))
+    _ = g.tick(at: 0.4)
+    _ = g.setAlternatesOrigin(x: 85)
+    #expect(g.moved(to: CGPoint(x: 135, y: 10)) == [.highlightAlternate(1)])
+    #expect(!g.isSwiping)
+}
+
+@Test func onlyLatinLettersSwipe() {
+    for action in [KeyAction.character("1"), .character("."), .character("ക"), .space, .backspace, .shift] {
+        var g = gesture(Key(action))
+        _ = g.moved(to: CGPoint(x: 150, y: 10))
+        #expect(!g.isSwiping, "\(action)")
+    }
+}
+
+@Test func swipePointsAreSpacedAndCapped() {
+    var g = gesture(Key(.character("q")))
+    _ = g.moved(to: CGPoint(x: 140, y: 10))
+    _ = g.moved(to: CGPoint(x: 141, y: 10))
+    for i in 0..<400 { _ = g.moved(to: CGPoint(x: 150 + CGFloat(i) * 5, y: 10)) }
+    guard case .swipe(let points) = g.ended().first else { Issue.record("no swipe"); return }
+    #expect(points.count == KeyGesture.maxSwipePoints)
+    #expect(!points.contains(CGPoint(x: 141, y: 10)), "closer than 4 pt to the last point")
+    #expect(points.last == CGPoint(x: 150 + 399 * 5, y: 10), "the end is kept")
+}

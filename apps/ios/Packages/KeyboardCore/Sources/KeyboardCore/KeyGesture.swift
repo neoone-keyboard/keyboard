@@ -11,6 +11,8 @@ public enum GestureEvent: Equatable, Sendable {
     case deleteWord
     /// Long-press on the language key: show the in-keyboard settings.
     case openSettings
+    /// A finger drew across the letters: its path, in the view's points.
+    case swipe([CGPoint])
 }
 
 public struct GestureTiming: Sendable {
@@ -25,19 +27,33 @@ public struct GestureTiming: Sendable {
     /// How far the spacebar must slide before it moves the cursor instead of typing a space.
     public var cursorActivation: CGFloat = 25
     public var deleteWordSwipe: CGFloat = 40
+    /// How far, in key widths, a finger must slide from a letter before the long-press for the
+    /// touch to be a swipe typing a word.
+    public var swipeActivation: CGFloat = 1
 
     public init() {}
 }
 
 /// Interprets one finger on one key: tap, long-press alternates, spacebar cursor
-/// drag, backspace repeat, swipe-left-to-delete-word and long-press-language for settings. Pure logic: the view feeds
+/// drag, backspace repeat, swipe-left-to-delete-word, long-press-language for settings and
+/// swiping a word across the letters. Pure logic: the view feeds
 /// it touches and timer ticks (monotonic seconds) and acts on the returned events.
 public struct KeyGesture: Sendable {
     public let key: Key
 
     /// `swipeCancelled`: a backspace swipe slid back, so releasing does nothing.
     /// `settingsOpened`: the language key was held, so releasing doesn't toggle.
-    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled, settingsOpened }
+    /// `swiping`: sliding from a letter drew a word; `swipePoints` holds its path.
+    private enum Mode { case pressing, alternates, cursor, repeating, deleteSwipe, swipeCancelled, settingsOpened, swiping }
+
+    /// Most points a swipe keeps; the engine resamples the path anyway.
+    public static let maxSwipePoints = 256
+    /// Points closer than this to the last kept one add nothing.
+    private static let swipeSpacing: CGFloat = 4
+
+    /// The swipe's path so far, from the touch's start.
+    public private(set) var swipePoints: [CGPoint] = []
+    public var isSwiping: Bool { mode == .swiping }
 
     private let start: CGPoint
     private let startTime: TimeInterval
@@ -115,7 +131,7 @@ public struct KeyGesture: Sendable {
             guard time >= nextRepeat else { return [] }
             nextRepeat = time + timing.repeatInterval
             return [.tap(.backspace)]
-        case .alternates, .cursor, .deleteSwipe, .swipeCancelled, .settingsOpened:
+        case .alternates, .cursor, .deleteSwipe, .swipeCancelled, .settingsOpened, .swiping:
             return []
         }
     }
@@ -132,6 +148,14 @@ public struct KeyGesture: Sendable {
             if key.action == .backspace, dx <= -timing.deleteWordSwipe {
                 mode = .deleteSwipe
             }
+            if Self.isLatinLetter(key.action) {
+                // Kept from the start, in case the finger goes on to swipe.
+                addSwipePoint(point)
+                if hypot(dx, point.y - start.y) >= timing.swipeActivation * alternateWidth { mode = .swiping }
+            }
+            return []
+        case .swiping:
+            addSwipePoint(point)
             return []
         case .cursor:
             return moveCursor(to: point.x)
@@ -153,11 +177,29 @@ public struct KeyGesture: Sendable {
         }
     }
 
+    private static func isLatinLetter(_ action: KeyAction) -> Bool {
+        guard case .character(let c) = action, c.unicodeScalars.count == 1, let s = c.unicodeScalars.first else { return false }
+        return s.isASCII && s.properties.isAlphabetic
+    }
+
+    /// Keeps `point` if it is far enough from the last one; past the cap, it replaces the last,
+    /// so the path still ends where the finger is.
+    private mutating func addSwipePoint(_ point: CGPoint) {
+        if swipePoints.isEmpty { swipePoints = [start] }
+        guard let last = swipePoints.last, hypot(point.x - last.x, point.y - last.y) >= Self.swipeSpacing else { return }
+        if swipePoints.count < Self.maxSwipePoints {
+            swipePoints.append(point)
+        } else {
+            swipePoints[swipePoints.count - 1] = point
+        }
+    }
+
     public func ended() -> [GestureEvent] {
         switch mode {
         case .pressing: [.tap(key.action)]
         case .alternates: [.commitAlternate(key.alternates[highlighted])]
         case .deleteSwipe: [.deleteWord]
+        case .swiping: [.swipe(swipePoints)]
         case .cursor, .repeating, .swipeCancelled, .settingsOpened: []
         }
     }

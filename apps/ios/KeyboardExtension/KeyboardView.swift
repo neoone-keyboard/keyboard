@@ -21,12 +21,28 @@ final class KeyboardView: UIView {
     private let popup = AlternatesPopupView()
     /// The touch whose long-press is showing the alternates popup.
     private var popupOwner: ObjectIdentifier?
+    /// The line under a swiping finger (`SwipeTrail`), over the keys.
+    private let trail = CAShapeLayer()
+    /// While a finger swipes, no other finger types.
+    private var swiping: Bool { activeTouches.values.contains { $0.gesture.isSwiping } }
+
+    /// The letter keys' caps, lowercase, in this view's points: what a swipe is decoded against.
+    var letterKeys: [(letter: String, rect: CGRect)] {
+        frames.compactMap { frame in
+            guard case .character(let c) = frame.key.action, c.count == 1,
+                  let scalar = c.unicodeScalars.first, scalar.isASCII, scalar.properties.isAlphabetic
+            else { return nil }
+            return (c.lowercased(), frame.rect)
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
         clipsToBounds = false
         addSubview(popup)
+        trail.zPosition = 1
+        layer.addSublayer(trail)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -39,6 +55,7 @@ final class KeyboardView: UIView {
         self.layout = layout
         self.theme = theme
         self.label = label
+        trail.fillColor = theme.accent.cgColor
         caps.forEach { $0.removeFromSuperview() }
         caps = layout.rows.flatMap { $0 }.map { _ in
             let cap = KeyCapView()
@@ -93,6 +110,7 @@ final class KeyboardView: UIView {
     // MARK: Touches
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !swiping else { return }
         for touch in touches {
             let point = touch.location(in: self)
             guard let index = KeyboardGeometry.index(at: point, in: frames), frames.indices.contains(index) else { continue }
@@ -113,8 +131,13 @@ final class KeyboardView: UIView {
         for touch in touches {
             let id = ObjectIdentifier(touch)
             guard var entry = activeTouches[id] else { continue }
+            let wasSwiping = entry.gesture.isSwiping
             let events = entry.gesture.moved(to: touch.location(in: self))
             activeTouches[id] = entry
+            if entry.gesture.isSwiping {
+                if !wasSwiping { startSwipe(by: id) }
+                drawTrail(entry.gesture.swipePoints)
+            }
             handle(events, for: id)
         }
     }
@@ -125,6 +148,7 @@ final class KeyboardView: UIView {
             guard let entry = activeTouches.removeValue(forKey: id) else { continue }
             setPressed(false, at: entry.index)
             if id == popupOwner { hidePopup() }
+            if entry.gesture.isSwiping { fadeTrail() }
             handle(entry.gesture.ended(), for: nil)
         }
         stopTimerIfIdle()
@@ -136,8 +160,50 @@ final class KeyboardView: UIView {
             guard let entry = activeTouches.removeValue(forKey: id) else { continue }
             setPressed(false, at: entry.index)
             if id == popupOwner { hidePopup() }
+            if entry.gesture.isSwiping { fadeTrail() }
         }
         stopTimerIfIdle()
+    }
+
+    // MARK: Swipe trail
+
+    /// A finger began to swipe: its key is no longer pressed, and any other finger is dropped
+    /// without typing.
+    private func startSwipe(by id: ObjectIdentifier) {
+        for other in Array(activeTouches.keys) where other != id {
+            setPressed(false, at: activeTouches[other]?.index)
+            activeTouches.removeValue(forKey: other)
+        }
+        setPressed(false, at: activeTouches[id]?.index)
+        trail.removeAllAnimations()
+        trail.opacity = 1
+    }
+
+    private func drawTrail(_ points: [CGPoint]) {
+        let outline = SwipeTrail.outline(points)
+        guard let first = outline.first, let head = points.last else { return }
+        let path = CGMutablePath()
+        path.move(to: first)
+        outline.dropFirst().forEach { path.addLine(to: $0) }
+        path.closeSubpath()
+        let r = SwipeTrail.headWidth / 2
+        path.addEllipse(in: CGRect(x: head.x - r, y: head.y - r, width: 2 * r, height: 2 * r))
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        trail.path = path
+        CATransaction.commit()
+    }
+
+    /// The trail fades over 0.2 s once the finger lifts.
+    private func fadeTrail() {
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.2)
+        CATransaction.setCompletionBlock { [weak self] in
+            guard let self, trail.opacity == 0 else { return }
+            trail.path = nil
+        }
+        trail.opacity = 0
+        CATransaction.commit()
     }
 
     private func handle(_ events: [GestureEvent], for id: ObjectIdentifier?) {
@@ -194,6 +260,7 @@ final class KeyboardView: UIView {
     /// Drops every touch in progress so none of them types when lifted.
     func cancelAllTouches() {
         activeTouches.removeAll()
+        trail.path = nil
         caps.forEach { $0.isPressed = false }
         hidePopup()
         stopTimerIfIdle()

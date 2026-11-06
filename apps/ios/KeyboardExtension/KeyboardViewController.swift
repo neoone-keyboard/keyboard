@@ -44,6 +44,12 @@ final class KeyboardViewController: UIInputViewController {
     /// The word the bar's slots were made for (straight apostrophes). A tap on
     /// a slot made for another word is ignored.
     private var barWord: String?
+    /// Counts swipes and keys: a swipe's words arriving after either are dropped.
+    private var swipeGeneration = 0
+    /// The last swipe gave no word: the bar says so until the next key.
+    private var swipeFailed = false
+    /// A swipe's words arriving later than this are dropped, and the bar asks for it again.
+    private static let swipeTimeout: Duration = .milliseconds(250)
 
     private lazy var output = ProxyTextOutput { [unowned self] in self.textDocumentProxy }
     private lazy var input = InputController(output: output)
@@ -56,7 +62,8 @@ final class KeyboardViewController: UIInputViewController {
             // Lengths only: no typed text in the diagnostics.
             log.info("Stale result: for a \(result.typed.count)-char word but the word is \(input.currentWord.count) chars; \(result.candidates.count) candidates dropped")
         }
-        input.updateSuggestions(result)
+        // The bar keeps a swipe's alternatives until the next key.
+        if !input.showsSwipe { input.updateSuggestions(result) }
         refreshTopBar()
     }
 
@@ -179,6 +186,9 @@ final class KeyboardViewController: UIInputViewController {
                 await provider.handle(event)
                 self?.refreshLearnedAddresses()
             }
+        }
+        input.onSwipeOutcome = { [provider] outcome in
+            Task { await provider.noteSwipeOutcome(outcome) }
         }
         // A use with a digit may be the end of a phone number, which the engine learns from it.
         input.onWordUsed = { [weak self, provider] use in
@@ -393,6 +403,12 @@ final class KeyboardViewController: UIInputViewController {
             handleEmojiSearch(event)
             return
         }
+        swipeGeneration += 1
+        swipeFailed = false
+        if case .swipe(let points) = event {
+            swipe(points)
+            return
+        }
         let pageBefore = input.page, shiftBefore = input.shift
         output.beginEdit()
         switch event {
@@ -410,13 +426,51 @@ final class KeyboardViewController: UIInputViewController {
             input.moveCursor(by: offset)
         case .deleteWord:
             input.deleteWordBackward()
-        case .showAlternates, .highlightAlternate:
-            return // Handled inside KeyboardView.
+        case .showAlternates, .highlightAlternate, .swipe:
+            return // Handled inside KeyboardView, or above.
         case .openSettings:
             showSettings()
             return
         }
         afterInput(pageBefore: pageBefore, shiftBefore: shiftBefore)
+    }
+
+    /// Decodes a swipe on the provider's actor and types its best word, with the others in the
+    /// bar. Without prediction, or with no word for the path, the bar asks for it again.
+    private func swipe(_ points: [CGPoint]) {
+        let generation = swipeGeneration
+        guard suggestions.isEnabled, input.language == .english, !input.secureTextEntry else {
+            showSwipeFailed()
+            return
+        }
+        let path = points.map { SwipePoint(x: Float($0.x), y: Float($0.y)) }
+        let keys = keyboardView.letterKeys.map {
+            SwipeKey(letter: $0.letter, x: Float($0.rect.minX), y: Float($0.rect.minY),
+                     width: Float($0.rect.width), height: Float($0.rect.height))
+        }
+        // The word goes in after a space (`InputController.insertSwipe`).
+        var context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
+        if let last = context.last, !last.isWhitespace { context += " " }
+        let started = ContinuousClock.now
+        Task { [weak self, provider] in
+            let found = await provider.swipe(path, keys: keys, contextBefore: context)
+            guard let self, generation == swipeGeneration else { return }
+            let elapsed = ContinuousClock.now - started
+            guard let found, let best = found.first, elapsed <= Self.swipeTimeout else {
+                if found != nil { log.warning("Swipe dropped: its words came after \(Diagnostics.milliseconds(elapsed))") }
+                showSwipeFailed()
+                return
+            }
+            let page = input.page, shift = input.shift
+            output.beginEdit()
+            input.insertSwipe(best, alternatives: Array(found.dropFirst().prefix(2)))
+            afterInput(pageBefore: page, shiftBefore: shift)
+        }
+    }
+
+    private func showSwipeFailed() {
+        swipeFailed = true
+        refreshTopBar()
     }
 
     private func afterInput(pageBefore: KeyboardPage, shiftBefore: ShiftState) {
@@ -441,6 +495,8 @@ final class KeyboardViewController: UIInputViewController {
         latest = .empty
         lastRequest = nil
         barWord = nil
+        swipeFailed = false
+        swipeGeneration += 1
         output.resetEdits()
     }
 
@@ -619,7 +675,7 @@ final class KeyboardViewController: UIInputViewController {
         case .openSettings:
             hideEmojiSearch()
             showSettings()
-        case .moveCursor, .showAlternates, .highlightAlternate:
+        case .moveCursor, .showAlternates, .highlightAlternate, .swipe:
             break
         }
     }
@@ -714,7 +770,7 @@ final class KeyboardViewController: UIInputViewController {
         case .openSettings:
             hideYourWords()
             showSettings()
-        case .moveCursor, .showAlternates, .highlightAlternate:
+        case .moveCursor, .showAlternates, .highlightAlternate, .swipe:
             break
         }
     }
@@ -773,7 +829,16 @@ final class KeyboardViewController: UIInputViewController {
     /// timeout arrives without a match, the strip falls back to aksharamala
     /// order and the slots go empty; typing is unaffected either way.
     private func refreshTopBar() {
+        if swipeFailed {
+            topBar.showMessage("Swipe again")
+            return
+        }
         let word = Self.straight(input.currentWord)
+        if input.showsSwipe {
+            barWord = word
+            topBar.showSuggestions(SuggestionBar(input.suggestions))
+            return
+        }
         let current = latest.isFor(word: word) ? latest : nil
         if input.language == .malayalam {
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
@@ -889,6 +954,8 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func requestSuggestions() {
+        // The bar keeps a swipe's alternatives until the next key.
+        guard !input.showsSwipe else { return }
         let request = suggestionRequest(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
         guard request != lastRequest else { return }
         // A result for the other language must not stay in the bar.

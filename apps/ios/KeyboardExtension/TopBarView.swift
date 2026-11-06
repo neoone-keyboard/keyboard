@@ -213,6 +213,21 @@ final class TopBarView: UIView {
         })
     }
 
+    /// A short note in the middle of the bar, in place of the slots ("Swipe again").
+    func showMessage(_ text: String) {
+        let content = ["message", text]
+        guard content != shownContent else { return }
+        shownContent = content
+        stripBase = nil
+        updateVisibility()
+        let label = UILabel()
+        label.text = text
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 16)
+        label.textColor = theme?.hintText
+        replaceItems(in: suggestionStack, with: [UIView(), label, UIView()])
+    }
+
     /// The best completion (if any) on the left, then one button per vowel
     /// sign drawn on `base` (കാ കി കീ …). Tapping a sign inserts the sign alone.
     func showVowelSigns(base: String, signs: [String], completion: Suggestion?) {
