@@ -1,0 +1,165 @@
+//! `lexbuild-native`: a pack language's lexicons from its language config and corpus, for
+//! languages whose script has no rules in the engine core (see `lexbuild::native`).
+//!
+//!     lexbuild-native --lang-config data/langs/as/lang.json --native data/raw/text/as.txt \
+//!         --english-next packs/ml.neopack/next.fst --out data/raw/bundle-as
+//!
+//! writes `<id>.fst` (word frequencies), `next.fst` (the English pairs of `--english-next`,
+//! which were counted against the same `en.fst`, plus the native ones), `words.tsv` (the
+//! vocabulary, for the romanised keys) and `stats.txt`. With `--romanised-keys` (rows of
+//! `skeleton<TAB>word<TAB>count`) it writes `romanised.fst`; `--native` is then optional.
+
+use std::collections::HashSet;
+use std::fmt::Write as _;
+use std::fs::{self, File};
+use std::io::{self, BufReader, Write as _};
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+
+use clap::Parser;
+use lexbuild::native::{self, Lang};
+use lexbuild::{Config, Counts, Entries, NextWords};
+use mlengine_core::lexicon::{Lexicon, SEPARATOR, build};
+
+#[derive(Parser)]
+#[command(about = "Build a pack language's lexicons from its language config")]
+struct Args {
+    /// The language config (`data/langs/<id>/lang.json`).
+    #[arg(long)]
+    lang_config: PathBuf,
+    /// Corpus files in the language, one paragraph per line.
+    #[arg(long = "native")]
+    native: Vec<PathBuf>,
+    /// Word lists, one word per line: always kept.
+    #[arg(long = "native-list")]
+    native_list: Vec<PathBuf>,
+    /// A `next.fst` whose English pairs (an ASCII previous word) are copied into this one.
+    #[arg(long)]
+    english_next: Option<PathBuf>,
+    /// `skeleton<TAB>word<TAB>count` rows: writes `romanised.fst`.
+    #[arg(long)]
+    romanised_keys: Option<PathBuf>,
+    /// Output directory.
+    #[arg(long)]
+    out: PathBuf,
+    /// Stop reading each corpus file after this many lines (for quick runs).
+    #[arg(long)]
+    max_lines: Option<usize>,
+}
+
+fn open(path: &PathBuf) -> io::Result<BufReader<File>> {
+    File::open(path)
+        .map(BufReader::new)
+        .map_err(|e| io::Error::new(e.kind(), format!("{}: {e}", path.display())))
+}
+
+/// The pairs of a `next.fst` whose previous word is ASCII: the English half.
+fn english_pairs(path: &Path) -> io::Result<Entries> {
+    let lex =
+        Lexicon::open(path).map_err(|e| io::Error::other(format!("{}: {e}", path.display())))?;
+    let mut out = Vec::new();
+    lex.words(|key, count| {
+        if let Some(sep) = key.iter().position(|&b| b == SEPARATOR)
+            && key[..sep].is_ascii()
+        {
+            out.push((key.to_vec(), count));
+        }
+    });
+    Ok(out)
+}
+
+fn write_fst(out: &Path, name: &str, entries: Entries, report: &mut String) -> io::Result<()> {
+    let n = entries.len();
+    let bytes = build(entries).map_err(io::Error::other)?;
+    fs::write(out.join(name), &bytes)?;
+    let _ = writeln!(report, "{name}: {n} keys, {} bytes", bytes.len());
+    Ok(())
+}
+
+fn run(args: Args) -> io::Result<()> {
+    let lang = Lang::open(&args.lang_config)?;
+    fs::create_dir_all(&args.out)?;
+    let mut report = String::new();
+
+    if !args.native.is_empty() {
+        let mut counts = Counts::new();
+        for path in &args.native {
+            eprintln!("counting {}", path.display());
+            for (word, count) in native::count_words(&lang, open(path)?, args.max_lines)? {
+                *counts.entry(word).or_default() += count;
+            }
+        }
+        let mut listed = HashSet::new();
+        for path in &args.native_list {
+            listed.extend(native::read_word_list(&lang, open(path)?)?);
+        }
+        let tokens: u64 = counts.values().sum();
+        let _ = writeln!(
+            report,
+            "{} tokens: {tokens}, distinct forms: {}",
+            lang.id,
+            counts.len()
+        );
+        let vocab = native::vocab(&lang, &counts, &listed);
+        drop(counts);
+
+        let config = Config::default();
+        let mut pairs = NextWords::new(&vocab, &config).with_lang(lang.clone());
+        for path in &args.native {
+            eprintln!("counting word pairs in {}", path.display());
+            pairs.add_corpus(open(path)?, args.max_lines)?;
+        }
+        let mut next = pairs.entries(config.next_per_word);
+        let native_pairs = next.len();
+        if let Some(path) = &args.english_next {
+            next.extend(english_pairs(path)?);
+        }
+        let _ = writeln!(
+            report,
+            "next.fst pairs: {native_pairs} {}, {} English",
+            lang.id,
+            next.len() - native_pairs
+        );
+
+        let entries: Entries = vocab
+            .iter()
+            .map(|(w, c)| (w.as_bytes().to_vec(), *c))
+            .collect();
+        write_fst(&args.out, &format!("{}.fst", lang.id), entries, &mut report)?;
+        write_fst(&args.out, "next.fst", next, &mut report)?;
+        let mut tsv = io::BufWriter::new(File::create(args.out.join("words.tsv"))?);
+        for (word, count) in &vocab {
+            writeln!(tsv, "{word}\t{count}")?;
+        }
+        tsv.flush()?;
+        let top: Vec<&str> = vocab.iter().take(20).map(|(w, _)| w.as_str()).collect();
+        let _ = writeln!(report, "{} top 20: {}", lang.id, top.join(" "));
+    }
+
+    if let Some(path) = &args.romanised_keys {
+        let (entries, skipped) = native::romanised_entries(&lang, open(path)?)?;
+        let _ = writeln!(report, "romanised keys skipped: {skipped}");
+        write_fst(&args.out, "romanised.fst", entries, &mut report)?;
+    }
+
+    let stats = args.out.join("stats.txt");
+    let mut previous = fs::read_to_string(&stats).unwrap_or_default();
+    if args.native.is_empty() {
+        previous.push_str(&report); // a romanised-only run adds to the earlier stats
+    } else {
+        previous = report.clone();
+    }
+    fs::write(stats, previous)?;
+    print!("{report}");
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    match run(Args::parse()) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("lexbuild-native: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}

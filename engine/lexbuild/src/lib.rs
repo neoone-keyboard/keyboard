@@ -13,6 +13,8 @@ use mlengine_core::manglish;
 use mlengine_core::normalize::normalize;
 use mlengine_core::text::{Script, script, words};
 
+pub mod native;
+
 /// Longest English token counted, in bytes (the engine corrects up to 24).
 pub const MAX_ENGLISH_LEN: usize = 24;
 /// Longest Malayalam token counted, in chars.
@@ -22,7 +24,7 @@ pub const PAIR_PRUNE_THRESHOLD: usize = 20_000_000;
 
 /// Calls `f` with each valid UTF-8 line (up to `max_lines` lines read). Lines
 /// that aren't valid UTF-8 are skipped, not fatal.
-fn for_each_line(
+pub(crate) fn for_each_line(
     mut reader: impl BufRead,
     max_lines: Option<usize>,
     mut f: impl FnMut(&str),
@@ -250,7 +252,7 @@ pub fn malayalam_vocab(
     vocab
 }
 
-fn sort_and_cap(vocab: &mut Vec<(String, u64)>, max: usize) {
+pub(crate) fn sort_and_cap(vocab: &mut Vec<(String, u64)>, max: usize) {
     vocab.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
     vocab.truncate(max);
 }
@@ -263,6 +265,9 @@ pub struct NextWords {
     previous_allowed: usize,
     pairs: HashMap<(u32, u32), PairCount>,
     prune_at: usize,
+    /// A pack language's normal form, words and phrase breaks (`native`), in place of the
+    /// engine's English and Malayalam ones.
+    lang: Option<native::Lang>,
 }
 
 /// How often a pair was seen, and how often the second word had a capital there.
@@ -289,7 +294,14 @@ impl NextWords {
             previous_allowed: config.next_word_max,
             pairs: HashMap::new(),
             prune_at: PAIR_PRUNE_THRESHOLD,
+            lang: None,
         }
+    }
+
+    /// Reads the corpus as text of `lang`: its normal form, its words, its phrase breaks.
+    pub fn with_lang(mut self, lang: native::Lang) -> Self {
+        self.lang = Some(lang);
+        self
     }
 
     /// Overrides when singletons are pruned (tests use a tiny value).
@@ -308,14 +320,26 @@ impl NextWords {
     }
 
     pub fn add_corpus(&mut self, reader: impl BufRead, max_lines: Option<usize>) -> io::Result<()> {
-        for_each_line(reader, max_lines, |line| {
-            let line = normalize(line);
+        let lang = self.lang.take();
+        let result = for_each_line(reader, max_lines, |line| {
+            let line = match &lang {
+                Some(lang) => lang.normalize(line),
+                None => normalize(line),
+            };
+            let breaks = |c: char| match &lang {
+                Some(lang) => lang.is_phrase_break(c),
+                None => is_phrase_break(c),
+            };
             // A pair never spans punctuation: "i.e." is not "i" followed by "e".
-            for phrase in line.split(is_phrase_break) {
+            for phrase in line.split(breaks) {
                 let mut previous: Option<u32> = None;
                 let mut before: Option<&str> = None; // the word before `previous`
                 let mut last: Option<&str> = None;
-                for word in words(phrase) {
+                let tokens: Box<dyn Iterator<Item = &str>> = match &lang {
+                    Some(lang) => Box::new(lang.words(phrase)),
+                    None => Box::new(words(phrase)),
+                };
+                for word in tokens {
                     let id = self.ids.get(&lookup_key(word)).copied();
                     if let (Some(p), Some(next)) = (previous, id)
                         && (p as usize) < self.previous_allowed
@@ -333,7 +357,9 @@ impl NextWords {
                     last = Some(word);
                 }
             }
-        })
+        });
+        self.lang = lang;
+        result
     }
 
     /// FST entries `previous\0next` → count, keeping the best `per_word` for each previous word.
@@ -377,7 +403,7 @@ fn is_roman_one(word: &str, before: Option<&str>) -> bool {
         || (word == "I" && before.is_some_and(|b| b.starts_with(|c: char| c.is_uppercase())))
 }
 
-fn is_phrase_break(c: char) -> bool {
+pub(crate) fn is_phrase_break(c: char) -> bool {
     matches!(
         c,
         '.' | ','
@@ -545,7 +571,10 @@ mod tests {
             ..Config::default()
         };
         let c = counts(
-            &format!("Vishu vishu Biryani Biryani biryani zork {}", "pan ".repeat(5)),
+            &format!(
+                "Vishu vishu Biryani Biryani biryani zork {}",
+                "pan ".repeat(5)
+            ),
             Script::Latin,
         );
         let scowl = set(&["pan"]);

@@ -398,6 +398,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "mlengine-core",
+ "serde",
+ "serde_json",
  "tempfile",
 ]
 
