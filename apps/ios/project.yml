@@ -30,7 +30,7 @@ targets:
     info:
       path: KeyboardApp/Info.plist
       properties:
-        CFBundleDisplayName: Malayalam Keyboard
+        CFBundleDisplayName: NeoOne Keyboard
         UILaunchScreen: {}
     settings:
       base:
@@ -62,7 +62,7 @@ targets:
     info:
       path: KeyboardExtension/Info.plist
       properties:
-        CFBundleDisplayName: Malayalam Keyboard
+        CFBundleDisplayName: NeoOne Keyboard
         # The commit `make` built from, for the diagnostics report (empty otherwise).
         MLGitCommit: $(ML_GIT_COMMIT)
         NSExtension:

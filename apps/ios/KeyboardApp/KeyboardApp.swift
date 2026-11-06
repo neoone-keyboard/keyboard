@@ -22,7 +22,7 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section("Turn on the keyboard") {
-                    Text("Settings → General → Keyboard → Keyboards → Add New Keyboard → Malayalam Keyboard")
+                    Text("Settings → General → Keyboard → Keyboards → Add New Keyboard → NeoOne Keyboard")
                     Text("No Full Access needed. Nothing you type leaves your phone.")
                         .foregroundStyle(.secondary)
                 }
@@ -39,7 +39,7 @@ struct ContentView: View {
                     NavigationLink("About and credits") { AboutView() }
                 }
             }
-            .navigationTitle("Malayalam Keyboard")
+            .navigationTitle("NeoOne Keyboard")
         }
     }
 }
