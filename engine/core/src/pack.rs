@@ -15,8 +15,6 @@ use crate::Paths;
 pub const FORMAT: u32 = 1;
 /// This engine's pack level: a pack whose `minEngine` is higher needs a newer app.
 pub const PACK_ENGINE: u32 = 1;
-/// Scripts this engine has rules for (ISO 15924, lower case).
-pub const SCRIPTS: &[&str] = &["mlym"];
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -102,7 +100,7 @@ impl Pack {
         if manifest.format != FORMAT {
             return Err(PackError::Format(manifest.format));
         }
-        if !SCRIPTS.contains(&manifest.script.as_str()) {
+        if crate::script::rules(&manifest.script).is_none() {
             return Err(PackError::Script(manifest.script));
         }
         if manifest.min_engine > PACK_ENGINE {

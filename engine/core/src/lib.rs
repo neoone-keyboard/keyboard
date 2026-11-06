@@ -15,6 +15,7 @@ pub mod pack;
 pub mod personal;
 pub mod rank;
 pub mod romanize;
+pub mod script;
 pub mod suffix;
 pub mod swipe;
 pub mod text;

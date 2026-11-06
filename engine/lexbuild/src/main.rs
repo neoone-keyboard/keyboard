@@ -67,7 +67,7 @@ fn run(args: Args) -> io::Result<()> {
         eprintln!("counting {}", path.display());
         merge(
             &mut ml_counts,
-            count_words(open(path)?, Script::Malayalam, args.max_lines)?,
+            count_words(open(path)?, Script::MALAYALAM, args.max_lines)?,
         );
     }
     let scowl = read_word_list(open(&args.scowl)?)?;

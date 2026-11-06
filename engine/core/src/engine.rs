@@ -278,7 +278,7 @@ impl Engine {
         let earlier = earlier.map(normalize).filter(|w| phrase_word(w));
         let counted = self.is_known_or_learned(&word);
         let habit = match (layout, text::script(&word)) {
-            (Layout::Latin, Script::Malayalam) => Some(Habit::Malayalam),
+            (Layout::Latin, Script::Native(_)) => Some(Habit::Malayalam),
             (Layout::Latin, Script::Latin) if self.english_count(&word).is_some() => {
                 Some(Habit::English)
             }
@@ -739,7 +739,7 @@ impl Engine {
                     &own,
                 )
             }
-            (_, Script::Malayalam) | (Layout::Malayalam, _) => {
+            (_, Script::Native(_)) | (Layout::Malayalam, _) => {
                 self.suggest_malayalam(typed, scores, &own)
             }
             _ => vec![verbatim(typed, 0.0)],
@@ -801,7 +801,7 @@ impl Engine {
     fn is_known(&self, word: &str) -> bool {
         match text::script(word) {
             Script::Latin => self.english_count(word).is_some(),
-            Script::Malayalam => self
+            Script::Native(_) => self
                 .sources
                 .malayalam
                 .as_ref()
@@ -827,7 +827,7 @@ impl Engine {
         };
         let word = normalize(word);
         match text::script(&word) {
-            Script::Malayalam => rank::CONTEXT_AFTER_MALAYALAM,
+            Script::Native(_) => rank::CONTEXT_AFTER_MALAYALAM,
             Script::Latin if self.english_count(&word).is_some() => rank::CONTEXT_AFTER_ENGLISH,
             _ => 0.0,
         }
@@ -1354,7 +1354,7 @@ impl Engine {
         let chosen = self.user().choice(typed_n).map(str::to_string);
         let replacement = match chosen.filter(|c| !self.user().is_removed(c)) {
             Some(text) => {
-                let malayalam = text::script(&text) == Script::Malayalam;
+                let malayalam = matches!(text::script(&text), Script::Native(_));
                 let chosen = Candidate {
                     text: if malayalam { text } else { show(&text) },
                     kind: if malayalam {
@@ -1966,7 +1966,7 @@ impl Engine {
     fn word_count(&self, word: &str) -> u64 {
         let word = normalize(word);
         match text::script(&word) {
-            Script::Malayalam => self.malayalam_count(&word),
+            Script::Native(_) => self.malayalam_count(&word),
             _ => self.sources.english.as_ref().map_or(0, |lex| {
                 lex.case_variants(word.as_bytes())
                     .iter()

@@ -275,15 +275,21 @@ fn is_word_grapheme(g: &str) -> bool {
     g.chars().next().is_some_and(|c| c.is_alphanumeric() || is_apostrophe(c))
 }
 
-/// Which writing system a word is in. Only `Latin` and `Malayalam` words go into a lexicon.
+/// Which writing system a word is in. Only `Latin` and `Native` words go into a lexicon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Script {
     /// ASCII letters, optionally with apostrophes inside (don't).
     Latin,
-    /// Malayalam letters and signs (U+0D00–U+0D63, U+0D7A–U+0D7F), ZWJ and ZWNJ.
-    Malayalam,
+    /// Letters and signs of one registered native script (`script::rules`), by its ISO 15924
+    /// code, plus ZWJ and ZWNJ. For Malayalam: U+0D00–U+0D63 and U+0D7A–U+0D7F.
+    Native(&'static str),
     /// Anything else: digits, mixed scripts, other alphabets.
     Other,
+}
+
+impl Script {
+    /// Malayalam, the pack every build has had so far.
+    pub const MALAYALAM: Script = Script::Native("mlym");
 }
 
 pub fn script(word: &str) -> Script {
@@ -295,11 +301,11 @@ pub fn script(word: &str) -> Script {
     {
         return Script::Latin;
     }
-    let malayalam_letter = |c: char| ('\u{0D00}'..='\u{0D63}').contains(&c) || ('\u{0D7A}'..='\u{0D7F}').contains(&c);
-    if word.chars().all(|c| malayalam_letter(c) || c == '\u{200C}' || c == '\u{200D}')
-        && word.chars().any(malayalam_letter)
-    {
-        return Script::Malayalam;
+    for rules in crate::script::all() {
+        let letter = |c: char| rules.is_letter(c);
+        if word.chars().all(|c| letter(c) || c == '\u{200C}' || c == '\u{200D}') && word.chars().any(letter) {
+            return Script::Native(rules.code());
+        }
     }
     Script::Other
 }
@@ -307,7 +313,7 @@ pub fn script(word: &str) -> Script {
 /// A char that can be part of a word when tokenising a corpus line. Cheaper
 /// than grapheme segmentation, which matters for 500M words.
 fn is_token_char(c: char) -> bool {
-    c.is_alphanumeric() || ('\u{0D00}'..='\u{0D7F}').contains(&c) || matches!(c, '\u{200C}' | '\u{200D}') || is_apostrophe(c)
+    c.is_alphanumeric() || crate::script::in_any_block(c) || matches!(c, '\u{200C}' | '\u{200D}') || is_apostrophe(c)
 }
 
 /// Splits a line of corpus text into words. Apostrophes are kept inside words
@@ -456,8 +462,8 @@ mod tests {
     fn scripts() {
         assert_eq!(script("hello"), Script::Latin);
         assert_eq!(script("don't"), Script::Latin);
-        assert_eq!(script("എന്റെ"), Script::Malayalam);
-        assert_eq!(script("അവൻ"), Script::Malayalam);
+        assert_eq!(script("എന്റെ"), Script::MALAYALAM);
+        assert_eq!(script("അവൻ"), Script::MALAYALAM);
         assert_eq!(script("abcഎ"), Script::Other);
         assert_eq!(script("42"), Script::Other);
         assert_eq!(script("൧൨"), Script::Other);

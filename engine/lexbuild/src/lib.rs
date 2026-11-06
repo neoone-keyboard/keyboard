@@ -46,7 +46,7 @@ fn for_each_line(
 
 fn token_fits(word: &str, want: Script) -> bool {
     match want {
-        Script::Malayalam => word.chars().count() <= MAX_MALAYALAM_CHARS,
+        Script::MALAYALAM => word.chars().count() <= MAX_MALAYALAM_CHARS,
         _ => word.len() <= MAX_ENGLISH_LEN,
     }
 }
@@ -233,7 +233,7 @@ pub fn malayalam_vocab(
     config: &Config,
 ) -> Vec<(String, u64)> {
     let ok = |w: &str| {
-        script(w) == Script::Malayalam
+        script(w) == Script::MALAYALAM
             && plausible_malayalam(w)
             && w.chars().count() <= config.max_malayalam_chars
     };
@@ -469,20 +469,20 @@ mod tests {
         assert_eq!(c.get("cat"), Some(&2));
         assert_eq!(c.get("42"), None);
         assert_eq!(c.get("എന്റെ"), None);
-        let m = counts("എന്റെ വീട് എന്റെ cat", Script::Malayalam);
+        let m = counts("എന്റെ വീട് എന്റെ cat", Script::MALAYALAM);
         assert_eq!(m.get("എന്റെ"), Some(&2));
     }
 
     #[test]
     fn counting_normalises_old_chillus() {
-        let m = counts("അവന\u{0D4D}\u{200D} അവൻ", Script::Malayalam);
+        let m = counts("അവന\u{0D4D}\u{200D} അവൻ", Script::MALAYALAM);
         assert_eq!(m.get("അവൻ"), Some(&2));
     }
 
     #[test]
     fn counting_ignores_joiners_at_word_edges() {
         // Malayalam Wikipedia often ends a word in virama + ZWNJ ("ആണ്‌").
-        let m = counts("ആണ്\u{200C} ആണ് \u{200C}തന്നെ തന്നെ", Script::Malayalam);
+        let m = counts("ആണ്\u{200C} ആണ് \u{200C}തന്നെ തന്നെ", Script::MALAYALAM);
         assert_eq!(m.get("ആണ്"), Some(&2));
         assert_eq!(m.get("തന്നെ"), Some(&2));
         assert_eq!(m.len(), 2);
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn malayalam_keeps_frequent_and_listed_words() {
-        let c = counts("എന്റെ എന്റെ എന്റെ വീട് ി ൽ ൽ ൽ ന് ന് ന്", Script::Malayalam);
+        let c = counts("എന്റെ എന്റെ എന്റെ വീട് ി ൽ ൽ ൽ ന് ന് ന്", Script::MALAYALAM);
         let config = Config {
             min_count: 2,
             ..Config::default()
@@ -651,7 +651,7 @@ mod tests {
         assert_eq!(keys, ["ok"]);
         let m = counts(
             "\u{0D15}\u{0D3E}1 \u{0D15}\u{0D3E} ab\u{0D15}",
-            Script::Malayalam,
+            Script::MALAYALAM,
         );
         assert_eq!(m.len(), 1);
     }
@@ -665,7 +665,7 @@ mod tests {
         assert!(c.contains_key(&ok));
         let ok_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS);
         let long_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS + 1);
-        let m = counts(&format!("{ok_ml} {long_ml}"), Script::Malayalam);
+        let m = counts(&format!("{ok_ml} {long_ml}"), Script::MALAYALAM);
         assert_eq!(m.len(), 1);
         assert!(m.contains_key(&ok_ml));
     }

@@ -41,7 +41,7 @@ mod tests {
         let mut seen = std::collections::HashSet::new();
         for (latin, word) in rows {
             assert!(latin.bytes().all(|b| b.is_ascii_lowercase()), "{latin:?}");
-            assert_eq!(script(word), Script::Malayalam, "{word:?}");
+            assert_eq!(script(word), Script::MALAYALAM, "{word:?}");
             assert_eq!(normalize(word), word, "{word:?} is not in normal form");
             assert!(seen.insert(latin), "{latin} is listed twice");
         }
