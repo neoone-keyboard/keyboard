@@ -5,7 +5,7 @@
   "block": ["0900", "097F"],
   "pack": "packs/hi.neopack",
   "lexicon": "hi.fst",
-  "romaniser": "packs/hi.neopack/romanisation.json",
+  "romaniser": "training/mlkb/langs/hi-spelling.json",
   "dakshina": "hi",
   "aksharantar": {"dir": "data/raw/aksharantar-hin/extracted", "prefix": "hin"},
   "eval": "data/eval/hi",

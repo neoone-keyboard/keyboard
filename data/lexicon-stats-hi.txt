@@ -1,4 +1,4 @@
 hi.fst: 300000 keys, 3027333 bytes
-hinglish.fst: 300000 keys, 4936909 bytes
+hinglish.fst: 300000 keys, 5122531 bytes
 next.fst: 299864 keys, 3975512 bytes
 hi top 20: के है में और की से का को हैं एक पर भी कि यह नहीं ने था हो ही किया

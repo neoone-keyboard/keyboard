@@ -1,15 +1,17 @@
-"""Native script → Latin from a pack's `romanisation.json`, for languages whose romaniser is data.
+"""Native script → the Latin spellings people type, from a spelling table, for synthetic training pairs.
 
-    uv run python -m mlkb.data.table_romanise --table packs/hi.neopack/romanisation.json \\
+    uv run python -m mlkb.data.table_romanise --table training/mlkb/langs/hi-spelling.json \\
         --dakshina data/raw/dakshina/dakshina_dataset_v1.0/hi/lexicons/hi.translit.sampled.train.tsv
 
-`Table.canonical(word)` is the one romanisation the romanised lexicon (`hinglish.fst`) is keyed
-by; `Table.skeleton(latin)` collapses the spellings people type inconsistently. lexbuild
-(`engine/lexbuild/src/romanisation.rs`) implements both from the same file; the tests check that
-the two agree. `variants` samples the spellings people type, for synthetic training pairs.
+The spelling table (`langs/<lang>-spelling.json`) is richer than a pack's `romanisation.json`
+(format 1): it deletes medial schwas, nasalises vowels before a final anusvara and rewrites
+endings. `variants` samples the spellings people type from it, for the transliterator's training
+pairs; `Table.canonical` and `Table.skeleton` are its own romanisation and fold. The romanised
+lexicon is keyed by the pack file instead, through `mlkb.data.romanisation` (and lexbuild's
+`romanisation.rs`), which is what the engine computes at run time.
 
 Malayalam keeps its hand-written romaniser (`romanise.py`, `engine/core/src/romanize.rs`); this
-module is for the packs that ship their tables as data (Hindi first).
+module is for languages whose spellings are data (Hindi first).
 
 With `--dakshina`, reports how often the canonical romanisation, and its skeleton, match the
 human romanisations of a Dakshina lexicon file (weighted by annotator count).
@@ -117,7 +119,7 @@ class Table:
         return _units(self, _nfc(word))
 
     def canonical(self, word: str) -> str:
-        """The romanisation `hinglish.fst` is keyed by: भारत → bhaarat, कमरा → kamra."""
+        """The table's own romanisation, with schwa deletion: भारत → bharat, कमरा → kamra."""
         return "".join(u.latin for u in self.units(word))
 
     def skeleton(self, latin: str) -> str:
@@ -483,7 +485,7 @@ def match_rates(t: Table, rows: list[tuple[str, str, int]]) -> dict[str, float]:
 
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--table", type=Path, default=ROOT / "packs/hi.neopack/romanisation.json")
+    p.add_argument("--table", type=Path, default=ROOT / "training/mlkb/langs/hi-spelling.json")
     p.add_argument("--dakshina", type=Path, action="append", default=[])
     p.add_argument("--misses", type=int, default=0, help="print this many skeleton misses")
     p.add_argument("words", nargs="*")

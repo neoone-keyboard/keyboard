@@ -1,0 +1,68 @@
+{
+  "format": 1,
+  "language": "hi",
+  "script": "deva",
+  "vowelSignsNote": "Canonical vowels are short (a, i, u), which matches the most Dakshina romanisations; the long forms (aa, ee, oo) fold to the same skeleton.",
+  "about": "Hindi (Devanagari) to Hinglish, the way people type it. Training only: training/mlkb/data/table_romanise.py samples synthetic spellings from it for transliterator pairs. It is richer than the pack file (schwa deletion, nasalised vowels, finalRewrites), which format 1 cannot express. The pack's romanisation.json (format 1) keys hinglish.fst and is what the engine reads. All text is NFC: a nukta letter is its consonant plus U+093C.",
+  "block": ["ऀ", "ॿ"],
+  "letters": ["ऀ", "ॣ"],
+  "extraLetters": ["ॱ", "ॿ"],
+  "notLetters": ["।", "॥", "०", "१", "२", "३", "४", "५", "६", "७", "८", "९", "॰"],
+  "virama": "्",
+  "nukta": "़",
+  "inherentVowel": "a",
+  "independentVowels": {
+    "अ": "a", "आ": "a", "इ": "i", "ई": "i", "उ": "u", "ऊ": "u", "ऋ": "ri", "ॠ": "ri",
+    "ऌ": "li", "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऍ": "e", "ऎ": "e", "ऑ": "o", "ऒ": "o"
+  },
+  "vowelSigns": {
+    "ा": "a", "ि": "i", "ी": "i", "ु": "u", "ू": "u", "ृ": "ri", "ॄ": "ri", "ॢ": "li",
+    "े": "e", "ै": "ai", "ो": "o", "ौ": "au", "ॅ": "e", "ॆ": "e", "ॉ": "o", "ॊ": "o", "ॏ": "au", "ॖ": "ue", "ॗ": "uue"
+  },
+  "nasalisedVowelSigns": {
+    "े": "ei", "ए": "ei"
+  },
+  "consonants": {
+    "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n",
+    "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+    "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+    "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n", "ऩ": "n",
+    "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m",
+    "य": "y", "र": "r", "ऱ": "r", "ल": "l", "ळ": "l", "ऴ": "l", "व": "v",
+    "श": "sh", "ष": "sh", "स": "s", "ह": "h"
+  },
+  "nuktaConsonants": {
+    "क़": "q", "ख़": "kh", "ग़": "g", "ज़": "z", "झ़": "zh", "ड़": "d", "ढ़": "dh", "फ़": "f", "य़": "y"
+  },
+  "clusters": {
+    "क्ष": "ksh", "ज्ञ": "gy", "श्र": "shr", "त्र": "tr"
+  },
+  "modifiers": {
+    "ं": "n", "ँ": "n", "ः": "h", "ऽ": ""
+  },
+  "anusvaraBeforeLabials": {"letters": "पफबभम", "latin": "m"},
+  "schwa": {
+    "deleteFinal": true,
+    "keepFinalAfterClusterEndingIn": "रयव",
+    "deleteMedial": true,
+    "about": "The inherent vowel is written 'a' unless deleted. Final: dropped after a single consonant in a word of two or more syllables (bhaarat); kept after a conjunct (mitra) and in one-letter words (na). Medial: scanning right to left, a schwa is dropped in V C _ C V (kamraa, samajhnaa, bachpan), where the consonant before it is single, the one after it is single and carries a vowel that is not itself dropped, and the schwa carries no anusvara or chandrabindu."
+  },
+  "skeleton": {
+    "about": "Collapses the Latin spellings people type inconsistently, for typed text and for each word's canonical romanisation alike. In order: lowercase and keep only a-z; drop a trailing h after a vowel (nahih); left to right, apply the longest rewrite that matches, else the single-letter map (a letter it lacks maps to itself), and with collapseRuns write a run of the same output letter once; drop each letter of dropBetweenConsonants that has a consonant on both sides (samajhna, samjhna and samajna all become smjn); replace one ending of finalRewrites if the word is longer than it; drop a trailing letter of stripFinal after a consonant.",
+    "dropTrailingHAfterVowel": true,
+    "rewrites": {
+      "chh": "c", "ch": "c", "kh": "k", "gh": "g", "jh": "j", "th": "t", "dh": "d", "ph": "p", "bh": "b",
+      "sh": "s", "zh": "j", "aa": "a", "ee": "i", "ii": "i", "oo": "u", "uu": "u", "ou": "au", "ei": "e",
+      "ksh": "ks"
+    },
+    "singles": {"c": "k", "q": "k", "f": "p", "z": "j", "w": "v", "x": "ks"},
+    "collapseRuns": true,
+    "dropBetweenConsonants": "a",
+    "finalRewrites": {"ey": "e", "ay": "ai"},
+    "stripFinal": []
+  },
+  "swipe": {
+    "aspirated": "ktpbcjsdgz",
+    "trail": "h"
+  }
+}

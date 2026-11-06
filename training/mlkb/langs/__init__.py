@@ -1,7 +1,8 @@
 """Per-language training config: `langs/<id>.json`.
 
 Each file names the pack's script block (the transliterator's target vocabulary), its lexicon,
-its romaniser (`"code"` for Malayalam's hand-written one, else a pack's `romanisation.json`), its
+its romaniser for synthetic spellings (`"code"` for Malayalam's hand-written one, else a spelling
+table such as `langs/hi-spelling.json`), its
 Dakshina and Aksharantar data, and where its eval sets live. `ml` is the default everywhere, so
 the Malayalam commands run as before.
 """
@@ -32,7 +33,7 @@ class Lang:
 
     @property
     def romanisation(self) -> Path | None:
-        """The pack's `romanisation.json`, or None for a romaniser written as code."""
+        """The spelling table (`table_romanise` format), or None for a romaniser written as code."""
         return None if self.romaniser == "code" else ROOT / self.romaniser
 
     @property
@@ -65,4 +66,5 @@ def load(lang_id: str = DEFAULT) -> Lang:
 
 
 def ids() -> list[str]:
-    return sorted(p.stem for p in Path(__file__).parent.glob("*.json"))
+    """Every configured language; other files here (`hi-spelling.json`) have a hyphen."""
+    return sorted(p.stem for p in Path(__file__).parent.glob("*.json") if "-" not in p.stem)

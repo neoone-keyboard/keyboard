@@ -1,17 +1,18 @@
-"""Writes the fixture that keeps lexbuild's romaniser and `table_romanise` in step.
+"""Writes the fixture that keeps lexbuild's romaniser and `mlkb.data.romanisation` in step.
 
     uv run python -m mlkb.data.romanisation_fixture --lang hi
 
 Rows `native<TAB>canonical<TAB>skeleton<TAB>typed<TAB>typed skeleton`, from a seeded sample of
 the Dakshina train lexicon (CC BY-SA 4.0) plus hand-picked hard cases. Both
-`engine/lexbuild/tests/romanisation.rs` and `training/tests/test_table_romanise.py` check every row
-against `packs/<lang>.neopack/romanisation.json`. Regenerate it after changing the table.
+`engine/lexbuild/tests/romanisation.rs` and `training/tests/test_romanisation.py` check every row
+against `packs/<lang>.neopack/romanisation.json` (format 1). Regenerate it after changing that file.
 """
 
 import argparse
 import random
 
-from mlkb.data.table_romanise import ROOT, Table, dakshina_rows
+from mlkb.data.romanisation import ROOT, Romanisation
+from mlkb.data.table_romanise import dakshina_rows
 
 CASES = {
     "hi": [
@@ -30,7 +31,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--lang", default="hi")
     p.add_argument("--rows", type=int, default=1000)
     args = p.parse_args(argv)
-    t = Table.load(ROOT / f"packs/{args.lang}.neopack/romanisation.json")
+    t = Romanisation.load(ROOT / f"packs/{args.lang}.neopack/romanisation.json")
     lexicons = ROOT / f"data/raw/dakshina/dakshina_dataset_v1.0/{args.lang}/lexicons"
     rows = dakshina_rows(lexicons / f"{args.lang}.translit.sampled.train.tsv")
     picked = [(n, latin) for n, latin, _ in random.Random(20261106).sample(rows, args.rows)]
