@@ -1,0 +1,23 @@
+{
+  "id": "aswikiquote",
+  "name": "Assamese Wikiquote",
+  "homepage": "https://as.wikiquote.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://as.wikiquote.org/ page footer (checked 2026-11-06): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Quotations on Assamese Wikiquote, collected by Wikiquote contributors.",
+  "used_for": "Assamese word frequencies and next-word pairs (packs/as.neopack; whole 2026-11-01 dump). Also LM text.",
+  "retrieved": "2026-11-06",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/aswikiquote/20261101/aswikiquote-20261101-pages-articles.xml.bz2",
+      "sha1": "7d434b8b59cbca8751ceed531b4a594b2f72f561",
+      "path": "aswikiquote-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}

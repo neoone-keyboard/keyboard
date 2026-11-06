@@ -1,0 +1,26 @@
+{
+  "id": "aksharantar-asm",
+  "name": "Aksharantar (AI4Bharat), Assamese",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-06): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Assamese files have no 'Dakshina Dataset' or 'Existing sources' rows (Dakshina has no Assamese), so every row is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Uni, AK-Freq, AK-NEI, AK-NEF: CC BY). The filter in training/mlkb/data/human.py would drop Dakshina and Existing rows if a later release added them.",
+  "used_for": "asm_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/as.neopack, and to fit and check the romanised Assamese tables (data/langs/as/romanisation.json). asm_valid.json manual rows (AK-Uni, AK-Freq) validate training. asm_test.json (AK-Freq, AK-NEI, AK-NEF, all manual, CC BY) is the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-06",
+  "notes": "Fetched 2026-11-06. Extract with: unzip asm.zip -d data/raw/aksharantar-asm/extracted (data/build-as-text.sh does). asm_train.json has 178,630 rows: IndicCorp 177,393, Samanantar 814, Wikidata 423. asm_valid.json 3,788: IndicCorp 1,959, AK-Uni 963, AK-Freq 836, Samanantar 20, Wikidata 10. asm_test.json 5,506: AK-Freq 3,629, AK-NEI 1,134, AK-NEF 743. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/asm.zip",
+      "sha256": "5ecd0dbbffdfa4026c0624106bbf3f95df3d79bbcdbb653a76fc74a759b909de",
+      "path": "asm.zip"
+    }
+  ],
+  "extracted": {
+    "asm_train.json": "4732d4736e858a5afefef006ee7ca84046e932456e963e8d63c94b50cd687e81",
+    "asm_valid.json": "ee51cdb34f0f45a8d1ecbcc653ca1c0511ebd5e12d045179189ba491296aca83",
+    "asm_test.json": "7e6b02ad23d7e550cd778d92dfea34426753b70775ce81e683081e68e4bc2890"
+  }
+}

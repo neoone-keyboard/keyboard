@@ -37,10 +37,11 @@ HEADING = re.compile(r"^=+.*=+\s*$")
 LIST_MARKER = re.compile(r"^[*#:;]+\s*")
 SPACES = re.compile(r"[ \t ]+")
 
-# Link prefixes that are not article text: namespaces (English and Malayalam) and interwikis.
+# Link prefixes that are not article text: namespaces (English, Malayalam, Assamese) and interwikis.
 LINK_NAMESPACES = {
     "file", "image", "media", "category", "special",
     "പ്രമാണം", "ചിത്രം", "വർഗ്ഗം", "പ്രത്യേകം",
+    "চিত্ৰ", "শ্ৰেণী", "মাধ্যম", "বিশেষ", "ফাইল",
 }  # fmt: skip
 INTERWIKI = re.compile(r"^[a-z]{2,3}(?:-[a-z]+)*$")
 
@@ -48,6 +49,8 @@ MIN_WORDS = 4
 
 # A printed line-end hyphen inside a Malayalam word (Wikisource Page text): "സ-\nന്തുഷ്ട്യാ".
 MALAYALAM_LINE_BREAK = re.compile(r"(?<=[\u0D00-\u0D7F])-[ \t]*\n[ \t]*(?=[\u0D00-\u0D7F])")
+# The same inside a Bengali-Assamese word (Assamese Wikisource Page text).
+BENGALI_LINE_BREAK = re.compile(r"(?<=[\u0980-\u09FF])-[ \t]*\n[ \t]*(?=[\u0980-\u09FF])")
 MALAYALAM_TOKEN = re.compile(r"[\u0D00-\u0D7F\u200C\u200D]+")
 # Sanskrit particles that are not Malayalam words on their own ("ച" = and, "ന" = not, ...).
 SANSKRIT_PARTICLES = {
@@ -196,7 +199,7 @@ def strip_wikitext(text: str) -> str:
 
 
 def paragraphs(wikitext: str) -> Iterator[str]:
-    text = MALAYALAM_LINE_BREAK.sub("", strip_wikitext(wikitext))
+    text = BENGALI_LINE_BREAK.sub("", MALAYALAM_LINE_BREAK.sub("", strip_wikitext(wikitext)))
     for line in text.splitlines():
         line = line.strip()
         if not line or HEADING.match(line) or line[0] in "|!{}" or is_sanskrit(line):

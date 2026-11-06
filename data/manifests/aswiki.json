@@ -1,0 +1,23 @@
+{
+  "id": "aswiki",
+  "name": "Assamese Wikipedia",
+  "homepage": "https://as.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://as.wikipedia.org/ page footer (checked 2026-11-06): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Assamese Wikipedia articles by Wikipedia contributors.",
+  "used_for": "Assamese word frequencies, romanised Assamese lookup and next-word pairs (packs/as.neopack; whole 2026-11-01 dump). Also the Assamese half of the as pack's LM text.",
+  "retrieved": "2026-11-06",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/aswiki/20261101/aswiki-20261101-pages-articles.xml.bz2",
+      "sha1": "404e6f38e2cecd4ae7c645df543806a966787814",
+      "path": "aswiki-20261101-pages-articles.xml.bz2"
+    }
+  ]
+}
