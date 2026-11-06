@@ -1,0 +1,9 @@
+{
+  "model_top1": 0.555,
+  "model_top3": 0.7885,
+  "lexicon_top1": 0.644,
+  "lexicon_top3": 0.8355,
+  "pairs": 2000,
+  "targets_in_lexicon": 0.967,
+  "model": "build/hi/translit.mlkbnn"
+}
