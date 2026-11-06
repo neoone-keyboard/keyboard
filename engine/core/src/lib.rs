@@ -4,6 +4,7 @@ pub mod chat_forms;
 pub mod engine;
 pub mod fuzzy;
 pub mod keys;
+pub mod lang;
 pub mod lexicon;
 pub mod lm_context;
 pub mod malayalam;
