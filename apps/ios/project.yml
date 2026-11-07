@@ -26,7 +26,8 @@ targets:
         type: folder
         buildPhase: resources
         optional: true
-    scheme: {}
+    scheme:
+      testTargets: [KeyboardUITests]
     # Installed language packs (M6 phase 3) live in the App Group's Packs/: the app writes them,
     # the keyboard reads them (no Full Access needed for reading).
     entitlements:
@@ -126,3 +127,17 @@ targets:
     dependencies:
       - package: KeyboardCore
       - package: MLEngine
+  # The app's screens and the keyboard's settings panel, on a simulator where NeoOne Keyboard
+  # is added in Settings. SHOTS_DIR (TEST_RUNNER_SHOTS_DIR=… on xcodebuild) saves screenshots.
+  KeyboardUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [KeyboardUITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard.uitests
+        TEST_TARGET_NAME: KeyboardApp
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - target: KeyboardApp
