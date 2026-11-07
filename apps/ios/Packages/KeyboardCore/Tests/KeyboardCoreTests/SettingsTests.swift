@@ -57,3 +57,10 @@ private func freshDefaults() -> UserDefaults {
     defaults.set(7, forKey: "suggestionCount")
     #expect(KeyboardSettings.load(from: defaults).suggestionCount == 10)
 }
+
+@Test func appAccentIsTheIconsIndigo() {
+    // tools/icon/render.swift lights the icon's 1 key in #5459CC.
+    let rgb = AccentChoice.app.rgb
+    #expect([rgb.red, rgb.green, rgb.blue].map { Int(($0 * 255).rounded()) } == [0x54, 0x59, 0xCC])
+    #expect(AccentChoice.app.lightText)
+}

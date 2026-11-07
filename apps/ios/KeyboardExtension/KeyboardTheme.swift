@@ -52,11 +52,8 @@ struct KeyboardTheme {
     }
 
     private static func accentColors(_ choice: AccentChoice) -> (UIColor, UIColor) {
-        switch choice {
-        case .saffron: (UIColor(red: 0.91, green: 0.64, blue: 0.24, alpha: 1), UIColor(white: 0.08, alpha: 1))
-        case .teal: (UIColor(red: 0.16, green: 0.62, blue: 0.60, alpha: 1), UIColor(white: 0.08, alpha: 1))
-        case .indigo: (UIColor(red: 0.33, green: 0.35, blue: 0.80, alpha: 1), UIColor(white: 0.98, alpha: 1))
-        case .rose: (UIColor(red: 0.84, green: 0.31, blue: 0.45, alpha: 1), UIColor(white: 0.98, alpha: 1))
-        }
+        let rgb = choice.rgb
+        return (UIColor(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1),
+                UIColor(white: choice.lightText ? 0.98 : 0.08, alpha: 1))
     }
 }
