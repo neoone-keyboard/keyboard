@@ -65,8 +65,22 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertFalse(app.buttons["settings-done"].isHittable)
     }
 
-    /// Opens the panel by holding the language key, which reads മ or EN (the next language).
-    private func openPanel() throws {
+    /// The keys in both languages (screenshots, for comparing with the design): the language
+    /// key switches to the other and back.
+    func testKeyboardLanguages() throws {
+        let key = try showKeyboard()
+        let first = key.label
+        shot("keyboard-\(first == "EN" ? "ml" : "en")")
+        key.tap()
+        let other = app.staticTexts[first == "EN" ? "മ" : "EN"]
+        XCTAssertTrue(other.waitForExistence(timeout: 5))
+        shot("keyboard-\(first == "EN" ? "en" : "ml")")
+        other.tap()
+        XCTAssertTrue(app.staticTexts[first].waitForExistence(timeout: 5))
+    }
+
+    /// Shows the keyboard for the Try it field; returns its language key.
+    private func showKeyboard() throws -> XCUIElement {
         app.launch()
         let field = app.textViews["try-it"].exists ? app.textViews["try-it"] : app.textFields["try-it"]
         XCTAssertTrue(field.waitForExistence(timeout: 10))
@@ -75,7 +89,12 @@ final class KeyboardUITests: XCTestCase {
         guard key.waitForExistence(timeout: 5) else {
             throw XCTSkip("NeoOne Keyboard isn't the keyboard shown; add it in the simulator's Settings")
         }
-        key.press(forDuration: 1.2)
+        return key
+    }
+
+    /// Opens the panel by holding the language key, which reads മ or EN (the next language).
+    private func openPanel() throws {
+        try showKeyboard().press(forDuration: 1.2)
         XCTAssertTrue(app.buttons["settings-done"].waitForExistence(timeout: 5))
     }
 
