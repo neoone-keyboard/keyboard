@@ -93,7 +93,8 @@ final class KeyboardViewController: UIInputViewController {
             stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -2),
             settingsPanel.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
             settingsPanel.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
-            settingsPanel.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            // Over the top bar too, which shows nothing while the panel is open: more room.
+            settingsPanel.topAnchor.constraint(equalTo: stack.topAnchor),
             settingsPanel.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
         ].compactMap { $0 })
     }
