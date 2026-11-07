@@ -125,6 +125,11 @@ pub struct EngineConfig {
     /// that didn't load), means every loaded language up to that many, English first.
     #[uniffi(default = [])]
     pub active: Vec<String>,
+    /// How many candidates a suggest returns at most, 1 to `mlengine_core::MAX_SUGGESTIONS`
+    /// (`mlengine_core::Engine::set_max_suggestions`); nil, `mlengine_core::DEFAULT_SUGGESTIONS`.
+    /// More only adds candidates after the first three.
+    #[uniffi(default = None)]
+    pub max_suggestions: Option<u32>,
 }
 
 fn millis(ms: Option<u32>) -> Option<std::time::Duration> {
@@ -266,6 +271,9 @@ impl Engine {
             pack_problems.extend(inner.pack_problems());
             if set_active(&mut inner, &config.active).is_err() {
                 inner.set_default_active();
+            }
+            if let Some(n) = config.max_suggestions {
+                inner.set_max_suggestions(n as usize);
             }
             Arc::new(Self {
                 inner: std::sync::RwLock::new(inner),
@@ -421,6 +429,19 @@ impl Engine {
         let mut inner = self.inner.write().unwrap_or_else(|p| p.into_inner());
         guarded(|| set_active(&mut inner, &languages))?
             .map_err(|message| EngineError::Refused { message })
+    }
+
+    /// How many candidates a suggest returns at most, from 1 to
+    /// `mlengine_core::MAX_SUGGESTIONS` (`EngineConfig::max_suggestions`). Cheap: nothing is
+    /// reopened.
+    pub fn set_max_suggestions(&self, n: u32) -> Result<(), EngineError> {
+        let mut inner = self.inner.write().unwrap_or_else(|p| p.into_inner());
+        guarded(|| inner.set_max_suggestions(n as usize))
+    }
+
+    /// How many candidates a suggest returns at most.
+    pub fn max_suggestions(&self) -> Result<u32, EngineError> {
+        guarded(|| u32::try_from(self.inner().max_suggestions()).unwrap_or(u32::MAX))
     }
 
     /// The active languages' ids, in order.
@@ -769,6 +790,33 @@ mod tests {
         assert_eq!(engine.active_languages().unwrap(), ["ml"]);
         let engine = Engine::new(config(&["hi"])).unwrap();
         assert_eq!(engine.active_languages().unwrap(), ["en", "ml"]);
+    }
+
+    #[test]
+    fn the_number_of_suggestions_crosses_ffi() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let config = |max: Option<u32>| EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dir: Some(format!("{root}/packs/ml.neopack")),
+            max_suggestions: max,
+            ..EngineConfig::default()
+        };
+        let three = Engine::new(config(None)).unwrap();
+        assert_eq!(three.max_suggestions().unwrap(), 3);
+        let ten = Engine::new(config(Some(10))).unwrap();
+        assert_eq!(ten.max_suggestions().unwrap(), 10);
+        let ask = |e: &Engine| e.suggest("hello th".into(), InputLayout::Latin, true).unwrap();
+        let (short, long) = (ask(&three), ask(&ten));
+        assert_eq!(short.candidates.len(), 3);
+        assert!(long.candidates.len() > 3, "{long:?}");
+        assert_eq!(short.candidates[..], long.candidates[..3]);
+        // Set on a running engine; out of range is clamped.
+        three.set_max_suggestions(10).unwrap();
+        assert_eq!(ask(&three), long);
+        three.set_max_suggestions(500).unwrap();
+        assert_eq!(three.max_suggestions().unwrap(), 20);
+        three.set_max_suggestions(0).unwrap();
+        assert_eq!(three.max_suggestions().unwrap(), 1);
     }
 
     #[test]

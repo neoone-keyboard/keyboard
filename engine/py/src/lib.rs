@@ -82,6 +82,12 @@ impl Engine {
             .collect())
     }
 
+    /// How many candidates `suggest` returns at most (`Engine::set_max_suggestions`; 3 until
+    /// set), for measuring the keyboard's longer bar.
+    fn set_max_suggestions(&mut self, n: usize) {
+        self.0.set_max_suggestions(n);
+    }
+
     /// Names of the sources that loaded, e.g. ["english", "ml:lexicon", "ml:lm"].
     fn loaded_sources(&self) -> Vec<String> {
         self.0.loaded_sources()
