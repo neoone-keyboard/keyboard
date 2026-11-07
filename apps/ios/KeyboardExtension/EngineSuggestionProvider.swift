@@ -161,7 +161,8 @@ actor EngineSuggestionProvider: SuggestionProvider {
             lmPrefillMs: lmPrefillMs,
             lmAfterSpaceMs: lmAfterSpaceMs,
             lmDeadlineMs: lmDeadlineMs,
-            lmPrepareMs: lmPrepareMs
+            lmPrepareMs: lmPrepareMs,
+            maxSuggestions: UInt32(KeyboardSettings.load(from: .standard).suggestionCount)
         )
     }
 
@@ -290,6 +291,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// Returns once the work queued on the actor before it is done.
     func idle() {}
 
+    /// How many suggestions the engine returns (`KeyboardSettings.suggestionCount`): set on the
+    /// open engine, which is cheap, and kept for when it next opens. Nothing is reopened.
+    func setMaxSuggestions(_ count: Int) {
+        let count = UInt32(clamping: count)
+        guard config.maxSuggestions != count else { return }
+        ahead = nil
+        config.maxSuggestions = count
+        try? engine?.setMaxSuggestions(n: count)
+        log.info("Suggestions per request now \(count)")
+    }
+
     /// Best effort: a failure only means the word isn't learned.
     func handle(_ event: LearningEvent) {
         ahead = nil
@@ -411,7 +423,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
         ahead = nil
         if fresh.packs != old.packs {
             log.info("Packs changed (\(fresh.packs.map(\.id).joined(separator: ","))); the engine reopens")
+            let count = config.maxSuggestions
             config = Self.config(packs: fresh.packs)
+            config.maxSuggestions = count
             engine = nil
             failedAt = nil
             return

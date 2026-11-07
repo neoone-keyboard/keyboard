@@ -30,6 +30,9 @@ final class SettingsPanelView: UIView {
     private let autocorrectSwitch = UISwitch()
     private let emojiLabel = UILabel()
     private let emojiSwitch = UISwitch()
+    /// How many suggestions the bar holds (`KeyboardSettings.suggestionCounts`).
+    private let suggestionsLabel = UILabel()
+    private let suggestionsControl = UISegmentedControl(items: KeyboardSettings.suggestionCounts.map(String.init))
     private let yourWordsButton = UIButton(type: .system)
     /// One switch per language the keyboard has (English, then its packs), built in `show`.
     private let languagesLabel = UILabel()
@@ -99,6 +102,9 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.emojiSuggestions = self.emojiSwitch.isOn }
         }, for: .valueChanged)
+        suggestionsLabel.text = "Suggestions"
+        suggestionsControl.accessibilityIdentifier = "suggestion-count"
+        suggestionsControl.addAction(UIAction { [weak self] _ in self?.suggestionCountChanged() }, for: .valueChanged)
         languagesLabel.text = "Languages"
         languagesLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         languageRows.axis = .vertical
@@ -124,17 +130,18 @@ final class SettingsPanelView: UIView {
         let clicksRow = UIStackView(arrangedSubviews: [clicksLabel, UIView(), clicksSwitch])
         let autocorrectRow = UIStackView(arrangedSubviews: [autocorrectLabel, UIView(), autocorrectSwitch])
         let emojiRow = UIStackView(arrangedSubviews: [emojiLabel, UIView(), emojiSwitch])
+        let suggestionsRow = UIStackView(arrangedSubviews: [suggestionsLabel, UIView(), suggestionsControl])
 
-        for row in [header, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow] {
+        for row in [header, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, suggestionsRow] {
             row.axis = .horizontal
             row.alignment = .center
         }
-        for label in [accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel] {
+        for label in [accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel, suggestionsLabel] {
             label.font = .systemFont(ofSize: 15)
         }
 
         let stack = UIStackView(arrangedSubviews: [
-            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, languagesLabel, languageRows, languagesHint,
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, suggestionsRow, languagesLabel, languageRows, languagesHint,
             yourWordsButton,
             forgetButton, diagnosticsButton,
         ])
@@ -166,6 +173,9 @@ final class SettingsPanelView: UIView {
             header.heightAnchor.constraint(equalToConstant: 36),
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
+            suggestionsRow.heightAnchor.constraint(equalToConstant: 36),
+            suggestionsControl.heightAnchor.constraint(equalToConstant: 30),
+            suggestionsControl.widthAnchor.constraint(equalToConstant: 150),
             languagesLabel.heightAnchor.constraint(equalToConstant: 30),
             yourWordsButton.heightAnchor.constraint(equalToConstant: 36),
             forgetButton.heightAnchor.constraint(equalToConstant: 36),
@@ -185,6 +195,7 @@ final class SettingsPanelView: UIView {
         clicksSwitch.isOn = settings.keyClicks
         autocorrectSwitch.isOn = settings.autocorrect
         emojiSwitch.isOn = settings.emojiSuggestions
+        suggestionsControl.selectedSegmentIndex = KeyboardSettings.suggestionCounts.firstIndex(of: settings.suggestionCount) ?? 1
         setForgetArmed(false)
         refreshSwatches()
     }
@@ -193,7 +204,7 @@ final class SettingsPanelView: UIView {
         self.theme = theme
         overrideUserInterfaceStyle = theme.isDark ? .dark : .light
         backgroundColor = theme.background
-        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel, languagesLabel]
+        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel, suggestionsLabel, languagesLabel]
             + languageSwitches.map(\.label) {
             label.textColor = theme.keyText
         }
@@ -202,10 +213,12 @@ final class SettingsPanelView: UIView {
         yourWordsButton.tintColor = theme.keyText
         forgetButton.tintColor = theme.keyText
         diagnosticsButton.tintColor = theme.keyText
-        themeControl.backgroundColor = theme.specialKey
-        themeControl.selectedSegmentTintColor = theme.key
-        themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)
-        themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .selected)
+        for control in [themeControl, suggestionsControl] {
+            control.backgroundColor = theme.specialKey
+            control.selectedSegmentTintColor = theme.key
+            control.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)
+            control.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .selected)
+        }
         for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch, emojiSwitch] + languageSwitches.map(\.toggle) {
             toggle.onTintColor = theme.accent
         }
@@ -288,6 +301,12 @@ final class SettingsPanelView: UIView {
         let index = themeControl.selectedSegmentIndex
         guard Self.themes.indices.contains(index) else { return }
         update { $0.theme = Self.themes[index] }
+    }
+
+    private func suggestionCountChanged() {
+        let index = suggestionsControl.selectedSegmentIndex
+        guard KeyboardSettings.suggestionCounts.indices.contains(index) else { return }
+        update { $0.suggestionCount = KeyboardSettings.suggestionCounts[index] }
     }
 
     private func update(_ change: (inout KeyboardSettings) -> Void) {

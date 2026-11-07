@@ -34,6 +34,8 @@ final class KeyboardViewController: UIInputViewController {
     private var yourWordsHeight: NSLayoutConstraint?
     private var yourWordsOpen: Bool { !yourWordsView.isHidden }
     private var settings = KeyboardSettings()
+    /// The suggestion count last given to the provider (`applySuggestionCount`).
+    private var engineSuggestionCount: Int?
     private var theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
 
     private let provider = EngineSuggestionProvider.shared
@@ -843,10 +845,25 @@ final class KeyboardViewController: UIInputViewController {
         keyboardView.playsClicks = settings.keyClicks
         updateHeight()
         updateAutocorrect()
+        applySuggestionCount()
         lastRequest = nil // autocorrect may have changed: ask again
         requestSuggestions()
         reloadKeys()
         refreshTopBar()
+    }
+
+    /// The engine returns as many suggestions as the bar holds. A change is set on the
+    /// provider first, then the bar asks again, so the new count shows at once.
+    private func applySuggestionCount() {
+        let count = settings.suggestionCount
+        guard count != engineSuggestionCount else { return }
+        engineSuggestionCount = count
+        Task { [weak self, provider] in
+            await provider.setMaxSuggestions(count)
+            guard let self, self.engineSuggestionCount == count else { return }
+            lastRequest = nil
+            requestSuggestions()
+        }
     }
 
     private func reloadKeys() {
@@ -872,7 +889,7 @@ final class KeyboardViewController: UIInputViewController {
         let word = Self.straight(input.currentWord)
         if input.showsSwipe {
             barWord = word
-            topBar.showSuggestions(SuggestionBar(input.suggestions))
+            topBar.showSuggestions(SuggestionBar(input.suggestions, limit: settings.suggestionCount))
             return
         }
         let current = latest.isFor(word: word) ? latest : nil
@@ -892,7 +909,7 @@ final class KeyboardViewController: UIInputViewController {
         }
         if current == nil, awaitingResult, !topBar.showsVowelSigns, barWord == word { return }
         barWord = word
-        let bar = SuggestionBar(current ?? .empty)
+        let bar = SuggestionBar(current ?? .empty, limit: settings.suggestionCount)
         topBar.showSuggestions(bar.withEmoji(barEmoji()))
         noteBar(empty: bar.left == nil && bar.middle == nil && bar.right == nil, current: current)
     }
