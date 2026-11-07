@@ -818,8 +818,8 @@ fn latency_by_suggestion_count() {
     for n in [3, 10, 20] {
         engine.set_max_suggestions(n);
         let engine = &engine;
-        time_suggests(&format!("{n} suggestions"), &engine, &inputs);
-        time_suggests(&format!("{n} suggestions, a long message"), &engine, &message);
+        time_suggests(&format!("{n} suggestions"), engine, &inputs);
+        time_suggests(&format!("{n} suggestions, a long message"), engine, &message);
         let keyboard = |context: &str, layout| {
             let start = Instant::now();
             let elapsed = || start.elapsed();
@@ -827,7 +827,7 @@ fn latency_by_suggestion_count() {
         };
         time_with(
             &format!("{n} suggestions, a long message, keyboard cutoffs"),
-            &engine,
+            engine,
             &message,
             &keyboard,
         );
