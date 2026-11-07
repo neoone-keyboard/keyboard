@@ -82,10 +82,27 @@ final class KeyboardView: UIView {
     func refreshLabels() {
         guard let theme, let label else { return }
         for (cap, key) in zip(caps, layout.rows.flatMap { $0 }) {
+            let title = label(key)
             cap.configure(
-                title: label(key), hint: Self.hint(key), special: Self.isSpecial(key.action),
-                symbol: key.action == .emoji ? "face.smiling" : nil, theme: theme
+                title: title, hint: Self.hint(key), special: Self.isSpecial(key.action),
+                symbol: Self.symbol(key.action, label: title), theme: theme
             )
+        }
+    }
+
+    /// An SF Symbol drawn in place of the label: the emoji key's smiley, and shift and
+    /// backspace, whose text arrows draw too small (design-ref KeyboardLight.dc.html).
+    private static func symbol(_ action: KeyAction, label: String) -> String? {
+        switch action {
+        case .emoji: "face.smiling"
+        case .backspace: "delete.left"
+        case .shift:
+            switch label {
+            case "⬆︎": "shift.fill"
+            case "⇪": "capslock.fill"
+            default: "shift"
+            }
+        default: nil
         }
     }
 
