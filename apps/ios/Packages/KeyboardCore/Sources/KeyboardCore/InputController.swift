@@ -86,11 +86,16 @@ public final class InputController {
     public private(set) var page: KeyboardPage = .letters
     public private(set) var language: Language = .english
     /// What the language key cycles through, in order (the engine's `layouts()`); never empty.
-    /// Setting it keeps the current language if it is still listed, else shows the first.
+    /// Setting it keeps the current language, and its page, if a language with the same id is
+    /// still listed (a pack read again is a new value with the same id); else shows the first.
     public var languages: [Language] = [.english] {
         didSet {
             if languages.isEmpty { languages = [.english] }
-            if !languages.contains(language) { switchLanguage(to: languages[0]) }
+            if let same = languages.first(where: { $0.id == language.id }) {
+                language = same
+            } else {
+                switchLanguage(to: languages[0])
+            }
         }
     }
     public var numberRow = false
@@ -176,13 +181,17 @@ public final class InputController {
         page = alphabetPage
     }
 
+    /// Which keys show: when this changes they must be drawn again (a shift change only
+    /// relabels them). The page alone isn't enough: every pack's first page may be `letters`.
+    public var keysShown: KeysShown { KeysShown(language: language.id, page: page) }
+
     public var layout: KeyboardLayout {
         .forPage(page, native: language.nativeLayout, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard)
     }
 
     /// The language the language key switches to: the next in `languages`.
     private var nextLanguage: Language {
-        let index = languages.firstIndex(of: language) ?? -1
+        let index = languages.firstIndex { $0.id == language.id } ?? -1
         return languages[(index + 1) % languages.count]
     }
 

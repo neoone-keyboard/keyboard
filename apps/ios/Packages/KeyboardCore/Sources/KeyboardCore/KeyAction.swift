@@ -24,3 +24,15 @@ public enum KeyboardPage: Hashable, Sendable {
         if case .native = self { true } else { false }
     }
 }
+
+/// The keys showing: a page of a language (`Language.id`). Two languages' pages can share an
+/// id (Malayalam's and Hindi's first are both `.native("letters")`), so both are needed.
+public struct KeysShown: Hashable, Sendable {
+    public let language: String
+    public let page: KeyboardPage
+
+    public init(language: String, page: KeyboardPage) {
+        self.language = language
+        self.page = page
+    }
+}

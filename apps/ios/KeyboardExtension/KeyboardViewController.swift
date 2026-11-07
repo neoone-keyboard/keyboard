@@ -148,15 +148,15 @@ final class KeyboardViewController: UIInputViewController {
         keyboardView.onEvent = { [unowned self] in handle($0) }
         keyboardView.onPress = { [unowned self] in prefetchSuggestions(after: $0) }
         topBar.onVowelSign = { [unowned self] sign in
-            let page = input.page, shift = input.shift
+            let keys = input.keysShown, shift = input.shift
             output.beginEdit()
             input.handle(.character(sign), at: ProcessInfo.processInfo.systemUptime)
-            afterInput(pageBefore: page, shiftBefore: shift)
+            afterInput(keysBefore: keys, shiftBefore: shift)
         }
         topBar.onSuggestion = { [unowned self] slot in
             // The bar may still show another word's slots while a result is on its way.
             guard barWord == Self.straight(input.currentWord) else { return }
-            let page = input.page, shift = input.shift
+            let keys = input.keysShown, shift = input.shift
             output.beginEdit()
             if slot.suggestion.kind == .emoji {
                 input.commitEmojiSuggestion(slot.suggestion.text)
@@ -164,7 +164,7 @@ final class KeyboardViewController: UIInputViewController {
             } else {
                 input.commitSuggestion(slot)
             }
-            afterInput(pageBefore: page, shiftBefore: shift)
+            afterInput(keysBefore: keys, shiftBefore: shift)
         }
         // Removal runs on the provider's actor; the bar asks again once it is done, so the
         // word is gone from it and the next best takes its slot.
@@ -369,7 +369,9 @@ final class KeyboardViewController: UIInputViewController {
     private func applyLayouts(_ layouts: [InputLayout]) {
         let languages = EngineSuggestionProvider.languages(for: layouts)
         guard !languages.isEmpty, languages != input.languages else { return }
+        let before = input.language.id
         input.languages = languages
+        log.info("Languages now \(languages.map(\.id).joined(separator: ",")); was on \(before), now \(input.language.id)")
         // The keys, their labels and the bar may all change with the list.
         applySettings()
     }
@@ -424,7 +426,7 @@ final class KeyboardViewController: UIInputViewController {
             swipe(points)
             return
         }
-        let pageBefore = input.page, shiftBefore = input.shift
+        let keysBefore = input.keysShown, shiftBefore = input.shift
         output.beginEdit()
         switch event {
         case .tap(.nextKeyboard):
@@ -447,7 +449,7 @@ final class KeyboardViewController: UIInputViewController {
             showSettings()
             return
         }
-        afterInput(pageBefore: pageBefore, shiftBefore: shiftBefore)
+        afterInput(keysBefore: keysBefore, shiftBefore: shiftBefore)
     }
 
     /// Decodes a swipe on the provider's actor and types its best word, with the others in the
@@ -476,10 +478,10 @@ final class KeyboardViewController: UIInputViewController {
                 showSwipeFailed()
                 return
             }
-            let page = input.page, shift = input.shift
+            let shown = input.keysShown, shift = input.shift
             output.beginEdit()
             input.insertSwipe(best, alternatives: Array(found.dropFirst().prefix(2)))
-            afterInput(pageBefore: page, shiftBefore: shift)
+            afterInput(keysBefore: shown, shiftBefore: shift)
         }
     }
 
@@ -488,11 +490,11 @@ final class KeyboardViewController: UIInputViewController {
         refreshTopBar()
     }
 
-    private func afterInput(pageBefore: KeyboardPage, shiftBefore: ShiftState) {
+    private func afterInput(keysBefore: KeysShown, shiftBefore: ShiftState) {
         // Typing answers "Remove …?" with no.
         topBar.cancelRemoval()
         input.applyAutoCapitalization(autoCapitalization)
-        if input.page != pageBefore {
+        if input.keysShown != keysBefore {
             reloadKeys()
         } else if input.shift != shiftBefore {
             keyboardView.refreshLabels()
@@ -602,10 +604,10 @@ final class KeyboardViewController: UIInputViewController {
         let panel = EmojiPanelView()
         panel.onEmoji = { [unowned self] emoji, base in insertPickedEmoji(emoji, toneFor: base) }
         panel.onBackspace = { [unowned self] in
-            let page = input.page, shift = input.shift
+            let keys = input.keysShown, shift = input.shift
             output.beginEdit()
             input.deleteBackwardWholeEmoji()
-            afterInput(pageBefore: page, shiftBefore: shift)
+            afterInput(keysBefore: keys, shiftBefore: shift)
         }
         panel.onLetters = { [unowned self] in hideEmojiPanel() }
         panel.onSearch = { [unowned self] in showEmojiSearch() }
@@ -641,11 +643,11 @@ final class KeyboardViewController: UIInputViewController {
     /// An emoji picked in the panel or its search, with the base it is a chosen tone for.
     private func insertPickedEmoji(_ emoji: String, toneFor base: String?) {
         if let base { emojiHistory.chooseTone(emoji, for: base) }
-        let page = input.page, shift = input.shift
+        let keys = input.keysShown, shift = input.shift
         output.beginEdit()
         input.insertEmoji(emoji)
         noteEmojiUsed(emoji)
-        afterInput(pageBefore: page, shiftBefore: shift)
+        afterInput(keysBefore: keys, shiftBefore: shift)
     }
 
     /// Swaps the panel for its search, in the top bar's place, over the letter keys. The
@@ -694,9 +696,9 @@ final class KeyboardViewController: UIInputViewController {
                     advanceToNextInputMode()
                     return
                 }
-                let pageBefore = input.page, shiftBefore = input.shift
+                let keysBefore = input.keysShown, shiftBefore = input.shift
                 input.handle(action, at: ProcessInfo.processInfo.systemUptime)
-                if input.page != pageBefore {
+                if input.keysShown != keysBefore {
                     reloadKeys()
                 } else if input.shift != shiftBefore {
                     keyboardView.refreshLabels()
@@ -790,9 +792,9 @@ final class KeyboardViewController: UIInputViewController {
                 advanceToNextInputMode()
                 return
             }
-            let pageBefore = input.page, shiftBefore = input.shift
+            let keysBefore = input.keysShown, shiftBefore = input.shift
             input.handle(action, at: ProcessInfo.processInfo.systemUptime)
-            if input.page != pageBefore {
+            if input.keysShown != keysBefore {
                 reloadKeys()
             } else if input.shift != shiftBefore {
                 keyboardView.refreshLabels()
