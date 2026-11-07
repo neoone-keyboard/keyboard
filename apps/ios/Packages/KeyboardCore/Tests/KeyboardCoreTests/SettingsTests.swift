@@ -18,6 +18,7 @@ private func freshDefaults() -> UserDefaults {
     #expect(!settings.keyClicks)
     #expect(settings.autocorrect, "autocorrect is on until the user turns it off")
     #expect(settings.emojiSuggestions, "emoji suggestions are on until the user turns them off")
+    #expect(settings.suggestionCount == 10, "ten suggestions until the user picks another number")
 }
 
 @Test func roundTrips() {
@@ -29,6 +30,7 @@ private func freshDefaults() -> UserDefaults {
     settings.keyClicks = true
     settings.autocorrect = false
     settings.emojiSuggestions = false
+    settings.suggestionCount = 20
     settings.save(to: defaults)
     #expect(KeyboardSettings.load(from: defaults) == settings)
 }
@@ -40,4 +42,18 @@ private func freshDefaults() -> UserDefaults {
     let settings = KeyboardSettings.load(from: defaults)
     #expect(settings.theme == .system)
     #expect(settings.accent == .saffron)
+}
+
+@Test func suggestionCountIsOneOfTheChoices() {
+    #expect(KeyboardSettings.suggestionCounts == [3, 10, 20])
+    for count in KeyboardSettings.suggestionCounts {
+        let defaults = freshDefaults()
+        var settings = KeyboardSettings()
+        settings.suggestionCount = count
+        settings.save(to: defaults)
+        #expect(KeyboardSettings.load(from: defaults).suggestionCount == count)
+    }
+    let defaults = freshDefaults()
+    defaults.set(7, forKey: "suggestionCount")
+    #expect(KeyboardSettings.load(from: defaults).suggestionCount == 10)
 }

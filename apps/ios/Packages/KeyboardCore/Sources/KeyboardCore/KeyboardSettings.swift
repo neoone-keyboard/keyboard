@@ -19,6 +19,12 @@ public struct KeyboardSettings: Equatable, Sendable {
     public var autocorrect = true
     /// An emoji for the word in the bar's right slot (`EmojiSuggestion`).
     public var emojiSuggestions = true
+    /// How many suggestions the bar holds: the three slots, and with more, the rest past the
+    /// right slot when the bar is scrolled. One of `suggestionCounts`.
+    public var suggestionCount = 10
+
+    /// The choices offered for `suggestionCount`. The engine returns at most 20.
+    public static let suggestionCounts = [3, 10, 20]
 
     public init() {}
 
@@ -30,6 +36,9 @@ public struct KeyboardSettings: Equatable, Sendable {
         settings.keyClicks = defaults.bool(forKey: Keys.keyClicks)
         settings.autocorrect = defaults.object(forKey: Keys.autocorrect) as? Bool ?? settings.autocorrect
         settings.emojiSuggestions = defaults.object(forKey: Keys.emojiSuggestions) as? Bool ?? settings.emojiSuggestions
+        if let count = defaults.object(forKey: Keys.suggestionCount) as? Int, suggestionCounts.contains(count) {
+            settings.suggestionCount = count
+        }
         return settings
     }
 
@@ -40,6 +49,7 @@ public struct KeyboardSettings: Equatable, Sendable {
         defaults.set(keyClicks, forKey: Keys.keyClicks)
         defaults.set(autocorrect, forKey: Keys.autocorrect)
         defaults.set(emojiSuggestions, forKey: Keys.emojiSuggestions)
+        defaults.set(suggestionCount, forKey: Keys.suggestionCount)
     }
 
     private enum Keys {
@@ -49,5 +59,6 @@ public struct KeyboardSettings: Equatable, Sendable {
         static let keyClicks = "keyClicks"
         static let autocorrect = "autocorrect"
         static let emojiSuggestions = "emojiSuggestions"
+        static let suggestionCount = "suggestionCount"
     }
 }

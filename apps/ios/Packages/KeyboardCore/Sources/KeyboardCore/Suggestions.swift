@@ -79,31 +79,50 @@ public struct SuggestionSlot: Equatable, Sendable {
 }
 
 /// The three-slot bar: best in the middle; when the middle would replace what
-/// was typed, the typed word sits on the left in quotes.
+/// was typed, the typed word sits on the left in quotes. With a `limit` above three, the
+/// candidates after those go in `more`, in the engine's order, which the bar shows past the
+/// right slot when it is scrolled (`KeyboardSettings.suggestionCount`).
 public struct SuggestionBar: Equatable, Sendable {
+    /// The three slots, as a bar of three has always had them.
+    public static let slotCount = 3
+
     public var left: SuggestionSlot?
     public var middle: SuggestionSlot?
     public var right: SuggestionSlot?
+    /// The candidates after the three slots, at most `limit` minus three.
+    public var more: [SuggestionSlot] = []
+    /// How many suggestions the bar holds at most, slots and `more` together.
+    public let limit: Int
 
-    public init(_ result: SuggestionResult) {
+    public init(_ result: SuggestionResult, limit: Int = SuggestionBar.slotCount) {
+        self.limit = max(limit, Self.slotCount)
         let candidates = result.candidates
         guard let first = candidates.first else { return }
         middle = SuggestionSlot(suggestion: first, quoted: false)
         var rest = Array(candidates.dropFirst())
+        let after: ArraySlice<Suggestion>
         if first.kind != .verbatim, let index = rest.firstIndex(where: { $0.kind == .verbatim }) {
             left = SuggestionSlot(suggestion: rest.remove(at: index), quoted: true)
             right = rest.first.map { SuggestionSlot(suggestion: $0, quoted: false) }
+            after = rest.dropFirst()
         } else {
             left = rest.first.map { SuggestionSlot(suggestion: $0, quoted: false) }
             right = rest.dropFirst().first.map { SuggestionSlot(suggestion: $0, quoted: false) }
+            after = rest.dropFirst(2)
         }
+        more = after.prefix(self.limit - Self.slotCount).map { SuggestionSlot(suggestion: $0, quoted: false) }
     }
 
     /// The bar with `emoji` in the right slot: never the middle, which space commits, so an
-    /// emoji is never put in by autocorrect. Nil leaves the bar as it is.
+    /// emoji is never put in by autocorrect. The word it displaces leads `more` when the bar
+    /// has room past three, else it is dropped. Nil leaves the bar as it is.
     public func withEmoji(_ emoji: String?) -> SuggestionBar {
         guard let emoji else { return self }
         var bar = self
+        if limit > Self.slotCount, let displaced = right {
+            bar.more.insert(displaced, at: 0)
+            bar.more = Array(bar.more.prefix(limit - Self.slotCount))
+        }
         bar.right = SuggestionSlot(suggestion: Suggestion(emoji, kind: .emoji), quoted: false)
         return bar
     }

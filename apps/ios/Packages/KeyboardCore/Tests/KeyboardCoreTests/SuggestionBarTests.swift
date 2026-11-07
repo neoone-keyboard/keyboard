@@ -77,3 +77,67 @@ import KeyboardCore
     #expect(SuggestionRemoval.holdDuration == 0.5)
     #expect(SuggestionRemoval.timeout == .seconds(4))
 }
+
+// MARK: More than three
+
+private func words(_ texts: [String], first: SuggestionKind = .verbatim, rest: SuggestionKind = .completion) -> [Suggestion] {
+    texts.enumerated().map { index, text in Suggestion(text, kind: index == 0 ? first : rest) }
+}
+
+@Test func theFirstThreeSlotsDoNotDependOnTheLimit() {
+    let results = [
+        SuggestionResult(typed: "he", candidates: words(["he", "help", "hello", "her", "here", "hey"])),
+        SuggestionResult(typed: "teh", candidates: [Suggestion("the", kind: .correction)]
+            + words(["teh", "ten", "tea", "tech"], rest: .correction)),
+        SuggestionResult(typed: "", candidates: words(["am", "have", "was", "will"], first: .nextWord, rest: .nextWord)),
+        SuggestionResult(typed: "ente", candidates: [Suggestion("എന്റെ", kind: .manglish), Suggestion("ente", kind: .verbatim)]),
+        .empty,
+    ]
+    for result in results {
+        let three = SuggestionBar(result)
+        for limit in [10, 20] {
+            let longer = SuggestionBar(result, limit: limit)
+            #expect(longer.slots == three.slots)
+            #expect(three.more.isEmpty)
+        }
+    }
+}
+
+@Test func candidatesAfterTheSlotsGoInMoreInOrder() {
+    let bar = SuggestionBar(SuggestionResult(typed: "he", candidates: words(["he", "help", "hello", "her", "here", "hey"])), limit: 10)
+    #expect(bar.slots.map { $0?.title } == ["help", "he", "hello"])
+    #expect(bar.more.map(\.title) == ["her", "here", "hey"])
+    #expect(bar.more.allSatisfy { !$0.quoted })
+}
+
+@Test func moreSkipsTheQuotedTypedWord() {
+    let bar = SuggestionBar(SuggestionResult(typed: "teh", candidates: [Suggestion("the", kind: .correction)]
+        + words(["teh", "ten", "tea", "tech"], rest: .correction)), limit: 10)
+    #expect(bar.slots.map { $0?.title } == ["\u{201C}teh\u{201D}", "the", "ten"])
+    #expect(bar.more.map(\.title) == ["tea", "tech"])
+}
+
+@Test func theLimitCountsTheSlots() {
+    let texts = (0..<25).map { "w\($0)" }
+    let bar = SuggestionBar(SuggestionResult(typed: "w", candidates: words(texts)), limit: 10)
+    #expect(bar.more.count == 7)
+    #expect(bar.more.last?.title == "w9")
+    #expect(SuggestionBar(SuggestionResult(typed: "w", candidates: words(texts)), limit: 20).more.count == 17)
+    // Below three is three.
+    #expect(SuggestionBar(SuggestionResult(typed: "w", candidates: words(texts)), limit: 1).slots.compactMap { $0 }.count == 3)
+}
+
+@Test func anEmojiKeepsTheRightSlotAndTheWordItDisplacesLeadsMore() {
+    let result = SuggestionResult(typed: "he", candidates: words(["he", "help", "hello", "her"]))
+    let three = SuggestionBar(result).withEmoji("👋")
+    #expect(three.right?.suggestion == Suggestion("👋", kind: .emoji))
+    #expect(three.more.isEmpty)
+    let ten = SuggestionBar(result, limit: 10).withEmoji("👋")
+    #expect(ten.slots == three.slots)
+    #expect(ten.more.map(\.title) == ["hello", "her"])
+    // Still at most the limit.
+    let full = SuggestionBar(SuggestionResult(typed: "w", candidates: words((0..<10).map { "w\($0)" })), limit: 10).withEmoji("👋")
+    #expect(full.more.count == 7)
+    #expect(full.more.first?.title == "w2")
+    #expect(SuggestionBar(result, limit: 10).withEmoji(nil) == SuggestionBar(result, limit: 10))
+}
