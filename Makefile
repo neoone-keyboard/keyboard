@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
+.PHONY: golden golden-save golden-check golden-more pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -200,6 +200,11 @@ bench:
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
 	swift test --package-path apps/ios/Packages/MLEngine
+
+# The app icon and its in-app copy (apps/ios/KeyboardApp/Assets.xcassets), from
+# tools/icon/render.swift. Downloads the Space Grotesk font into build/icon/ to draw with.
+icon:
+	./tools/icon/render.sh
 
 # Runtime spike (M3 design §5): a seeded random full-size transliterator as .mlkbnn and as an
 # int8 Core ML model, copied into the app (not the keyboard) for the debug "Runtime check"
