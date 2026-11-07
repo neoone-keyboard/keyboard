@@ -65,9 +65,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
         installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
     )
 
-    /// The active languages a debug build sets when the engine opens (Info.plist
-    /// `MLActiveLanguages`, "ml,hi", from `make twopacks`); nil, the engine's default, when empty.
+    /// The active languages set when the engine opens: the user's choice in the app (App Group
+    /// `active-languages.json`, `ActiveLanguages`), its ids the keyboard has no pack for left
+    /// out; else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from `make twopacks`);
+    /// else nil, the engine's default. Read once per process, as `packs` is.
     static let configuredActive: [String]? = {
+        if let stored = PackLocations.activeLanguagesFile().flatMap(ActiveLanguages.read(from:)),
+           let ids = stored.usable(packIDs: packs.map(\.id)) {
+            return ids
+        }
         let ids = (Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? "")
             .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         return ids.isEmpty ? nil : ids

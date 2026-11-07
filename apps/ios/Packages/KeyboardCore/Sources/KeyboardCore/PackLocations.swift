@@ -16,4 +16,13 @@ public enum PackLocations {
         fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
             .appending(path: packsFolderName, directoryHint: .isDirectory)
     }
+
+    public static let activeLanguagesFileName = "active-languages.json"
+
+    /// The user's active languages (`ActiveLanguages`), at the App Group's root; nil without the
+    /// App Group. The app writes it; the keyboard reads it when its engine opens.
+    public static func activeLanguagesFile(fileManager: FileManager = .default) -> URL? {
+        fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
+            .appending(path: activeLanguagesFileName)
+    }
 }
