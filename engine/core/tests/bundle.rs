@@ -804,6 +804,36 @@ fn latency() {
     }
 }
 
+/// The latency gate with 3, 10 and 20 suggestions (`Engine::set_max_suggestions`), with the
+/// LM, without cutoffs and with the keyboard's, on the word inputs and the long message.
+#[test]
+#[ignore = "timing: run with `make bench` (release build)"]
+fn latency_by_suggestion_count() {
+    let Some(mut engine) = lm_engine() else {
+        println!("no lm.mlkbnn: skipped");
+        return;
+    };
+    let inputs = latency_inputs();
+    let message = message_inputs();
+    for n in [3, 10, 20] {
+        engine.set_max_suggestions(n);
+        let engine = &engine;
+        time_suggests(&format!("{n} suggestions"), &engine, &inputs);
+        time_suggests(&format!("{n} suggestions, a long message"), &engine, &message);
+        let keyboard = |context: &str, layout| {
+            let start = Instant::now();
+            let elapsed = || start.elapsed();
+            let _ = engine.suggest_timed(context, layout, true, Some(&Timing::keyboard(&elapsed)));
+        };
+        time_with(
+            &format!("{n} suggestions, a long message, keyboard cutoffs"),
+            &engine,
+            &message,
+            &keyboard,
+        );
+    }
+}
+
 /// A long message typed letter by letter, each request with only the last 64 characters
 /// before the cursor (`KeyboardViewController.requestSuggestions`).
 fn message_inputs() -> Vec<(String, Layout)> {
