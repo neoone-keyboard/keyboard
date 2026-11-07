@@ -3,10 +3,9 @@ import KeyboardCore
 
 /// Credits every source of the word lists and models, and every library, with its licence.
 struct AboutView: View {
-    /// The packs the keyboard bundles (in the extension's `packs/`): their manifests credit
-    /// their sources.
-    private static let packs: [PackDescriptor] = Bundle.main.builtInPlugInsURL
-        .map { PackDescriptor.scan($0.appending(path: "KeyboardExtension.appex/packs", directoryHint: .isDirectory)) } ?? []
+    /// The packs the keyboard loads, bundled and installed (`InstalledPacks.all`): their
+    /// manifests credit their sources.
+    private let packs = InstalledPacks.all()
 
     var body: some View {
         List {
@@ -14,7 +13,7 @@ struct AboutView: View {
                 Text("Suggestions, autocorrect, Manglish and emoji run entirely on your iPhone from word lists and models built from, and modified from, the sources below. Nothing you type leaves your phone.")
             }
             Section("Sources") {
-                ForEach(Credits.dataSources(packs: Self.packs)) { CreditRow(credit: $0) }
+                ForEach(Credits.dataSources(packs: packs)) { CreditRow(credit: $0) }
             }
             Section("Software") {
                 ForEach(Credits.software) { CreditRow(credit: $0) }

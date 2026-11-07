@@ -22,5 +22,26 @@
 	<string>1</string>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.zip-archive</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>NeoOne Keyboard language pack</string>
+			<key>UTTypeIdentifier</key>
+			<string>me.jishnu.keyboard.neopack</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>neopack</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

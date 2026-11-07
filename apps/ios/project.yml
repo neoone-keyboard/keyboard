@@ -27,11 +27,25 @@ targets:
         buildPhase: resources
         optional: true
     scheme: {}
+    # Installed language packs (M6 phase 3) live in the App Group's Packs/: the app writes them,
+    # the keyboard reads them (no Full Access needed for reading).
+    entitlements:
+      path: KeyboardApp/KeyboardApp.entitlements
+      properties:
+        com.apple.security.application-groups: [group.me.jishnu.keyboard]
     info:
       path: KeyboardApp/Info.plist
       properties:
         CFBundleDisplayName: NeoOne Keyboard
         UILaunchScreen: {}
+        # The .neopack file (a zip of a pack folder), for the Files import's document picker
+        # (KeyboardCore PackImport.contentType).
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: me.jishnu.keyboard.neopack
+            UTTypeDescription: NeoOne Keyboard language pack
+            UTTypeConformsTo: [public.zip-archive, public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [neopack]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard
@@ -63,6 +77,11 @@ targets:
           copyFiles:
             destination: resources
             subpath: packs
+    # Reads the packs the app installs (App Group Packs/); never writes there.
+    entitlements:
+      path: KeyboardExtension/KeyboardExtension.entitlements
+      properties:
+        com.apple.security.application-groups: [group.me.jishnu.keyboard]
     info:
       path: KeyboardExtension/Info.plist
       properties:

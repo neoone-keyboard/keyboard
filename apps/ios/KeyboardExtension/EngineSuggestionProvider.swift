@@ -53,10 +53,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
     static let shared = bundled()
 
-    /// The language packs in the extension bundle (`packs/`, M6; today only `ml.neopack`),
-    /// read once per process: their manifests and layouts, for the keys and the engine.
-    static let packs: [PackDescriptor] = Bundle.main.resourceURL
-        .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
+    /// The language packs, read once per process: their manifests and layouts, for the keys
+    /// and the engine. Those in the extension bundle (`packs/`, M6; today only `ml.neopack`)
+    /// and those the app installed in the App Group (`PackLocations`, phase 3), one per id: an
+    /// installed pack only replaces a bundled one with a higher version. A pack the engine
+    /// then can't load is left out with a reported problem, and the keys follow the engine's
+    /// layouts, so the keyboard carries on with English and the packs that did load.
+    static let packs: [PackDescriptor] = PackDescriptor.merge(
+        bundled: Bundle.main.resourceURL
+            .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? [],
+        installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
+    )
 
     /// The active languages a debug build sets when the engine opens (Info.plist
     /// `MLActiveLanguages`, "ml,hi", from `make twopacks`); nil, the engine's default, when empty.
@@ -95,7 +102,8 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
-    /// English from the extension bundle and every bundled pack (`packs`), whose manifests name
+    /// English from the extension bundle, with its own next words (`en-next.fst`, used only
+    /// while no active pack has a `next.fst`), and every pack (`packs`), whose manifests name
     /// their lexicons and models; learned words in the extension's own container. A file
     /// missing from a pack disables only that source (without the transliterator, Manglish
     /// uses the lexicons alone; without the LM, ranking is M3a's).
@@ -107,6 +115,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             .appending(path: "LearnedWords", directoryHint: .isDirectory).path
         return EngineSuggestionProvider(config: EngineConfig(
             english: lexicon("en"),
+            englishNext: lexicon("en-next"),
             userDir: userDir,
             packDirs: packs.map(\.folder.path),
             modelDeadlineMs: modelDeadlineMs,
