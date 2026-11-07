@@ -21,6 +21,9 @@ final class LanguagesModel {
         let builtIn: Bool
         /// An installed copy is in the App Group, so it can be removed.
         let removable: Bool
+        /// What the keyboard's language key shows for it ("EN", "മ"); nil when its pack has no
+        /// layout of its own.
+        let languageKey: String?
     }
 
     enum IndexState: Equatable {
@@ -61,12 +64,12 @@ final class LanguagesModel {
         let installedFolder = PackLocations.installedPacks()?.standardizedFileURL.path
         let packs = InstalledPacks.all()
         let english = Row(id: ActiveLanguages.english, name: "English", nativeName: "English", version: nil,
-                          size: InstalledPacks.englishSize(), builtIn: true, removable: false)
+                          size: InstalledPacks.englishSize(), builtIn: true, removable: false, languageKey: "EN")
         rows = [english] + packs.map { pack in
             let inGroup = installedFolder.map { pack.folder.standardizedFileURL.path.hasPrefix($0) } ?? false
             return Row(id: pack.id, name: pack.name, nativeName: pack.nativeName, version: pack.version,
                        size: PackSize.of(folder: pack.folder), builtIn: !inGroup,
-                       removable: installedIDs.contains(pack.id))
+                       removable: installedIDs.contains(pack.id), languageKey: pack.layout?.languageKey)
         }
         let packIDs = packs.map(\.id)
         active = InstalledPacks.storedChoice()?.usable(packIDs: packIDs).map(ActiveLanguages.init)
