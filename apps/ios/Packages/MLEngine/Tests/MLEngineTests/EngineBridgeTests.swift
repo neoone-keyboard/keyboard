@@ -136,3 +136,20 @@ private func bundledConfig() -> EngineConfig {
     #expect(support.engine >= 2)
     #expect(support.scripts.contains("mlym"))
 }
+
+@Test func moreSuggestionsKeepTheFirstThree() throws {
+    let three = try Engine(config: bundledConfig())
+    #expect(try three.maxSuggestions() == 3)
+    var config = bundledConfig()
+    config.maxSuggestions = 10
+    let ten = try Engine(config: config)
+    let ask = { (engine: Engine) in
+        try engine.suggest(contextBefore: "I said hel", layout: .latin, autocorrect: true).candidates.map(\.text)
+    }
+    let short = try ask(three), long = try ask(ten)
+    #expect(short.count == 3)
+    #expect(long.count > 3)
+    #expect(Array(long.prefix(3)) == short)
+    try three.setMaxSuggestions(n: 10)
+    #expect(try ask(three) == long)
+}
