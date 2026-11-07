@@ -85,9 +85,16 @@ final class KeyboardUITests: XCTestCase {
             throw XCTSkip("screenshots only")
         }
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        // Twice: the second press goes to the first page.
+        XCUIDevice.shared.press(.home)
+        sleep(1)
         XCUIDevice.shared.press(.home)
         let icon = springboard.icons["NeoOne Keyboard"]
-        for _ in 0..<3 where !icon.isHittable { springboard.swipeLeft() }
+        XCTAssertTrue(icon.waitForExistence(timeout: 5))
+        for _ in 0..<3 where !icon.isHittable {
+            springboard.swipeLeft()
+            sleep(1)
+        }
         XCTAssertTrue(icon.isHittable)
         sleep(1)
         shot("springboard")
