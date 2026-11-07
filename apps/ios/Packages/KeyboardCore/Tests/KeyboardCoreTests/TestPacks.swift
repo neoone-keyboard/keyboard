@@ -20,6 +20,15 @@ let malayalamPack: PackDescriptor = {
 
 let malayalam = Language.pack(malayalamPack)
 
+/// packs/hi.neopack and packs/as.neopack, as an installed pack would be read.
+func pack(_ id: String) -> PackDescriptor {
+    do {
+        return try PackDescriptor.load(folder: packsFolder.appending(path: "\(id).neopack"))
+    } catch {
+        fatalError("packs/\(id).neopack: \(error)")
+    }
+}
+
 /// The user's languages today: English, then Malayalam.
 let englishAndMalayalam: [Language] = [.english, malayalam]
 

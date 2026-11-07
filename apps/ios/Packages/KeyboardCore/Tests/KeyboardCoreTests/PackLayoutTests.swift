@@ -57,15 +57,59 @@ struct PackLayoutTests {
         #expect(parsed?.vowelSignStrip == [])
     }
 
-    /// Only the bundled pack has a layout today; a pack without one is still described.
+    /// Every committed pack has a layout (Hindi and Assamese since M6 phase 4).
     @Test func scanningFindsEveryPack() {
         let packs = PackDescriptor.scan(packsFolder)
-        #expect(packs.map(\.id).contains("ml"))
-        #expect(packs.first { $0.id == "ml" }?.layout != nil)
-        for pack in packs where pack.id != "ml" {
-            #expect(pack.layout == nil, "\(pack.id) has a layout.json now: check it draws")
+        #expect(Set(packs.map(\.id)).isSuperset(of: ["ml", "hi", "as"]))
+        for pack in packs {
+            #expect(pack.layout != nil, "\(pack.id) has no layout.json")
         }
         #expect(PackDescriptor.scan(packsFolder.appending(path: "nonexistent")).isEmpty)
+    }
+
+    /// Hindi's and Assamese's layouts (plan docs/design/2026-11-07-m6-phase4-hi-as-layouts.md):
+    /// with English, the language key goes EN → the pack's letter and back, and every page draws
+    /// what the file lists, as Malayalam's does, with no code of their own.
+    @Test(arguments: [
+        ("hi", "हि", "हिन्दी", ["कख", "शष", "अआ"], ["ा", "ि", "ी", "ु", "ू", "ृ", "े", "ै", "ो", "ौ", "ं", "ँ", "ः", "्", "़"]),
+        ("as", "অ", "অসমীয়া", ["কখ", "শষ", "অআ"], ["া", "ি", "ী", "ু", "ূ", "ৃ", "ে", "ৈ", "ো", "ৌ", "ং", "ঁ", "ঃ", "ৎ", "্"]),
+    ])
+    func aPacksNativeKeyboardComesFromItsLayout(id: String, key: String, spaceBar: String, labels: [String], strip: [String]) throws {
+        let descriptor = pack(id)
+        let layout = try #require(descriptor.layout, "\(id) has a layout.json")
+        #expect(layout.languageKey == key)
+        #expect(layout.spaceBar == spaceBar)
+        #expect(layout.pages.map(\.id) == ["letters", "more", "vowels"])
+        #expect(layout.pages.map(\.label) == labels)
+        #expect(layout.vowelSignStrip == strip, "the design's strip order")
+
+        let language = Language.pack(descriptor)
+        let input = InputController(output: RecordingOutput(), languages: [.english, language])
+        #expect(input.language == .english)
+        #expect(input.label(for: .toggleLanguage) == key)
+        input.handle(.toggleLanguage, at: 0)
+        #expect(input.language == language)
+        #expect(input.page == .native("letters"))
+        #expect(input.label(for: .space) == spaceBar)
+        #expect(input.label(for: .toggleLanguage) == "EN")
+        #expect(layout.pages.map { input.label(for: .page(.native($0.id))) } == labels)
+
+        for page in layout.pages {
+            let drawn = KeyboardLayout.forPage(.native(page.id), native: layout)
+            let rows = drawn.rows.dropLast().map { row in
+                row.compactMap { key -> String? in if case .character(let c) = key.action { c } else { nil } }
+            }
+            #expect(rows == page.rows, "\(id) page \(page.id)")
+            #expect(drawn.rows.last?.contains { $0.action == .space } == true)
+        }
+        let keys = layout.pages.map { KeyboardLayout.forPage(.native($0.id), native: layout) }.flatMap(\.rows).joined()
+        for (text, options) in layout.longPress {
+            #expect(keys.first { $0.action == .character(text) }?.alternates == options, "\(text)")
+        }
+
+        input.handle(.toggleLanguage, at: 0)
+        #expect(input.language == .english)
+        #expect(input.page == .letters)
     }
 
     @Test func theLanguageKeyCyclesTheLanguagesGiven() {

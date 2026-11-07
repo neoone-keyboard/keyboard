@@ -14,10 +14,12 @@
     "romanisedLexicon": "romanised.fst",
     "nextWords": "next.fst",
     "translit": "translit.mlkbnn",
-    "romanisation": "romanisation.json"
+    "romanisation": "romanisation.json",
+    "layout": "layout.json"
   },
   "sha256": {
     "as.fst": "c9fd95a89287bc9e23d0f050e62c558f3f103742cbb2b1c2adc52b2a458073b6",
+    "layout.json": "4ca35fbf1aedcc5e1dc6f89d9b19ba6b6986f09cb5df38be075a7648e1f0d184",
     "next.fst": "13ab7855a7aefaad16d7b460cb4d0295c57c7b5da3fb836a1a9db1566dd058c7",
     "romanisation.json": "cdb523507e11f5da7430406b9bc5955440e04f8edcb3c71a6325267aee105290",
     "romanised.fst": "3f9f0ec2be79b4ef8455391cd7bba0bc09c7af9221db69f86ab7b2464a77d3a4",
