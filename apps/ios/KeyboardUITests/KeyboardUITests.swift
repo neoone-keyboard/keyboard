@@ -79,6 +79,20 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[first].waitForExistence(timeout: 5))
     }
 
+    /// The icon on the Home Screen, for screenshots only (skips without SHOTS_DIR).
+    func testIconOnHomeScreen() throws {
+        guard ProcessInfo.processInfo.environment["SHOTS_DIR"]?.isEmpty == false else {
+            throw XCTSkip("screenshots only")
+        }
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCUIDevice.shared.press(.home)
+        let icon = springboard.icons["NeoOne Keyboard"]
+        for _ in 0..<3 where !icon.isHittable { springboard.swipeLeft() }
+        XCTAssertTrue(icon.isHittable)
+        sleep(1)
+        shot("springboard")
+    }
+
     /// Shows the keyboard for the Try it field; returns its language key.
     private func showKeyboard() throws -> XCUIElement {
         app.launch()
