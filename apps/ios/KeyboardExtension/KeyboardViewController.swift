@@ -214,6 +214,7 @@ final class KeyboardViewController: UIInputViewController {
         }
 
         settingsPanel.onYourWords = { [unowned self] in showYourWords() }
+        settingsPanel.onLanguages = { [unowned self] in openLanguages() }
         yourWordsView.onBack = { [unowned self] in
             hideYourWords()
             showSettings()
@@ -539,6 +540,25 @@ final class KeyboardViewController: UIInputViewController {
     // MARK: Settings panel
 
     /// Covers the keys; touches already on them are dropped so lifting doesn't type.
+    /// The app's Languages screen (`neoone://languages`). A keyboard has no `UIApplication`;
+    /// the app object is found up the responder chain and opened from there. Apple doesn't
+    /// document this for keyboards (a possible App Store review issue; the user chose it,
+    /// 2026-11-07). Nothing happens if it is ever blocked.
+    private func openLanguages() {
+        guard let url = URL(string: "neoone://languages") else { return }
+        var responder: UIResponder? = self
+        while let current = responder {
+            if let application = current as? UIApplication {
+                application.open(url, options: [:]) { [log] opened in
+                    if !opened { log.warning("Couldn't open the app's Languages screen") }
+                }
+                return
+            }
+            responder = current.next
+        }
+        log.warning("No application in the responder chain to open the Languages screen")
+    }
+
     private func showSettings() {
         keyboardView.cancelAllTouches()
         topBar.cancelRemoval()

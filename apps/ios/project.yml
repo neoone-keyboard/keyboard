@@ -38,6 +38,10 @@ targets:
       properties:
         CFBundleDisplayName: NeoOne Keyboard
         UILaunchScreen: {}
+        # neoone://languages opens the Languages screen (the keyboard settings panel's row).
+        CFBundleURLTypes:
+          - CFBundleURLName: me.jishnu.keyboard
+            CFBundleURLSchemes: [neoone]
         # The pack index (index.json) the Languages screen downloads from. Empty until a host
         # is chosen, and the download section is then hidden.
         NeoPackIndexURL: $(ML_PACK_INDEX_URL)

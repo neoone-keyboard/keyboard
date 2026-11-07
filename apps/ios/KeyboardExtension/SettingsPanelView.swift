@@ -10,6 +10,8 @@ final class SettingsPanelView: UIView {
     var onForgetLearned: (@MainActor () -> Void)?
     /// Opens "Your words" (`YourWordsView`).
     var onYourWords: (@MainActor () -> Void)?
+    /// Opens the app's Languages screen (`KeyboardViewController.openLanguages`).
+    var onLanguages: (@MainActor () -> Void)?
     var onInsertDiagnostics: (@MainActor () -> Void)?
 
     private(set) var settings = KeyboardSettings()
@@ -29,6 +31,7 @@ final class SettingsPanelView: UIView {
     private let emojiLabel = UILabel()
     private let emojiSwitch = UISwitch()
     private let yourWordsButton = UIButton(type: .system)
+    private let languagesButton = UIButton(type: .system)
     private let forgetButton = UIButton(type: .system)
     private let diagnosticsButton = UIButton(type: .system)
     /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
@@ -90,6 +93,12 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.emojiSuggestions = self.emojiSwitch.isOn }
         }, for: .valueChanged)
+        languagesButton.setTitle("Languages", for: .normal)
+        languagesButton.setImage(UIImage(systemName: "arrow.up.forward.app"), for: .normal)
+        languagesButton.titleLabel?.font = .systemFont(ofSize: 15)
+        languagesButton.semanticContentAttribute = .forceRightToLeft
+        languagesButton.contentHorizontalAlignment = .left
+        languagesButton.addAction(UIAction { [weak self] _ in self?.onLanguages?() }, for: .touchUpInside)
         yourWordsButton.setTitle("Your words", for: .normal)
         yourWordsButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
         yourWordsButton.titleLabel?.font = .systemFont(ofSize: 15)
@@ -118,7 +127,7 @@ final class SettingsPanelView: UIView {
         }
 
         let stack = UIStackView(arrangedSubviews: [
-            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, yourWordsButton,
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, languagesButton, yourWordsButton,
             forgetButton, diagnosticsButton,
         ])
         stack.axis = .vertical
@@ -149,6 +158,7 @@ final class SettingsPanelView: UIView {
             header.heightAnchor.constraint(equalToConstant: 36),
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
+            languagesButton.heightAnchor.constraint(equalToConstant: 36),
             yourWordsButton.heightAnchor.constraint(equalToConstant: 36),
             forgetButton.heightAnchor.constraint(equalToConstant: 36),
             diagnosticsButton.heightAnchor.constraint(equalToConstant: 36),
@@ -177,6 +187,7 @@ final class SettingsPanelView: UIView {
             label.textColor = theme.keyText
         }
         doneButton.tintColor = theme.keyText
+        languagesButton.tintColor = theme.keyText
         yourWordsButton.tintColor = theme.keyText
         forgetButton.tintColor = theme.keyText
         diagnosticsButton.tintColor = theme.keyText

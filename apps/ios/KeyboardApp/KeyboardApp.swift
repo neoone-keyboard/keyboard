@@ -21,9 +21,12 @@ struct ContentView: View {
     /// Set once the first-launch step is done (the app's own defaults; `-chooseLanguagesDone NO`
     /// as a launch argument shows it again).
     @AppStorage("chooseLanguagesDone") private var chooseLanguagesDone = false
+    /// The Languages screen, opened by `neoone://languages` (the keyboard settings panel's
+    /// Languages row) or, in debug builds, by `-showLanguages` at launch, for screenshots.
     #if DEBUG
-    /// `-showLanguages`: opens the Languages screen at launch, for screenshots.
     @State private var showLanguages = ProcessInfo.processInfo.arguments.contains("-showLanguages")
+    #else
+    @State private var showLanguages = false
     #endif
 
     var body: some View {
@@ -45,7 +48,7 @@ struct ContentView: View {
                     }
                 }
                 Section("Keyboard") {
-                    Text("Settings are in the keyboard: touch and hold മ / EN.")
+                    Text("Settings are in the keyboard: touch and hold the language key (മ / EN).")
                 }
                 Section("Stability") {
                     LabeledContent("Saved MetricKit reports", value: "\(MetricsSubscriber.reportCount())")
@@ -55,9 +58,10 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("NeoOne Keyboard")
-            #if DEBUG
             .navigationDestination(isPresented: $showLanguages) { LanguagesView(model: languages) }
-            #endif
+            .onOpenURL { url in
+                if url.scheme == "neoone", url.host() == "languages" { showLanguages = true }
+            }
         }
         .sheet(isPresented: Binding(get: { !chooseLanguagesDone }, set: { _ in })) {
             FirstLaunchView(model: languages) { chooseLanguagesDone = true }
