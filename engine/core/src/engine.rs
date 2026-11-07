@@ -27,8 +27,12 @@ use crate::user::UserStore;
 /// Most keys visited by one correction walk. Prefix lookups need no limit
 /// here: `Lexicon::top_completions` and `subtree_count` are exact and bounded.
 const CORRECTION_LIMIT: usize = 4_000;
-/// Candidates returned: the middle slot plus two side slots.
-const SHOWN: usize = 3;
+/// Candidates returned unless the keyboard asks for more (`Engine::set_max_suggestions`): the
+/// middle slot plus two side slots.
+pub const DEFAULT_SUGGESTIONS: usize = 3;
+/// The most candidates a suggest returns, however many are asked for: the keyboard's bar
+/// scrolls to show those after the first three.
+pub const MAX_SUGGESTIONS: usize = 20;
 /// Digits typed before a learned phone number they begin is offered (`begun_number`).
 const NUMBER_PREFIX_DIGITS: usize = 3;
 /// Lexicon spellings asked of the transliterator per word. On an iPhone 15 Pro Max, encode
@@ -377,6 +381,8 @@ pub struct Engine {
     active: Active,
     /// Why each pack left out at open was left out (`Sources::open_reporting`).
     pack_problems: Vec<String>,
+    /// How many candidates a suggest returns (`set_max_suggestions`).
+    shown: usize,
 }
 
 /// A pack's `Lang`: its place in `Sources::packs`, after English's.
@@ -411,6 +417,7 @@ impl Engine {
             lm_weights: LmWeights::default(),
             swipe_weights: swipe::Weights::default(),
             pack_problems: Vec::new(),
+            shown: DEFAULT_SUGGESTIONS,
         }
     }
 
@@ -464,6 +471,18 @@ impl Engine {
     /// Weights other than `rank`'s for the LM terms: for the eval harness's sweeps only.
     pub fn set_lm_weights(&mut self, weights: LmWeights) {
         self.lm_weights = weights;
+    }
+
+    /// How many candidates a suggest returns at most: `n`, between 1 and `MAX_SUGGESTIONS`
+    /// (`DEFAULT_SUGGESTIONS` until set). More only adds candidates after the first ones: the
+    /// first `DEFAULT_SUGGESTIONS` are the same, in the same order, whatever `n` is.
+    pub fn set_max_suggestions(&mut self, n: usize) {
+        self.shown = n.clamp(1, MAX_SUGGESTIONS);
+    }
+
+    /// How many candidates a suggest returns at most (`set_max_suggestions`).
+    pub fn max_suggestions(&self) -> usize {
+        self.shown
     }
 
     /// For the swipe eval's sweeps; the keyboard keeps the defaults.
@@ -1121,7 +1140,7 @@ impl Engine {
             }
             _ => vec![verbatim(typed, 0.0, self.latin_lang())],
         };
-        suggestions.truncate(SHOWN);
+        suggestions.truncate(self.shown);
         Suggestions {
             typed: typed.to_string(),
             candidates: suggestions,
@@ -1803,7 +1822,7 @@ impl Engine {
         others.extend(manglish.exact.into_iter().map(|(c, _)| c));
         others.extend(manglish.side);
         address.extend(first_sides);
-        arrange(typed_c, typed_n, others, replacement, address)
+        arrange(typed_c, typed_n, others, replacement, address, self.shown)
     }
 
     /// Log-probability of all English words that start with `typed` and are
@@ -2209,7 +2228,7 @@ impl Engine {
             .collect();
         self.drop_removed(&mut others);
         let typed = verbatim(typed, 0.0, self.latin_lang());
-        arrange(typed, typed_n, others, None, Vec::new())
+        arrange(typed, typed_n, others, None, Vec::new(), self.shown)
     }
 
     /// Native-script typing, completed from `pack`'s lexicon (the typed word's script's, or
@@ -2278,6 +2297,7 @@ impl Engine {
             others,
             None,
             Vec::new(),
+            self.shown,
         )
     }
 
@@ -2307,7 +2327,7 @@ impl Engine {
             .into_iter()
             .filter(|c| !out.iter().any(|o| o.text.eq_ignore_ascii_case(&c.text)));
         out.extend(rest.collect::<Vec<_>>());
-        out.truncate(SHOWN);
+        out.truncate(self.shown);
         out
     }
 
@@ -2408,7 +2428,7 @@ impl Engine {
                 from_followers.extend(candidate(&p, word, count));
             }
         }
-        let mut leaders = Leaders::default();
+        let mut leaders = Leaders::new(self.shown);
         from_followers.iter().for_each(|c| leaders.add(c));
         let mut found: Vec<Candidate> = Vec::new();
         for p in scores.next_pieces(rank::NEXT_PIECES) {
@@ -2446,7 +2466,7 @@ impl Engine {
         }
         found.extend(from_followers);
         sort_and_dedup(&mut found);
-        found.truncate(SHOWN);
+        found.truncate(self.shown);
         found
     }
 
@@ -2574,7 +2594,7 @@ impl Engine {
             }
         }
         sort_and_dedup(&mut found);
-        found.truncate(SHOWN);
+        found.truncate(self.shown);
         found
     }
 
@@ -2812,25 +2832,34 @@ fn sort_and_dedup(candidates: &mut Vec<Candidate>) {
     candidates.retain(|c| seen.insert(c.text.clone()));
 }
 
-/// The `SHOWN` best texts among the candidates added, each with its best score, so far: a
+/// The `shown` best texts among the candidates added, each with its best score, so far: a
 /// candidate scoring below `floor` can never be shown (`Engine::lm_next_words`).
-#[derive(Default)]
-struct Leaders(Vec<(String, f32)>);
+struct Leaders {
+    shown: usize,
+    best: Vec<(String, f32)>,
+}
 
 impl Leaders {
-    fn add(&mut self, c: &Candidate) {
-        match self.0.iter_mut().find(|(text, _)| *text == c.text) {
-            Some(seen) => seen.1 = seen.1.max(c.score),
-            None => self.0.push((c.text.clone(), c.score)),
+    fn new(shown: usize) -> Self {
+        Self {
+            shown,
+            best: Vec::with_capacity(shown + 1),
         }
-        self.0.sort_by(|a, b| b.1.total_cmp(&a.1));
-        self.0.truncate(SHOWN);
     }
 
-    /// The `SHOWN`th best score, or minus infinity before there are that many texts.
+    fn add(&mut self, c: &Candidate) {
+        match self.best.iter_mut().find(|(text, _)| *text == c.text) {
+            Some(seen) => seen.1 = seen.1.max(c.score),
+            None => self.best.push((c.text.clone(), c.score)),
+        }
+        self.best.sort_by(|a, b| b.1.total_cmp(&a.1));
+        self.best.truncate(self.shown);
+    }
+
+    /// The `shown`th best score, or minus infinity before there are that many texts.
     fn floor(&self) -> f32 {
-        self.0
-            .get(SHOWN - 1)
+        self.best
+            .get(self.shown - 1)
             .map_or(f32::NEG_INFINITY, |(_, score)| *score)
     }
 }
@@ -2840,15 +2869,17 @@ impl Leaders {
 /// typed word is in the middle. The best of the rest fill the side slots.
 /// `first_sides` take the first side slots whatever their scores (an
 /// ambiguous pair). Nothing equal to the typed word, as typed or normalised, is repeated.
+/// At most `shown` candidates.
 fn arrange(
     typed: Candidate,
     typed_n: &str,
     mut others: Vec<Candidate>,
     replacement: Option<Candidate>,
     first_sides: Vec<Candidate>,
+    shown: usize,
 ) -> Vec<Candidate> {
     others.retain(|c| c.text != typed.text && c.text != typed_n);
-    let mut out = Vec::with_capacity(SHOWN);
+    let mut out = Vec::with_capacity(shown);
     if let Some(best) = replacement.filter(|r| r.text != typed.text && r.text != typed_n) {
         others.retain(|c| c.text != best.text);
         out.push(best);
@@ -2861,7 +2892,7 @@ fn arrange(
         .collect();
     others.retain(|c| !sides.iter().any(|s| s.text == c.text));
     sides.extend(others);
-    out.extend(sides.into_iter().take(SHOWN));
+    out.extend(sides.into_iter().take(shown));
     out
 }
 
@@ -2940,6 +2971,38 @@ mod tests {
         let mut sources = engine_sources();
         sources.packs[0].lm = Some(lm);
         Engine::new(sources, UserStore::in_memory())
+    }
+
+    #[test]
+    fn more_suggestions_only_add_to_the_end() {
+        let mut engine = engine();
+        assert_eq!(engine.max_suggestions(), DEFAULT_SUGGESTIONS);
+        let ask = |e: &Engine| {
+            [
+                e.suggest("he", Layout::Latin, true),
+                e.suggest("I ", Layout::Latin, true),
+                e.suggest("എ", ML, true),
+                e.suggest("hello th", Layout::Latin, true),
+            ]
+        };
+        let three = ask(&engine);
+        engine.set_max_suggestions(10);
+        let ten = ask(&engine);
+        for (short, long) in three.iter().zip(&ten) {
+            assert!(short.candidates.len() <= DEFAULT_SUGGESTIONS);
+            assert_eq!(short.candidates[..], long.candidates[..short.candidates.len()]);
+            assert_eq!(short.vowel_signs, long.vowel_signs);
+        }
+        // Completions past the third (he → help, hello, then …), and next words past it.
+        assert_eq!(three[0].candidates.len(), 3);
+        assert!(ten[0].candidates.len() > 3, "{:?}", ten[0]);
+        assert_eq!(ten[1].candidates.len(), 4, "{:?}", ten[1]);
+        engine.set_max_suggestions(1);
+        assert_eq!(engine.suggest("he", Layout::Latin, true).candidates.len(), 1);
+        engine.set_max_suggestions(0);
+        assert_eq!(engine.max_suggestions(), 1);
+        engine.set_max_suggestions(1000);
+        assert_eq!(engine.max_suggestions(), MAX_SUGGESTIONS);
     }
 
     #[test]

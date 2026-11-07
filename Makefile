@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
+.PHONY: golden golden-save golden-check golden-more pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models
 
 all: build
 
@@ -82,7 +82,11 @@ eval-swipe:
 GOLDEN := data/golden/m6p1.tsv.gz
 GOLDEN_ML_ONLY := data/golden/ml-only.tsv.gz
 golden:
-	cd engine && $(CARGO) test -q --release -p mlengine-core --test golden_dump -- --ignored
+	cd engine && $(CARGO) test -q --release -p mlengine-core --test golden_dump -- --ignored golden_dump
+# The same inputs asked for 3, 10 and 20 suggestions: the longer lists only add to the end
+# (about 3.5 minutes).
+golden-more:
+	cd engine && $(CARGO) test -q --release -p mlengine-core --test golden_dump -- --ignored more_suggestions --nocapture
 golden-save: golden
 	mkdir -p data/golden && gzip -9nc build/golden/now.tsv > $(GOLDEN)
 	gzip -9nc build/golden/ml-only.tsv > $(GOLDEN_ML_ONLY)

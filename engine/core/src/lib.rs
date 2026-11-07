@@ -24,5 +24,6 @@ pub mod translit;
 pub mod user;
 
 pub use engine::{
-    Candidate, Engine, Kind, Layout, PackPaths, PackSources, Paths, Sources, Suggestions, Timing,
+    Candidate, DEFAULT_SUGGESTIONS, Engine, Kind, Layout, MAX_SUGGESTIONS, PackPaths, PackSources,
+    Paths, Sources, Suggestions, Timing,
 };

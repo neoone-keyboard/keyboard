@@ -9,7 +9,8 @@
 //!
 //! OUT sets the output file (default `build/golden/now.tsv`); MAXLINES caps the lines read
 //! from each input (default 200). `golden_dump_ml_only` writes the same rows with English
-//! switched off.
+//! switched off. `more_suggestions_keep_the_first` asks the same inputs of engines that return
+//! 3, 10 and 20 candidates and checks the longer lists only add to the shorter ones.
 
 use std::fmt::Write as _;
 use std::io::Write as _;
@@ -17,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 use mlengine_core::lang::LangId;
 use mlengine_core::pack::Pack;
-use mlengine_core::{Candidate, Engine, Kind, Layout, Paths};
+use mlengine_core::{Candidate, DEFAULT_SUGGESTIONS, Engine, Kind, Layout, MAX_SUGGESTIONS, Paths};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -158,4 +159,81 @@ fn dump(active: &[&str], out_path: &Path) {
         .write_all(out.as_bytes())
         .unwrap();
     println!("{}: {} lines", out_path.display(), out.lines().count());
+}
+
+/// More suggestions (`Engine::set_max_suggestions`) only add to the end: over the golden inputs
+/// (MAXLINES of each, default 200) and the learning rows, with English on and off, the first
+/// three of 10 or 20 are the three of the default, same text, kind and score, in order, and
+/// the first ten of 20 are the ten. Vowel signs don't change.
+#[test]
+#[ignore]
+fn more_suggestions_keep_the_first() {
+    let max: usize = std::env::var("MAXLINES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(200);
+    for active in [&[][..], &["ml"][..]] {
+        let engines: Vec<Engine> = [DEFAULT_SUGGESTIONS, 10, MAX_SUGGESTIONS]
+            .into_iter()
+            .map(|n| {
+                let mut e = engine_with(active);
+                e.set_max_suggestions(n);
+                e
+            })
+            .collect();
+        let (mut asked, mut longer) = (0, 0);
+        let mut check = |ctx: &str, layout: Layout, engines: &[Engine]| {
+            let lists: Vec<_> = engines.iter().map(|e| e.suggest(ctx, layout, true)).collect();
+            for pair in lists.windows(2) {
+                let (short, long) = (&pair[0], &pair[1]);
+                let n = short.candidates.len();
+                assert!(long.candidates.len() >= n, "{ctx:?}: fewer with more asked");
+                assert_eq!(short.candidates[..], long.candidates[..n], "{ctx:?} ({active:?})");
+                assert_eq!(short.vowel_signs, long.vowel_signs, "{ctx:?}");
+                assert_eq!(short.typed, long.typed, "{ctx:?}");
+            }
+            asked += 1;
+            if lists[2].candidates.len() > lists[0].candidates.len() {
+                longer += 1;
+            }
+            for (list, e) in lists.iter().zip(engines) {
+                assert!(list.candidates.len() <= e.max_suggestions());
+            }
+        };
+        let e = &engines[0];
+        for name in INPUTS {
+            for line in lines(name, max) {
+                let layout = layout_for(e, &line);
+                for (i, c) in line.char_indices() {
+                    check(&line[..i + c.len_utf8()], layout, &engines);
+                }
+            }
+        }
+        // Learning, as in `dump`: every engine commits the same words.
+        let engines: Vec<Engine> = engines
+            .iter()
+            .map(|e| {
+                let mut fresh = engine_with(active);
+                fresh.set_max_suggestions(e.max_suggestions());
+                fresh
+            })
+            .collect();
+        for name in ["chat-golden.tsv", "language-choice.tsv"] {
+            for line in lines(name, max) {
+                let layout = layout_for(&engines[0], &line);
+                let mut ctx = String::new();
+                for word in line.split(' ').filter(|w| !w.is_empty()) {
+                    for e in &engines {
+                        e.note_used(&ctx, word, layout);
+                        e.note_committed(word);
+                    }
+                    ctx.push_str(word);
+                    ctx.push(' ');
+                    check(&ctx, layout, &engines);
+                }
+            }
+        }
+        println!("active {active:?}: {asked} asked, {longer} with more than the default");
+        assert!(longer * 2 > asked, "more candidates for most inputs");
+    }
 }
