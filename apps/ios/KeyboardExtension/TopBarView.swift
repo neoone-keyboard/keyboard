@@ -4,7 +4,8 @@ import KeyboardCore
 /// The strip above the keys: three suggestion slots, or after a Malayalam
 /// consonant the best completion on the left and the vowel signs scrolling
 /// sideways at full size beside it. Holding a suggestion slot asks whether to
-/// remove its word (`SuggestionRemoval`).
+/// remove its word (`SuggestionRemoval`). Suggestions past the three (`SuggestionBar.more`)
+/// follow the right slot, each as wide as its word, and a finger slides the bar to them.
 final class TopBarView: UIView {
     var onVowelSign: (@MainActor (String) -> Void)?
     var onSuggestion: (@MainActor (SuggestionSlot) -> Void)?
@@ -12,6 +13,12 @@ final class TopBarView: UIView {
     var onRemoveSuggestion: (@MainActor (String) -> Void)?
 
     private let suggestionStack = UIStackView()
+    /// Scrolls the three slots, which fill its width as they always have, and `moreStack`
+    /// after them. With nothing more it is exactly as wide as the bar and doesn't move.
+    private let suggestionScroll = SlotScrollView()
+    private let moreStack = UIStackView()
+    /// Holds `moreStack` at zero width while it has nothing in it.
+    private var moreCollapsed: NSLayoutConstraint!
     private let vowelRow = UIStackView()
     private let completionButton = UIButton(type: .custom)
     private var completion: Suggestion?
@@ -36,12 +43,31 @@ final class TopBarView: UIView {
     /// Width of one vowel-sign button. Wide enough to tap without zooming;
     /// the last one is cut off at the edge, which shows the row scrolls.
     private static let vowelButtonWidth: CGFloat = 52
+    /// Space on each side of a word past the three slots, and the narrowest one may be.
+    private static let morePadding: CGFloat = 12
+    private static let moreMinimumWidth: CGFloat = 44
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         suggestionStack.axis = .horizontal
         suggestionStack.distribution = .fillEqually
         suggestionStack.spacing = 3
+        moreStack.axis = .horizontal
+        moreStack.spacing = 3
+        // Its leading edge is the space after the right slot, as between the slots.
+        moreStack.isLayoutMarginsRelativeArrangement = true
+        moreStack.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 0, leading: 3, bottom: 0, trailing: 0)
+        suggestionScroll.showsHorizontalScrollIndicator = false
+        suggestionScroll.showsVerticalScrollIndicator = false
+        // Taps on the slots behave as before: no delay, and a slide that starts on a slot
+        // scrolls the bar instead of committing it (`SlotScrollView`).
+        suggestionScroll.delaysContentTouches = false
+        for edge in [suggestionScroll.topEdgeEffect, suggestionScroll.bottomEdgeEffect,
+                     suggestionScroll.leftEdgeEffect, suggestionScroll.rightEdgeEffect] {
+            edge.isHidden = true
+        }
+        suggestionScroll.addSubview(suggestionStack)
+        suggestionScroll.addSubview(moreStack)
 
         vowelStack.axis = .horizontal
         vowelStack.spacing = 4
@@ -93,18 +119,31 @@ final class TopBarView: UIView {
         confirmRow.directionalLayoutMargins = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 4)
         confirmRow.isHidden = true
 
-        for view in [suggestionStack, vowelRow, vowelStack, confirmRow] {
+        for view in [suggestionScroll, suggestionStack, moreStack, vowelRow, vowelStack, confirmRow] {
             view.translatesAutoresizingMaskIntoConstraints = false
         }
-        addSubview(suggestionStack)
+        addSubview(suggestionScroll)
         addSubview(vowelRow)
         addSubview(confirmRow)
         let content = vowelScroll.contentLayoutGuide
+        let slotsContent = suggestionScroll.contentLayoutGuide
+        let slotsFrame = suggestionScroll.frameLayoutGuide
+        moreCollapsed = moreStack.widthAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
-            suggestionStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            suggestionStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            suggestionStack.topAnchor.constraint(equalTo: topAnchor),
-            suggestionStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            suggestionScroll.leadingAnchor.constraint(equalTo: leadingAnchor),
+            suggestionScroll.trailingAnchor.constraint(equalTo: trailingAnchor),
+            suggestionScroll.topAnchor.constraint(equalTo: topAnchor),
+            suggestionScroll.bottomAnchor.constraint(equalTo: bottomAnchor),
+            suggestionStack.leadingAnchor.constraint(equalTo: slotsContent.leadingAnchor),
+            suggestionStack.topAnchor.constraint(equalTo: slotsContent.topAnchor),
+            suggestionStack.bottomAnchor.constraint(equalTo: slotsContent.bottomAnchor),
+            suggestionStack.widthAnchor.constraint(equalTo: slotsFrame.widthAnchor),
+            suggestionStack.heightAnchor.constraint(equalTo: slotsFrame.heightAnchor),
+            moreStack.leadingAnchor.constraint(equalTo: suggestionStack.trailingAnchor),
+            moreStack.trailingAnchor.constraint(equalTo: slotsContent.trailingAnchor),
+            moreStack.topAnchor.constraint(equalTo: slotsContent.topAnchor),
+            moreStack.bottomAnchor.constraint(equalTo: slotsContent.bottomAnchor),
+            moreCollapsed,
             vowelRow.leadingAnchor.constraint(equalTo: leadingAnchor),
             vowelRow.trailingAnchor.constraint(equalTo: trailingAnchor),
             vowelRow.topAnchor.constraint(equalTo: topAnchor),
@@ -174,43 +213,70 @@ final class TopBarView: UIView {
     private func updateVisibility() {
         let asking = removal != nil
         confirmRow.isHidden = !asking
-        suggestionStack.isHidden = asking || stripBase != nil
+        suggestionScroll.isHidden = asking || stripBase != nil
         vowelRow.isHidden = asking || stripBase == nil
     }
 
-    /// Left, middle, right. The middle slot is what space commits, so it is bold.
+    /// Left, middle, right. The middle slot is what space commits, so it is bold. Then the
+    /// bar's `more`, past the right edge until the bar is slid. New content starts the bar
+    /// from the beginning again.
     func showSuggestions(_ bar: SuggestionBar) {
-        let content = ["suggestions"] + bar.slots.map { slot in slot.map { "\($0.title)|\($0.quoted)" } ?? "" }
+        let content = ["suggestions"] + (bar.slots + bar.more.map(Optional.some)).map { slot in
+            slot.map { "\($0.title)|\($0.quoted)" } ?? ""
+        }
         guard content != shownContent else { return }
         shownContent = content
         stripBase = nil
         updateVisibility()
         replaceItems(in: suggestionStack, with: bar.slots.enumerated().map { index, slot in
-            let button = UIButton(type: .custom)
-            guard let slot else { return button }
-            button.setTitle(slot.title, for: .normal)
-            button.titleLabel?.font = .systemFont(ofSize: 17, weight: index == 1 ? .semibold : .regular)
-            button.titleLabel?.adjustsFontSizeToFitWidth = true
-            button.titleLabel?.minimumScaleFactor = 0.6
-            button.setTitleColor(theme?.keyText, for: .normal)
-            button.setTitleColor(theme?.hintText, for: .highlighted)
-            button.addAction(UIAction { [weak self] _ in self?.onSuggestion?(slot) }, for: .touchUpInside)
-            // An emoji is drawn larger, and has no word to remove.
-            if slot.suggestion.kind == .emoji {
-                button.titleLabel?.font = .systemFont(ofSize: 24)
-                return button
+            guard let slot else { return UIButton(type: .custom) }
+            return slotButton(slot, bold: index == 1)
+        })
+        showMore(bar.more.map { slot in
+            let button = slotButton(slot, bold: false)
+            button.titleLabel?.adjustsFontSizeToFitWidth = false
+            if let title = button.titleLabel {
+                let fit = button.widthAnchor.constraint(equalTo: title.widthAnchor, constant: 2 * Self.morePadding)
+                fit.priority = .defaultHigh
+                fit.isActive = true
             }
-            // Once the hold is recognised the button's touch is cancelled, so it doesn't commit.
-            let hold = SlotHold(target: self, action: #selector(slotHeld(_:)))
-            hold.slot = slot
-            hold.minimumPressDuration = SuggestionRemoval.holdDuration
-            button.addGestureRecognizer(hold)
-            button.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Remove suggestion") { [weak self] _ in
-                self?.askToRemove(slot)
-                return true
-            }]
+            button.widthAnchor.constraint(greaterThanOrEqualToConstant: Self.moreMinimumWidth).isActive = true
             return button
         })
+    }
+
+    /// The words past the three slots; none collapses the scrolled area to the bar's width.
+    private func showMore(_ buttons: [UIView]) {
+        replaceItems(in: moreStack, with: buttons)
+        moreCollapsed.isActive = buttons.isEmpty
+        suggestionScroll.setContentOffset(.zero, animated: false)
+    }
+
+    /// One suggestion's button: a tap reports `slot` (`onSuggestion`), a hold asks to remove its word.
+    private func slotButton(_ slot: SuggestionSlot, bold: Bool) -> UIButton {
+        let button = UIButton(type: .custom)
+        button.setTitle(slot.title, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 17, weight: bold ? .semibold : .regular)
+        button.titleLabel?.adjustsFontSizeToFitWidth = true
+        button.titleLabel?.minimumScaleFactor = 0.6
+        button.setTitleColor(theme?.keyText, for: .normal)
+        button.setTitleColor(theme?.hintText, for: .highlighted)
+        button.addAction(UIAction { [weak self] _ in self?.onSuggestion?(slot) }, for: .touchUpInside)
+        // An emoji is drawn larger, and has no word to remove.
+        if slot.suggestion.kind == .emoji {
+            button.titleLabel?.font = .systemFont(ofSize: 24)
+            return button
+        }
+        // Once the hold is recognised the button's touch is cancelled, so it doesn't commit.
+        let hold = SlotHold(target: self, action: #selector(slotHeld(_:)))
+        hold.slot = slot
+        hold.minimumPressDuration = SuggestionRemoval.holdDuration
+        button.addGestureRecognizer(hold)
+        button.accessibilityCustomActions = [UIAccessibilityCustomAction(name: "Remove suggestion") { [weak self] _ in
+            self?.askToRemove(slot)
+            return true
+        }]
+        return button
     }
 
     /// A short note in the middle of the bar, in place of the slots ("Swipe again").
@@ -226,6 +292,7 @@ final class TopBarView: UIView {
         label.font = .systemFont(ofSize: 16)
         label.textColor = theme?.hintText
         replaceItems(in: suggestionStack, with: [UIView(), label, UIView()])
+        showMore([])
     }
 
     /// The best completion (if any) on the left, then one button per vowel
@@ -261,6 +328,12 @@ final class TopBarView: UIView {
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         views.forEach(stack.addArrangedSubview)
     }
+}
+
+/// The suggestion bar's scroll view: a slide that starts on a slot scrolls, as one that
+/// starts between slots does (a plain scroll view leaves a touch on a control alone).
+private final class SlotScrollView: UIScrollView {
+    override func touchesShouldCancel(in view: UIView) -> Bool { true }
 }
 
 /// A hold on one suggestion slot, carrying the slot it was made for.
