@@ -287,3 +287,25 @@ private func refusal(_ body: () throws -> Void) -> PackInstaller.Refusal? {
     let lexicon = try Data(contentsOf: pack.folder.appending(path: "hi.fst"))
     #expect(lexicon == (try Data(contentsOf: packsFolder.appending(path: "hi.neopack/hi.fst"))))
 }
+
+@Test func aFileFromThePickerIsInstalled() throws {
+    let f = try Fixture()
+    defer { f.cleanUp() }
+    let url = try f.archive(packZip(), named: "Malayalam pack.neopack")
+    let pack = try PackImport.install(from: url, with: f.installer)
+    #expect(pack.id == "xx")
+    #expect(f.listing() == ["xx.neopack"])
+    // The picked file is left where it was.
+    #expect(FileManager.default.fileExists(atPath: url.path))
+    #expect(PackImport.contentType.identifier == "me.jishnu.keyboard.neopack")
+}
+
+@Test func aFileThatCannotBeReadIsRefused() throws {
+    let f = try Fixture()
+    defer { f.cleanUp() }
+    guard case .archive = refusal({ _ = try PackImport.install(from: f.root.appending(path: "gone.neopack"), with: f.installer) }) else {
+        Issue.record("a missing file should be refused")
+        return
+    }
+    #expect(f.listing().isEmpty)
+}
