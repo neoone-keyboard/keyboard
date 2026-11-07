@@ -19,7 +19,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use lexbuild::native::{self, Lang};
 use lexbuild::{Config, Counts, Entries, NextWords};
-use mlengine_core::lexicon::{Lexicon, SEPARATOR, build};
+use mlengine_core::lexicon::{Lexicon, build};
 
 #[derive(Parser)]
 #[command(about = "Build a pack language's lexicons from its language config")]
@@ -57,15 +57,7 @@ fn open(path: &PathBuf) -> io::Result<BufReader<File>> {
 fn english_pairs(path: &Path) -> io::Result<Entries> {
     let lex =
         Lexicon::open(path).map_err(|e| io::Error::other(format!("{}: {e}", path.display())))?;
-    let mut out = Vec::new();
-    lex.words(|key, count| {
-        if let Some(sep) = key.iter().position(|&b| b == SEPARATOR)
-            && key[..sep].is_ascii()
-        {
-            out.push((key.to_vec(), count));
-        }
-    });
-    Ok(out)
+    Ok(lexbuild::english_pairs(&lex))
 }
 
 fn write_fst(out: &Path, name: &str, entries: Entries, report: &mut String) -> io::Result<()> {

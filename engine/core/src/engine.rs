@@ -83,9 +83,9 @@ pub struct Suggestions {
 #[derive(Debug, Default)]
 pub struct Sources {
     pub english: Option<Lexicon>,
-    /// English-only next words, for when English is active without a pack (phase 3). None for
-    /// now: English next words still come from the pack's `next.fst`, which holds English and
-    /// Malayalam pairs in one file (`PackSources::next_words`).
+    /// The English base's own next words (`en-next.fst`, the English pairs alone), read only
+    /// while English is active and no active pack has a `next.fst`: a pack's `next.fst` holds
+    /// the same English pairs beside its own (`PackSources::next_words`), and they'd count twice.
     pub english_next: Option<Lexicon>,
     pub packs: Vec<PackSources>,
 }
@@ -177,6 +177,8 @@ impl<'a> Timing<'a> {
 #[derive(Debug, Clone, Default)]
 pub struct Paths {
     pub english: Option<PathBuf>,
+    /// The English base's `en-next.fst` (`Sources::english_next`).
+    pub english_next: Option<PathBuf>,
     /// The packs, in load order (`Paths::with_packs` fills them from opened packs).
     pub packs: Vec<PackPaths>,
     /// Directory for learned words; None keeps them in memory only.
@@ -264,7 +266,7 @@ impl Sources {
         }
         let sources = Self {
             english,
-            english_next: None,
+            english_next: open_lexicon(&paths.english_next),
             packs,
         };
         (sources, problems)
@@ -2533,10 +2535,16 @@ impl Engine {
         let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let mut found: Vec<Candidate> = Vec::new();
-        for lex in self
+        let packs: Vec<&Lexicon> = self
             .packs_active()
             .filter_map(|(_, p)| p.next_words.as_ref())
-        {
+            .collect();
+        let english = self
+            .sources
+            .english_next
+            .as_ref()
+            .filter(|_| packs.is_empty() && self.active.english());
+        for lex in packs.into_iter().chain(english) {
             for (k, count) in lex.top_completions(&key, TOP_K) {
                 let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
                     continue;
@@ -3406,6 +3414,37 @@ mod tests {
         assert_eq!(s.typed, "");
         assert_eq!(texts(&s), ["am", "have", "was"]);
         assert!(s.candidates.iter().all(|c| c.kind == Kind::NextWord));
+    }
+
+    #[test]
+    fn english_alone_takes_its_next_words_from_english_next() {
+        let engine = Engine::new(
+            Sources {
+                english: lex(&[("i", 100), ("am", 50), ("have", 40)]),
+                english_next: lex(&[("i\0am", 9), ("i\0have", 4)]),
+                ..Sources::default()
+            },
+            UserStore::in_memory(),
+        );
+        assert_eq!(texts(&engine.suggest("I ", Layout::Latin, true)), ["am", "have"]);
+    }
+
+    #[test]
+    fn english_next_is_not_read_beside_a_pack_next_fst() {
+        let sources = || Sources {
+            english: lex(&[("i", 100), ("am", 50), ("have", 40)]),
+            english_next: lex(&[("i\0have", 90)]),
+            packs: vec![PackSources {
+                next_words: lex(&[("i\0am", 3)]),
+                ..ml_pack(None)
+            }],
+        };
+        let engine = Engine::new(sources(), UserStore::in_memory());
+        assert_eq!(texts(&engine.suggest("I ", Layout::Latin, true)), ["am"]);
+        // With only the pack active, English pairs come from neither file.
+        let mut ml_only = Engine::new(sources(), UserStore::in_memory());
+        ml_only.set_active(&[LangId("ml".into())]).unwrap();
+        assert!(texts(&ml_only.suggest("I ", Layout::Latin, true)).is_empty());
     }
 
     #[test]

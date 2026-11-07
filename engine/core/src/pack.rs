@@ -162,6 +162,7 @@ impl Paths {
     pub fn with_packs(english: Option<PathBuf>, packs: &[Pack], user_dir: Option<PathBuf>) -> Self {
         Self {
             english,
+            english_next: None,
             packs: packs.iter().map(Pack::paths).collect(),
             user_dir,
         }

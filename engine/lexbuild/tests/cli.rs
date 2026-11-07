@@ -23,12 +23,28 @@ fn builds_a_bundle_the_engine_can_use() {
         .status()
         .unwrap();
     assert!(status.success());
-    for name in ["en.fst", "ml.fst", "manglish.fst", "next.fst", "stats.txt"] {
+    for name in ["en.fst", "en-next.fst", "ml.fst", "manglish.fst", "next.fst", "stats.txt"] {
         assert!(out.path().join(name).exists(), "{name} missing");
     }
+    // The English base's own next words: next.fst's English pairs, and only those.
+    let next = Lexicon::open(&out.path().join("next.fst")).unwrap();
+    let english_next = Lexicon::open(&out.path().join("en-next.fst")).unwrap();
+    assert!(english_next.get(b"i\0am").is_some());
+    let mut all = Vec::new();
+    next.words(|k, c| all.push((k.to_vec(), c)));
+    let mut english = Vec::new();
+    english_next.words(|k, c| english.push((k.to_vec(), c)));
+    let latin: Vec<_> = all
+        .iter()
+        .filter(|(k, _)| k.split(|&b| b == 0).next().unwrap().is_ascii())
+        .cloned()
+        .collect();
+    assert!(latin.len() < all.len(), "the fixture has Malayalam pairs too");
+    assert_eq!(english, latin);
 
     let paths = Paths {
         english: Some(out.path().join("en.fst")),
+        english_next: None,
         packs: vec![PackPaths {
             lexicon: Some(out.path().join("ml.fst")),
             romanised: Some(out.path().join("manglish.fst")),

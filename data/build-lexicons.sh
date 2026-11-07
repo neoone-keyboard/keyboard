@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Rebuilds en.fst in apps/ios/KeyboardExtension/Lexicon/ and ml.fst, manglish.fst and
+# Rebuilds en.fst and en-next.fst (the English base's own next words) in
+# apps/ios/KeyboardExtension/Lexicon/, and ml.fst, manglish.fst and
 # next.fst in the Malayalam pack (packs/ml.neopack/), then the pack's checksums, from the
 # sources in data/manifests/: fetch, extract plain text, run lexbuild.
 # Extracted text is cached in data/raw/text/; delete it to re-extract.
@@ -49,7 +50,7 @@ rm -rf "$RAW/bundle"
   --out "$RAW/bundle"
 
 mkdir -p "$OUT" "$PACK"
-mv "$RAW/bundle/en.fst" "$OUT/"
+mv "$RAW/bundle/en.fst" "$RAW/bundle/en-next.fst" "$OUT/"
 mv "$RAW/bundle/ml.fst" "$RAW/bundle/manglish.fst" "$RAW/bundle/next.fst" "$PACK/"
 mv "$RAW/bundle/stats.txt" "$ROOT/data/lexicon-stats.txt"
 python3 -I "$ROOT/scripts/pack.py" "$PACK" --write

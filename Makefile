@@ -53,6 +53,7 @@ test-data:
 	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored
+	cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the

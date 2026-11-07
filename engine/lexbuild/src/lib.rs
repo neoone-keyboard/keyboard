@@ -474,20 +474,39 @@ pub struct Stats {
     pub report: String,
 }
 
-/// Writes `en.fst`, `ml.fst`, `manglish.fst` and `next.fst` into `out`, plus `stats.txt`.
+/// The English pairs of a `next.fst`: those whose first word is ASCII. lexbuild's English
+/// vocabulary is ASCII only (`count_words` with `Script::Latin`) and every other vocabulary is
+/// in its own script, so this is exactly the English half of the file.
+pub fn english_pairs(next: &mlengine_core::lexicon::Lexicon) -> Entries {
+    let mut out = Vec::new();
+    next.words(|key, count| {
+        if let Some(sep) = key.iter().position(|&b| b == SEPARATOR)
+            && key[..sep].is_ascii()
+        {
+            out.push((key.to_vec(), count));
+        }
+    });
+    out
+}
+
+/// Writes `en.fst`, `en-next.fst` (the English base's own next words: `english_next`, the
+/// English pairs of `next`), `ml.fst`, `manglish.fst` and `next.fst` into `out`, plus
+/// `stats.txt`.
 pub fn write_bundle(
     out: &Path,
     tables: &mlengine_core::romanisation::Romanisation,
     english: &[(String, u64)],
     malayalam: &[(String, u64)],
+    english_next: &[(Vec<u8>, u64)],
     next: &[(Vec<u8>, u64)],
 ) -> io::Result<Stats> {
     fs::create_dir_all(out)?;
     let mut report = String::new();
     let manglish = manglish::entries(tables, malayalam);
     let manglish_len = manglish.len();
-    let files: [(&str, Entries, usize); 4] = [
+    let files: [(&str, Entries, usize); 5] = [
         ("en.fst", to_entries(english), english.len()),
+        ("en-next.fst", english_next.to_vec(), english_next.len()),
         ("ml.fst", to_entries(malayalam), malayalam.len()),
         ("manglish.fst", manglish, manglish_len),
         ("next.fst", next.to_vec(), next.len()),
@@ -1024,8 +1043,9 @@ mod tests {
                 &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json"),
             )
             .unwrap();
-            write_bundle(dir.path(), &tables, &en, &[], &next.entries(3)).unwrap();
-            ["en.fst", "ml.fst", "manglish.fst", "next.fst"]
+            let entries = next.entries(3);
+            write_bundle(dir.path(), &tables, &en, &[], &entries, &entries).unwrap();
+            ["en.fst", "en-next.fst", "ml.fst", "manglish.fst", "next.fst"]
                 .map(|n| fs::read(dir.path().join(n)).unwrap())
         };
         assert_eq!(build_once(), build_once());

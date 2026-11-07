@@ -1,7 +1,7 @@
 //! `lexbuild`: plain-text corpora in, lexicon bundle out. See `make lexicons`.
 //!
 //! Two modes. With `--malayalam`, the Malayalam bundle (`en.fst`, `ml.fst`, `manglish.fst`,
-//! `next.fst`) as always. With `--lang`, `--native` and `--romanisation`, any other language's
+//! `next.fst`) as always, plus the English base's own `en-next.fst` (the English pairs alone). With `--lang`, `--native` and `--romanisation`, any other language's
 //! pack lexicons (`<lang>.fst`, `<romanised>.fst`, `next.fst`), the romanised keys built from
 //! the pack's `romanisation.json`, and English counted against the base's `en.fst`.
 
@@ -189,7 +189,8 @@ fn run(args: Args) -> io::Result<()> {
     let malayalam = malayalam_vocab(&ml_counts, &smc, &config);
     drop((en_counts, ml_counts));
 
-    let mut next = english_next(&english, &args, &config)?;
+    let english_only = english_next(&english, &args, &config)?;
+    let mut next = english_only.clone();
     let mut pairs = NextWords::new(&malayalam, &config);
     for path in &args.malayalam {
         eprintln!("counting word pairs in {}", path.display());
@@ -203,7 +204,7 @@ fn run(args: Args) -> io::Result<()> {
         ));
     };
     let tables = Romanisation::load(romanisation).map_err(io::Error::other)?;
-    let stats = write_bundle(&args.out, &tables, &english, &malayalam, &next)?;
+    let stats = write_bundle(&args.out, &tables, &english, &malayalam, &english_only, &next)?;
     print!("{}", stats.report);
     Ok(())
 }

@@ -75,6 +75,10 @@ pub struct SwipeKey {
 pub struct EngineConfig {
     #[uniffi(default = None)]
     pub english: Option<String>,
+    /// The English base's own next words (`en-next.fst`), used while English is active and no
+    /// active pack has a `next.fst`; nil, no next words for English alone.
+    #[uniffi(default = None)]
+    pub english_next: Option<String>,
     #[uniffi(default = None)]
     pub malayalam: Option<String>,
     #[uniffi(default = None)]
@@ -157,10 +161,9 @@ fn paths(c: &EngineConfig) -> (mlengine_core::Paths, Vec<String>) {
     if packs.is_empty() {
         return (c.into(), problems);
     }
-    (
-        mlengine_core::Paths::with_packs(path(&c.english), &packs, path(&c.user_dir)),
-        problems,
-    )
+    let mut paths = mlengine_core::Paths::with_packs(path(&c.english), &packs, path(&c.user_dir));
+    paths.english_next = path(&c.english_next);
+    (paths, problems)
 }
 
 impl From<&EngineConfig> for mlengine_core::Paths {
@@ -187,6 +190,7 @@ impl From<&EngineConfig> for mlengine_core::Paths {
         };
         Self {
             english: path(&c.english),
+            english_next: path(&c.english_next),
             packs: vec![ml],
             user_dir: path(&c.user_dir),
         }
@@ -813,12 +817,15 @@ mod tests {
         let broken = broken_pack("alone");
         let config = EngineConfig {
             english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            english_next: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en-next.fst")),
             pack_dirs: vec![broken.to_string_lossy().into_owned()],
             ..EngineConfig::default()
         };
         let engine = Engine::new(config).unwrap();
         assert_eq!(engine.pack_problems().len(), 1);
-        assert_eq!(engine.loaded_sources().unwrap(), ["english"]);
+        assert_eq!(engine.loaded_sources().unwrap(), ["english", "english_next"]);
+        let next = engine.suggest("I ".into(), InputLayout::Latin, true).unwrap();
+        assert!(next.candidates.iter().any(|c| c.text == "am"), "{next:?}");
         assert_eq!(engine.layouts().unwrap(), [InputLayout::Latin]);
         assert_eq!(engine.active_languages().unwrap(), ["en"]);
         let s = engine.suggest("teh".into(), InputLayout::Latin, true).unwrap();

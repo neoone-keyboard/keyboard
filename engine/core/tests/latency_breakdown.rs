@@ -18,6 +18,7 @@ fn open(model: bool) -> Engine {
     let pack = root().join("packs/ml.neopack");
     Engine::open(&Paths {
         english: Some(dir.join("en.fst")),
+        english_next: None,
         packs: vec![PackPaths {
             lexicon: Some(pack.join("ml.fst")),
             romanised: Some(pack.join("manglish.fst")),

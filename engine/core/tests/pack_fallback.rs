@@ -63,7 +63,6 @@ fn a_broken_pack_leaves_the_others_working() {
 
 #[test]
 fn a_second_pack_with_the_same_id_and_a_pack_called_en_are_left_out() {
-    let dir = tempfile::tempdir().unwrap();
     let ml = Pack::open(&root().join("packs/ml.neopack")).unwrap();
     let mut en = ml.clone();
     en.manifest.id = "en".into();
@@ -81,7 +80,27 @@ fn a_second_pack_with_the_same_id_and_a_pack_called_en_are_left_out() {
     assert_eq!(problems.len(), 2, "{problems:?}");
     assert!(problems[0].starts_with("ml.neopack: another pack has id ml"), "{problems:?}");
     assert!(problems[1].starts_with("ml.neopack: id en is the English base"), "{problems:?}");
-    drop(dir);
+}
+
+/// English with no pack at all (the keyboard when every pack is missing): its own next words
+/// come from `en-next.fst`.
+#[test]
+fn english_alone_has_its_own_next_words() {
+    let lexicon = root().join("apps/ios/KeyboardExtension/Lexicon");
+    let paths = Paths {
+        english: Some(lexicon.join("en.fst")),
+        english_next: Some(lexicon.join("en-next.fst")),
+        ..Paths::default()
+    };
+    let engine = Engine::open(&paths);
+    assert_eq!(engine.loaded_sources(), ["english", "english_next"]);
+    let next = texts(&engine, "I ");
+    assert!(next.contains(&"am".to_string()), "{next:?}");
+    let without = Engine::open(&Paths {
+        english_next: None,
+        ..paths
+    });
+    assert!(texts(&without, "I ").is_empty());
 }
 
 #[test]
