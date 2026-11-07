@@ -7,6 +7,7 @@ struct LanguagesView: View {
     @Bindable var model: LanguagesModel
     @State private var picking = false
     @State private var removing: LanguagesModel.Row?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         List {
@@ -57,6 +58,12 @@ struct LanguagesView: View {
             }
         }
         .navigationTitle("Languages")
+        // The keyboard's settings panel may have changed the choice meanwhile (when it could
+        // write the App Group).
+        .onAppear { model.reload() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { model.reload() }
+        }
         .fileImporter(isPresented: $picking, allowedContentTypes: [PackImport.contentType, .zip]) { result in
             if case .success(let url) = result {
                 model.importPack(from: url)

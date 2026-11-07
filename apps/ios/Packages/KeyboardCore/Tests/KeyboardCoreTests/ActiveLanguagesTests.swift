@@ -74,3 +74,56 @@ import Testing
     #expect(PackSize.of(folder: folder) == 1024)
     #expect(PackSize.of(folder: folder.appending(path: "missing")) == 0)
 }
+
+@Test func theNewerChoiceWins() {
+    let early = Date(timeIntervalSince1970: 1000)
+    let late = Date(timeIntervalSince1970: 2000)
+    let app = ActiveLanguages(["en", "ml"])
+    let keyboard = ActiveLanguages(["en", "hi"])
+    // A later change in the keyboard wins over an older app choice, and the other way round.
+    #expect(DatedLanguages.newer(app: DatedLanguages(app, date: early), keyboard: DatedLanguages(keyboard, date: late)) == keyboard)
+    #expect(DatedLanguages.newer(app: DatedLanguages(app, date: late), keyboard: DatedLanguages(keyboard, date: early)) == app)
+    // The same moment: the app's.
+    #expect(DatedLanguages.newer(app: DatedLanguages(app, date: late), keyboard: DatedLanguages(keyboard, date: late)) == app)
+    // Only one: that one.
+    #expect(DatedLanguages.newer(app: DatedLanguages(app, date: late), keyboard: nil) == app)
+    #expect(DatedLanguages.newer(app: nil, keyboard: DatedLanguages(keyboard, date: early)) == keyboard)
+    #expect(DatedLanguages.newer(app: nil, keyboard: nil) == nil)
+}
+
+@Test func theAppGroupFileIsDatedByItsModificationDate() throws {
+    let folder = try temporaryFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appending(path: "active-languages.json")
+    #expect(DatedLanguages.read(from: file) == nil)
+    try ActiveLanguages(["en", "hi"]).write(to: file)
+    let date = Date(timeIntervalSince1970: 1_800_000_000)
+    try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: file.path)
+    #expect(DatedLanguages.read(from: file) == DatedLanguages(ActiveLanguages(["en", "hi"]), date: date))
+}
+
+@Test func theKeyboardsChoiceIsSavedAndLoaded() throws {
+    let suite = "KeyboardLanguageChoiceTests-\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    #expect(KeyboardLanguageChoice.load(from: defaults) == nil)
+    let dated = DatedLanguages(ActiveLanguages(["ml", "hi"]), date: Date(timeIntervalSince1970: 1234.5))
+    KeyboardLanguageChoice.save(dated, to: defaults)
+    #expect(KeyboardLanguageChoice.load(from: defaults) == dated)
+    // An empty choice is no choice.
+    KeyboardLanguageChoice.save(DatedLanguages(ActiveLanguages([]), date: .now), to: defaults)
+    #expect(KeyboardLanguageChoice.load(from: defaults) == nil)
+}
+
+@Test func thePanelsSwitchesFollowTheRules() {
+    // The keyboard's settings panel: English then its packs, a switch enabled when it can toggle.
+    let order = ["en", "ml", "hi", "as"]
+    func enabled(_ choice: ActiveLanguages) -> [String] { order.filter(choice.canToggle) }
+    // Full (two on): the others are disabled, both on ones can go off.
+    #expect(enabled(ActiveLanguages(["en", "ml"])) == ["en", "ml"])
+    // One on: it can't go off, every other can come on.
+    #expect(enabled(ActiveLanguages(["ml"])) == ["en", "hi", "as"])
+    // Malayalam off, Hindi on: English and Hindi, in list order.
+    let next = ActiveLanguages(["en", "ml"]).toggling("ml", order: order).toggling("hi", order: order)
+    #expect(next.languages == ["en", "hi"])
+}

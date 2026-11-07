@@ -10,8 +10,8 @@ final class SettingsPanelView: UIView {
     var onForgetLearned: (@MainActor () -> Void)?
     /// Opens "Your words" (`YourWordsView`).
     var onYourWords: (@MainActor () -> Void)?
-    /// Opens the app's Languages screen (`KeyboardViewController.openLanguages`).
-    var onLanguages: (@MainActor () -> Void)?
+    /// A language switched on or off; the new choice, already within the rules.
+    var onLanguagesChange: (@MainActor (ActiveLanguages) -> Void)?
     var onInsertDiagnostics: (@MainActor () -> Void)?
 
     private(set) var settings = KeyboardSettings()
@@ -31,7 +31,13 @@ final class SettingsPanelView: UIView {
     private let emojiLabel = UILabel()
     private let emojiSwitch = UISwitch()
     private let yourWordsButton = UIButton(type: .system)
-    private let languagesButton = UIButton(type: .system)
+    /// One switch per language the keyboard has (English, then its packs), built in `show`.
+    private let languagesLabel = UILabel()
+    private let languageRows = UIStackView()
+    private let languagesHint = UILabel()
+    private var languageSwitches: [(id: String, label: UILabel, toggle: UISwitch)] = []
+    private var languageOrder: [String] = []
+    private(set) var languages = ActiveLanguages([ActiveLanguages.english])
     private let forgetButton = UIButton(type: .system)
     private let diagnosticsButton = UIButton(type: .system)
     /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
@@ -93,12 +99,13 @@ final class SettingsPanelView: UIView {
             guard let self else { return }
             update { $0.emojiSuggestions = self.emojiSwitch.isOn }
         }, for: .valueChanged)
-        languagesButton.setTitle("Languages", for: .normal)
-        languagesButton.setImage(UIImage(systemName: "arrow.up.forward.app"), for: .normal)
-        languagesButton.titleLabel?.font = .systemFont(ofSize: 15)
-        languagesButton.semanticContentAttribute = .forceRightToLeft
-        languagesButton.contentHorizontalAlignment = .left
-        languagesButton.addAction(UIAction { [weak self] _ in self?.onLanguages?() }, for: .touchUpInside)
+        languagesLabel.text = "Languages"
+        languagesLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        languageRows.axis = .vertical
+        languageRows.spacing = 6
+        languagesHint.text = "Add languages in the NeoOne Keyboard app."
+        languagesHint.font = .systemFont(ofSize: 13)
+        languagesHint.numberOfLines = 0
         yourWordsButton.setTitle("Your words", for: .normal)
         yourWordsButton.setImage(UIImage(systemName: "chevron.right"), for: .normal)
         yourWordsButton.titleLabel?.font = .systemFont(ofSize: 15)
@@ -127,7 +134,8 @@ final class SettingsPanelView: UIView {
         }
 
         let stack = UIStackView(arrangedSubviews: [
-            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, languagesButton, yourWordsButton,
+            header, themeControl, accentRow, numberRow, clicksRow, autocorrectRow, emojiRow, languagesLabel, languageRows, languagesHint,
+            yourWordsButton,
             forgetButton, diagnosticsButton,
         ])
         stack.axis = .vertical
@@ -158,7 +166,7 @@ final class SettingsPanelView: UIView {
             header.heightAnchor.constraint(equalToConstant: 36),
             themeControl.heightAnchor.constraint(equalToConstant: 30),
             accentRow.heightAnchor.constraint(equalToConstant: 36),
-            languagesButton.heightAnchor.constraint(equalToConstant: 36),
+            languagesLabel.heightAnchor.constraint(equalToConstant: 30),
             yourWordsButton.heightAnchor.constraint(equalToConstant: 36),
             forgetButton.heightAnchor.constraint(equalToConstant: 36),
             diagnosticsButton.heightAnchor.constraint(equalToConstant: 36),
@@ -167,9 +175,11 @@ final class SettingsPanelView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-    /// Shows `settings` in the controls without reporting a change.
-    func show(_ settings: KeyboardSettings) {
+    /// Shows `settings` and the language switches (`available`: id and name, English first,
+    /// `active` on) in the controls without reporting a change.
+    func show(_ settings: KeyboardSettings, available: [(id: String, name: String)], active: ActiveLanguages) {
         self.settings = settings
+        showLanguages(available, active: active)
         themeControl.selectedSegmentIndex = Self.themes.firstIndex(of: settings.theme) ?? 0
         numberRowSwitch.isOn = settings.numberRow
         clicksSwitch.isOn = settings.keyClicks
@@ -183,11 +193,12 @@ final class SettingsPanelView: UIView {
         self.theme = theme
         overrideUserInterfaceStyle = theme.isDark ? .dark : .light
         backgroundColor = theme.background
-        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel] {
+        for label in [titleLabel, accentLabel, numberRowLabel, clicksLabel, autocorrectLabel, emojiLabel, languagesLabel]
+            + languageSwitches.map(\.label) {
             label.textColor = theme.keyText
         }
+        languagesHint.textColor = theme.hintText
         doneButton.tintColor = theme.keyText
-        languagesButton.tintColor = theme.keyText
         yourWordsButton.tintColor = theme.keyText
         forgetButton.tintColor = theme.keyText
         diagnosticsButton.tintColor = theme.keyText
@@ -195,10 +206,53 @@ final class SettingsPanelView: UIView {
         themeControl.selectedSegmentTintColor = theme.key
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .normal)
         themeControl.setTitleTextAttributes([.foregroundColor: theme.keyText], for: .selected)
-        for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch, emojiSwitch] {
+        for toggle in [numberRowSwitch, clicksSwitch, autocorrectSwitch, emojiSwitch] + languageSwitches.map(\.toggle) {
             toggle.onTintColor = theme.accent
         }
         refreshSwatches()
+    }
+
+    /// A row per language, styled like the other switch rows. Rebuilt on each opening: the
+    /// app may have installed or removed a pack meanwhile.
+    private func showLanguages(_ available: [(id: String, name: String)], active: ActiveLanguages) {
+        languages = active
+        languageOrder = available.map(\.id)
+        for row in languageRows.arrangedSubviews { row.removeFromSuperview() }
+        languageSwitches = available.map { language in
+            let label = UILabel()
+            label.text = language.name
+            label.font = .systemFont(ofSize: 15)
+            let toggle = UISwitch()
+            toggle.accessibilityLabel = language.name
+            toggle.accessibilityIdentifier = "language-\(language.id)"
+            toggle.addAction(UIAction { [weak self] _ in self?.languageToggled(language.id) }, for: .valueChanged)
+            let row = UIStackView(arrangedSubviews: [label, UIView(), toggle])
+            row.axis = .horizontal
+            row.alignment = .center
+            languageRows.addArrangedSubview(row)
+            return (language.id, label, toggle)
+        }
+        refreshLanguageSwitches()
+    }
+
+    private func languageToggled(_ id: String) {
+        let next = languages.toggling(id, order: languageOrder)
+        guard next != languages else {
+            refreshLanguageSwitches()
+            return
+        }
+        languages = next
+        refreshLanguageSwitches()
+        onLanguagesChange?(next)
+    }
+
+    /// At most `ActiveLanguages.maxActive` on: when full the others are disabled; the last one
+    /// on can't be turned off.
+    private func refreshLanguageSwitches() {
+        for (id, _, toggle) in languageSwitches {
+            toggle.isOn = languages.isOn(id)
+            toggle.isEnabled = languages.canToggle(id)
+        }
     }
 
     private func forgetTapped() {

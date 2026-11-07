@@ -21,8 +21,8 @@ struct ContentView: View {
     /// Set once the first-launch step is done (the app's own defaults; `-chooseLanguagesDone NO`
     /// as a launch argument shows it again).
     @AppStorage("chooseLanguagesDone") private var chooseLanguagesDone = false
-    /// The Languages screen, opened by `neoone://languages` (the keyboard settings panel's
-    /// Languages row) or, in debug builds, by `-showLanguages` at launch, for screenshots.
+    /// The Languages screen, opened by `neoone://languages` (no longer used by the keyboard,
+    /// whose settings panel now switches languages itself) or, in debug builds, by `-showLanguages` at launch, for screenshots.
     #if DEBUG
     @State private var showLanguages = ProcessInfo.processInfo.arguments.contains("-showLanguages")
     #else

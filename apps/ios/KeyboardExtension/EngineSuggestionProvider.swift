@@ -64,9 +64,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
         /// with a reported problem, and the keys follow the engine's layouts, so the keyboard
         /// carries on with English and the packs that did load.
         var packs: [PackDescriptor]
-        /// The active languages set when the engine opens: the user's choice in the app (App
-        /// Group `active-languages.json`, `ActiveLanguages`), its ids the keyboard has no pack
-        /// for left out; else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from
+        /// The active languages set when the engine opens: the user's latest choice, the newer
+        /// of the app's (App Group `active-languages.json`, dated by its modification date) and
+        /// the keyboard's own (made in its settings panel, `KeyboardLanguageChoice`), its ids
+        /// the keyboard has no pack for left out (`DatedLanguages.newer`); else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from
         /// `make twopacks`); else nil, the engine's default.
         var active: [String]?
     }
@@ -78,7 +79,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
             installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
         )
         var active: [String]?
-        if let stored = PackLocations.activeLanguagesFile().flatMap(ActiveLanguages.read(from:)),
+        let fromApp = PackLocations.activeLanguagesFile().flatMap(DatedLanguages.read(from:))
+        let fromKeyboard = KeyboardLanguageChoice.load(from: .standard)
+        if let stored = DatedLanguages.newer(app: fromApp, keyboard: fromKeyboard),
            let ids = stored.usable(packIDs: packs.map(\.id)) {
             active = ids
         } else {
@@ -93,6 +96,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     static var packs: [PackDescriptor] { state.withLock { $0.packs } }
     static var configuredActive: [String]? { state.withLock { $0.active } }
+
+    /// The active languages as the settings panel shows them: the configured list, else the
+    /// engine's default.
+    static var activeChoice: ActiveLanguages {
+        configuredActive.map(ActiveLanguages.init) ?? ActiveLanguages.engineDefault(packIDs: packs.map(\.id))
+    }
+
+    /// The languages the settings panel offers: English, then every pack, by native name.
+    static var availableLanguages: [(id: String, name: String)] {
+        [(ActiveLanguages.english, "English")] + packs.map { ($0.id, $0.nativeName) }
+    }
 
     /// The languages the language key cycles before the engine has said (`layouts`): English,
     /// then the first pack with a keyboard, as the engine's default active list has it (or the
@@ -409,6 +423,45 @@ actor EngineSuggestionProvider: SuggestionProvider {
             log.info("Active languages now \(active.joined(separator: ","))")
         } catch {
             log.error("Active languages \(active.joined(separator: ",")) refused: \(String(describing: error))")
+        }
+    }
+
+    /// The user switched languages in the keyboard's settings panel: stored (`store`), and set
+    /// at once on the engine, opening it if need be. Returns the engine's layouts for the
+    /// language key; nil when the engine can't be used (the caller falls back to
+    /// `defaultLanguages`, which follows the new choice).
+    func choose(_ choice: ActiveLanguages) -> [InputLayout]? {
+        store(choice)
+        let packIDs = Self.packs.map(\.id)
+        let active = choice.usable(packIDs: packIDs) ?? ActiveLanguages.engineDefault(packIDs: packIDs).languages
+        Self.state.withLock { $0.active = active }
+        ahead = nil
+        guard let engine = try? loadedEngine() else { return nil }
+        do {
+            try engine.setActiveLanguages(languages: active)
+            log.info("Active languages now \(active.joined(separator: ",")) (keyboard settings)")
+        } catch {
+            log.error("Active languages \(active.joined(separator: ",")) refused: \(String(describing: error))")
+        }
+        return try? engine.layouts()
+    }
+
+    /// Kept twice. Always in the keyboard's own defaults, with the time, since without Full
+    /// Access writing the App Group is untested (reading it works). Also written to the App
+    /// Group file, so the app's Languages screen shows it; whether that worked is logged, to
+    /// learn it from a device. If it fails, the app may show an older choice, while the
+    /// keyboard uses its own as long as it is the newer one (`readPackState`).
+    private func store(_ choice: ActiveLanguages) {
+        KeyboardLanguageChoice.save(DatedLanguages(choice, date: .now), to: .standard)
+        guard let file = PackLocations.activeLanguagesFile() else {
+            log.warning("Active languages kept in the keyboard only: no App Group")
+            return
+        }
+        do {
+            try choice.write(to: file)
+            log.info("Active languages written to the App Group")
+        } catch {
+            log.warning("Active languages kept in the keyboard only: App Group write failed: \(String(describing: error))")
         }
     }
 

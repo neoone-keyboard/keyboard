@@ -53,6 +53,9 @@ public struct ActiveLanguages: Sendable, Equatable, Codable {
     /// At least one language stays on.
     public func canTurnOff(_ id: String) -> Bool { !isOn(id) || languages.count > 1 }
 
+    /// Whether `id`'s switch does anything: off while full, or on and the last one.
+    public func canToggle(_ id: String) -> Bool { isOn(id) ? canTurnOff(id) : canTurnOn(id) }
+
     /// `id` switched, when the rules allow it; the result is in `order` (the Languages list).
     public func toggling(_ id: String, order: [String]) -> ActiveLanguages {
         if isOn(id) {
@@ -70,5 +73,56 @@ public struct ActiveLanguages: Sendable, Equatable, Codable {
     public func removing(_ id: String) -> ActiveLanguages {
         let rest = languages.filter { $0 != id }
         return ActiveLanguages(rest.isEmpty ? [Self.english] : rest)
+    }
+}
+
+/// A language choice and when it was made: the App Group file's (its modification date) or the
+/// keyboard's own copy (`KeyboardLanguageChoice`). The keyboard has no Full Access, and whether
+/// it may write the App Group is untested, so a choice made in the keyboard is also kept in its
+/// own container; the newer of the two is the user's latest choice, wherever it was made.
+public struct DatedLanguages: Sendable, Equatable, Codable {
+    public let choice: ActiveLanguages
+    public let date: Date
+
+    public init(_ choice: ActiveLanguages, date: Date) {
+        self.choice = choice
+        self.date = date
+    }
+
+    /// The App Group file's choice, dated by its modification date; nil like
+    /// `ActiveLanguages.read`, or when the date can't be read.
+    public static func read(from file: URL) -> DatedLanguages? {
+        guard let choice = ActiveLanguages.read(from: file),
+              let date = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate else { return nil }
+        return DatedLanguages(choice, date: date)
+    }
+
+    /// The later of the app's and the keyboard's choice; on the same date the app's. Nil when
+    /// neither exists.
+    public static func newer(app: DatedLanguages?, keyboard: DatedLanguages?) -> ActiveLanguages? {
+        switch (app, keyboard) {
+        case let (app?, keyboard?): keyboard.date > app.date ? keyboard.choice : app.choice
+        case let (app?, nil): app.choice
+        case let (nil, keyboard?): keyboard.choice
+        case (nil, nil): nil
+        }
+    }
+}
+
+/// The choice made in the keyboard's settings panel, with when, in the keyboard's own defaults.
+public enum KeyboardLanguageChoice {
+    static let key = "activeLanguages"
+
+    public static func load(from defaults: UserDefaults) -> DatedLanguages? {
+        guard let data = defaults.data(forKey: key),
+              let dated = try? JSONDecoder().decode(DatedLanguages.self, from: data),
+              !dated.choice.languages.isEmpty else { return nil }
+        return dated
+    }
+
+    public static func save(_ dated: DatedLanguages, to defaults: UserDefaults) {
+        guard let data = try? JSONEncoder().encode(dated) else { return }
+        defaults.set(data, forKey: key)
     }
 }
