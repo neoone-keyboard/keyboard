@@ -303,6 +303,7 @@ final class KeyboardViewController: UIInputViewController {
         // The provider is shared: an earlier session may have shed it for memory.
         Task { [weak self, provider] in
             await provider.resume()
+            await provider.reloadIfChanged()
             await provider.warmUp(contextBefore: contextBefore)
             let layouts = await provider.layouts()
             self?.refreshLearnedAddresses()

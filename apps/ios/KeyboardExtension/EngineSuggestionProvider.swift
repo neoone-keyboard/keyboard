@@ -10,7 +10,7 @@ import os
 /// thread never waits.
 actor EngineSuggestionProvider: SuggestionProvider {
     private let log = Diagnostics(category: "engine")
-    private let config: EngineConfig
+    private var config: EngineConfig
     private var engine: Engine?
     /// Set while memory is short: the engine stays unloaded until `resume`.
     private var shed = false
@@ -53,31 +53,46 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// memory behind (about 2–4 MB a session, until the memory gate turned prediction off).
     static let shared = bundled()
 
-    /// The language packs, read once per process: their manifests and layouts, for the keys
-    /// and the engine. Those in the extension bundle (`packs/`, M6; today only `ml.neopack`)
-    /// and those the app installed in the App Group (`PackLocations`, phase 3), one per id: an
-    /// installed pack only replaces a bundled one with a higher version. A pack the engine
-    /// then can't load is left out with a reported problem, and the keys follow the engine's
-    /// layouts, so the keyboard carries on with English and the packs that did load.
-    static let packs: [PackDescriptor] = PackDescriptor.merge(
-        bundled: Bundle.main.resourceURL
-            .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? [],
-        installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
-    )
+    /// The language packs and the active choice, as last read (`readPackState`). Read when the
+    /// process starts and again each time the keyboard appears (`reloadIfChanged`): iOS keeps
+    /// the process alive across sessions and switching keyboards, so a choice made or a pack
+    /// installed in the app meanwhile would otherwise wait for the process to end.
+    struct PackState: Equatable, Sendable {
+        /// Those in the extension bundle (`packs/`) and those the app installed in the App
+        /// Group (`PackLocations`, phase 3), one per id: an installed pack only replaces a
+        /// bundled one with a higher version. A pack the engine then can't load is left out
+        /// with a reported problem, and the keys follow the engine's layouts, so the keyboard
+        /// carries on with English and the packs that did load.
+        var packs: [PackDescriptor]
+        /// The active languages set when the engine opens: the user's choice in the app (App
+        /// Group `active-languages.json`, `ActiveLanguages`), its ids the keyboard has no pack
+        /// for left out; else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from
+        /// `make twopacks`); else nil, the engine's default.
+        var active: [String]?
+    }
 
-    /// The active languages set when the engine opens: the user's choice in the app (App Group
-    /// `active-languages.json`, `ActiveLanguages`), its ids the keyboard has no pack for left
-    /// out; else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from `make twopacks`);
-    /// else nil, the engine's default. Read once per process, as `packs` is.
-    static let configuredActive: [String]? = {
+    static func readPackState() -> PackState {
+        let packs = PackDescriptor.merge(
+            bundled: Bundle.main.resourceURL
+                .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? [],
+            installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
+        )
+        var active: [String]?
         if let stored = PackLocations.activeLanguagesFile().flatMap(ActiveLanguages.read(from:)),
            let ids = stored.usable(packIDs: packs.map(\.id)) {
-            return ids
+            active = ids
+        } else {
+            let ids = (Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? "")
+                .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            active = ids.isEmpty ? nil : ids
         }
-        let ids = (Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? "")
-            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        return ids.isEmpty ? nil : ids
-    }()
+        return PackState(packs: packs, active: active)
+    }
+
+    private static let state = OSAllocatedUnfairLock(initialState: readPackState())
+
+    static var packs: [PackDescriptor] { state.withLock { $0.packs } }
+    static var configuredActive: [String]? { state.withLock { $0.active } }
 
     /// The languages the language key cycles before the engine has said (`layouts`): English,
     /// then the first pack with a keyboard, as the engine's default active list has it (or the
@@ -114,12 +129,16 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// missing from a pack disables only that source (without the transliterator, Manglish
     /// uses the lexicons alone; without the LM, ranking is M3a's).
     static func bundled() -> EngineSuggestionProvider {
+        EngineSuggestionProvider(config: config(packs: packs))
+    }
+
+    private static func config(packs: [PackDescriptor]) -> EngineConfig {
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
         }
         let userDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appending(path: "LearnedWords", directoryHint: .isDirectory).path
-        return EngineSuggestionProvider(config: EngineConfig(
+        return EngineConfig(
             english: lexicon("en"),
             englishNext: lexicon("en-next"),
             userDir: userDir,
@@ -129,7 +148,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             lmAfterSpaceMs: lmAfterSpaceMs,
             lmDeadlineMs: lmDeadlineMs,
             lmPrepareMs: lmPrepareMs
-        ))
+        )
     }
 
     /// Milliseconds into a suggest after which the transliterator stops and its finished
@@ -361,6 +380,36 @@ actor EngineSuggestionProvider: SuggestionProvider {
         if engine != nil { log.info("Engine unloaded; footprint before \(Diagnostics.footprint())") }
         engine = nil
         shed = true
+    }
+
+    /// Reads the packs and the active choice again; if a pack was installed, replaced or
+    /// removed the engine reopens with the new packs on its next use, and if only the choice
+    /// changed it is set on the open engine. Cheap when nothing changed: a folder listing and
+    /// a few small JSON files.
+    func reloadIfChanged() {
+        let fresh = Self.readPackState()
+        let old = Self.state.withLock { state in
+            let old = state
+            state = fresh
+            return old
+        }
+        guard fresh != old else { return }
+        ahead = nil
+        if fresh.packs != old.packs {
+            log.info("Packs changed (\(fresh.packs.map(\.id).joined(separator: ","))); the engine reopens")
+            config = Self.config(packs: fresh.packs)
+            engine = nil
+            failedAt = nil
+            return
+        }
+        guard let engine else { return }
+        let active = fresh.active ?? ActiveLanguages.engineDefault(packIDs: fresh.packs.map(\.id)).languages
+        do {
+            try engine.setActiveLanguages(languages: active)
+            log.info("Active languages now \(active.joined(separator: ","))")
+        } catch {
+            log.error("Active languages \(active.joined(separator: ",")) refused: \(String(describing: error))")
+        }
     }
 
     /// Memory has recovered: the engine opens again on the next request.
