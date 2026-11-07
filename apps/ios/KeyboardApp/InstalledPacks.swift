@@ -5,8 +5,7 @@ import MLEngine
 /// The app's side of language packs (M6 phase 3): it installs them into the App Group, which
 /// the keyboard reads. The logic is in KeyboardCore (`PackInstaller`, `PackImport`,
 /// `PackUpdates`); this adds the App Group folder, the keyboard's bundle and what its engine
-/// reads. No screen calls it yet: the Languages and first-launch screens are still to be
-/// designed.
+/// reads. The Languages and first-launch screens use it through `LanguagesModel`.
 enum InstalledPacks {
     /// The App Group isn't available to this build (an unsigned simulator build).
     struct NoAppGroup: Error, CustomStringConvertible {
@@ -25,7 +24,7 @@ enum InstalledPacks {
     }
 
     /// The keyboard extension inside this app.
-    private static var keyboardBundle: URL? {
+    static var keyboardBundle: URL? {
         Bundle.main.builtInPlugInsURL?.appending(path: "KeyboardExtension.appex", directoryHint: .isDirectory)
     }
 
@@ -45,7 +44,11 @@ enum InstalledPacks {
 
     /// The packs the keyboard bundles (`packs/` in the extension).
     static func bundled() -> [PackDescriptor] {
-        keyboardBundle.map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
+        #if DEBUG
+        // Screenshots of the state a release build without Malayalam will have.
+        if ProcessInfo.processInfo.arguments.contains("-hideBundledPacks") { return [] }
+        #endif
+        return keyboardBundle.map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
     }
 
     /// Every pack the keyboard loads, as it merges them (`EngineSuggestionProvider.packs`).
@@ -62,5 +65,38 @@ enum InstalledPacks {
     static func updateOffers(available: [AvailablePack]) -> [PackOffer] {
         guard let fingerprint = englishFingerprint() else { return [] }
         return PackUpdates.offers(installed: all(), available: available, englishFingerprint: fingerprint, support: support)
+    }
+
+    /// Removes the pack `id` from the App Group (a bundled one stays).
+    static func remove(id: String) throws {
+        guard let installer else { throw NoAppGroup() }
+        try installer.remove(id: id)
+    }
+
+    /// The bytes of English as the keyboard bundles it (`en.fst`, `en-next.fst`).
+    static func englishSize() -> Int64 {
+        guard let lexicon = keyboardBundle?.appending(path: "Lexicon", directoryHint: .isDirectory) else { return 0 }
+        return PackSize.of(files: ["en.fst", "en-next.fst"].map { lexicon.appending(path: $0) })
+    }
+
+    /// The user's active languages as stored for the keyboard; nil when none is stored yet (the
+    /// keyboard then uses the engine's default).
+    static func storedChoice() -> ActiveLanguages? {
+        PackLocations.activeLanguagesFile().flatMap(ActiveLanguages.read(from:))
+    }
+
+    /// Stores the active languages where the keyboard reads them when its engine opens.
+    static func store(_ choice: ActiveLanguages) throws {
+        guard let file = PackLocations.activeLanguagesFile() else { throw NoAppGroup() }
+        try choice.write(to: file)
+    }
+
+    /// The pack index to download from (Info.plist `NeoPackIndexURL`, build setting
+    /// `ML_PACK_INDEX_URL`); nil while it is empty, as it is until a host is chosen.
+    static var indexURL: URL? {
+        let text = (Bundle.main.object(forInfoDictionaryKey: "NeoPackIndexURL") as? String ?? "")
+            .trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty, let url = URL(string: text), url.scheme != nil else { return nil }
+        return url
     }
 }

@@ -38,6 +38,9 @@ targets:
       properties:
         CFBundleDisplayName: NeoOne Keyboard
         UILaunchScreen: {}
+        # The pack index (index.json) the Languages screen downloads from. Empty until a host
+        # is chosen, and the download section is then hidden.
+        NeoPackIndexURL: $(ML_PACK_INDEX_URL)
         # The .neopack file (a zip of a pack folder), for the Files import's document picker
         # (KeyboardCore PackImport.contentType).
         UTExportedTypeDeclarations:
@@ -50,6 +53,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard
         TARGETED_DEVICE_FAMILY: "1"
+        ML_PACK_INDEX_URL: ""
     dependencies:
       - target: KeyboardExtension
       - package: KeyboardCore
