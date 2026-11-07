@@ -21,9 +21,18 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     public let layout: PackLayout?
     /// The pack folder.
     public let folder: URL
+    /// The manifest's `version` ("2026.11.06"); compare with `PackVersion`.
+    public let version: String
+    /// The engine level the pack needs (`minEngine`; the engine's is `PACK_ENGINE`).
+    public let minEngine: Int
+    /// The `en.fst` the pack's LM and next words were built against: FNV-1a 64 of the file as 16
+    /// hex digits of its little-endian bytes (`EnglishFingerprint`). Nil when the manifest has
+    /// none (Malayalam's, built in the same run as `en.fst`).
+    public let englishFingerprint: String?
 
     public init(id: String, name: String, nativeName: String, script: String, romanisedName: String? = nil,
-                credits: [Credit] = [], layout: PackLayout?, folder: URL) {
+                credits: [Credit] = [], layout: PackLayout?, folder: URL,
+                version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil) {
         self.id = id
         self.name = name
         self.nativeName = nativeName
@@ -32,6 +41,9 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         self.credits = credits
         self.layout = layout
         self.folder = folder
+        self.version = version
+        self.minEngine = minEngine
+        self.englishFingerprint = englishFingerprint
     }
 
     /// One pack per language id.
@@ -55,8 +67,32 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
             id: manifest.id, name: manifest.name, nativeName: manifest.nativeName, script: manifest.script,
             romanisedName: manifest.romanised?.name,
             credits: manifest.credits?.map(\.credit) ?? [],
-            layout: layout, folder: folder
+            layout: layout, folder: folder,
+            version: manifest.version, minEngine: manifest.minEngine, englishFingerprint: manifest.englishFingerprint
         )
+    }
+
+    /// One pack per id from the bundle's packs and the App Group's (`PackLocations`): the
+    /// installed one when its version is higher than the bundled one's (spec, "Where packs
+    /// live"), else the bundled one. Bundled ids keep their place and come first, then the
+    /// installed-only ones by id, so installing a pack never changes which pack the engine's
+    /// default active list (English and the first pack) takes.
+    public static func merge(bundled: [PackDescriptor], installed: [PackDescriptor]) -> [PackDescriptor] {
+        var installedByID: [String: PackDescriptor] = [:]
+        for pack in installed where installedByID[pack.id] == nil {
+            installedByID[pack.id] = pack
+        }
+        var seen = Set<String>()
+        var out: [PackDescriptor] = []
+        for pack in bundled where seen.insert(pack.id).inserted {
+            if let newer = installedByID[pack.id], PackVersion(pack.version) < PackVersion(newer.version) {
+                out.append(newer)
+            } else {
+                out.append(pack)
+            }
+        }
+        let rest = installedByID.values.filter { !seen.contains($0.id) }.sorted { $0.id < $1.id }
+        return out + rest
     }
 
     /// The packs in `folder` (each `*.neopack` folder in it), by folder name. Refused packs are
@@ -89,6 +125,9 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
 
         let format: Int
         let id: String
+        let version: String
+        let minEngine: Int
+        let englishFingerprint: String?
         let name: String
         let nativeName: String
         let script: String
