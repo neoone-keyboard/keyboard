@@ -34,14 +34,14 @@ device: tools project $(XCFRAMEWORK)
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
 
-# Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack bundled beside
+# Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack and as.neopack beside
 # Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
 # build is untouched. Builds only; install it by hand:
 #   xcrun devicectl device install app --device $(DEVICE) build/DerivedData-twopacks/Build/Products/Debug-iphoneos/KeyboardApp.app
 twopacks: tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData-twopacks -allowProvisioningUpdates \
-	  ML_GIT_COMMIT=$(GIT_COMMIT) ML_DEBUG_PACKS=hi ML_ACTIVE_LANGUAGES=ml,hi build -quiet
+	  ML_GIT_COMMIT=$(GIT_COMMIT) ML_DEBUG_PACKS="hi as" ML_ACTIVE_LANGUAGES=ml,hi build -quiet
 
 test: test-engine test-data test-training test-swift eval
 

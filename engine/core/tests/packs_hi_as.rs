@@ -408,3 +408,30 @@ fn native_keys_give_suggestions_and_the_strip() {
         s.vowel_signs
     );
 }
+
+/// The strip follows the script of the letter typed, whichever loaded pack is active: with
+/// Hindi loaded first and English + Assamese active, ক gets Assamese signs, never Hindi's.
+#[test]
+fn the_strip_is_the_active_packs_when_it_is_not_the_first_loaded() {
+    let mut e = engine(&["hi", "as"]);
+    e.set_active(&ids(&["en", "as"])).unwrap();
+    let as_ = Layout::Native(e.lang_of_id("as").unwrap());
+    assert_eq!(e.layouts(), [Layout::Latin, as_]);
+    let as_strip = layout("as").vowel_sign_strip;
+    let s = suggest(&e, "ক", as_);
+    assert!(!s.vowel_signs.is_empty(), "a strip after ক");
+    assert!(
+        s.vowel_signs.iter().all(|c| as_strip.contains(c)),
+        "{:?}",
+        s.vowel_signs
+    );
+    assert!(
+        s.candidates
+            .iter()
+            .all(|c| e.lang_id(c.lang).unwrap().0 != "hi"),
+        "{}",
+        show(&e, &s)
+    );
+    // Hindi is loaded but not active: क gets no strip.
+    assert!(suggest(&e, "क", as_).vowel_signs.is_empty());
+}
