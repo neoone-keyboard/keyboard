@@ -143,6 +143,7 @@ impl Pack {
         PackPaths {
             id: LangId(self.manifest.id.clone()),
             script: self.manifest.script.clone(),
+            dir: Some(self.dir.clone()),
             lexicon: self.file("lexicon"),
             romanised: self.file("romanisedLexicon"),
             romanisation: self.file("romanisation"),

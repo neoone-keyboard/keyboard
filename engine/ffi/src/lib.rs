@@ -256,8 +256,10 @@ impl Engine {
     #[uniffi::constructor]
     pub fn new(config: EngineConfig) -> Result<Arc<Self>, EngineError> {
         guarded(|| {
-            let (paths, pack_problems) = paths(&config);
+            let (paths, mut pack_problems) = paths(&config);
             let mut inner = mlengine_core::Engine::open(&paths);
+            // The manifests refused, then the packs that opened but couldn't be loaded.
+            pack_problems.extend(inner.pack_problems());
             if set_active(&mut inner, &config.active).is_err() {
                 inner.set_default_active();
             }
@@ -763,6 +765,65 @@ mod tests {
         let ml = InputLayout::Native { language: "ml".into() };
         assert_eq!(engine.layouts().unwrap(), [InputLayout::Latin, ml]);
         assert!(engine.loaded_sources().unwrap().contains(&"ml:lexicon".to_string()));
+    }
+
+    /// A pack folder whose manifest is fine but whose lexicon isn't an FST, in a fresh
+    /// temporary folder.
+    fn broken_pack(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir()
+            .join(format!("mlengine-ffi-{name}-{}", std::process::id()))
+            .join("xx.neopack");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("manifest.json"),
+            r#"{"format": 1, "id": "xx", "version": "1", "name": "X", "nativeName": "X",
+                "script": "mlym", "minEngine": 1, "files": {"lexicon": "x.fst"}}"#,
+        )
+        .unwrap();
+        std::fs::write(dir.join("x.fst"), b"not an fst").unwrap();
+        dir
+    }
+
+    #[test]
+    fn a_missing_and_a_broken_pack_leave_malayalam_working() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let broken = broken_pack("beside");
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dirs: vec![
+                "/nonexistent/gone.neopack".into(),
+                broken.to_string_lossy().into_owned(),
+                format!("{root}/packs/ml.neopack"),
+            ],
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        let problems = engine.pack_problems();
+        assert_eq!(problems.len(), 2, "{problems:?}");
+        assert!(problems[0].starts_with("gone.neopack: manifest unreadable"), "{problems:?}");
+        assert!(problems[1].starts_with("xx.neopack: lexicon unreadable"), "{problems:?}");
+        let s = engine.suggest("ente".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(s.candidates[0].text, "എന്റെ");
+        let _ = std::fs::remove_dir_all(broken.parent().unwrap());
+    }
+
+    #[test]
+    fn a_broken_pack_alone_leaves_english_working() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let broken = broken_pack("alone");
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dirs: vec![broken.to_string_lossy().into_owned()],
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(engine.pack_problems().len(), 1);
+        assert_eq!(engine.loaded_sources().unwrap(), ["english"]);
+        assert_eq!(engine.layouts().unwrap(), [InputLayout::Latin]);
+        assert_eq!(engine.active_languages().unwrap(), ["en"]);
+        let s = engine.suggest("teh".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(s.candidates[0].text, "the");
+        let _ = std::fs::remove_dir_all(broken.parent().unwrap());
     }
 
     #[test]

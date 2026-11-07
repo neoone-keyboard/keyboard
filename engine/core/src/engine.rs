@@ -2,7 +2,7 @@
 //! (English, Malayalam, Manglish, next words) is optional: a missing or corrupt file
 //! only disables that source. Every walk over a lexicon is bounded.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -191,6 +191,9 @@ pub struct PackPaths {
     pub id: LangId,
     /// The manifest's `script` (ISO 15924, lower case).
     pub script: String,
+    /// The pack folder, to name the pack in `Engine::pack_problems`; None for paths that
+    /// didn't come from a folder.
+    pub dir: Option<PathBuf>,
     pub lexicon: Option<PathBuf>,
     pub romanised: Option<PathBuf>,
     /// The pack's `romanisation.json`.
@@ -214,6 +217,7 @@ impl PackPaths {
         Self {
             id: LangId(id.into()),
             script: script.into(),
+            dir: None,
             lexicon: None,
             romanised: None,
             romanisation: None,
@@ -229,22 +233,52 @@ impl PackPaths {
 
 impl Sources {
     pub fn open(paths: &Paths) -> Self {
+        Self::open_reporting(paths).0
+    }
+
+    /// The sources, and why each pack left out was left out ("<folder>: <reason>"): a script
+    /// with no rules, a lexicon that doesn't open, an id already loaded or `en` (the English
+    /// base is never a pack). A pack given no lexicon path at all is left out silently.
+    pub fn open_reporting(paths: &Paths) -> (Self, Vec<String>) {
         let english = open_lexicon(&paths.english);
-        let packs = paths
-            .packs
-            .iter()
-            .filter_map(|p| Self::open_pack(p, english.as_ref()))
-            .collect();
-        Self {
+        let mut packs: Vec<PackSources> = Vec::new();
+        let mut problems = Vec::new();
+        for p in &paths.packs {
+            let name = p.dir.as_deref().and_then(Path::file_name).map_or_else(
+                || format!("{}.neopack", p.id),
+                |n| n.to_string_lossy().into_owned(),
+            );
+            if p.id == LangId::english() {
+                problems.push(format!("{name}: id en is the English base, not a pack"));
+                continue;
+            }
+            if packs.iter().any(|q| q.id == p.id) {
+                problems.push(format!("{name}: another pack has id {}", p.id));
+                continue;
+            }
+            match Self::open_pack(p, english.as_ref()) {
+                Ok(Some(pack)) => packs.push(pack),
+                Ok(None) => {}
+                Err(why) => problems.push(format!("{name}: {why}")),
+            }
+        }
+        let sources = Self {
             english,
             english_next: None,
             packs,
-        }
+        };
+        (sources, problems)
     }
 
-    fn open_pack(paths: &PackPaths, english: Option<&Lexicon>) -> Option<PackSources> {
-        let rules = script::rules(&paths.script)?;
-        let lexicon = open_lexicon(&paths.lexicon)?;
+    /// The pack at `paths`; None when it names no lexicon, an error when it can't be used.
+    fn open_pack(paths: &PackPaths, english: Option<&Lexicon>) -> Result<Option<PackSources>, String> {
+        let rules =
+            script::rules(&paths.script).ok_or_else(|| format!("no rules for script {}", paths.script))?;
+        let Some(lexicon_path) = paths.lexicon.as_deref() else {
+            return Ok(None);
+        };
+        let lexicon =
+            Lexicon::open(lexicon_path).map_err(|e| format!("lexicon unreadable: {e}"))?;
         let lm = paths
             .lm
             .as_deref()
@@ -255,7 +289,7 @@ impl Sources {
             .as_deref()
             .and_then(|p| Romanisation::load(p).ok());
         let romanised = romanisation.is_some();
-        Some(PackSources {
+        Ok(Some(PackSources {
             id: paths.id.clone(),
             rules,
             romanised: open_lexicon(&paths.romanised).filter(|_| romanised),
@@ -282,7 +316,7 @@ impl Sources {
                 .and_then(|p| PackLayout::load(p).ok())
                 .map(|l| l.vowel_sign_strip)
                 .unwrap_or_default(),
-        })
+        }))
     }
 
     /// Whether `lm`'s tables were built from exactly these lexicons (design §3): its
@@ -339,6 +373,8 @@ pub struct Engine {
     swipe_weights: swipe::Weights,
     /// The languages that offer candidates (`packs_active`).
     active: Active,
+    /// Why each pack left out at open was left out (`Sources::open_reporting`).
+    pack_problems: Vec<String>,
 }
 
 /// A pack's `Lang`: its place in `Sources::packs`, after English's.
@@ -352,7 +388,16 @@ impl Engine {
             Some(dir) => UserStore::open(dir),
             None => UserStore::in_memory(),
         };
-        Self::new(Sources::open(paths), user)
+        let (sources, problems) = Sources::open_reporting(paths);
+        let mut engine = Self::new(sources, user);
+        engine.pack_problems = problems;
+        engine
+    }
+
+    /// Why each pack the paths named was left out, one line per pack ("<folder>: <reason>");
+    /// empty when every pack loaded.
+    pub fn pack_problems(&self) -> Vec<String> {
+        self.pack_problems.clone()
     }
 
     pub fn new(sources: Sources, user: UserStore) -> Self {
@@ -363,6 +408,7 @@ impl Engine {
             lm_context: Mutex::new(LmContext::default()),
             lm_weights: LmWeights::default(),
             swipe_weights: swipe::Weights::default(),
+            pack_problems: Vec::new(),
         }
     }
 
