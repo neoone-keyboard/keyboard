@@ -129,3 +129,10 @@ private func bundledConfig() -> EngineConfig {
     let p99 = samples[samples.count * 99 / 100]
     #expect(p99 < .milliseconds(8), "p99 suggest with lexicons was \(p99)")
 }
+
+@Test func packSupportNamesTheFormatEngineLevelAndScripts() {
+    let support = packSupport()
+    #expect(support.format == 1)
+    #expect(support.engine >= 2)
+    #expect(support.scripts.contains("mlym"))
+}

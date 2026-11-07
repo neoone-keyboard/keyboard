@@ -475,6 +475,28 @@ pub fn nn_kernel() -> String {
     mlengine_core::nn::ops::kernel().to_string()
 }
 
+/// What packs this engine reads, for the app's installer: the manifest `format`, the highest
+/// `minEngine` (`PACK_ENGINE`) and the scripts it has rules for.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct PackSupport {
+    pub format: u32,
+    pub engine: u32,
+    /// ISO 15924 codes, lower case: "mlym", "deva", "beng".
+    pub scripts: Vec<String>,
+}
+
+#[uniffi::export]
+pub fn pack_support() -> PackSupport {
+    PackSupport {
+        format: mlengine_core::pack::FORMAT,
+        engine: mlengine_core::pack::PACK_ENGINE,
+        scripts: mlengine_core::script::supported()
+            .into_iter()
+            .map(String::from)
+            .collect(),
+    }
+}
+
 /// The letter at the end of `context_before` that a vowel sign typed next would attach to, if
 /// any (`ScriptRules::mark_base`), in the script `script` (a pack manifest's `script`, "mlym").
 /// Nil for a script this engine has no rules for. A free function, not an `Engine` method:
@@ -786,6 +808,14 @@ mod tests {
         .unwrap();
         std::fs::write(dir.join("x.fst"), b"not an fst").unwrap();
         dir
+    }
+
+    #[test]
+    fn pack_support_is_the_engines() {
+        let support = pack_support();
+        assert_eq!(support.format, 1);
+        assert_eq!(support.engine, mlengine_core::pack::PACK_ENGINE);
+        assert_eq!(support.scripts, ["mlym", "deva", "beng"]);
     }
 
     #[test]
