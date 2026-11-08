@@ -7,7 +7,7 @@ import Foundation
 public struct ActiveLanguages: Sendable, Equatable, Codable {
     /// The engine's `MAX_ACTIVE` (engine/core/src/lang.rs), English counted. The FFI doesn't
     /// expose it; `theLimitIsTheEngines` pins the copy.
-    public static let maxActive = 2
+    public static let maxActive = 4
     public static let english = "en"
 
     public let languages: [String]
@@ -16,10 +16,10 @@ public struct ActiveLanguages: Sendable, Equatable, Codable {
         self.languages = languages
     }
 
-    /// The engine's default for these packs (in the keyboard's order): English, then packs,
-    /// up to `maxActive`.
+    /// The engine's default for these packs (in the keyboard's order): English and the first
+    /// pack. More languages are the user's choice.
     public static func engineDefault(packIDs: [String]) -> ActiveLanguages {
-        ActiveLanguages(Array(([english] + packIDs).prefix(maxActive)))
+        ActiveLanguages([english] + packIDs.prefix(1))
     }
 
     /// The stored choice; nil when there is none, it doesn't decode or it is empty.

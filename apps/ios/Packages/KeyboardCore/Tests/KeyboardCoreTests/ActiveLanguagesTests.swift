@@ -27,31 +27,38 @@ import Testing
     #expect(choice.usable(packIDs: ["ml"]) == ["en"])
     #expect(ActiveLanguages(["hi"]).usable(packIDs: ["ml"]) == nil)
     // More than the engine takes: the first ones.
-    #expect(ActiveLanguages(["en", "ml", "hi"]).usable(packIDs: ["ml", "hi"]) == ["en", "ml"])
+    #expect(ActiveLanguages(["en", "ml", "hi", "as", "ta"]).usable(packIDs: ["ml", "hi", "as", "ta"]) == ["en", "ml", "hi", "as"])
+    #expect(ActiveLanguages(["en", "ml", "hi"]).usable(packIDs: ["ml", "hi"]) == ["en", "ml", "hi"])
     // A repeat once.
     #expect(ActiveLanguages(["ml", "ml"]).usable(packIDs: ["ml"]) == ["ml"])
 }
 
 @Test func theLimitIsTheEngines() {
     // engine/core/src/lang.rs MAX_ACTIVE, English counted.
-    #expect(ActiveLanguages.maxActive == 2)
+    #expect(ActiveLanguages.maxActive == 4)
 }
 
 @Test func theDefaultIsEnglishAndTheFirstPack() {
     #expect(ActiveLanguages.engineDefault(packIDs: ["ml", "hi"]).languages == ["en", "ml"])
+    #expect(ActiveLanguages.engineDefault(packIDs: ["ml", "hi", "as"]).languages == ["en", "ml"])
     #expect(ActiveLanguages.engineDefault(packIDs: []).languages == ["en"])
 }
 
 @Test func togglingKeepsListOrderAtMostTheLimitAndAtLeastOne() {
-    let order = ["en", "ml", "hi"]
+    let order = ["en", "ml", "hi", "as", "ta"]
     var choice = ActiveLanguages(["en"])
     choice = choice.toggling("ml", order: order)
     #expect(choice.languages == ["en", "ml"])
-    // Full: a third is not added.
-    #expect(!choice.canTurnOn("hi"))
-    #expect(choice.toggling("hi", order: order).languages == ["en", "ml"])
-    // English off, then Hindi on: list order, not tap order.
-    choice = choice.toggling("en", order: order).toggling("hi", order: order)
+    // A third and a fourth, in list order whatever the tap order.
+    choice = choice.toggling("as", order: order).toggling("hi", order: order)
+    #expect(choice.languages == ["en", "ml", "hi", "as"])
+    // Full: a fifth is not added.
+    #expect(!choice.canTurnOn("ta"))
+    #expect(choice.toggling("ta", order: order).languages == ["en", "ml", "hi", "as"])
+    // English off, then Tamil on: list order, not tap order.
+    choice = choice.toggling("en", order: order).toggling("ta", order: order)
+    #expect(choice.languages == ["ml", "hi", "as", "ta"])
+    choice = ActiveLanguages(["en", "ml"]).toggling("en", order: order).toggling("hi", order: order)
     #expect(choice.languages == ["ml", "hi"])
     choice = ActiveLanguages(["hi"]).toggling("en", order: order)
     #expect(choice.languages == ["en", "hi"])
@@ -117,12 +124,15 @@ import Testing
 
 @Test func thePanelsSwitchesFollowTheRules() {
     // The keyboard's settings panel: English then its packs, a switch enabled when it can toggle.
-    let order = ["en", "ml", "hi", "as"]
+    let order = ["en", "ml", "hi", "as", "ta"]
     func enabled(_ choice: ActiveLanguages) -> [String] { order.filter(choice.canToggle) }
-    // Full (two on): the others are disabled, both on ones can go off.
-    #expect(enabled(ActiveLanguages(["en", "ml"])) == ["en", "ml"])
+    // Not full: every switch works.
+    #expect(enabled(ActiveLanguages(["en", "ml"])) == order)
+    #expect(enabled(ActiveLanguages(["en", "ml", "hi"])) == order)
+    // Full (four on): the fifth is disabled, every one on can go off.
+    #expect(enabled(ActiveLanguages(["en", "ml", "hi", "as"])) == ["en", "ml", "hi", "as"])
     // One on: it can't go off, every other can come on.
-    #expect(enabled(ActiveLanguages(["ml"])) == ["en", "hi", "as"])
+    #expect(enabled(ActiveLanguages(["ml"])) == ["en", "hi", "as", "ta"])
     // Malayalam off, Hindi on: English and Hindi, in list order.
     let next = ActiveLanguages(["en", "ml"]).toggling("ml", order: order).toggling("hi", order: order)
     #expect(next.languages == ["en", "hi"])
