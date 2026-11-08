@@ -43,8 +43,9 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: me.jishnu.keyboard
             CFBundleURLSchemes: [neoone]
-        # The pack index (index.json) the Languages screen downloads from. Empty until a host
-        # is chosen, and the download section is then hidden.
+        # The pack index (index.json) the Languages and first-launch screens download from:
+        # ML_PACK_INDEX_URL, from PackIndex.xcconfig (`make site-packs`, from site-src/site.json).
+        # Empty hides the download section.
         NeoPackIndexURL: $(ML_PACK_INDEX_URL)
         # The .neopack file (a zip of a pack folder), for the Files import's document picker
         # (KeyboardCore PackImport.contentType).
@@ -60,7 +61,10 @@ targets:
         # Assets.xcassets: the NEO1 icon, rendered by tools/icon/render.sh (`make icon`).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
-        ML_PACK_INDEX_URL: ""
+    # ML_PACK_INDEX_URL, the pack index's https URL (generated; see NeoPackIndexURL above).
+    configFiles:
+      Debug: PackIndex.xcconfig
+      Release: PackIndex.xcconfig
     dependencies:
       - target: KeyboardExtension
       - package: KeyboardCore
@@ -80,14 +84,6 @@ targets:
       - path: KeyboardExtension/Emoji
         type: folder
         buildPhase: resources
-      # The bundled language pack (M6): packs/ml.neopack/ with its manifest, lexicons and models.
-      # Only Malayalam's: the other packs in packs/ are downloads (phase 3), not app contents.
-      - path: ../../packs/ml.neopack
-        type: folder
-        buildPhase:
-          copyFiles:
-            destination: resources
-            subpath: packs
     # Reads the packs the app installs (App Group Packs/); never writes there.
     entitlements:
       path: KeyboardExtension/KeyboardExtension.entitlements
@@ -116,11 +112,13 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         APPLICATION_EXTENSION_API_ONLY: YES
         # The debug-only two-pack switch (scripts/debug-packs.sh), off by default: extra pack
-        # ids to bundle beside ml, and the active list to set.
+        # ids to bundle beside ml (which every Debug build bundles; Release bundles no pack),
+        # and the active list to set.
         ML_DEBUG_PACKS: ""
         ML_ACTIVE_LANGUAGES: ""
     postBuildScripts:
-      # Debug-only extra packs (ML_DEBUG_PACKS); removes any left by an earlier build.
+      # The bundled packs, Debug only: Malayalam and ML_DEBUG_PACKS. Release builds bundle
+      # none, so a new user downloads their languages. Removes any left by an earlier build.
       - name: Debug packs
         script: '"$SRCROOT/../../scripts/debug-packs.sh"'
         basedOnDependencyAnalysis: false

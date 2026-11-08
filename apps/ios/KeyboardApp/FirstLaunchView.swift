@@ -1,8 +1,10 @@
 import SwiftUI
 import KeyboardCore
 
-/// The first-launch step: which languages to turn on (M6 spec, "First launch"). Shown once,
-/// over the main screen; the choice it stores is what the keyboard uses when it next starts.
+/// The first-launch step: which languages to turn on, and downloads of the others (M6 spec,
+/// "First launch"). Shown once, over the main screen; the choice it stores is what the keyboard
+/// uses when it next starts. A release build bundles no pack, so until one is downloaded or
+/// imported the list is English alone, and the keyboard types English.
 struct FirstLaunchView: View {
     @Bindable var model: LanguagesModel
     let done: () -> Void
@@ -29,7 +31,10 @@ struct FirstLaunchView: View {
                 } header: {
                     Text("Your languages")
                 } footer: {
-                    Text("Up to \(ActiveLanguages.maxActive) at a time. You can change this, or add more languages, in Languages.")
+                    Text("Up to \(ActiveLanguages.maxActive) at a time. You can change this, or import a language from Files, in Languages.")
+                }
+                if model.indexURL != nil {
+                    PackDownloadSection(model: model)
                 }
                 Section {
                     Button("Continue") {
@@ -39,6 +44,10 @@ struct FirstLaunchView: View {
                 }
             }
             .navigationTitle("Welcome")
+            .alert(item: $model.message) { message in
+                Alert(title: Text(message.title), message: Text(message.text))
+            }
+            .task { await model.loadIndex() }
         }
         .interactiveDismissDisabled()
     }

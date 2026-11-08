@@ -53,7 +53,7 @@ struct LanguagesView: View {
                 Text("A language pack is a .neopack file. Save it in Files, then import it here.")
             }
             if model.indexURL != nil {
-                downloadSection
+                PackDownloadSection(model: model)
             }
         }
         .navigationTitle("Languages")
@@ -86,36 +86,13 @@ struct LanguagesView: View {
     private var footer: String {
         var text = "Up to \(ActiveLanguages.maxActive) at a time. The language key on the keyboard switches between them. Changes apply when the keyboard next starts."
         if model.rows.count == 1 {
-            text = "Only English so far. Import a language pack to add another. " + text
+            let how = model.indexURL == nil ? "Import" : "Download or import"
+            text = "Only English so far. \(how) a language pack to add another. " + text
         }
         if model.rows.contains(where: \.removable) {
             text += " Swipe left on a language you added to remove it."
         }
         return text
-    }
-
-    @ViewBuilder private var downloadSection: some View {
-        Section("Download") {
-            switch model.index {
-            case .idle, .loading:
-                HStack {
-                    Text("Looking for languages…").foregroundStyle(.secondary)
-                    Spacer()
-                    ProgressView()
-                }
-            case .failed(let text):
-                Text(text).foregroundStyle(.secondary)
-            case .loaded:
-                if model.downloadable.isEmpty {
-                    Text("You have every language there is to download.").foregroundStyle(.secondary)
-                }
-                ForEach(model.downloadable) { entry in
-                    DownloadRow(model: model, entry: entry, action: "Get",
-                                detail: [entry.nativeName == nil ? nil : entry.name, PackSize.text(entry.size)]
-                                    .compactMap { $0 }.joined(separator: " · "))
-                }
-            }
-        }
     }
 }
 
@@ -145,6 +122,36 @@ private struct LanguageToggle: View {
         parts.append(PackSize.text(row.size))
         if row.builtIn { parts.append("Built in") }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// The index's languages the user doesn't have, each with Get; or why there are none. Shown by
+/// Languages and the first-launch step when the app has a pack index (`model.loadIndex()` first).
+struct PackDownloadSection: View {
+    let model: LanguagesModel
+
+    var body: some View {
+        Section("Download") {
+            switch model.index {
+            case .idle, .loading:
+                HStack {
+                    Text("Looking for languages…").foregroundStyle(.secondary)
+                    Spacer()
+                    ProgressView()
+                }
+            case .failed(let text):
+                Text(text).foregroundStyle(.secondary)
+            case .loaded:
+                if model.downloadable.isEmpty {
+                    Text("You have every language there is to download.").foregroundStyle(.secondary)
+                }
+                ForEach(model.downloadable) { entry in
+                    DownloadRow(model: model, entry: entry, action: "Get",
+                                detail: [entry.nativeName == nil ? nil : entry.name, PackSize.text(entry.size)]
+                                    .compactMap { $0 }.joined(separator: " · "))
+                }
+            }
+        }
     }
 }
 
