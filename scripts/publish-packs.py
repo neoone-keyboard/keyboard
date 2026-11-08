@@ -62,7 +62,7 @@ LICENCE_LINKS = {
 }
 
 PAGES = {
-    "index.html": ("NeoOne Keyboard", "An offline iPhone keyboard for English and Indian languages typed phonetically."),
+    "index.html": ("NeoOne Keyboard", "An offline iPhone keyboard: type your language the way it sounds and get its own script."),
     "privacy.html": ("Privacy", "NeoOne Keyboard collects no data. Nothing you type leaves your iPhone."),
     "support.html": ("Support", "Help with NeoOne Keyboard, through the project's GitHub issues."),
     "credits.html": ("Credits and licences", "Where NeoOne Keyboard's word lists and models come from, and their licences."),
