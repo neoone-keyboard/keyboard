@@ -1,0 +1,61 @@
+:root {
+  color-scheme: light dark;
+  --accent: #5459cc;
+  --link: #4549b8;
+  --text: #1c1c1e;
+  --muted: #5f5f66;
+  --bg: #f4f4f7;
+  --card: #ffffff;
+  --rule: #dcdce3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --link: #a3a6f5;
+    --text: #f2f2f5;
+    --muted: #a8a8b3;
+    --bg: #111114;
+    --card: #1c1c21;
+    --rule: #33333b;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+main, header, footer { max-width: 42rem; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+header .mark {
+  width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-size: 15px; letter-spacing: .02em;
+}
+header a.home { color: var(--text); text-decoration: none; font-weight: 650; font-size: 19px; }
+nav { margin-left: auto; display: flex; gap: 16px; font-size: 15px; }
+nav a { color: var(--muted); text-decoration: none; }
+nav a[aria-current] { color: var(--text); font-weight: 600; }
+h1 { font-size: 30px; line-height: 1.2; margin: 32px 0 8px; }
+h2 { font-size: 20px; margin: 32px 0 8px; }
+p, li { color: var(--text); }
+.lead { font-size: 19px; color: var(--muted); margin-top: 0; }
+a { color: var(--link); }
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 4px 20px; margin: 16px 0; }
+.button {
+  display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+  padding: 10px 18px; border-radius: 12px; font-weight: 600;
+}
+.muted { color: var(--muted); }
+dl.credits { margin: 0; }
+dl.credits dt { font-weight: 600; margin-top: 16px; }
+dl.credits dd { margin: 4px 0 0; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+.chip {
+  display: inline-block; font-size: 13px; font-weight: 500; color: var(--muted);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 0 6px; margin-left: 6px;
+}
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+footer { padding-top: 32px; padding-bottom: 40px; font-size: 14px; color: var(--muted); }
+footer a { color: var(--muted); }
+code { overflow-wrap: anywhere; }

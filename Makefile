@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more pack all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more pack site-packs all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -51,6 +51,7 @@ test-engine:
 
 test-data:
 	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
+	python3 -I scripts/publish-packs.py --check
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored
 	cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored
@@ -101,6 +102,13 @@ golden-check: golden
 # The Malayalam pack as a .neopack file (a zip of packs/ml.neopack), for import or download.
 pack:
 	python3 -I scripts/pack.py packs/ml.neopack --zip build/packs/ml.neopack
+
+# The download site (site/, GitHub Pages) and its pack index, from site-src/ (site.json holds the
+# domain and the GitHub repo) and packs/: zips every pack into build/site-packs/, writes
+# site/packs/index.json, the pages and apps/ios/PackIndex.xcconfig (the app's index URL), and
+# prints the `gh release create` commands that publish the zips. It runs none of them.
+site-packs:
+	python3 -I scripts/publish-packs.py
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:

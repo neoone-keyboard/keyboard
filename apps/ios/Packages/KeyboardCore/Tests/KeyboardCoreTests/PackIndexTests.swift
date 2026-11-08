@@ -217,3 +217,26 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
     try PackDownloader.verify(file, size: 3, sha256: sha256(Data("abc".utf8)))
     #expect(throws: PackDownloader.Failure.checksum) { try PackDownloader.verify(file, size: 3, sha256: "00") }
 }
+
+/// The index the site publishes (site/packs/index.json, from scripts/publish-packs.py) decodes,
+/// lists every pack in packs/ at its manifest's version, script and minEngine, and points at
+/// https release assets.
+@Test func thePublishedIndexMatchesThePacks() throws {
+    let repoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent()
+    let file = repoRoot.appending(path: "site/packs/index.json")
+    let index = try PackIndex.decode(Data(contentsOf: file), base: URL(string: "https://example.test/packs/index.json")!)
+    let packs = PackDescriptor.scan(repoRoot.appending(path: "packs"))
+    #expect(!packs.isEmpty)
+    #expect(index.packs.map(\.id) == packs.map(\.id))
+    for (entry, pack) in zip(index.packs, packs) {
+        #expect(entry.version == pack.version)
+        #expect(entry.script == pack.script)
+        #expect(entry.minEngine == pack.minEngine)
+        #expect(entry.url.scheme == "https")
+        #expect(entry.url.lastPathComponent == "\(pack.id).neopack")
+        #expect(entry.sha256.count == 64)
+    }
+}

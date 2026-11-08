@@ -34,6 +34,24 @@ def listed(pack: Path, manifest: dict) -> dict[str, str]:
     return out
 
 
+def write_zip(pack: Path, names: list[str], out: Path) -> None:
+    """OUT as a zip of the pack folder: manifest.json, then `names`, under `<pack>.neopack/`.
+
+    The same files always give the same bytes (fixed dates and modes, sorted names), so a pack's
+    sha256 in the published index (scripts/publish-packs.py) doesn't depend on file times.
+    """
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # Stored, not deflated: the files are already dense, and the keyboard never reads the zip.
+    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_STORED) as z:
+        for name in ["manifest.json", *names]:
+            info = zipfile.ZipInfo(f"{pack.name}/{name}", date_time=(1980, 1, 1, 0, 0, 0))
+            info.external_attr = 0o644 << 16
+            info.compress_type = zipfile.ZIP_STORED
+            with (pack / name).open("rb") as src, z.open(info, "w") as dst:
+                for block in iter(lambda: src.read(1 << 20), b""):
+                    dst.write(block)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pack", type=Path)
@@ -65,13 +83,7 @@ def main() -> int:
     if manifest.get("sha256") != current:
         print(f"{manifest_path}: checksums stale; run --write first", file=sys.stderr)
         return 1
-    args.zip.parent.mkdir(parents=True, exist_ok=True)
-    # Stored, not deflated: the files are already dense, and the keyboard never reads the zip.
-    with zipfile.ZipFile(args.zip, "w", compression=zipfile.ZIP_STORED) as z:
-        root = args.pack.name
-        z.write(manifest_path, f"{root}/manifest.json")
-        for name in current:
-            z.write(args.pack / name, f"{root}/{name}")
+    write_zip(args.pack, list(current), args.zip)
     print(f"{args.zip}: {args.zip.stat().st_size} bytes")
     return 0
 
