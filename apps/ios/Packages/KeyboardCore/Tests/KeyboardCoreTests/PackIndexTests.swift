@@ -28,6 +28,8 @@ final class StubProtocol: URLProtocol {
     struct Reply: Sendable {
         var status: Int = 200
         var body: Data
+        /// Answer with a 302 to this URL instead, as GitHub does for a release asset.
+        var redirect: URL? = nil
     }
 
     static let replies = Mutex<[URL: Reply]>([:])
@@ -45,6 +47,12 @@ final class StubProtocol: URLProtocol {
     override func startLoading() {
         guard let url = request.url, let reply = Self.replies.withLock({ $0[url] }) else {
             client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
+            return
+        }
+        if let target = reply.redirect {
+            let response = HTTPURLResponse(url: url, statusCode: 302, httpVersion: "HTTP/1.1",
+                                           headerFields: ["Location": target.absoluteString])!
+            client?.urlProtocol(self, wasRedirectedTo: URLRequest(url: target), redirectResponse: response)
             return
         }
         let response = HTTPURLResponse(url: url, statusCode: reply.status, httpVersion: "HTTP/1.1", headerFields: nil)!
@@ -124,6 +132,31 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
     let pack = try await downloader.install(e, with: installer)
     #expect(pack.id == "xx")
     #expect(PackDescriptor.scan(installer.packsFolder).map(\.id) == ["xx"])
+}
+
+/// GitHub serves a release asset (`…/releases/download/<tag>/<file>`) as a 302 to its storage
+/// host; the download follows it, and the index can be redirected too.
+@Test func aRedirectedDownloadIsFollowed() async throws {
+    let root = try temporaryFolder()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let installer = PackInstaller(packsFolder: root.appending(path: "Packs"), support: support)
+    let data = packArchive()
+    let asset = URL(string: "https://github.test/owner/repo/releases/download/packs-xx-2026.11.07/xx.neopack")!
+    let storage = URL(string: "https://objects.storage.test/12345/xx.neopack?signature=abc")!
+    let e = PackIndex.Entry(id: "xx", name: "Test", version: "2026.11.07", script: "deva", size: Int64(data.count),
+                            sha256: sha256(data), url: asset, minEngine: 1)
+    let indexURL = host("moved").appending(path: "index.json")
+    let indexTarget = host("pages").appending(path: "index.json")
+    let indexBody = Data(#"{"format": 1, "packs": [{"id": "xx", "name": "Test", "version": "1", "script": "deva", "size": 9, "sha256": "aa", "url": "https://github.test/owner/repo/releases/download/packs-xx-1/xx.neopack", "minEngine": 1}]}"#.utf8)
+    let downloader = PackDownloader(session: StubProtocol.session([
+        asset: .init(body: Data(), redirect: storage), storage: .init(body: data),
+        indexURL: .init(body: Data(), redirect: indexTarget), indexTarget: .init(body: indexBody),
+    ]))
+    let pack = try await downloader.install(e, with: installer)
+    #expect(pack.id == "xx")
+    #expect(PackDescriptor.scan(installer.packsFolder).map(\.id) == ["xx"])
+    let index = try await downloader.index(at: indexURL)
+    #expect(index.packs.map { $0.url.host() } == ["github.test"])
 }
 
 @Test func aWrongSizeOrDigestIsRefusedAndNothingIsInstalled() async throws {

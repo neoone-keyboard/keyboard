@@ -115,6 +115,8 @@ public struct PackIndex: Sendable, Equatable {
 /// Fetches the pack index and packs from it (M6 spec, "Download from the index"). A pack goes to
 /// a temporary file, its size and SHA-256 are checked against the index, then the installer
 /// installs it with every check a Files import gets. The temporary file is always removed.
+/// Redirects are followed (URLSession's default, with no delegate): a GitHub release asset
+/// answers with a 302 to its storage host, and the size and digest are of what arrives there.
 public struct PackDownloader: Sendable {
     public enum Failure: Error, Equatable, CustomStringConvertible {
         /// Not an https (or file) URL.
