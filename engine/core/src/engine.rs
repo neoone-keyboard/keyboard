@@ -618,7 +618,8 @@ impl Engine {
 
     /// A word was committed after `context_before`, typed, corrected or tapped (the keyboard
     /// never reports one from a password field). Its use is counted if it is known or
-    /// learned (`rank::USE_WEIGHT`); it continues the words before it in the sentence
+    /// learned (`rank::USE_WEIGHT`, and more as a completion: `rank::USE_COMPLETION_WEIGHT`);
+    /// it continues the words before it in the sentence
     /// (`text::phrase_words`), for next words and in-word bias (`rank::OWN_NEXT_WORDS`); and
     /// from the Latin keyboard its script says which language the user writes
     /// (`rank::HABIT_WEIGHT`). Addresses and numbers are never part of a phrase; a phone
@@ -713,6 +714,27 @@ impl Engine {
         match self.user().uses(text) {
             0 => 0.0,
             n => (rank::USE_WEIGHT * (1.0 + n as f32).ln()).min(rank::USE_MAX),
+        }
+    }
+
+    /// What uses add to a completion beyond `use_bonus`: `rank::USE_COMPLETION_WEIGHT` ×
+    /// ln(1 + uses), at most `rank::USE_COMPLETION_MAX`. Added after the middle is chosen.
+    fn completion_use_bonus(&self, text: &str) -> f32 {
+        match self.user().uses(text) {
+            0 => 0.0,
+            n => {
+                (rank::USE_COMPLETION_WEIGHT * (1.0 + n as f32).ln()).min(rank::USE_COMPLETION_MAX)
+            }
+        }
+    }
+
+    /// `completion_use_bonus` on each of `completions`, when any use is counted.
+    fn add_completion_uses(&self, completions: &mut [Candidate]) {
+        if !self.user().has_uses() {
+            return;
+        }
+        for c in completions {
+            c.score += self.completion_use_bonus(&c.text);
         }
     }
 
@@ -1498,6 +1520,23 @@ impl Engine {
                             - rank::COMPLETION_PER_CHAR * extra,
                     });
                 }
+                // Used words the letters begin, though past the lexicon's top list
+                // (`rank::USE_COMPLETION_WEIGHT`), scored alike; a repeat is deduplicated.
+                let used = self.user().used_completions(typed_n);
+                for word in used {
+                    let Some((word, count)) = stored_case(lex, &word) else {
+                        continue;
+                    };
+                    let extra = (word.len() - typed_n.len()) as f32;
+                    completions.push(Candidate {
+                        text: show(&word),
+                        kind: Kind::Completion,
+                        lang: EN,
+                        score: lex.log_prob(count)
+                            - rank::COMPLETION_PENALTY
+                            - rank::COMPLETION_PER_CHAR * extra,
+                    });
+                }
             }
         }
         // The latest learned address the letters begin takes the first side slot, shown as
@@ -1668,6 +1707,8 @@ impl Engine {
                 .filter(|c| c.kind == Kind::Completion)
                 .cloned()
                 .collect();
+            // Only ever a side slot, so uses may lift it (`rank::USE_COMPLETION_WEIGHT`).
+            self.add_completion_uses(&mut found);
             sort_and_dedup(&mut found);
             found
         };
@@ -1816,6 +1857,8 @@ impl Engine {
             }
             None => replacement,
         };
+        // The middle is chosen: uses now lift the completions (`rank::USE_COMPLETION_WEIGHT`).
+        self.add_completion_uses(&mut completions);
         let mut others: Vec<Candidate> = corrections.into_iter().map(|(c, _)| c).collect();
         others.extend(completions);
         others.extend(case_fix);
@@ -2263,6 +2306,24 @@ impl Engine {
                     lang,
                 });
             }
+            // Used words the letters begin, past the top list too, as in `suggest_latin`.
+            let used = self.user().used_completions(&typed_n);
+            for word in used {
+                let Some(count) = lex.get(word.as_bytes()) else {
+                    continue;
+                };
+                let extra = (word.chars().count() - typed_n.chars().count()) as f32;
+                let score = lex.log_prob(count)
+                    - rank::COMPLETION_PENALTY
+                    - rank::COMPLETION_PER_CHAR * extra
+                    + self.lm_term(scores, &word);
+                others.push(Candidate {
+                    text: word,
+                    kind: Kind::Completion,
+                    score,
+                    lang,
+                });
+            }
         }
         for word in self.user().completions(&typed_n, 2) {
             let score = rank::LEARNED_COMPLETION;
@@ -2289,6 +2350,8 @@ impl Engine {
                 c.score += self.own_term(own, &c.text);
             }
         }
+        // Every one is a completion, and nothing replaces here.
+        self.add_completion_uses(&mut others);
         self.drop_removed(&mut others);
         // Native Malayalam is never replaced: the typed word always stays in the middle.
         arrange(
@@ -3966,16 +4029,13 @@ mod tests {
                 .unwrap()
         };
         assert!(position("hel", "help") < position("hel", "hello"));
-        // help is 1.5 times as common and a letter shorter, and a one-edit correction too:
-        // 0.8 ahead.
-        for _ in 0..20 {
+        // help is 1.5 times as common and a letter shorter: 0.8 ahead. A use of hello, a
+        // completion of the letters, puts it ahead (`rank::USE_COMPLETION_WEIGHT`, + 1.6).
+        commit(&engine, "hello", Layout::Latin);
+        assert!(position("hel", "hello") < position("hel", "help"));
+        for _ in 0..29 {
             commit(&engine, "hello", Layout::Latin);
         }
-        assert!(position("hel", "help") < position("hel", "hello"), "+0.76");
-        for _ in 0..10 {
-            commit(&engine, "hello", Layout::Latin);
-        }
-        assert!(position("hel", "hello") < position("hel", "help"), "+0.86");
         assert_eq!(engine.user().uses("hello"), 30);
         // Never over a clear correction, nor over a known word as typed.
         for _ in 0..100 {
@@ -4005,6 +4065,156 @@ mod tests {
         assert_eq!(bar(&engine, "hello "), ["there", "kitty", "world"]);
         let s = engine.suggest_scored("hello ", Layout::Latin, true, &hello_lm());
         assert_eq!(texts(&s)[0], "there");
+    }
+
+    /// English as the real bundle has it around `appo` (appointed five times as common as
+    /// appointment), a typo's clear correction (`teh` → the), a rare guess (zorb), and twenty
+    /// words beginning `app` commoner than appointment, so it is past `lexicon::TOP_K` there.
+    fn used_sources() -> Sources {
+        let mut words: Vec<(String, u64)> = [
+            ("the", 100_000),
+            ("then", 5_000),
+            ("ten", 500),
+            ("tehran", 40),
+            ("also", 50_000),
+            ("appointed", 7_500),
+            ("appointment", 1_500),
+            ("appoint", 200),
+            ("zorb", 1),
+        ]
+        .iter()
+        .map(|&(w, c)| (w.to_string(), c))
+        .collect();
+        for c in 'a'..='t' {
+            words.push((format!("appa{c}x"), 3_000));
+        }
+        words.sort();
+        let refs: Vec<(&str, u64)> = words.iter().map(|(w, c)| (w.as_str(), *c)).collect();
+        Sources {
+            english: lex(&refs),
+            packs: vec![ml_pack(lex(&[("കാര്യം", 10), ("കിളി", 5), ("കീ", 1)]))],
+            ..Sources::default()
+        }
+    }
+
+    /// The completions in the bar for `context`, best first.
+    fn completions(engine: &Engine, context: &str) -> Vec<String> {
+        let s = engine.suggest(context, Layout::Latin, true);
+        s.candidates
+            .into_iter()
+            .filter(|c| c.kind == Kind::Completion)
+            .map(|c| c.text)
+            .collect()
+    }
+
+    #[test]
+    fn a_used_word_rises_among_the_completions_of_its_letters() {
+        let mut engine = Engine::new(used_sources(), UserStore::in_memory());
+        engine.set_max_suggestions(10);
+        let rank_of = |e: &Engine, context: &str| {
+            completions(e, context)
+                .iter()
+                .position(|w| w.eq_ignore_ascii_case("appointment"))
+        };
+        for context in ["appo", "the appo", "when i type appo"] {
+            assert_eq!(completions(&engine, context)[0], "appointed", "{context}");
+            assert_eq!(rank_of(&engine, context), Some(1), "{context}");
+        }
+        // Used in one context, it rises in every other.
+        for _ in 0..3 {
+            commit(&engine, "I have an appointment", Layout::Latin);
+        }
+        for context in ["appo", "the appo", "when i type appo", "Appo"] {
+            assert_eq!(rank_of(&engine, context), Some(0), "{context}");
+            assert_eq!(
+                bar(&engine, context)[0],
+                context.rsplit(' ').next().unwrap()
+            );
+        }
+        // With three suggestions too.
+        engine.set_max_suggestions(3);
+        assert!(bar(&engine, "the appo").contains(&"appointment".to_string()));
+        // Never in the middle: a completion is never committed by a space.
+        assert_eq!(bar(&engine, "the appoi")[0], "appoi");
+    }
+
+    #[test]
+    fn a_used_word_is_completed_past_the_lexicons_top_list() {
+        let mut engine = Engine::new(used_sources(), UserStore::in_memory());
+        engine.set_max_suggestions(10);
+        assert!(!completions(&engine, "the app").contains(&"appointment".to_string()));
+        for _ in 0..3 {
+            commit(&engine, "appointment", Layout::Latin);
+        }
+        assert_eq!(completions(&engine, "the app")[0], "appointment");
+        assert_eq!(completions(&engine, "The App")[0], "Appointment");
+        // A removed word is never offered, and its uses go with it.
+        engine.remove_word("appointment");
+        assert!(!bar(&engine, "the app").contains(&"appointment".to_string()));
+        assert!(!bar(&engine, "the appo").contains(&"appointment".to_string()));
+        engine.restore_word("appointment");
+        assert!(!completions(&engine, "the app").contains(&"appointment".to_string()));
+        assert_eq!(completions(&engine, "the appo")[0], "appointed");
+    }
+
+    #[test]
+    fn uses_of_a_completion_never_change_autocorrect() {
+        let mut engine = Engine::new(used_sources(), UserStore::in_memory());
+        engine.set_max_suggestions(10);
+        assert_eq!(bar(&engine, "teh")[0], "the");
+        for _ in 0..100 {
+            commit(&engine, "tehran", Layout::Latin);
+        }
+        // tehran begins with the typed letters and is now the likeliest completion, but
+        // the correction stays: uses of a completion don't hold back a correction.
+        assert_eq!(completions(&engine, "teh")[0], "tehran");
+        assert_eq!(bar(&engine, "teh")[0], "the");
+        // Nor do uses of a correction make it replace (`MIN_REPLACE`, `MARGIN`).
+        for _ in 0..100 {
+            commit(&engine, "ten", Layout::Latin);
+        }
+        assert_eq!(bar(&engine, "teh")[0], "the");
+        // zorb is a guess for zorbx, 0.5 below `MIN_REPLACE`: within what uses add (+ 1), but
+        // it still never replaces.
+        let zorb = |e: &Engine| {
+            let s = e.suggest("zorbx", Layout::Latin, true);
+            let score = s
+                .candidates
+                .iter()
+                .find(|c| c.text == "zorb")
+                .unwrap()
+                .score;
+            (texts(&s)[0].to_string(), score)
+        };
+        let (middle, score) = zorb(&engine);
+        assert_eq!(middle, "zorbx");
+        assert!(
+            score < rank::MIN_REPLACE && score + rank::USE_MAX > rank::MIN_REPLACE,
+            "{score}"
+        );
+        for _ in 0..100 {
+            commit(&engine, "zorb", Layout::Latin);
+        }
+        let (middle, score) = zorb(&engine);
+        assert_eq!(middle, "zorbx");
+        assert!(
+            score > rank::MIN_REPLACE,
+            "{score}: the uses count among the side slots"
+        );
+    }
+
+    #[test]
+    fn a_used_word_rises_among_native_completions() {
+        let engine = Engine::new(used_sources(), UserStore::in_memory());
+        let malayalam = |context: &str| {
+            let s = engine.suggest(context, ML, true);
+            s.candidates.into_iter().map(|c| c.text).collect::<Vec<_>>()
+        };
+        assert_eq!(malayalam("ക"), ["ക", "കാര്യം", "കിളി"]);
+        for _ in 0..3 {
+            commit(&engine, "കീ", ML);
+        }
+        assert_eq!(malayalam("ക")[1], "കീ");
     }
 
     #[test]

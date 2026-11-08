@@ -215,6 +215,73 @@ fn english_user_reports() {
     }
 }
 
+/// A word the user writes rises among the completions of its letters in any context, past
+/// a commoner one they never write (reported: `appo` offered appointed and also, never
+/// appointment, however often it was written; `rank::USE_COMPLETION_WEIGHT`). Only the side
+/// slots move: the letters stay in the middle, and a clear correction stays.
+#[test]
+fn a_used_word_rises_among_the_completions_in_any_context() {
+    let contexts = ["appo", "the appo", "when i type appo", "Can we move the appo"];
+    let first_completion = |engine: &Engine, context: &str| {
+        engine
+            .suggest(context, Layout::Latin, true)
+            .candidates
+            .into_iter()
+            .find(|c| c.kind == Kind::Completion)
+            .map(|c| c.text.to_ascii_lowercase())
+    };
+    let offered = |engine: &Engine, context: &str| {
+        texts(engine, context)
+            .iter()
+            .any(|w| w.eq_ignore_ascii_case("appointment"))
+    };
+    for mut engine in engines().into_iter().chain(lm_engine()) {
+        for shown in [3, 10] {
+            engine.set_max_suggestions(shown);
+            engine.forget_learned();
+            for context in contexts {
+                assert_ne!(
+                    first_completion(&engine, context).as_deref(),
+                    Some("appointment"),
+                    "{shown}, {context}: unused"
+                );
+            }
+            // Written in one context, three times.
+            for _ in 0..3 {
+                engine.note_used("I have an ", "appointment", Layout::Latin);
+            }
+            for context in contexts {
+                let bar = texts(&engine, context);
+                assert!(offered(&engine, context), "{shown}, {context}: {bar:?}");
+                let typed = context.rsplit(' ').next().unwrap();
+                assert_eq!(middle(&engine, context), (typed.to_string(), Kind::Verbatim));
+            }
+            // Ten times: the first completion everywhere.
+            for _ in 0..7 {
+                engine.note_used("", "appointment", Layout::Latin);
+            }
+            for context in contexts {
+                assert_eq!(
+                    first_completion(&engine, context).as_deref(),
+                    Some("appointment"),
+                    "{shown}, {context}: {:?}",
+                    texts(&engine, context)
+                );
+            }
+            // Uses of a completion of the letters never hold back their correction.
+            for _ in 0..20 {
+                engine.note_used("", "tehran", Layout::Latin);
+            }
+            assert_eq!(middle(&engine, "teh"), ("the".to_string(), Kind::Correction));
+            // A removed word is never offered, however often it was written.
+            engine.remove_word("appointment");
+            for context in contexts {
+                assert!(!offered(&engine, context), "{shown}, {context}: removed");
+            }
+        }
+    }
+}
+
 /// A learned email is in the bar from its first letters, though they begin common English
 /// words (reported: `neo` hid sam.2024@example.com behind neon and never).
 #[test]

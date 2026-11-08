@@ -290,9 +290,23 @@ pub const OWN_PHRASE_BONUS: f32 = 1.0;
 /// never outweighs a slip between words equally common, and a typo's clear correction
 /// (`teh` → the) stays; taken out for `MIN_REPLACE`, so it never makes a rare guess replace.
 /// Used words are words the user committed: an English word kept as typed gains as much as
-/// any candidate, so it is no likelier to be replaced.
+/// any candidate, so it is no likelier to be replaced. Completions gain more
+/// (`USE_COMPLETION_WEIGHT`).
 pub const USE_WEIGHT: f32 = 0.25;
 pub const USE_MAX: f32 = 1.0;
+/// A used word that the typed letters begin, offered as a completion, also gains this ×
+/// ln(1 + uses), at most `USE_COMPLETION_MAX` (reached at 12 uses), in any context: a word
+/// the user writes is likelier the word they are writing than a commoner one they never do
+/// (user report: `appo` kept offering appointed, never appointment, however often it was
+/// written). With `USE_WEIGHT` the uses add 1.6 after one use, 2.5 after two, 3.1 after
+/// three, 4.0 after five and 5.4 after ten: two or three uses put a word ahead of one five
+/// times as common (appointed), and ten ahead of one some 200 times as common. A completion
+/// never takes the middle, and this is added after the middle is chosen, so it only reorders
+/// the side slots: it never holds back a correction (`teh` → the stays) nor makes one
+/// replace. Used words are completed even past the lexicon's precomputed lists
+/// (`lexicon::TOP_K`). The eval runs with an empty store, so this never moves it.
+pub const USE_COMPLETION_WEIGHT: f32 = 2.0;
+pub const USE_COMPLETION_MAX: f32 = 5.0;
 /// The language habit (`personal::Personal::habit`): + this × ln((pack + 1) / (English + 1))
 /// to each pack's prior, within ±`HABIT_MAX`, once `HABIT_MIN_WORDS` words were counted. A
 /// quarter of the previous-word constants' range: context (the LM, the previous word) says

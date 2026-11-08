@@ -376,6 +376,17 @@ impl Personal {
         self.uses.get(key(word).as_str()).map_or(0, |u| u.count)
     }
 
+    /// The used words longer than `prefix` that start with it (ASCII case-insensitive), as
+    /// keyed (ASCII letters lowercased), in no particular order. A scan of the counted words
+    /// (at most `USAGE_CAPACITY`).
+    pub fn used_starting_with<'a>(&'a self, prefix: &str) -> impl Iterator<Item = &'a str> {
+        let prefix = key(prefix);
+        self.uses
+            .keys()
+            .map(|k| &**k)
+            .filter(move |k| k.len() > prefix.len() && k.starts_with(prefix.as_str()))
+    }
+
     /// Whether any word's uses are counted: when none are, nothing need be looked up.
     pub fn has_uses(&self) -> bool {
         !self.uses.is_empty()

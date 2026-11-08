@@ -250,6 +250,15 @@ impl UserStore {
         self.personal.uses(word)
     }
 
+    /// Used words (`uses`) longer than `prefix` that start with it, ASCII letters lowercased
+    /// (`Personal::used_starting_with`). A removed word has no uses.
+    pub fn used_completions(&self, prefix: &str) -> Vec<String> {
+        self.personal
+            .used_starting_with(prefix)
+            .map(str::to_string)
+            .collect()
+    }
+
     /// Whether any use is counted: when none is, `uses` need not be asked.
     pub fn has_uses(&self) -> bool {
         self.personal.has_uses()
