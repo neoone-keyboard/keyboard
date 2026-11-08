@@ -183,13 +183,16 @@ fn malayalam_and_hindi_without_english() {
 }
 
 #[test]
-fn three_languages_are_refused() {
-    let mut e = engine(&["ml", "hi"]);
+fn more_than_four_languages_are_refused() {
+    let mut e = engine(&["ml", "hi", "as"]);
+    assert_eq!(e.active_languages(), ids(&["en", "ml"]), "the default");
     assert_eq!(
-        e.set_active(&ids(&["en", "ml", "hi"])),
-        Err(ActiveError::TooMany(3))
+        e.set_active(&ids(&["en", "ml", "hi", "as", "en"])),
+        Err(ActiveError::TooMany(5))
     );
     assert_eq!(e.active_languages(), ids(&["en", "ml"]));
+    e.set_active(&ids(&["en", "ml", "hi"])).unwrap();
+    assert_eq!(e.active_languages(), ids(&["en", "ml", "hi"]));
 }
 
 /// Common Assamese words, romanised as Aksharantar's human test pairs spell them

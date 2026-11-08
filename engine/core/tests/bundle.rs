@@ -1241,8 +1241,8 @@ fn the_active_list_is_checked() {
     };
     assert_eq!(engine.active_languages(), ids(&["en", "ml"]));
     assert_eq!(
-        engine.set_active(&ids(&["en", "ml", "hi"])),
-        Err(ActiveError::TooMany(3))
+        engine.set_active(&ids(&["en", "ml", "en", "ml", "en"])),
+        Err(ActiveError::TooMany(5))
     );
     assert_eq!(
         engine.set_active(&ids(&["hi"])),

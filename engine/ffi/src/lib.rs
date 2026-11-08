@@ -122,7 +122,7 @@ pub struct EngineConfig {
     pub lm_prepare_ms: Option<u32>,
     /// The active languages' ids in the user's order ("en", "ml"), at most
     /// `mlengine_core::lang::MAX_ACTIVE`. Empty, or a list the engine refuses (a language
-    /// that didn't load), means every loaded language up to that many, English first.
+    /// that didn't load), means the engine's default: English and the first loaded pack.
     #[uniffi(default = [])]
     pub active: Vec<String>,
     /// How many candidates a suggest returns at most, 1 to `mlengine_core::MAX_SUGGESTIONS`
@@ -423,7 +423,7 @@ impl Engine {
 
     /// Makes `languages` the active ones, in that order ("en", "ml"; at most
     /// `mlengine_core::lang::MAX_ACTIVE`): only they offer suggestions and layouts. Empty
-    /// means every loaded language up to that many, English first. Refused, keeping the
+    /// means the engine's default: English and the first loaded pack. Refused, keeping the
     /// list as it was, for too many, a repeat, or a language that isn't loaded.
     pub fn set_active_languages(&self, languages: Vec<String>) -> Result<(), EngineError> {
         let mut inner = self.inner.write().unwrap_or_else(|p| p.into_inner());
@@ -766,7 +766,8 @@ mod tests {
         assert_eq!(engine.suggest("ente".into(), unknown, true).unwrap(), latin);
 
         // The active list: refused when too long, empty is the default.
-        let refused = engine.set_active_languages(vec!["en".into(), "ml".into(), "hi".into()]);
+        let five = ["en", "ml", "en", "ml", "en"].map(String::from).to_vec();
+        let refused = engine.set_active_languages(five);
         assert!(
             matches!(refused, Err(EngineError::Refused { .. })),
             "{refused:?}"

@@ -30,6 +30,9 @@ const CORRECTION_LIMIT: usize = 4_000;
 /// Candidates returned unless the keyboard asks for more (`Engine::set_max_suggestions`): the
 /// middle slot plus two side slots.
 pub const DEFAULT_SUGGESTIONS: usize = 3;
+/// Languages active until the keyboard chooses (`Engine::default_active`): English and the
+/// first loaded pack.
+const DEFAULT_ACTIVE: usize = 2;
 /// The most candidates a suggest returns, however many are asked for: the keyboard's bar
 /// scrolls to show those after the first three.
 pub const MAX_SUGGESTIONS: usize = 20;
@@ -421,12 +424,12 @@ impl Engine {
         }
     }
 
-    /// Until the keyboard chooses (`set_active`): English and the first loaded packs, as many
-    /// as `MAX_ACTIVE` allows.
+    /// Until the keyboard chooses (`set_active`): English and the first loaded pack. More
+    /// languages are the user's choice, never the default's.
     fn default_active(sources: &Sources) -> Active {
         let order = std::iter::once(EN)
             .chain((0..sources.packs.len()).map(pack_lang))
-            .take(MAX_ACTIVE)
+            .take(DEFAULT_ACTIVE.min(MAX_ACTIVE))
             .collect();
         Active::new(order).expect("English alone is a valid list")
     }
@@ -455,7 +458,7 @@ impl Engine {
         Ok(())
     }
 
-    /// Back to the list `new` starts with: English and the first loaded packs.
+    /// Back to the list `new` starts with: English and the first loaded pack.
     pub fn set_default_active(&mut self) {
         self.set_order(Self::default_active(&self.sources));
     }

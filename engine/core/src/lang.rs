@@ -5,8 +5,11 @@
 use std::fmt;
 
 /// How many languages can be active at once, English included. The only place the number is
-/// written: raising it needs memory and latency measured on the phone, not new code.
-pub const MAX_ACTIVE: usize = 2;
+/// written: raising it needs memory and latency measured, not new code. 4: English and every
+/// pack there is (Malayalam, Hindi, Assamese) fit together. With all four the engine's heap
+/// peaks at 5.2 MB while typing and suggest p99 is 4.3 ms on the Mac (`multi_lang_memory`,
+/// `multi_lang`; the M6 spec, decision 4).
+pub const MAX_ACTIVE: usize = 4;
 
 /// A language's id: "en", or a pack's manifest `id` ("ml", "hi", "as").
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
