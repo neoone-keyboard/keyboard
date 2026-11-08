@@ -1074,7 +1074,7 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         more: &dyn Fn(bool) -> bool,
     ) -> Suggestions {
-        let Some((_, _, lm)) = self.lm() else {
+        let Some((lm_lang, _, lm)) = self.lm() else {
             return self.suggest_with(context_before, layout, autocorrect, deadline, None);
         };
         let (typed, _) = self.current_word(context_before);
@@ -1087,7 +1087,13 @@ impl Engine {
         // messages begin: the first word is M3a's. On chat_golden (292 of 322 rows start the
         // text) tier 0 there cost top-1 0.8043 → 0.7857: വേണ്ടേ, വേണം, അത്, കുറച്ച് lost.
         let at_start = words.iter().all(String::is_empty);
-        let view = (ready && !at_start).then(|| LmView {
+        // After a word of another active pack (मेरा, with Malayalam's LM) the LM knows nothing
+        // of its script: its bias and next words would be its own language's. M3a's then,
+        // whose previous-word prior and `next.fst` are that pack's.
+        let other_pack = text::previous_word(before)
+            .and_then(|(word, _)| self.pack_of_word(&normalize(word)))
+            .is_some_and(|(lang, _)| lang != lm_lang);
+        let view = (ready && !at_start && !other_pack).then(|| LmView {
             lm,
             ctx: &lm_ctx,
             weights: self.lm_weights,

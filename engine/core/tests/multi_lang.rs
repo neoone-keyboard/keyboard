@@ -83,6 +83,30 @@ fn four_languages_can_be_active_and_each_has_its_layout() {
     );
 }
 
+/// After a Hindi word the next words are Hindi, though Malayalam's LM is loaded: it knows
+/// nothing of Devanagari.
+#[test]
+fn next_words_follow_the_previous_words_pack() {
+    for active in [&["en", "ml", "hi"][..], &["en", "ml", "hi", "as"]] {
+        let e = engine(&ALL, active);
+        for (context, lang) in [("मेरा ", "hi"), ("मैं कल ", "hi"), ("എന്റെ ", "ml")]
+        {
+            // Twice: the second time the LM's context has caught up.
+            let _ = e.suggest(context, Layout::Latin, true);
+            let s = suggest(&e, context);
+            assert!(!s.candidates.is_empty(), "{active:?} {context}");
+            for c in &s.candidates {
+                let got = e.lang_id(c.lang).unwrap().0;
+                assert!(
+                    got == lang || got == "en",
+                    "{active:?} {context}: {}",
+                    show(&e, &s)
+                );
+            }
+        }
+    }
+}
+
 #[test]
 #[ignore = "exploration: WORDS=a,b cargo test ... print_bars -- --ignored --nocapture"]
 fn print_bars() {
