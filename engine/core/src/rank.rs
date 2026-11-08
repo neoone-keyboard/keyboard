@@ -314,6 +314,18 @@ pub const USE_COMPLETION_MAX: f32 = 5.0;
 pub const HABIT_WEIGHT: f32 = 0.25;
 pub const HABIT_MAX: f32 = 0.5;
 pub const HABIT_MIN_WORDS: u32 = 20;
+/// With two or more active packs typing in Latin letters, the pack whose prior from the
+/// previous word and the habit (not the LM's: it speaks for its own pack only) leads every
+/// other's by this much is favoured (`Engine::favoured`): its word keeps the middle against
+/// another pack's that scores less than `FAVOURED_MARGIN` more, and the side slots shown with
+/// the middle hold English and its words, its best among them; other packs' words move
+/// further along the bar. `HABIT_MAX`: a habit that has reached its limit on one side.
+/// Lexicon frequencies don't compare across packs (Assamese's smaller corpus puts পানী ahead
+/// of പണി for `pani`), so without this the smallest pack's words take the shown slots.
+pub const FAVOURED_LEAD: f32 = HABIT_MAX;
+/// A previous word's worth (`CONTEXT_AFTER_MALAYALAM`): another pack's word that beats the
+/// favoured pack's by this much still takes the middle (`എന്റെ mera` → मेरा).
+pub const FAVOURED_MARGIN: f32 = CONTEXT_AFTER_MALAYALAM;
 
 /// Makes a suggestion follow the case of what was typed: `Hel` → `Hello`,
 /// `HEL` → `HELLO`. Words stored with capitals (London, I, NASA) keep them.

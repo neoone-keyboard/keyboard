@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::lang::LangId;
 use mlengine_core::pack::Pack;
-use mlengine_core::{Engine, Layout, Paths, Suggestions, Timing};
+use mlengine_core::{Engine, Kind, Layout, Paths, Suggestions, Timing};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -49,6 +49,33 @@ fn suggest(e: &Engine, context: &str) -> Suggestions {
     s
 }
 
+/// The bar's first slots, those shown without scrolling: the middle and two side slots.
+const SHOWN: usize = 3;
+
+fn texts(s: &Suggestions) -> Vec<&str> {
+    s.candidates.iter().map(|c| c.text.as_str()).collect()
+}
+
+fn middle(s: &Suggestions) -> &str {
+    &s.candidates[0].text
+}
+
+/// The language ids of the candidates in the first `SHOWN` slots, but for the word as typed
+/// (which is the first pack's without English).
+fn shown_langs(e: &Engine, s: &Suggestions) -> Vec<String> {
+    s.candidates
+        .iter()
+        .take(SHOWN)
+        .filter(|c| c.kind != Kind::Verbatim)
+        .map(|c| e.lang_id(c.lang).unwrap().0)
+        .collect()
+}
+
+/// Where `text` is on the bar, if offered.
+fn place(s: &Suggestions, text: &str) -> Option<usize> {
+    s.candidates.iter().position(|c| c.text == text)
+}
+
 const ALL: [&str; 3] = ["ml", "hi", "as"];
 
 #[test]
@@ -83,6 +110,91 @@ fn four_languages_can_be_active_and_each_has_its_layout() {
     );
 }
 
+/// With no context, each romanised word takes its own language's spelling.
+#[test]
+fn manglish_and_hinglish_words_find_their_language() {
+    for active in [&["en", "ml", "hi"][..], &["en", "ml", "hi", "as"]] {
+        let e = engine(&ALL, active);
+        for (typed, want) in [
+            ("ente", "എന്റെ"),
+            ("njan", "ഞാൻ"),
+            ("ningal", "നിങ്ങൾ"),
+            ("mera", "मेरा"),
+            ("kya", "क्या"),
+            ("bahut", "बहुत"),
+            ("theek", "ठीक"),
+        ] {
+            let s = suggest(&e, typed);
+            assert_eq!(middle(&s), want, "{active:?} {typed}: {}", show(&e, &s));
+        }
+    }
+}
+
+/// After a word in a pack's script, that pack's words take the middle and the side slots
+/// shown with it; another pack's are further along the bar.
+#[test]
+fn the_previous_words_language_keeps_the_shown_slots() {
+    for active in [&["en", "ml", "hi"][..], &["en", "ml", "hi", "as"]] {
+        let e = engine(&ALL, active);
+        for (context, want, lang) in [
+            ("എന്റെ pani", "പണി", "ml"),
+            ("ഞാൻ നാളെ veettil", "വീട്ടിൽ", "ml"),
+            ("മേരാ ente", "എന്റെ", "ml"),
+            ("मेरा pani", "पानी", "hi"),
+            ("मेरा naam", "नाम", "hi"),
+            ("मैं कल ghar", "घर", "hi"),
+        ] {
+            let s = suggest(&e, context);
+            assert_eq!(middle(&s), want, "{active:?} {context}: {}", show(&e, &s));
+            for got in shown_langs(&e, &s) {
+                assert!(
+                    got == "en" || got == lang,
+                    "{active:?} {context}: {got} shown, {}",
+                    show(&e, &s)
+                );
+            }
+        }
+    }
+}
+
+/// A Malayalam context with a word Malayalam has no good spelling for: the middle may be
+/// another pack's, but Malayalam's best is shown beside it, and the bar still holds the
+/// others further along.
+#[test]
+fn the_favoured_languages_best_is_shown_beside_another_packs_middle() {
+    let e = engine(&ALL, &["en", "ml", "hi", "as"]);
+    let s = suggest(&e, "എന്റെ mera");
+    assert_eq!(middle(&s), "मेरा", "{}", show(&e, &s));
+    let ml = place(&s, "മേരാ").expect("Malayalam's spelling offered");
+    assert!(ml < SHOWN, "{}", show(&e, &s));
+    assert!(
+        s.candidates
+            .iter()
+            .skip(SHOWN)
+            .any(|c| e.lang_id(c.lang).unwrap().0 == "as"),
+        "Assamese further along: {}",
+        show(&e, &s)
+    );
+}
+
+/// No Assamese word swamps the shown slots of a Malayalam sentence.
+#[test]
+fn another_pack_does_not_swamp_the_shown_slots() {
+    let e = engine(&ALL, &["en", "ml", "hi", "as"]);
+    let s = suggest(&e, "ഞാൻ നാളെ acha");
+    let langs = shown_langs(&e, &s);
+    assert!(
+        langs.iter().all(|l| l == "en" || l == "ml"),
+        "{}",
+        show(&e, &s)
+    );
+    assert!(
+        texts(&s).contains(&"अच्छा"),
+        "Hindi further along: {}",
+        show(&e, &s)
+    );
+}
+
 /// After a Hindi word the next words are Hindi, though Malayalam's LM is loaded: it knows
 /// nothing of Devanagari.
 #[test]
@@ -103,6 +215,45 @@ fn next_words_follow_the_previous_words_pack() {
                     show(&e, &s)
                 );
             }
+        }
+    }
+}
+
+/// The language habit tells a Malayalam user from a Hindi one when nothing else does: the
+/// same letters, with no context, keep the user's language in the shown slots. With English
+/// and without.
+#[test]
+fn the_habit_favours_the_users_language() {
+    let users = [
+        ("ml", ["എന്റെ", "വീട്", "ഞാൻ", "പണി", "നല്ല"]),
+        ("hi", ["मेरा", "घर", "मैं", "पानी", "अच्छा"]),
+    ];
+    for ((lang, words), active) in users.into_iter().flat_map(|u| {
+        [
+            (u, &["en", "ml", "hi", "as"][..]),
+            (u, &["ml", "hi", "as"][..]),
+        ]
+    }) {
+        let e = engine(&ALL, active);
+        for _ in 0..6 {
+            for w in words {
+                e.note_used("", w, Layout::Latin);
+            }
+            e.note_used("", "the", Layout::Latin);
+        }
+        for typed in ["pani", "acha"] {
+            let s = suggest(&e, typed);
+            let langs = shown_langs(&e, &s);
+            assert!(
+                langs.iter().all(|l| l == "en" || l == lang),
+                "{lang} user, {active:?}, {typed}: {}",
+                show(&e, &s)
+            );
+            assert!(
+                langs.iter().any(|l| l == lang),
+                "{lang} user, {active:?}, {typed}: {}",
+                show(&e, &s)
+            );
         }
     }
 }

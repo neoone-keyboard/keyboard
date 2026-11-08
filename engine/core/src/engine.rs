@@ -744,10 +744,11 @@ impl Engine {
     /// `priors` with the language habit (`UserStore::habit`) added to each active pack's
     /// (`with_habit`): `rank::HABIT_WEIGHT` × ln((n_pack + 1) / (n_en + 1)), within
     /// ±`rank::HABIT_MAX`, and nothing until `rank::HABIT_MIN_WORDS` words of the active
-    /// languages were counted.
+    /// languages were counted. Without English, two or more packs are weighed against the
+    /// most used of them in its place; one pack alone has nothing to be weighed against.
     fn add_habit(&self, mut priors: Priors) -> Priors {
-        // The habit weighs each pack against English; without English it says nothing.
-        if !self.active.english() {
+        let english = self.active.english();
+        if !english && self.packs_active().nth(1).is_none() {
             return priors;
         }
         let counts: Vec<(Lang, u32)> = {
@@ -759,7 +760,11 @@ impl Engine {
                 .map(|lang| (lang, self.lang_id(lang).map_or(0, |id| n(&id))))
                 .collect()
         };
-        let n_en = counts.iter().find(|(l, _)| *l == EN).map_or(0, |(_, n)| *n);
+        let n_en = if english {
+            counts.iter().find(|(l, _)| *l == EN).map_or(0, |(_, n)| *n)
+        } else {
+            counts.iter().map(|(_, n)| *n).max().unwrap_or(0)
+        };
         let total = counts.iter().fold(0u32, |a, (_, n)| a.saturating_add(*n));
         if total < rank::HABIT_MIN_WORDS {
             return priors;
@@ -799,6 +804,7 @@ impl Engine {
                     false,
                     false,
                     &Priors::default(),
+                    None,
                     None,
                     None,
                     &[],
@@ -1150,6 +1156,7 @@ impl Engine {
                 let after_english =
                     previous.is_some_and(|w| self.word_lang(&normalize(w)) == Some(EN));
                 let priors = self.add_habit(self.with_lm(self.priors(previous), scores));
+                let favoured = self.favoured(&self.add_habit(self.priors(previous)));
                 self.suggest_latin(
                     typed,
                     &typed_n,
@@ -1158,6 +1165,7 @@ impl Engine {
                     mid_sentence,
                     after_english,
                     &priors,
+                    favoured,
                     deadline,
                     scores,
                     &own,
@@ -1309,8 +1317,9 @@ impl Engine {
     /// before it didn't (neither at the very start of the text). `after_english`: the word
     /// before it is English.
     /// `priors`: each language's prior (`priors`, `with_lm`, `add_habit`), added to its
-    /// romanised words. `scores`: the LM's in-context corrections (design §6), when it is ready.
-    /// `own`: the user's own continuations of the words before it (`own_followers`).
+    /// romanised words. `favoured`: the pack the previous word and the habit favour among
+    /// several (`favoured`). `scores`: the LM's in-context corrections (design §6), when it is
+    /// ready. `own`: the user's own continuations of the words before it (`own_followers`).
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
@@ -1321,6 +1330,7 @@ impl Engine {
         mid_sentence: bool,
         after_english: bool,
         priors: &Priors,
+        favoured: Option<Lang>,
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
         own: &[String],
@@ -1774,15 +1784,26 @@ impl Engine {
                     .is_some_and(|(_, cost)| cost.is_some_and(|c| c > fuzzy::CHEAP_EDIT));
             // A Malayalam word with exactly the typed skeleton competes as a
             // correction (with `spelled_bonus`).
-            let malayalam = manglish
-                .exact
-                .iter()
-                .map(|(c, spelled)| {
-                    let against_english =
-                        c.score + if *spelled { spelled_bonus(c.lang) } else { 0.0 };
-                    (c.clone(), against_english)
-                })
-                .max_by(|a, b| a.1.total_cmp(&b.1))
+            let natives = manglish.exact.iter().map(|(c, spelled)| {
+                let against_english = c.score + if *spelled { spelled_bonus(c.lang) } else { 0.0 };
+                (c.clone(), against_english)
+            });
+            let best = |of: Option<Lang>| {
+                natives
+                    .clone()
+                    .filter(|(c, _)| of.is_none_or(|lang| c.lang == lang))
+                    .max_by(|a, b| a.1.total_cmp(&b.1))
+            };
+            // Among several packs, the favoured one's word unless another's is far likelier
+            // (`rank::FAVOURED_MARGIN`).
+            let malayalam = match (best(None), favoured.and_then(|f| best(Some(f)))) {
+                (Some(top), Some(own))
+                    if top.0.lang != own.0.lang && top.1 - own.1 < rank::FAVOURED_MARGIN =>
+                {
+                    Some(own)
+                }
+                (top, _) => top,
+            }
                 // A capitalised word after an English word is a name in English text, whatever
                 // the LM's bias: `Add Rahul and Priya` (−1.4 there) became പ്രിയ.
                 .filter(|(c, _)| {
@@ -1874,7 +1895,28 @@ impl Engine {
         others.extend(manglish.exact.into_iter().map(|(c, _)| c));
         others.extend(manglish.side);
         address.extend(first_sides);
-        arrange(typed_c, typed_n, others, replacement, address, self.shown)
+        let Some(favoured) = favoured else {
+            return arrange(typed_c, typed_n, others, replacement, address, self.shown);
+        };
+        // Every candidate, so the side slots shown are the same whatever `shown` is.
+        let chosen = self.user().choice(typed_n).map(str::to_string);
+        let all = arrange(typed_c, typed_n, others, replacement, address, MAX_SUGGESTIONS);
+        favour(all, favoured, chosen.as_deref())
+    }
+
+    /// The pack `priors` favour (`rank::FAVOURED_LEAD`) when two or more active packs type in
+    /// Latin letters; None with one, or when none leads.
+    fn favoured(&self, priors: &Priors) -> Option<Lang> {
+        let mut packs: Vec<(Lang, f32)> = self
+            .packs_active()
+            .filter(|(_, p)| p.romanised.is_some())
+            .map(|(lang, _)| (lang, priors.get(lang)))
+            .collect();
+        if packs.len() < 2 {
+            return None;
+        }
+        packs.sort_by(|a, b| b.1.total_cmp(&a.1));
+        (packs[0].1 - packs[1].1 >= rank::FAVOURED_LEAD).then_some(packs[0].0)
     }
 
     /// Log-probability of all English words that start with `typed` and are
@@ -1894,7 +1936,9 @@ impl Engine {
         }
     }
 
-    /// Every active pack's candidates for a Latin word (`romanised`), together.
+    /// Every active pack's candidates for a Latin word (`romanised`), together. The packs run
+    /// likeliest first (highest prior; the active order between equals): they share the
+    /// transliterator's `deadline`, and on a slow request the last ones get none of it.
     fn manglish(
         &self,
         typed_n: &str,
@@ -1902,8 +1946,10 @@ impl Engine {
         english_word: bool,
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
+        let mut packs: Vec<(Lang, &PackSources)> = self.packs_active().collect();
+        packs.sort_by(|a, b| priors.get(b.0).total_cmp(&priors.get(a.0)));
         let mut all: Option<ManglishCandidates> = None;
-        for (lang, pack) in self.packs_active() {
+        for (lang, pack) in packs {
             let bias = priors.get(lang);
             let found = self.romanised(lang, pack, typed_n, bias, english_word, deadline);
             match &mut all {
@@ -2968,6 +3014,57 @@ fn arrange(
     out
 }
 
+/// The bar `arrange` made, with the side slots shown beside the middle
+/// (`DEFAULT_SUGGESTIONS`) given to English and `favoured`'s words (`rank::FAVOURED_LEAD`):
+/// another pack's native word gives way and moves just past them, and `favoured`'s best, unless
+/// it is the middle, takes the last shown slot if none of its words is there. The middle, the
+/// word as typed, and `chosen` (what the user chose for these letters before) keep their slots.
+fn favour(mut bar: Vec<Candidate>, favoured: Lang, chosen: Option<&str>) -> Vec<Candidate> {
+    if bar.is_empty() {
+        return bar;
+    }
+    let native = |c: &Candidate| matches!(text::script(&c.text), Script::Native(_));
+    let own = |c: &Candidate| native(c) && c.lang == favoured;
+    let other = |c: &Candidate| native(c) && c.lang != favoured && Some(c.text.as_str()) != chosen;
+    let middle = bar.remove(0);
+    let sides = DEFAULT_SUGGESTIONS - 1;
+    let mut shown: Vec<(usize, Candidate)> = Vec::with_capacity(sides);
+    let mut rest: Vec<(usize, Candidate)> = Vec::new();
+    for (i, c) in bar.into_iter().enumerate() {
+        if shown.len() < sides && !other(&c) {
+            shown.push((i, c));
+        } else {
+            rest.push((i, c));
+        }
+    }
+    // A free spelling (`rank::MANGLISH_MODEL_FREE`) is a guess, not a word to show first. It
+    // never displaces the word as typed or the chosen one.
+    let has_own = own(&middle) || shown.iter().any(|(_, c)| own(c));
+    let movable = |c: &Candidate| c.kind != Kind::Verbatim && Some(c.text.as_str()) != chosen;
+    if !has_own
+        && let Some(i) = rest
+            .iter()
+            .position(|(_, c)| own(c) && c.score > rank::MANGLISH_MODEL_FREE)
+    {
+        let room = if shown.len() < sides {
+            true
+        } else if let Some(j) = shown.iter().rposition(|(_, c)| movable(c)) {
+            rest.push(shown.remove(j));
+            true
+        } else {
+            false
+        };
+        if room {
+            shown.push(rest.remove(i));
+        }
+    }
+    rest.sort_by_key(|(i, _)| *i);
+    std::iter::once(middle)
+        .chain(shown.into_iter().map(|(_, c)| c))
+        .chain(rest.into_iter().map(|(_, c)| c))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3043,6 +3140,49 @@ mod tests {
         let mut sources = engine_sources();
         sources.packs[0].lm = Some(lm);
         Engine::new(sources, UserStore::in_memory())
+    }
+
+    /// `favour` on a made-up bar: Malayalam (1) favoured, Hindi (2) another pack.
+    #[test]
+    fn favour_gives_the_shown_side_slots_to_english_and_the_favoured_pack() {
+        let c = |text: &str, lang: u8, kind: Kind| Candidate {
+            text: text.into(),
+            kind,
+            score: 0.0,
+            lang: Lang(lang),
+        };
+        let texts = |bar: &[Candidate]| bar.iter().map(|c| c.text.clone()).collect::<Vec<_>>();
+        let bar = vec![
+            c("पानी", 2, Kind::Romanised),
+            c("pani", 0, Kind::Verbatim),
+            c("पनि", 2, Kind::Romanised),
+            c("pain", 0, Kind::Correction),
+            c("പണി", 1, Kind::Romanised),
+            c("പനി", 1, Kind::Romanised),
+        ];
+        // The middle stays; Hindi's side word moves past the shown slots, Malayalam's best
+        // takes the last shown one, and the rest keep their order.
+        assert_eq!(
+            texts(&favour(bar.clone(), Lang(1), None)),
+            ["पानी", "pani", "പണി", "पनि", "pain", "പനി"]
+        );
+        // A word the user chose for these letters before keeps its place.
+        assert_eq!(
+            texts(&favour(bar.clone(), Lang(1), Some("पनि"))),
+            ["पानी", "pani", "पनि", "pain", "പണി", "പനി"]
+        );
+        // The favoured pack in the middle: nothing more of it is pulled forward.
+        let bar = vec![
+            c("പണി", 1, Kind::Romanised),
+            c("pani", 0, Kind::Verbatim),
+            c("पानी", 2, Kind::Romanised),
+            c("pain", 0, Kind::Correction),
+            c("പനി", 1, Kind::Romanised),
+        ];
+        assert_eq!(
+            texts(&favour(bar, Lang(1), None)),
+            ["പണി", "pani", "pain", "पानी", "പനി"]
+        );
     }
 
     #[test]
