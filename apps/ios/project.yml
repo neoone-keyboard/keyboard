@@ -65,6 +65,15 @@ targets:
     configFiles:
       Debug: PackIndex.xcconfig
       Release: PackIndex.xcconfig
+    postBuildScripts:
+      # The spike models are copied whenever SpikeAssets/ exists; only Debug shows the view
+      # that uses them, so other configurations drop them (8.9 MB of unused models).
+      - name: Strip spike models outside Debug
+        script: |
+          if [ "$CONFIGURATION" != "Debug" ]; then
+            rm -rf "$TARGET_BUILD_DIR/$WRAPPER_NAME/SpikeAssets"
+          fi
+        basedOnDependencyAnalysis: false
     dependencies:
       - target: KeyboardExtension
       - package: KeyboardCore
