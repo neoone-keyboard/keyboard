@@ -137,3 +137,26 @@ import Testing
     let next = ActiveLanguages(["en", "ml"]).toggling("ml", order: order).toggling("hi", order: order)
     #expect(next.languages == ["en", "hi"])
 }
+
+/// The app's Languages summary reads the file again on each reload, so a choice the keyboard's
+/// settings panel writes meanwhile shows without relaunching the app.
+@Test func theShownChoiceFollowsTheFileTheKeyboardRewrites() throws {
+    let folder = try temporaryFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let file = folder.appending(path: "active-languages.json")
+    let packIDs = ["ml", "hi", "as"]
+    // Nothing stored, or no App Group: the engine's default.
+    #expect(ActiveLanguages.shown(storedIn: file, packIDs: packIDs) == ActiveLanguages(["en", "ml"]))
+    #expect(ActiveLanguages.shown(storedIn: nil, packIDs: packIDs) == ActiveLanguages(["en", "ml"]))
+    try ActiveLanguages(["en", "ml"]).write(to: file)
+    #expect(!ActiveLanguages.shown(storedIn: file, packIDs: packIDs).isOn("hi"))
+    // The keyboard turns Hindi on.
+    try ActiveLanguages(["en", "ml", "hi"]).write(to: file)
+    #expect(ActiveLanguages.shown(storedIn: file, packIDs: packIDs).isOn("hi"))
+    // And off again.
+    try ActiveLanguages(["en", "ml"]).write(to: file)
+    #expect(!ActiveLanguages.shown(storedIn: file, packIDs: packIDs).isOn("hi"))
+    // A language the app no longer has is not shown on.
+    try ActiveLanguages(["en", "ta"]).write(to: file)
+    #expect(ActiveLanguages.shown(storedIn: file, packIDs: packIDs) == ActiveLanguages(["en"]))
+}

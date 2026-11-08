@@ -20,6 +20,7 @@ struct KeyboardApp: App {
 struct ContentView: View {
     @State private var testText = ""
     @State private var languages = LanguagesModel()
+    @Environment(\.scenePhase) private var scenePhase
     /// Set once the first-launch step is done (the app's own defaults; `-chooseLanguagesDone NO`
     /// as a launch argument shows it again).
     @AppStorage("chooseLanguagesDone") private var chooseLanguagesDone = false
@@ -65,6 +66,15 @@ struct ContentView: View {
             }
         }
         .tint(AppStyle.accent)
+        // The keyboard's settings panel switches languages in the App Group: read them again
+        // when the app comes back, and when the keyboard goes away inside the app (Try it),
+        // where the app never stops being active.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { languages.reload() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
+            languages.reload()
+        }
         .sheet(isPresented: Binding(get: { !chooseLanguagesDone }, set: { _ in })) {
             FirstLaunchView(model: languages) { chooseLanguagesDone = true }
         }

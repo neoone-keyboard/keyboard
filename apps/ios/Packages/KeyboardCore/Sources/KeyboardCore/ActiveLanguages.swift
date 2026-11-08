@@ -30,6 +30,14 @@ public struct ActiveLanguages: Sendable, Equatable, Codable {
         return choice
     }
 
+    /// What the app shows as on: the choice stored in `file` (read afresh each call, since the
+    /// keyboard's settings panel may have rewritten it) limited to what the keyboard loads, else
+    /// the engine's default for these packs.
+    public static func shown(storedIn file: URL?, packIDs: [String]) -> ActiveLanguages {
+        file.flatMap(read(from:))?.usable(packIDs: packIDs).map(ActiveLanguages.init)
+            ?? engineDefault(packIDs: packIDs)
+    }
+
     /// Writes the choice in one step, so the keyboard never reads half a file.
     public func write(to file: URL) throws {
         let encoder = JSONEncoder()

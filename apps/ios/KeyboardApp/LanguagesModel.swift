@@ -58,7 +58,9 @@ final class LanguagesModel {
         reload()
     }
 
-    /// Reads the packs and the choice again (after an install or a removal).
+    /// Reads the packs and the choice again: after an install or a removal, and whenever the
+    /// app becomes active or the keyboard goes away, since the keyboard's settings panel
+    /// switches languages in the App Group behind the app's back.
     func reload() {
         let installedIDs = Set(InstalledPacks.installed().map(\.id))
         let installedFolder = PackLocations.installedPacks()?.standardizedFileURL.path
@@ -72,8 +74,7 @@ final class LanguagesModel {
                        removable: installedIDs.contains(pack.id), languageKey: pack.layout?.languageKey)
         }
         let packIDs = packs.map(\.id)
-        active = InstalledPacks.storedChoice()?.usable(packIDs: packIDs).map(ActiveLanguages.init)
-            ?? .engineDefault(packIDs: packIDs)
+        active = .shown(storedIn: PackLocations.activeLanguagesFile(), packIDs: packIDs)
         if case .loaded(let index) = index {
             offers = InstalledPacks.updateOffers(available: index.packs.map(\.available))
         }
