@@ -3,22 +3,27 @@
 
     python3 -I scripts/publish-packs.py           build the packs, write site/ and the app's index URL
     python3 -I scripts/publish-packs.py --check   fail if site/ or the xcconfig is out of date
+    python3 -I scripts/publish-packs.py --deploy  upload missing pack files to R2, deploy the site
 
-The site's address and the GitHub repository are in one place, site-src/site.json. From it and
-the pack folders in packs/ this writes:
+The site is a Cloudflare Worker (hosting/wrangler.jsonc, hosting/worker.js): static assets from
+site/, and the pack files from the R2 bucket, which the Worker serves at /packs/<file>. Its
+address, the R2 bucket, where the pack files are downloaded from and the GitHub repository (for
+issues) are in one place, site-src/site.json. From it and the pack folders in packs/ this writes:
 
-- build/site-packs/<id>.neopack: each pack's zip (scripts/pack.py, byte-for-byte reproducible),
-  and english-base.zip, the keyboard's built-in English word lists. These are GitHub release
-  assets, not part of the site. Also a release-notes file for each.
-- site/: the GitHub Pages site. index.html, privacy.html, support.html and credits.html from
-  site-src/ (credits from the pack manifests and data/manifests), style.css, CNAME, .nojekyll,
-  and packs/index.json, the pack index the app downloads from (KeyboardCore.PackIndex, format 1),
-  whose entries point at the release assets.
+- build/site-packs/<id>-<version>.neopack: each pack's zip (scripts/pack.py, byte-for-byte
+  reproducible), and english-base-<sha256 prefix>.zip, the keyboard's built-in English word
+  lists. They are R2 objects packs/<file>, not static assets (too large: 25 MiB at most).
+- site/: the Worker's static assets. index.html, privacy.html, support.html and credits.html
+  from site-src/ (credits from the pack manifests and data/manifests), style.css, _headers
+  (packs/index.json cached for 5 minutes), and packs/index.json, the pack index the app
+  downloads from (KeyboardCore.PackIndex, format 1), whose entries point at the pack files.
 - apps/ios/PackIndex.xcconfig: ML_PACK_INDEX_URL, the app's Info.plist NeoPackIndexURL.
 
-Then it prints the `gh release create` commands that publish the assets. It never runs them.
-A pack whose version is already in site/packs/index.json with other bytes is refused (its
-release already exists): raise the manifest's `version` first.
+Then it prints the `wrangler r2 object put` commands that upload the pack files. It runs them
+only with --deploy (`make site-deploy`), which uploads the files the site doesn't serve yet and
+then runs `wrangler deploy`. A file's name carries its version, so a published file never
+changes: a pack whose version is already in site/packs/index.json with other bytes is refused,
+raise the manifest's `version` first.
 
 Standard library only.
 """
@@ -29,7 +34,10 @@ import html
 import importlib.util
 import json
 import shlex
+import subprocess
 import sys
+import urllib.error
+import urllib.request
 import tempfile
 import zipfile
 from pathlib import Path
@@ -40,6 +48,10 @@ SITE = ROOT / "site"
 PACKS = ROOT / "packs"
 BUILD = ROOT / "build" / "site-packs"
 XCCONFIG = ROOT / "apps" / "ios" / "PackIndex.xcconfig"
+WRANGLER_CONFIG = ROOT / "hosting" / "wrangler.jsonc"
+WRANGLER = ["npx", "-y", "wrangler@4"]
+R2_PREFIX = "packs/"  # hosting/worker.js serves R2 key packs/<file> at /packs/<file>
+INDEX_CACHE = "public, max-age=300"
 LEXICON = ROOT / "apps" / "ios" / "KeyboardExtension" / "Lexicon"
 DATA_MANIFESTS = ROOT / "data" / "manifests"
 
@@ -88,21 +100,23 @@ def sha256(path: Path) -> str:
 def config() -> dict:
     site = json.loads((SITE_SRC / "site.json").read_text(encoding="utf-8"))
     domain, repo = site["domain"].strip(), site["repo"].strip()
+    downloads, bucket = site["downloads"].strip(), site["bucket"].strip()
     if not domain or "/" in domain or ":" in domain:
         raise SystemExit(f"site-src/site.json: domain {domain!r} must be a bare host name")
     if repo.count("/") != 1:
         raise SystemExit(f"site-src/site.json: repo {repo!r} must be OWNER/REPO")
-    return {"domain": domain, "repo": repo, "index_url": f"https://{domain}/packs/index.json"}
-
-
-def asset_url(repo: str, tag: str, name: str) -> str:
-    return f"https://github.com/{repo}/releases/download/{tag}/{name}"
+    if not downloads.startswith("https://") or not downloads.endswith("/"):
+        raise SystemExit(f"site-src/site.json: downloads {downloads!r} must be an https URL ending in /")
+    if not bucket:
+        raise SystemExit("site-src/site.json: bucket (the R2 bucket of the pack files) is empty")
+    return {"domain": domain, "repo": repo, "downloads": downloads, "bucket": bucket,
+            "index_url": f"https://{domain}/packs/index.json"}
 
 
 # --- Packs -----------------------------------------------------------------------------------
 
-def build_packs(pack_module, out: Path, repo: str) -> list[dict]:
-    """Zips every pack in packs/ into `out`; one release per pack id and version."""
+def build_packs(pack_module, out: Path, downloads: str) -> list[dict]:
+    """Zips every pack in packs/ into `out`, one file per pack id and version."""
     releases = []
     for folder in sorted(PACKS.glob("*.neopack")):
         manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
@@ -110,9 +124,8 @@ def build_packs(pack_module, out: Path, repo: str) -> list[dict]:
         if manifest.get("sha256") != current:
             raise SystemExit(f"{folder}: checksums stale; run scripts/pack.py {folder} --write")
         pid, version = manifest["id"], manifest["version"]
-        archive = out / f"{pid}.neopack"
+        archive = out / f"{pid}-{version}.neopack"
         pack_module.write_zip(folder, list(current), archive)
-        tag = f"packs-{pid}-{version}"
         entry = {
             "id": pid,
             "name": manifest["name"],
@@ -122,29 +135,28 @@ def build_packs(pack_module, out: Path, repo: str) -> list[dict]:
             "minEngine": manifest["minEngine"],
             "size": archive.stat().st_size,
             "sha256": sha256(archive),
-            "url": asset_url(repo, tag, archive.name),
+            "url": downloads + archive.name,
             "englishFingerprint": manifest.get("englishFingerprint"),
         }
-        releases.append({
-            "tag": tag, "asset": archive, "entry": {k: v for k, v in entry.items() if v is not None},
-            "title": f"{manifest['name']} language pack {version}", "manifest": manifest,
-        })
+        releases.append({"asset": archive, "manifest": manifest,
+                         "entry": {k: v for k, v in entry.items() if v is not None}})
     return releases
 
 
-def build_english(out: Path, repo: str) -> dict:
-    """english-base.zip: the keyboard's built-in English word lists, published for share-alike."""
-    archive = out / "english-base.zip"
+def build_english(out: Path, downloads: str) -> dict:
+    """english-base-<sha256 prefix>.zip: the keyboard's built-in English word lists, published
+    for share-alike. The name changes with the bytes, as a pack's changes with its version."""
+    scratch = out / "english-base.zip.tmp"
     out.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as z:
+    with zipfile.ZipFile(scratch, "w", compression=zipfile.ZIP_STORED) as z:
         for name in ENGLISH_FILES:
             info = zipfile.ZipInfo(f"english-base/{name}", date_time=(1980, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             z.writestr(info, (LEXICON / name).read_bytes())
-    digest = sha256(archive)
-    tag = f"english-base-{digest[:12]}"
-    return {"tag": tag, "asset": archive, "url": asset_url(repo, tag, archive.name),
-            "title": "English base word lists", "sha256": digest, "size": archive.stat().st_size}
+    digest = sha256(scratch)
+    archive = scratch.replace(out / f"english-base-{digest[:12]}.zip")
+    return {"asset": archive, "url": downloads + archive.name, "sha256": digest,
+            "size": archive.stat().st_size}
 
 
 def index_json(releases: list[dict]) -> str:
@@ -205,7 +217,7 @@ def credit_html(c: dict) -> str:
     return "\n".join(parts)
 
 
-def credits_page(releases: list[dict], english: dict, repo: str) -> str:
+def credits_page(releases: list[dict], english: dict) -> str:
     e = html.escape
     out = ["<h1>Credits and licences</h1>",
            '<p class="lead">NeoOne Keyboard’s word lists and prediction models were built from, and '
@@ -217,7 +229,7 @@ def credits_page(releases: list[dict], english: dict, repo: str) -> str:
            f'<a href="{BY_SA_4}">Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</a>. '
            "You may copy, change and share them under that licence’s terms; they come with no warranty. "
            "The SMC word lists (CC BY-SA 3.0) are adapted under version 4.0, as their licence permits. "
-           "The files are plain zips without DRM, published on the project’s GitHub releases:</p>",
+           "The files are plain zips without DRM, published here:</p>",
            "<ul>"]
     for r in sorted(releases, key=lambda r: r["entry"]["name"]):
         ent = r["entry"]
@@ -226,7 +238,6 @@ def credits_page(releases: list[dict], english: dict, repo: str) -> str:
     out.append(f'<li><a href="{e(english["url"])}">English base word lists</a> '
                f'<span class="muted">({english["size"] / 1e6:.1f} MB)</span></li>')
     out += ["</ul>",
-            f'<p>All releases: <a href="https://github.com/{e(repo)}/releases">github.com/{e(repo)}/releases</a>.</p>',
             "<h2>English, built into the app</h2>", '<dl class="credits">',
             *(credit_html(c) for c in english_credits()), "</dl>"]
     for r in sorted(releases, key=lambda r: r["entry"]["name"]):
@@ -239,25 +250,6 @@ def credits_page(releases: list[dict], english: dict, repo: str) -> str:
             '<a href="https://github.com/mozilla/uniffi-rs">github.com/mozilla/uniffi-rs</a>. The app’s '
             "About screen lists every library with its licence.</p>"]
     return "\n".join(out) + "\n"
-
-
-def release_notes(manifest: dict | None, domain: str) -> str:
-    lines = []
-    if manifest:
-        lines += [f"{manifest['name']} ({manifest.get('nativeName', manifest['name'])}) language pack for "
-                  f"NeoOne Keyboard, version {manifest['version']}. The app downloads it from its Languages "
-                  "screen; it can also be imported from Files as a .neopack file.", ""]
-        sources = [credit(c, manifest["id"]) for c in manifest.get("credits", [])]
-    else:
-        lines += ["The word lists built into NeoOne Keyboard for English (en.fst, en-next.fst), "
-                  "published under CC BY-SA 4.0.", ""]
-        sources = english_credits()
-    lines += ["Licence: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). These word lists and "
-              "models were built from, and modified from, the sources below.", "", "Sources:"]
-    for c in sources:
-        lines.append(f"- {c['name']}, {c['licence']}" + (f", {c['url']}" if c.get("url") else ""))
-    lines += ["", f"Full credits: https://{domain}/credits.html"]
-    return "\n".join(lines) + "\n"
 
 
 # --- Site ------------------------------------------------------------------------------------
@@ -287,14 +279,14 @@ def render(page: str, content: str, cfg: dict) -> str:
 def site_files(cfg: dict, releases: list[dict], english: dict) -> dict[str, bytes]:
     """Every file of site/, by path."""
     files = {
-        "CNAME": (cfg["domain"] + "\n").encode(),
-        ".nojekyll": b"",
+        # Workers static assets' header rules; the pack files' headers are hosting/worker.js's.
+        "_headers": f"/packs/index.json\n  Cache-Control: {INDEX_CACHE}\n".encode(),
         "style.css": (SITE_SRC / "style.css").read_bytes(),
         "packs/index.json": index_json(releases).encode(),
     }
     for page in PAGES:
         if page == "credits.html":
-            content = credits_page(releases, english, cfg["repo"])
+            content = credits_page(releases, english)
         else:
             content = (SITE_SRC / page).read_text(encoding="utf-8")
         files[page] = render(page, content, cfg).encode()
@@ -309,17 +301,83 @@ def xcconfig(cfg: dict) -> str:
             f"ML_PACK_INDEX_URL = {url}\n")
 
 
+def out_of_date(files: dict[str, bytes], cfg: dict) -> list[str]:
+    """What in site/ and the xcconfig differs from `files` (missing, changed or extra)."""
+    if not SITE.is_dir():
+        return ["site/"]
+    wrong = [p for p, data in files.items() if not (SITE / p).is_file() or (SITE / p).read_bytes() != data]
+    wrong += sorted(str(p.relative_to(SITE)) for p in SITE.rglob("*")
+                    if p.is_file() and str(p.relative_to(SITE)) not in files)
+    if not XCCONFIG.is_file() or XCCONFIG.read_text(encoding="utf-8") != xcconfig(cfg):
+        wrong.append(str(XCCONFIG.relative_to(ROOT)))
+    return wrong
+
+
+def uploads(cfg: dict, releases: list[dict], english: dict) -> list[tuple[Path, str, list[str]]]:
+    """Each pack file with its download URL and the wrangler command that uploads it."""
+    out = []
+    for archive, url in [*((r["asset"], r["entry"]["url"]) for r in releases), (english["asset"], english["url"])]:
+        command = [*WRANGLER, "r2", "object", "put", f"{cfg['bucket']}/{R2_PREFIX}{archive.name}",
+                   "--file", str(archive.relative_to(ROOT)), "--content-type", "application/zip", "--remote"]
+        out.append((archive, url, command))
+    return out
+
+
+def served_size(url: str) -> int | None:
+    """The Content-Length the site answers a HEAD for `url` with; None when it has no such file
+    (404) or can't be reached yet (a first deploy)."""
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "publish-packs"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return int(response.headers["Content-Length"])
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise SystemExit(f"{url}: HTTP {error.code}")
+    except urllib.error.URLError:
+        return None
+
+
+def deploy(cfg: dict, releases: list[dict], english: dict) -> int:
+    for archive, url, command in uploads(cfg, releases, english):
+        size = served_size(url)
+        if size == archive.stat().st_size:
+            print(f"{archive.name}: already served")
+            continue
+        if size is not None:
+            print(f"{url} is served with {size} bytes, not {archive.stat().st_size}; a published file "
+                  "doesn't change: raise the pack's version", file=sys.stderr)
+            return 1
+        print(f"{archive.name}: uploading")
+        subprocess.run(command, cwd=ROOT, check=True)
+    subprocess.run([*WRANGLER, "deploy", "--config", str(WRANGLER_CONFIG.relative_to(ROOT))], cwd=ROOT, check=True)
+    missing = [url for archive, url, _ in uploads(cfg, releases, english) if served_size(url) != archive.stat().st_size]
+    if missing:
+        print(f"not served yet (the custom domain may take a minute): {', '.join(missing)}", file=sys.stderr)
+        return 1
+    print(f"deployed: https://{cfg['domain']}/, index {cfg['index_url']}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--check", action="store_true", help="compare with site/ and the xcconfig; write nothing")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="compare with site/ and the xcconfig; write nothing")
+    mode.add_argument("--deploy", action="store_true",
+                      help="upload the pack files the site doesn't serve yet, then wrangler deploy")
     args = parser.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)  # in order with wrangler's output
 
     cfg = config()
     pack_module = load_pack_module()
     with tempfile.TemporaryDirectory() as scratch:
         out = Path(scratch) if args.check else BUILD
-        releases = build_packs(pack_module, out, cfg["repo"])
-        english = build_english(out, cfg["repo"])
+        if not args.check and BUILD.is_dir():
+            for old in BUILD.iterdir():  # earlier versions' files
+                if old.is_file():
+                    old.unlink()
+        releases = build_packs(pack_module, out, cfg["downloads"])
+        english = build_english(out, cfg["downloads"])
         files = site_files(cfg, releases, english)
 
         stale = republished(SITE / "packs" / "index.json", releases)
@@ -328,39 +386,35 @@ def main() -> int:
                   "(packs/<id>.neopack/manifest.json, then scripts/pack.py --write)", file=sys.stderr)
             return 1
 
-        if args.check:
-            wrong = [p for p, data in files.items() if (SITE / p).read_bytes() != data] if SITE.is_dir() else ["site/"]
-            extra = sorted(str(p.relative_to(SITE)) for p in SITE.rglob("*")
-                           if p.is_file() and str(p.relative_to(SITE)) not in files) if SITE.is_dir() else []
-            if not XCCONFIG.is_file() or XCCONFIG.read_text(encoding="utf-8") != xcconfig(cfg):
-                wrong.append(str(XCCONFIG.relative_to(ROOT)))
-            if wrong or extra:
-                print(f"out of date: {', '.join(wrong + extra)}; run make site-packs", file=sys.stderr)
+        if args.check or args.deploy:
+            wrong = out_of_date(files, cfg)
+            if wrong:
+                print(f"out of date: {', '.join(wrong)}; run make site-packs", file=sys.stderr)
                 return 1
+            if args.deploy:
+                return deploy(cfg, releases, english)
             print("site: up to date")
             return 0
 
+        for path in SITE.rglob("*") if SITE.is_dir() else []:
+            if path.is_file() and str(path.relative_to(SITE)) not in files:
+                path.unlink()  # a file the site no longer has
         for path, data in files.items():
             target = SITE / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
         XCCONFIG.write_text(xcconfig(cfg), encoding="utf-8")
-        for r in releases:
-            (BUILD / f"notes-{r['entry']['id']}.md").write_text(release_notes(r["manifest"], cfg["domain"]), encoding="utf-8")
-        (BUILD / "notes-english-base.md").write_text(release_notes(None, cfg["domain"]), encoding="utf-8")
 
     for r in releases:
         ent = r["entry"]
         print(f"{ent['id']} {ent['version']}: {ent['size']} bytes, sha256 {ent['sha256']}")
     print(f"english-base: {english['size']} bytes, sha256 {english['sha256']}")
     print(f"wrote site/ ({len(files)} files) and {XCCONFIG.relative_to(ROOT)}; index URL {cfg['index_url']}")
-    print("\nTo publish the assets (run once per new tag; an existing tag is already published):")
-    rel = lambda p: shlex.quote(str(p.relative_to(ROOT)))
-    for r in [*releases, {"tag": english["tag"], "asset": english["asset"], "title": english["title"],
-                          "entry": {"id": "english-base"}}]:
-        notes = BUILD / f"notes-{r['entry']['id']}.md"
-        print(f"gh release create {r['tag']} {rel(r['asset'])} --repo {cfg['repo']} "
-              f"--title {shlex.quote(r['title'])} --notes-file {rel(notes)}")
+    print("\nmake site-deploy uploads the pack files the site doesn't serve yet and deploys the site. "
+          "By hand, once per new file:")
+    for _, _, command in uploads(cfg, releases, english):
+        print(shlex.join(command))
+    print(shlex.join([*WRANGLER, "deploy", "--config", str(WRANGLER_CONFIG.relative_to(ROOT))]))
     return 0
 
 

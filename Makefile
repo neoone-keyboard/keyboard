@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more pack site-packs all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -103,12 +103,17 @@ golden-check: golden
 pack:
 	python3 -I scripts/pack.py packs/ml.neopack --zip build/packs/ml.neopack
 
-# The download site (site/, GitHub Pages) and its pack index, from site-src/ (site.json holds the
-# domain and the GitHub repo) and packs/: zips every pack into build/site-packs/, writes
-# site/packs/index.json, the pages and apps/ios/PackIndex.xcconfig (the app's index URL), and
-# prints the `gh release create` commands that publish the zips. It runs none of them.
+# The download site (site/, a Cloudflare Worker with static assets; hosting/wrangler.jsonc) and its
+# pack index, from site-src/ (site.json holds the domain, the R2 bucket and the download URL) and
+# packs/: zips every pack into build/site-packs/<id>-<version>.neopack, writes site/packs/index.json,
+# the pages and apps/ios/PackIndex.xcconfig (the app's index URL), and prints the upload commands.
+# site-deploy uploads the pack files the site doesn't serve yet to R2 and runs wrangler deploy
+# (wrangler logged in to the account that holds the jishnu.me zone).
 site-packs:
 	python3 -I scripts/publish-packs.py
+
+site-deploy:
+	python3 -I scripts/publish-packs.py --deploy
 
 # Rebuilds the committed lexicon bundle from data/manifests (downloads about 3 GB).
 lexicons:

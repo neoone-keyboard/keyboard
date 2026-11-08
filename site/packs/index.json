@@ -10,7 +10,7 @@
       "minEngine": 2,
       "size": 16091410,
       "sha256": "d7a91b184c3bc566a3c8654b18a98ea25b557231a8ac6895b2d6a0866cde303c",
-      "url": "https://github.com/neoone-keyboard/keyboard/releases/download/packs-as-2026.11.06/as.neopack"
+      "url": "https://neoone.jishnu.me/packs/as-2026.11.06.neopack"
     },
     {
       "id": "hi",
@@ -21,7 +21,7 @@
       "minEngine": 2,
       "size": 16635034,
       "sha256": "f1c41a80fe97f146ebb211dd60a42ff8db9fe91aa4fb24c3da2e7849de44ad18",
-      "url": "https://github.com/neoone-keyboard/keyboard/releases/download/packs-hi-2026.11.06/hi.neopack",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.06.neopack",
       "englishFingerprint": "9a50d0c85c79a0df"
     },
     {
@@ -33,7 +33,7 @@
       "minEngine": 1,
       "size": 31160630,
       "sha256": "053f4492fde9b30a10ec262d487ff43856d17fd0fd7fb939ebc9a070b0f2dbd2",
-      "url": "https://github.com/neoone-keyboard/keyboard/releases/download/packs-ml-2026.11.06/ml.neopack"
+      "url": "https://neoone.jishnu.me/packs/ml-2026.11.06.neopack"
     }
   ]
 }

@@ -1,4 +1,6 @@
 {
   "domain": "neoone.jishnu.me",
+  "downloads": "https://neoone.jishnu.me/packs/",
+  "bucket": "neoone-packs",
   "repo": "neoone-keyboard/keyboard"
 }

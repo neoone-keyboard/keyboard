@@ -1,0 +1,23 @@
+// The download site, https://neoone.jishnu.me: a Worker with static assets (site/, written by
+// scripts/publish-packs.py) and the pack files in the R2 bucket neoone-packs, which are larger
+// than a static asset may be (25 MiB). Only /packs/*.neopack and /packs/*.zip reach the Worker
+// (hosting/worker.js); everything else, packs/index.json included, is a static asset, with the
+// cache headers in site/_headers. `make site-deploy` uploads missing pack files and deploys.
+{
+  "$schema": "https://unpkg.com/wrangler@4.158.0/config-schema.json",
+  "name": "neoone-site",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-08",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "neoone.jishnu.me", "custom_domain": true }],
+  "assets": {
+    "directory": "../site",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/packs/*.neopack", "/packs/*.zip"]
+  },
+  "r2_buckets": [{ "binding": "PACKS", "bucket_name": "neoone-packs" }],
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

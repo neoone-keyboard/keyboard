@@ -220,7 +220,7 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
 
 /// The index the site publishes (site/packs/index.json, from scripts/publish-packs.py) decodes,
 /// lists every pack in packs/ at its manifest's version, script and minEngine, and points at
-/// https release assets.
+/// https pack files named by id and version.
 @Test func thePublishedIndexMatchesThePacks() throws {
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -236,7 +236,7 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
         #expect(entry.script == pack.script)
         #expect(entry.minEngine == pack.minEngine)
         #expect(entry.url.scheme == "https")
-        #expect(entry.url.lastPathComponent == "\(pack.id).neopack")
+        #expect(entry.url.lastPathComponent == "\(pack.id)-\(pack.version).neopack")
         #expect(entry.sha256.count == 64)
     }
 }
