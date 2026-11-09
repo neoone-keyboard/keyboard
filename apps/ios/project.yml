@@ -8,6 +8,11 @@ settings:
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: Z52A4S8VKP
+    # The App Store version and build, shared by the app and the keyboard (App Store Connect
+    # rejects an extension whose version or build differs from the app's). `make testflight
+    # BUILD=n` overrides the build number for an upload; each upload needs a new one.
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
 packages:
   KeyboardCore:
     path: Packages/KeyboardCore
@@ -38,7 +43,11 @@ targets:
       path: KeyboardApp/Info.plist
       properties:
         CFBundleDisplayName: NeoOne Keyboard
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        # HTTPS through URLSession only (the pack downloads): exempt from export documentation.
+        ITSAppUsesNonExemptEncryption: false
         # neoone://languages opens the Languages screen (the keyboard settings panel's row).
         CFBundleURLTypes:
           - CFBundleURLName: me.jishnu.keyboard
@@ -102,6 +111,8 @@ targets:
       path: KeyboardExtension/Info.plist
       properties:
         CFBundleDisplayName: NeoOne Keyboard
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # The commit `make` built from, for the diagnostics report (empty otherwise).
         MLGitCommit: $(ML_GIT_COMMIT)
         # Debug only: the active languages to set at open ("ml,hi"); empty keeps the engine's

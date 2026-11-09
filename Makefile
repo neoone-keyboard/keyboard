@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -33,6 +33,20 @@ device: tools project $(XCFRAMEWORK)
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
 	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
+
+# A Release archive (no bundled pack, no spike models) exported and uploaded to App Store
+# Connect for TestFlight, signed automatically with the Xcode-logged-in account. Each upload
+# needs a build number App Store Connect hasn't seen: `make testflight BUILD=2` (the default is
+# CURRENT_PROJECT_VERSION in apps/ios/project.yml; raise that there when releasing a version).
+BUILD ?=
+ARCHIVE := build/NeoOne.xcarchive
+testflight: tools project $(XCFRAMEWORK)
+	rm -rf $(ARCHIVE) build/export
+	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Release \
+	  -destination 'generic/platform=iOS' -archivePath $(ARCHIVE) -allowProvisioningUpdates \
+	  ML_GIT_COMMIT=$(GIT_COMMIT) $(if $(BUILD),CURRENT_PROJECT_VERSION=$(BUILD)) archive -quiet
+	xcodebuild -exportArchive -archivePath $(ARCHIVE) -exportOptionsPlist apps/ios/ExportOptions.plist \
+	  -exportPath build/export -allowProvisioningUpdates
 
 # Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack and as.neopack beside
 # Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
