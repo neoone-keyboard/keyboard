@@ -44,7 +44,10 @@ struct ContentView: View {
                     tryIt
                     languagesSection
                     keyboardCard
+                    #if DEBUG
+                    // Diagnostics for development builds; a store build shows none.
                     stability
+                    #endif
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
