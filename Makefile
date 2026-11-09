@@ -38,15 +38,22 @@ device: tools project $(XCFRAMEWORK)
 # Connect for TestFlight, signed automatically with the Xcode-logged-in account. Each upload
 # needs a build number App Store Connect hasn't seen: `make testflight BUILD=2` (the default is
 # CURRENT_PROJECT_VERSION in apps/ios/project.yml; raise that there when releasing a version).
+# Without an Apple account in Xcode > Settings > Accounts, pass an App Store Connect API key
+# (Users and Access > Integrations; App Manager or Admin role):
+#   make testflight ASC_KEY_PATH=~/keys/AuthKey_XXXX.p8 ASC_KEY_ID=XXXX ASC_ISSUER_ID=uuid
 BUILD ?=
+ASC_KEY_PATH ?=
+ASC_KEY_ID ?=
+ASC_ISSUER_ID ?=
+ASC_AUTH := $(if $(ASC_KEY_PATH),-authenticationKeyPath $(ASC_KEY_PATH) -authenticationKeyID $(ASC_KEY_ID) -authenticationKeyIssuerID $(ASC_ISSUER_ID))
 ARCHIVE := build/NeoOne.xcarchive
 testflight: tools project $(XCFRAMEWORK)
 	rm -rf $(ARCHIVE) build/export
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Release \
-	  -destination 'generic/platform=iOS' -archivePath $(ARCHIVE) -allowProvisioningUpdates \
+	  -destination 'generic/platform=iOS' -archivePath $(ARCHIVE) -allowProvisioningUpdates $(ASC_AUTH) \
 	  ML_GIT_COMMIT=$(GIT_COMMIT) $(if $(BUILD),CURRENT_PROJECT_VERSION=$(BUILD)) archive -quiet
 	xcodebuild -exportArchive -archivePath $(ARCHIVE) -exportOptionsPlist apps/ios/ExportOptions.plist \
-	  -exportPath build/export -allowProvisioningUpdates
+	  -exportPath build/export -allowProvisioningUpdates $(ASC_AUTH)
 
 # Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack and as.neopack beside
 # Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
