@@ -76,7 +76,7 @@ LICENCE_LINKS = {
 PAGES = {
     "index.html": ("NeoOne Keyboard", "An offline iPhone keyboard: type your language the way it sounds and get its own script."),
     "privacy.html": ("Privacy", "NeoOne Keyboard collects no data. Nothing you type leaves your iPhone."),
-    "support.html": ("Support", "Help with NeoOne Keyboard, through the project's GitHub issues."),
+    "support.html": ("Support", "Help with NeoOne Keyboard: common questions and the support email."),
     "credits.html": ("Credits and licences", "Where NeoOne Keyboard's word lists and models come from, and their licences."),
 }
 
@@ -265,6 +265,7 @@ def render(page: str, content: str, cfg: dict) -> str:
         "nav_support": ' aria-current="page"' if page == "support.html" else "",
         "nav_credits": ' aria-current="page"' if page == "credits.html" else "",
         "repo": html.escape(cfg["repo"]),
+        "domain": html.escape(cfg["domain"]),
         "index_url": html.escape(cfg["index_url"]),
         "updated": PRIVACY_UPDATED,
     }
