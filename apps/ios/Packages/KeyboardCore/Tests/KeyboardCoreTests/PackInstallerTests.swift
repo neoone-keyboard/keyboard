@@ -4,7 +4,7 @@ import Testing
 @testable import KeyboardCore
 
 /// What this keyboard's engine reads (the FFI's `pack_support()` in the app).
-private let support = PackSupport(format: 1, engine: 2, scripts: ["mlym", "deva", "beng"])
+private let support = PackSupport(format: 1, engine: 3, scripts: ["mlym", "deva", "beng"])
 
 private func sha256(_ data: Data) -> String {
     SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
@@ -201,7 +201,7 @@ private func refusal(_ body: () throws -> Void) -> PackInstaller.Refusal? {
 @Test func aPackNeedingANewerEngineIsRefused() throws {
     let f = try Fixture()
     defer { f.cleanUp() }
-    #expect(refusal { try f.installer.install(archive: f.archive(packZip(minEngine: 3))) } == .engine(3))
+    #expect(refusal { try f.installer.install(archive: f.archive(packZip(minEngine: 4))) } == .engine(4))
     #expect(f.listing().isEmpty)
 }
 
