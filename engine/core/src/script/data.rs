@@ -20,6 +20,16 @@
 //!   the engine's `normalize::normalize` (NFC, `’` to `'`, joiners dropped).
 //! - `phraseBreaks`: characters that end a phrase as a full stop does (the danda).
 //! - `apostrophe`: an apostrophe may stand inside a word.
+//! - `notLetter`: ranges that stay inside a run when text is split into words, but that a word
+//!   is not made of (Malayalam's digits and number signs: its text has always been split so).
+//! - `looseSigns`: vowel signs that loose spelling inserts between consonants. A word is also
+//!   tried without one that stands before a consonant (`vowel_sign_drops`).
+//! - `finalPairs`: `[a, b]` code points; a word that ends in a consonant and one of them is
+//!   also written with the other (Malayalam's final ു and ്; `other_final_u`).
+//! - `suffixJoins`: how a stem and a suffix of the pack's `suffixes.tsv` fuse ([`Joins`]).
+//!   Without it the pack's words are never split into a stem and suffixes.
+//!
+//! A consonant, for the last three, is a `bases` letter that is not a combining mark.
 //!
 //! Other keys (the builder's `firstLetter`, `maxWords`, notes) are ignored here.
 
@@ -52,6 +62,111 @@ struct Raw {
     replace: Vec<[String; 2]>,
     #[serde(default)]
     phrase_breaks: Vec<String>,
+    #[serde(default)]
+    not_letter: Vec<[String; 2]>,
+    #[serde(default)]
+    loose_signs: Vec<[String; 2]>,
+    #[serde(default)]
+    final_pairs: Vec<[String; 2]>,
+    #[serde(default)]
+    suffix_joins: Option<RawJoins>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawJoins {
+    #[serde(default)]
+    vowel_signs: Vec<[String; 2]>,
+    #[serde(default)]
+    nasal: Option<[String; 2]>,
+    #[serde(default)]
+    final_forms: Vec<[String; 2]>,
+    #[serde(default)]
+    elide: Vec<String>,
+    #[serde(default)]
+    glides: Vec<RawGlide>,
+    #[serde(default)]
+    inherent_glide: Option<String>,
+    #[serde(default)]
+    consonant_after: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawGlide {
+    glide: String,
+    after: Vec<[String; 2]>,
+}
+
+/// `suffixJoins`: the sandhi between a stem and a suffix (`suffix::Join` says which kind a
+/// suffix is). Every part is optional; code points are hex.
+///
+/// - `vowelSigns`: `[vowel, sign]`, the sign an independent vowel becomes on a consonant
+///   (`""` for the vowel a consonant carries by itself). A suffix joined as a vowel or a case
+///   ending must start with one of these.
+/// - `nasal`: `[sign, consonant]`. A stem ending in the sign takes a vowel suffix as the
+///   consonant + the vowel's sign, takes no case ending, and loses the sign to an oblique
+///   ending, which only such a stem takes.
+/// - `finalForms`: `[letter, consonant]`, a word-final form of a consonant (a chillu), which
+///   becomes the consonant before a vowel.
+/// - `elide`: final signs that give way to the suffix's vowel, after a consonant.
+/// - `glides`: the consonant put between a stem ending in one of `after` (ranges) and a
+///   vowel; `inherentGlide`: the one after a bare consonant.
+/// - `consonantAfter`: finals, besides vowels and consonants, that take a suffix starting
+///   with a consonant.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Joins {
+    pub vowel_signs: Vec<(char, Option<char>)>,
+    pub nasal: Option<(char, char)>,
+    pub final_forms: Vec<(char, char)>,
+    pub elide: Vec<char>,
+    pub glides: Vec<(char, Vec<(char, char)>)>,
+    pub inherent_glide: Option<char>,
+    pub consonant_after: Vec<char>,
+}
+
+fn pair(p: &[String; 2]) -> Result<(char, char), String> {
+    Ok((code_point(&p[0])?, code_point(&p[1])?))
+}
+
+fn points(list: &[String]) -> Result<Vec<char>, String> {
+    list.iter().map(|s| code_point(s)).collect()
+}
+
+impl Joins {
+    fn from_raw(raw: &RawJoins) -> Result<Self, String> {
+        Ok(Self {
+            vowel_signs: raw
+                .vowel_signs
+                .iter()
+                .map(|[vowel, sign]| {
+                    let sign = if sign.is_empty() {
+                        None
+                    } else {
+                        Some(code_point(sign)?)
+                    };
+                    Ok((code_point(vowel)?, sign))
+                })
+                .collect::<Result<_, String>>()?,
+            nasal: raw.nasal.as_ref().map(pair).transpose()?,
+            final_forms: raw
+                .final_forms
+                .iter()
+                .map(pair)
+                .collect::<Result<_, _>>()?,
+            elide: points(&raw.elide)?,
+            glides: raw
+                .glides
+                .iter()
+                .map(|g| Ok((code_point(&g.glide)?, ranges(&g.after)?)))
+                .collect::<Result<_, String>>()?,
+            inherent_glide: raw
+                .inherent_glide
+                .as_deref()
+                .map(code_point)
+                .transpose()?,
+            consonant_after: points(&raw.consonant_after)?,
+        })
+    }
 }
 
 /// A script definition, parsed and checked.
@@ -70,6 +185,13 @@ pub struct ScriptDef {
     pub apostrophe: bool,
     pub replace: Vec<(String, String)>,
     pub phrase_breaks: Vec<char>,
+    /// In a run when text is split, but not letters of a word.
+    pub not_letter: Vec<(char, char)>,
+    /// Vowel signs loose spelling inserts between consonants.
+    pub loose_signs: Vec<(char, char)>,
+    /// Two endings, after a consonant, of one word.
+    pub final_pairs: Vec<(char, char)>,
+    pub joins: Option<Joins>,
 }
 
 fn in_ranges(ranges: &[(char, char)], c: char) -> bool {
@@ -156,6 +278,18 @@ impl ScriptDef {
                 .iter()
                 .map(|s| single_char(s, "a phrase break"))
                 .collect::<Result<_, _>>()?,
+            not_letter: ranges(&raw.not_letter)?,
+            loose_signs: ranges(&raw.loose_signs)?,
+            final_pairs: raw
+                .final_pairs
+                .iter()
+                .map(pair)
+                .collect::<Result<_, _>>()?,
+            joins: raw
+                .suffix_joins
+                .as_ref()
+                .map(Joins::from_raw)
+                .transpose()?,
         })
     }
 
@@ -173,6 +307,105 @@ impl ScriptDef {
     /// A letter or sign of the script: in its ranges and not `notWord`.
     pub fn is_word_char(&self, c: char) -> bool {
         self.in_script(c) && !in_ranges(&self.not_word, c)
+    }
+
+    /// What a word of the script is made of: `is_word_char`, less `notLetter`.
+    pub fn is_letter(&self, c: char) -> bool {
+        self.is_word_char(c) && !in_ranges(&self.not_letter, c)
+    }
+
+    /// A base letter that is not a combining mark (a nukta is a base too).
+    pub fn is_consonant(&self, c: char) -> bool {
+        self.is_base(c) && !unicode_normalization::char::is_combining_mark(c)
+    }
+
+    /// Every spelling of `word` with one `looseSigns` sign dropped from before a consonant.
+    pub fn vowel_sign_drops(&self, word: &str) -> Vec<String> {
+        if self.loose_signs.is_empty() {
+            return Vec::new();
+        }
+        let chars: Vec<char> = word.chars().collect();
+        (0..chars.len())
+            .filter(|&i| {
+                in_ranges(&self.loose_signs, chars[i])
+                    && chars.get(i + 1).is_some_and(|&c| self.is_consonant(c))
+            })
+            .map(|i| chars[..i].iter().chain(&chars[i + 1..]).collect())
+            .collect()
+    }
+
+    /// `word` with the other ending of a `finalPairs` pair, when it ends in a consonant and
+    /// one of the two.
+    pub fn other_final(&self, word: &str) -> Option<String> {
+        for &(a, b) in &self.final_pairs {
+            for (from, to) in [(a, b), (b, a)] {
+                if let Some(stem) = word.strip_suffix(from) {
+                    return stem
+                        .chars()
+                        .last()
+                        .is_some_and(|c| self.is_consonant(c))
+                        .then(|| format!("{stem}{to}"));
+                }
+            }
+        }
+        None
+    }
+
+    /// The glide between a stem ending in `last` and a suffix starting with a vowel.
+    fn glide(&self, joins: &Joins, last: char) -> Option<char> {
+        joins
+            .glides
+            .iter()
+            .find(|(_, after)| in_ranges(after, last))
+            .map(|&(glide, _)| glide)
+            .or_else(|| joins.inherent_glide.filter(|_| self.is_consonant(last)))
+    }
+
+    /// `stem` and `suffix` joined the way `how` says (`suffixJoins`), or None when they don't
+    /// join or the script has no joins.
+    pub fn join_suffix(
+        &self,
+        stem: &str,
+        suffix: &str,
+        how: crate::suffix::Join,
+    ) -> Option<String> {
+        use crate::suffix::Join;
+        let joins = self.joins.as_ref()?;
+        let last = stem.chars().last()?;
+        let body = &stem[..stem.len() - last.len_utf8()];
+        let nasal = joins.nasal.filter(|&(sign, _)| sign == last);
+        match how {
+            Join::Consonant => {
+                let first = suffix.chars().next()?;
+                let joins_on = self.is_consonant(last)
+                    || self.glide(joins, last).is_some()
+                    || joins.consonant_after.contains(&last);
+                (self.is_consonant(first) && joins_on).then(|| format!("{stem}{suffix}"))
+            }
+            Join::Oblique => nasal.map(|_| format!("{body}{suffix}")),
+            Join::Vowel | Join::Case => {
+                let mut chars = suffix.chars();
+                let first = chars.next()?;
+                let sign = joins.vowel_signs.iter().find(|&&(v, _)| v == first)?.1;
+                let rest = chars.as_str();
+                let sign: String = sign.into_iter().collect();
+                if let Some((_, consonant)) = nasal {
+                    return (how == Join::Vowel).then(|| format!("{body}{consonant}{sign}{rest}"));
+                }
+                if let Some(&(_, base)) = joins.final_forms.iter().find(|&&(f, _)| f == last) {
+                    return Some(format!("{body}{base}{sign}{rest}"));
+                }
+                if joins.elide.contains(&last) {
+                    return body
+                        .chars()
+                        .last()
+                        .filter(|&c| self.is_consonant(c))
+                        .map(|_| format!("{body}{sign}{rest}"));
+                }
+                let glide = self.glide(joins, last)?;
+                Some(format!("{stem}{glide}{sign}{rest}"))
+            }
+        }
     }
 
     pub fn is_sign(&self, c: char) -> bool {
@@ -208,6 +441,10 @@ impl ScriptDef {
     /// The script's normal form of `text`: `replace`, the engine's `normalize`, `replace` again,
     /// and one more round when a replacement made text that NFC or the joiner rules change.
     pub fn normalize(&self, text: &str) -> String {
+        if self.replace.is_empty() {
+            // The engine's normal form is its own fixed point.
+            return crate::normalize::normalize(text);
+        }
         let before = self.apply_replace(&crate::normalize::normalize(&self.apply_replace(text)));
         let after = self.apply_replace(&crate::normalize::normalize(&before));
         if after == before { before } else { after }
@@ -261,10 +498,22 @@ impl ScriptRules for DataScript {
         self.def.ranges.iter().map(|&(a, b)| a..=b).collect()
     }
     fn is_letter(&self, c: char) -> bool {
+        self.def.is_letter(c)
+    }
+    fn is_word_char(&self, c: char) -> bool {
         self.def.is_word_char(c)
     }
     fn normalize(&self, word: &str) -> String {
         self.def.normalize(word)
+    }
+    fn vowel_sign_drops(&self, word: &str) -> Vec<String> {
+        self.def.vowel_sign_drops(word)
+    }
+    fn other_final_u(&self, word: &str) -> Option<String> {
+        self.def.other_final(word)
+    }
+    fn join_suffix(&self, stem: &str, suffix: &str, how: crate::suffix::Join) -> Option<String> {
+        self.def.join_suffix(stem, suffix, how)
     }
     /// The last character, when it is a base letter; a base that is itself a combining mark
     /// (a nukta) stands for the base before it.
