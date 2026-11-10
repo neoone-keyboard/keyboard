@@ -3,6 +3,12 @@
 Counts are Unicode characters, as App Store Connect counts them, checked with a script.
 Each field sits in a fenced block: paste what is inside the fence.
 
+## Before Submit for Review
+
+- [ ] The GitHub repo is public, with its licence and docs/make-a-language.md. Only then add the OPEN SOURCE paragraph below to the description in App Store Connect. Apple must be able to check every claim on the page.
+- [ ] Version 1.0 has build 2 (or later) attached, not build 1.
+- [ ] Content rights, age rating, App Privacy, pricing and the review contact are filled in.
+
 ## Name (15 / 30)
 
 ```
@@ -56,6 +62,15 @@ GETTING STARTED
 
 Support: https://neoone.jishnu.me/support
 Privacy policy: https://neoone.jishnu.me/privacy
+```
+
+## Description addition once the repo is public
+
+Goes after the PRIVATE BY DESIGN section:
+
+```
+OPEN SOURCE
+NeoOne Keyboard is open source. Read the code, check that nothing you type leaves your phone, or build a language pack of your own: the guide is at https://github.com/neoone-keyboard/keyboard.
 ```
 
 ## Keywords (94 / 100)
