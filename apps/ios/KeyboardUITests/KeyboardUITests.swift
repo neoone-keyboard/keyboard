@@ -225,6 +225,52 @@ final class KeyboardUITests: XCTestCase {
         XCTAssertTrue(spokenKey("numbers and symbols").waitForExistence(timeout: 5))
     }
 
+    /// Landscape makes the keyboard shorter (KeyboardHeight: at most half the screen for the
+    /// bar and the keys), and turning back restores the portrait height: no stuck height.
+    /// Measured from the top of the language key's row to the bottom of the screen.
+    func testLandscapeIsShorter() throws {
+        XCUIDevice.shared.orientation = .portrait
+        let key = try showKeyboard()
+        func keyboardTop() -> CGFloat {
+            // The letters' top row: q (or a pack's first letter) is the highest key.
+            app.keys.allElementsBoundByIndex.map(\.frame.minY).min() ?? 0
+        }
+        func screenHeight() -> CGFloat { app.windows.firstMatch.frame.height }
+        let portraitKeys = screenHeight() - keyboardTop()
+        shot("landscape-0-portrait")
+
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let window = app.windows.firstMatch
+        for _ in 0..<10 where window.frame.height > window.frame.width { sleep(1) }
+        XCTAssertGreaterThan(window.frame.width, window.frame.height, "turned to landscape")
+        XCTAssertTrue(key.waitForExistence(timeout: 5))
+        sleep(1)
+        let short = screenHeight() - keyboardTop()
+        shot("landscape-1-letters")
+        XCTAssertLessThan(short, portraitKeys - 20, "landscape keys \(short) vs portrait \(portraitKeys)")
+        XCTAssertLessThanOrEqual(short, screenHeight() * 0.5 + 30, "keys \(short) of a \(screenHeight()) screen")
+
+        spokenKey("numbers and symbols").tap()
+        XCTAssertTrue(spokenKey("letters").waitForExistence(timeout: 5))
+        shot("landscape-2-symbols")
+        spokenKey("letters").tap()
+        spokenKey("emoji").tap()
+        sleep(1)
+        shot("landscape-3-emoji")
+        XCTAssertTrue(app.buttons["letters"].waitForExistence(timeout: 5))
+        app.buttons["letters"].tap()
+        key.press(forDuration: 1.2)
+        XCTAssertTrue(app.buttons["settings-done"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["settings-done"].isHittable)
+        shot("landscape-4-settings")
+        app.buttons["settings-done"].tap()
+
+        XCUIDevice.shared.orientation = .portrait
+        sleep(2)
+        XCTAssertEqual(screenHeight() - keyboardTop(), portraitKeys, accuracy: 1, "portrait height back")
+        shot("landscape-5-portrait-again")
+    }
+
     /// The key VoiceOver calls `label`.
     private func spokenKey(_ label: String) -> XCUIElement {
         app.keys.matching(NSPredicate(format: "label == %@", label)).firstMatch
