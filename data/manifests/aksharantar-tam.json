@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-tam",
+  "name": "Aksharantar (AI4Bharat), Tamil",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-10): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Tamil files have 'Dakshina Dataset' and 'Existing sources' rows, which the filter in training/mlkb/data/human.py drops (their licences don't allow a CC BY-SA pack): 71,774 Dakshina and 1,545 Existing rows are dropped by the filter. What is used is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEI, AK-NEF: CC BY).",
+  "used_for": "tam_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/ta.neopack, and its 776 AK-Freq manual rows to fit and check the romanised Tamil tables (data/langs/ta/romanisation.json): tam_valid.json has no manual rows, so a quarter of train's (by word) calibrates. tam_test.json's manual rows (AK-Freq, AK-NEI, AK-NEF, CC BY) are the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-10",
+  "notes": "Fetched 2026-11-10. Extract with: unzip tam.zip -d data/raw/aksharantar-tam/extracted (data/build-ta-text.sh does). tam_train.json has 3,230,902 rows: IndicCorp 3,133,651, Dakshina 60,210, Samanantar 34,447, Existing 1,545, AK-Freq 776, Wikidata 273. tam_valid.json 8,824: Dakshina 4,718, IndicCorp 3,733, Samanantar 355, Wikidata 18 (no manual rows). tam_test.json 11,499: Dakshina 6,846, AK-Freq 2,608, AK-NEI 1,216, AK-NEF 829. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/tam.zip",
+      "sha256": "d019cffcdc2264870a96b8ffaea0b66a3b175c8c7d56c095d9f6dd4bbeb313a2",
+      "path": "tam.zip"
+    }
+  ],
+  "status": "in packs/ta.neopack",
+  "extracted": {
+    "tam_train.json": "48c1ef16a22a349cf006928f8b5b24f913135819b524ea8f22596f1ac525c35c",
+    "tam_valid.json": "ca109d9ff77b8e73be36057ef13cdd4b4dbcb6c0a50709d48702a8f1822ae0e7",
+    "tam_test.json": "80b28810961d54db3573ab0a7112d158d8b0b8550f52fd2a0699de4c6aac8dde"
+  }
+}

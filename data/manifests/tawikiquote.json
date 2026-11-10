@@ -1,0 +1,24 @@
+{
+  "id": "tawikiquote",
+  "name": "Tamil Wikiquote",
+  "homepage": "https://ta.wikiquote.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://ta.wikiquote.org/ page footer (checked 2026-11-10): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Quotations on Tamil Wikiquote, collected by Wikiquote contributors.",
+  "used_for": "Tamil word frequencies and next-word pairs (packs/ta.neopack; whole 2026-11-01 dump).",
+  "retrieved": "2026-11-10",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/tawikiquote/20261101/tawikiquote-20261101-pages-articles.xml.bz2",
+      "sha1": "d5aa730a21db6f17914f0374aff4bda0efeb55ad",
+      "path": "tawikiquote-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/ta.neopack"
+}

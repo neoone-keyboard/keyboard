@@ -13,8 +13,10 @@ Human rows make up `--human-share` of `train.tsv`: Aksharantar `<code>_train.jso
 
 1% of the lexicon words (not rows) go to `valid.tsv`. `valid-human.tsv` is the calibration pairs
 (`mlkb.langs.human.calibration`): Aksharantar's manual valid rows (AK-Uni, AK-Freq), or a held-out
-slice of the train split's manual rows when the valid split has none (Marathi). The manual test rows are the held-out eval set, written to
-`data/eval/<lang>/translit-human.tsv`; neither they nor the valid-human words are in `train.tsv`.
+slice of the train split's manual rows when the valid split has none (Marathi). The manual test
+rows are the held-out eval set, written to `data/eval/<lang>/translit-human.tsv` with a
+`# section: <source>` line before each source's rows; neither they nor the valid-human words are
+in `train.tsv`. `--eval-only` writes just that file.
 """
 
 import argparse
@@ -73,17 +75,25 @@ def write(path: Path, pairs: list[Pair]) -> None:
 
 
 def write_eval(lang: str, rows: list[human.HumanPair], path: Path) -> None:
-    """`context<TAB>latin<TAB>native` with an empty context, as `data/eval/translit-human.tsv`."""
+    """`context<TAB>latin<TAB>native` with an empty context, as `data/eval/translit-human.tsv`,
+    with a `# section: <source>` line before each source's rows (`mlkb.eval.translit.load_sections`),
+    so the evals can report common words and names apart."""
     code = human.load(lang).data["aksharantar"]
     seen = set()
     body = []
+    pairs = 0
+    sections: list[str] = []
     for h in sorted(rows, key=lambda h: (h.source, h.native, h.latin)):
         if (h.latin, h.native) not in seen:
             seen.add((h.latin, h.native))
+            if h.source not in sections:
+                sections.append(h.source)
+                body.append(f"# section: {h.source}\n")
             body.append(f"\t{h.latin}\t{h.native}\n")
+            pairs += 1
     header = (
         "# Human transliteration eval set: context<TAB>latin<TAB>native (context empty).\n"
-        f"# {len(body)} distinct manual pairs (AK-Freq, AK-NEI, AK-NEF; in that order) of the Aksharantar\n"
+        f"# {pairs} distinct manual pairs ({', '.join(sections)}; in that order) of the Aksharantar\n"
         f"# {code}_test.json split, AI4Bharat (Madhani et al., 2022), CC BY. Built by\n"
         "# `python -m mlkb.langs.pairs`. Never train on these words.\n"
     )
@@ -102,7 +112,13 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--lexicon", type=Path)
     p.add_argument("--chat-share", type=float, default=0.5, help="draws that use the hand-set tables")
     p.add_argument("--human-share", type=float, default=0.3, help="share of train rows that are human pairs")
+    p.add_argument("--eval-only", action="store_true", help="write only data/eval/<lang>/translit-human.tsv")
     args = p.parse_args(argv)
+    if args.eval_only:
+        path = ROOT / f"data/eval/{args.lang}/translit-human.tsv"
+        write_eval(args.lang, human.manual(human.aksharantar(args.lang, "test")), path)
+        print(f"wrote {path}")
+        return
     out = args.out or ROOT / f"training/build/{args.lang}/pairs"
     lexicon = args.lexicon or ROOT / f"packs/{args.lang}.neopack/{args.lang}.fst"
 

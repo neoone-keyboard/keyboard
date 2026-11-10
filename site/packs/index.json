@@ -46,6 +46,17 @@
       "size": 31160630,
       "sha256": "053f4492fde9b30a10ec262d487ff43856d17fd0fd7fb939ebc9a070b0f2dbd2",
       "url": "https://neoone.jishnu.me/packs/ml-2026.11.06.neopack"
+    },
+    {
+      "id": "ta",
+      "name": "Tamil",
+      "nativeName": "தமிழ்",
+      "version": "2026.11.10",
+      "script": "taml",
+      "minEngine": 4,
+      "size": 19944498,
+      "sha256": "4f8bd7c6f048b445e656351b03e39785294e2ca98f52ae8c429ea39b9a61febd",
+      "url": "https://neoone.jishnu.me/packs/ta-2026.11.10.neopack"
     }
   ]
 }

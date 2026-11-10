@@ -111,3 +111,26 @@ def test_committed_fixture_matches_the_generator():
         assert (np.abs(tensors[name] - want) <= tol).all(), name
     ref = json.loads((FIXTURES / "translit-tiny-reference.json").read_text())
     assert [c["latin"] for c in ref["cases"]] == [latin for latin, _ in export.REFERENCE_CASES[:4]]
+
+
+def test_reference_pairs_come_from_data(tmp_path, monkeypatch):
+    # The pairs the exports have always used, now read from each language's config.
+    assert export.reference_cases("ml") == export.REFERENCE_CASES
+    assert export.REFERENCE_CASES[0] == ("ente", "എന്റെ") and len(export.REFERENCE_CASES) == 5
+    assert export.reference_cases("hi")[0] == ("kya", "क्या")
+    assert export.reference_cases("as") == (
+        ("moi", "মই"), ("tumi", "তুমি"), ("hol", "হ'ল"), ("oxom", "অসম"), ("khyoma", "ক্ষমা"),
+    )
+    # A language with no list takes the first rows of its held-out set that the vocabulary holds.
+    monkeypatch.setattr(export, "ROOT", tmp_path)
+    (tmp_path / "data/eval/xx").mkdir(parents=True)
+    rows = ["# header", "# section: AK-Freq", "\tmoi\tমই", "\tbad\tमई", "\tmoi\tমই", "\ttumi\tতুমি"]
+    (tmp_path / "data/eval/xx/translit-human.tsv").write_text("\n".join(rows) + "\n", encoding="utf-8")
+    from mlkb.translit.vocab import BENGALI_ASSAMESE
+
+    assert export.reference_cases("xx", BENGALI_ASSAMESE) == (("moi", "মই"), ("tumi", "তুমি"))
+    (tmp_path / "data/langs/xx").mkdir(parents=True)
+    (tmp_path / "data/langs/xx/lang.json").write_text('{"reference": [["oxom", "অসম"]]}', encoding="utf-8")
+    assert export.reference_cases("xx", BENGALI_ASSAMESE) == (("oxom", "অসম"),)
+    with pytest.raises(SystemExit, match="no reference pairs"):
+        export.reference_cases("yy", BENGALI_ASSAMESE)

@@ -10,8 +10,8 @@ PyTorch name (matrices as int8 with one f32 scale per row, raw bytes as dtype 2,
 f32), each data block aligned to 16 bytes, then an FNV-1a checksum. The language model
 (`mlkb.lm.export`) writes the same format with `kind=KIND_LM`.
 
-`--reference` also writes, for `REFERENCE_CASES`, the encoder output and the decoder logits at
-every step, from PyTorch in eval mode on the float weights and on the dequantised int8 weights.
+`--reference` also writes, for the language's reference pairs (`reference_cases`: data, in the
+language's config or its held-out set), the encoder output and the decoder logits at every step, from PyTorch in eval mode on the float weights and on the dequantised int8 weights.
 The Rust forward pass is tested against such a file.
 
 For a language other than Malayalam (`--lang`), the file also carries `vocab.tgt` (raw bytes):
@@ -30,7 +30,7 @@ import torch
 
 from mlkb import langs
 from mlkb.translit.model import Config, Translit
-from mlkb.translit.vocab import MALAYALAM, Vocab, encode_latin, encode_ml, native
+from mlkb.translit.vocab import MALAYALAM, Vocab, encode_latin, encode_ml, fits, native
 
 MAGIC = b"MLKBNN01"
 VERSION = 1
@@ -41,26 +41,51 @@ F32, I8, BYTES = 0, 1, 2
 ALIGN = 16
 _FNV_OFFSET, _FNV_PRIME, _MASK = 0xCBF29CE484222325, 0x100000001B3, (1 << 64) - 1
 
-# (Latin, Malayalam) pairs; the decoder is fed bos + the Malayalam tokens, minus eos.
-REFERENCE_CASES = (
-    ("ente", "എന്റെ"),
-    ("nanni", "നന്ദി"),
-    ("enthu", "എന്തു"),
-    ("kollamo", "കൊള്ളാമോ"),
-    ("jishnu", "ജിഷ്ണു"),
-)
-# The same for other languages' transliterators (`--lang`); a language not listed here takes
-# the `reference` of its `mlkb/langs/<id>.json`.
-REFERENCE_CASES_BY_LANG = {
-    "ml": REFERENCE_CASES,
-    "as": (
-        ("moi", "মই"),
-        ("tumi", "তুমি"),
-        ("hol", "হ'ল"),
-        ("oxom", "অসম"),
-        ("khyoma", "ক্ষমা"),
-    ),
-}
+# Reference pairs: (Latin, native) words whose encoder output and decoder logits `--reference`
+# records (the decoder is fed bos + the native tokens, minus eos). They are data, not code:
+# `reference_cases` reads a language's own. Malayalam's, the default, also make the test fixture.
+REFERENCE_CASES = langs.load("ml").reference
+REFERENCE_COUNT = 5
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def reference_cases(lang: str, vocab: Vocab | None = None) -> tuple[tuple[str, str], ...]:
+    """A language's reference pairs, from the first of these that has them:
+
+    1. `"reference"` in its training config `mlkb/langs/<lang>.json` (ml, hi);
+    2. `"reference"` in `data/langs/<lang>/lang.json`: `[[latin, native], …]` (as);
+    3. the first `REFERENCE_COUNT` rows of `data/eval/<lang>/translit-human.tsv` (the held-out
+       set `mlkb.langs.pairs` writes) that the vocabulary can encode. So a new pack language
+       needs nothing written for the export.
+    """
+    try:
+        return langs.load(lang).reference
+    except FileNotFoundError:
+        pass
+    config = ROOT / "data/langs" / lang / "lang.json"
+    if config.is_file():
+        listed = json.loads(config.read_text(encoding="utf-8")).get("reference")
+        if listed:
+            return tuple((latin, word) for latin, word in listed)
+    held_out = ROOT / "data/eval" / lang / "translit-human.tsv"
+    vocab = vocab or native(lang)
+    cases = []
+    if held_out.is_file():
+        for line in held_out.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#") or not line.strip():
+                continue
+            _, latin, word = line.split("\t")
+            if fits(latin, word, vocab=vocab) and (latin, word) not in cases:
+                cases.append((latin, word))
+            if len(cases) == REFERENCE_COUNT:
+                break
+    if not cases:
+        raise SystemExit(
+            f"{lang}: no reference pairs for --reference. Give `\"reference\": [[\"latin\", \"native\"], …]` in "
+            f"data/langs/{lang}/lang.json, or write {held_out.relative_to(ROOT)} first "
+            f"(python -m mlkb.langs.pairs --lang {lang})."
+        )
+    return tuple(cases)
 
 
 def fnv1a(data: bytes) -> int:
@@ -240,12 +265,12 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--lang", default="ml", help="target language (`mlkb.translit.vocab.native`)")
     args = p.parse_args(argv)
     vocab = native(args.lang)
-    cases = REFERENCE_CASES_BY_LANG.get(args.lang) or langs.load(args.lang).reference
     model = load_checkpoint(args.checkpoint)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     export_model(model, args.out, vocab)
     print(f"wrote {args.out} ({args.out.stat().st_size:,} bytes)", file=sys.stderr)
     if args.reference:
+        cases = reference_cases(args.lang, vocab)
         write_reference(model, args.out, args.reference, cases, vocab)
         print(f"wrote {args.reference}", file=sys.stderr)
 

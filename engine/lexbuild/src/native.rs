@@ -181,16 +181,31 @@ pub fn count_words(
     reader: impl BufRead,
     max_lines: Option<usize>,
 ) -> io::Result<Counts> {
+    Ok(count_tokens(lang, reader, max_lines)?.0)
+}
+
+/// `count_words`, and beside it the tokens that were dropped: those with a letter of the
+/// script that still aren't words of it (a sign after a vowel, a sign first, a foreign letter
+/// inside, too long). The frequent ones are usually one mis-encoding repeated, which a
+/// `replace` pair in the config would mend; the builder reports them for that.
+pub fn count_tokens(
+    lang: &Lang,
+    reader: impl BufRead,
+    max_lines: Option<usize>,
+) -> io::Result<(Counts, Counts)> {
     let mut counts = Counts::new();
+    let mut dropped = Counts::new();
     for_each_line(reader, max_lines, |line| {
         let line = lang.normalize(line);
         for word in lang.words(&line) {
             if lang.is_word(word) {
                 *counts.entry(word.to_string()).or_default() += 1;
+            } else if word.chars().any(|c| lang.is_word_char(c)) {
+                *dropped.entry(word.to_string()).or_default() += 1;
             }
         }
     })?;
-    Ok(counts)
+    Ok((counts, dropped))
 }
 
 /// Reads a word list (one word per line), normalised; lines that aren't words of `lang` are skipped.
@@ -434,6 +449,19 @@ mod tests {
         let listed: HashSet<String> = ["অসম".to_string()].into();
         let v = vocab(&lang, &counts, &listed);
         assert_eq!(v, [("মই".to_string(), 4), ("অসম".to_string(), 1)]);
+    }
+
+    #[test]
+    fn dropped_tokens_are_the_scripts_non_words() {
+        let lang = assamese();
+        // আু has a sign after a vowel, কa a Latin letter; hello and ২০২০ have no letter of the
+        // script, so they are not the script's to drop.
+        let text = "মই আু আু কa hello ২০২০\n";
+        let (counts, dropped) = count_tokens(&lang, text.as_bytes(), None).unwrap();
+        assert_eq!(counts.len(), 1);
+        assert_eq!(dropped.get("আু"), Some(&2));
+        assert_eq!(dropped.get("কa"), Some(&1));
+        assert_eq!(dropped.len(), 2);
     }
 
     #[test]

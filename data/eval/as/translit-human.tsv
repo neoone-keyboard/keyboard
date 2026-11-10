@@ -1,7 +1,8 @@
 # Human transliteration eval set: context<TAB>latin<TAB>native (context empty).
-# 5484 distinct manual pairs (AK-Freq, AK-NEI, AK-NEF; in that order) of the Aksharantar
+# 5484 distinct manual pairs (AK-Freq, AK-NEF, AK-NEI; in that order) of the Aksharantar
 # asm_test.json split, AI4Bharat (Madhani et al., 2022), CC BY. Built by
 # `python -m mlkb.langs.pairs`. Never train on these words.
+# section: AK-Freq
 	ongo	অংগ
 	ongxoidi	অংশইদি
 	angsogrohonkareexokol	অংশগ্ৰহণকাৰীসকল
@@ -3612,6 +3613,7 @@
 	websiteburor	ৱেবছাইটবোৰৰ
 	uel	ৱেল
 	wel	ৱেল
+# section: AK-NEF
 	ocoee	অককী
 	oaks	অকছ্
 	oakley	অক্লে
@@ -4354,6 +4356,7 @@
 	wellington	ৱেলিংটন
 	ware	ৱেৰ
 	worth	ৱৰ্থ
+# section: AK-NEI
 	agrahari	অগ্ৰহাৰি
 	auto	অটো
 	automation	অটোমেশ্যন

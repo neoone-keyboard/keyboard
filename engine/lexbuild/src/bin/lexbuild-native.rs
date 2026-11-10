@@ -7,7 +7,9 @@
 //!
 //! writes `<id>.fst` (word frequencies), `next.fst` (the English pairs of `--english-next`,
 //! which were counted against the same `en.fst`, plus the native ones), `words.tsv` (the
-//! vocabulary, for the romanised keys) and `stats.txt`. With `--romanised-keys` (rows of
+//! vocabulary, for the romanised keys) and `stats.txt`, which also lists the most frequent
+//! tokens dropped as not words of the script (mis-encodings a `replace` pair in the config
+//! would mend). With `--romanised-keys` (rows of
 //! `skeleton<TAB>word<TAB>count`) it writes `romanised.fst`; `--native` is then optional. With
 //! `--romanisation` (a pack's `romanisation.json`) instead, `romanised.fst` is keyed by the
 //! tables' walk and skeleton of every word in the vocabulary, as `lexbuild --lang` keys it.
@@ -55,6 +57,9 @@ struct Args {
     max_lines: Option<usize>,
 }
 
+/// How many of the most frequent dropped tokens `stats.txt` lists.
+const DROPPED_SHOWN: usize = 20;
+
 fn open(path: &PathBuf) -> io::Result<BufReader<File>> {
     File::open(path)
         .map(BufReader::new)
@@ -87,10 +92,15 @@ fn run(args: Args) -> io::Result<()> {
 
     if !args.native.is_empty() {
         let mut counts = Counts::new();
+        let mut dropped = Counts::new();
         for path in &args.native {
             eprintln!("counting {}", path.display());
-            for (word, count) in native::count_words(&lang, open(path)?, args.max_lines)? {
+            let (words, not_words) = native::count_tokens(&lang, open(path)?, args.max_lines)?;
+            for (word, count) in words {
                 *counts.entry(word).or_default() += count;
+            }
+            for (word, count) in not_words {
+                *dropped.entry(word).or_default() += count;
             }
         }
         let mut listed = HashSet::new();
@@ -104,6 +114,31 @@ fn run(args: Args) -> io::Result<()> {
             lang.id,
             counts.len()
         );
+        // Tokens with a letter of the script that the config's rules refuse. A frequent one
+        // is usually a mis-encoding to mend with `replace` in the config.
+        let dropped_tokens: u64 = dropped.values().sum();
+        let _ = writeln!(
+            report,
+            "{} dropped (a letter of the script, but not a word): {dropped_tokens} tokens, {} forms",
+            lang.id,
+            dropped.len()
+        );
+        let mut worst: Vec<(String, u64)> = dropped.into_iter().collect();
+        worst.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        if !worst.is_empty() {
+            let top: Vec<String> = worst
+                .iter()
+                .take(DROPPED_SHOWN)
+                .map(|(w, c)| format!("{w} {c}"))
+                .collect();
+            let _ = writeln!(
+                report,
+                "{} dropped top {DROPPED_SHOWN}: {}",
+                lang.id,
+                top.join(", ")
+            );
+        }
+        drop(worst);
         let vocab = native::vocab(&lang, &counts, &listed);
         drop(counts);
 
