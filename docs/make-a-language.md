@@ -106,7 +106,7 @@ Use the ISO 639-1 code where there is one.
 Do the steps in order; each uses what the ones before it made. Calibrating (step 4) reads
 Aksharantar, which the text script (step 3) unzips. The lexicon build (step 7) needs the text
 script, the fitted weights (step 4) and the manifest (step 5), and checks for all three
-before it starts. Training (step 9) needs the lexicon (step 7) and your reference pairs.
+before it starts. Training (step 9) needs the lexicon (step 7).
 
 ### 1. Choose sources and check their licences
 
@@ -505,10 +505,6 @@ pairs. Nothing more is needed for next-word suggestions. Sentences never span a
 The romanised lexicon only finds words whose spelling folds to the right key. The
 transliterator handles the rest: names, rare words, and loose spellings.
 
-Before training, add your language to `REFERENCE_CASES_BY_LANG` in
-`training/mlkb/translit/export.py`: five `(latin, native)` pairs that the export checks the
-model against. Without them the export stops with `FileNotFoundError` (gap G7). Then:
-
 ```sh
 make pack-models PACK_LANG=xx
 ```
@@ -524,7 +520,11 @@ This:
 2. trains (`python -m mlkb.translit.train --lang xx`) into `training/build/xx/translit.pt`.
    Training stops when validation stops improving. It resumes if interrupted: run the same
    command again. It is skipped if `translit.pt` already exists, so delete that file to retrain;
-3. exports to int8 (`translit.mlkbnn`) and checks it against the reference pairs;
+3. exports to int8 (`translit.mlkbnn`). It also records the model's outputs for five reference
+   pairs (`training/build/xx/translit-reference.json`, for the engine's forward-pass check).
+   The pairs are data: the first five rows of `data/eval/xx/translit-human.tsv`, or, if you
+   would rather choose them, `"reference": [["latin", "native"], …]` in
+   `data/langs/xx/lang.json` (Assamese does). No code edit is needed;
 4. prints held-out accuracy (`python -m mlkb.langs.eval_translit`), the model alone, top-1 and
    top-3. Assamese scored 57.7% / 72.4% over all test rows and 73.7% / 85.7% on common words;
 5. copies the model into the pack and updates the checksums.
@@ -679,7 +679,6 @@ Open a pull request with:
 - `data/build-xx-text.sh`;
 - `data/eval/xx/translit-human.tsv`;
 - `packs/xx.neopack/` with every file and up-to-date checksums;
-- your language's entry in `REFERENCE_CASES_BY_LANG` (`training/mlkb/translit/export.py`);
 - in the description: the calibrate report (where its calibration pairs came from, and the
   held-out test numbers you didn't tune on), the transliterator's held-out accuracy and how
   many steps it trained, a few typed examples and their suggestions (one out of the lexicon),
