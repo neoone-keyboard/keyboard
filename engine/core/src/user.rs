@@ -405,6 +405,17 @@ impl UserStore {
         })
     }
 
+    /// What `word` was picked as (`pick`); None for a word that wasn't.
+    pub fn picked_word(&self, word: &str) -> Option<PickedWord<'_>> {
+        let entry = self.entries.get(&key(word))?;
+        let picked = entry.picked.as_ref()?;
+        Some(PickedWord {
+            word: &entry.display,
+            lang: &picked.lang,
+            typed: &picked.typed,
+        })
+    }
+
     /// Changes whenever the picked words do (one is picked, picked for other letters,
     /// removed, forgotten or evicted): what is built from `picked` is rebuilt then. 0 until
     /// the first.

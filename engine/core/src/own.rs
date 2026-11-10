@@ -9,9 +9,10 @@
 //! spellings of those letters find it as well. A typed skeleton that begins a key finds the
 //! word as a completion (`raub`), like `Lexicon::top_completions` under a skeleton prefix.
 //!
-//! The index lives in memory only: the store's log is the record, and `Engine` rebuilds this
-//! when the store's picked words change (`UserStore::picked_generation`). It is bounded by the
-//! store (`user::CAPACITY` words, `user::MAX_TYPED_FORMS` runs of letters each).
+//! The index lives in memory only: the store's log is the record. `Engine` builds this from
+//! the store, puts each newly picked word in (`put`), and rebuilds it when the picked words
+//! change any other way (`UserStore::picked_generation`). It is bounded by the store
+//! (`user::CAPACITY` words, `user::MAX_TYPED_FORMS` runs of letters each).
 
 use crate::manglish::{self, Match};
 use crate::rank;
@@ -21,7 +22,7 @@ use crate::romanisation::Romanisation;
 const SHORTLIST: usize = 16;
 
 /// One pack's own words.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct OwnWords {
     /// The words, sorted by bytes: the transliterator's beam asks whether a text is one or
     /// begins one (`contains`, `has_prefix`).
@@ -40,29 +41,59 @@ impl OwnWords {
         r: &Romanisation,
         picked: impl Iterator<Item = (&'a str, &'a [String])>,
     ) -> Self {
-        let mut all: Vec<(&str, &[String])> = picked
-            .filter(|(word, _)| manglish::key(r, word).is_some())
+        // Each word with its own skeleton, walked once.
+        let mut all: Vec<(&str, &[String], String)> = picked
+            .filter_map(|(word, typed)| Some((word, typed, word_skeleton(r, word)?)))
             .collect();
-        all.sort_by_key(|(word, _)| *word);
-        all.dedup_by_key(|(word, _)| *word);
+        all.sort_by_key(|(word, _, _)| *word);
+        all.dedup_by_key(|(word, _, _)| *word);
         let mut keys = Vec::with_capacity(all.len() * 2);
-        for (i, (word, typed)) in all.iter().enumerate() {
-            let place = i as u32;
-            keys.push((r.word_skeleton(word), place));
-            for letters in typed.iter() {
-                let skeleton = r.skeleton(letters);
-                if !skeleton.is_empty() {
-                    keys.push((skeleton, place));
-                }
-            }
+        let mut words = Vec::with_capacity(all.len());
+        let mut letters = Vec::with_capacity(all.len());
+        for (place, (word, typed, skeleton)) in all.into_iter().enumerate() {
+            keys.extend(skeletons(r, skeleton, typed).map(|s| (s, place as u32)));
+            words.push(word.to_string());
+            letters.push(typed.to_vec());
         }
         keys.sort();
         keys.dedup();
         Self {
-            words: all.iter().map(|(word, _)| word.to_string()).collect(),
-            typed: all.iter().map(|(_, typed)| typed.to_vec()).collect(),
+            words,
+            typed: letters,
             keys,
         }
+    }
+
+    /// Puts `word` in with the letters it was picked for, in place of what it had: the index
+    /// is then as `build` would make it with the word so. False, and nothing changes, for a
+    /// word the pack builder could not key.
+    pub fn put(&mut self, r: &Romanisation, word: &str, typed: &[String]) -> bool {
+        let Some(skeleton) = word_skeleton(r, word) else {
+            return false;
+        };
+        let place = match self.words.binary_search_by(|w| w.as_str().cmp(word)) {
+            Ok(place) => {
+                self.keys.retain(|(_, p)| *p as usize != place);
+                self.typed[place] = typed.to_vec();
+                place
+            }
+            Err(place) => {
+                for (_, p) in &mut self.keys {
+                    if *p as usize >= place {
+                        *p += 1;
+                    }
+                }
+                self.words.insert(place, word.to_string());
+                self.typed.insert(place, typed.to_vec());
+                place
+            }
+        };
+        for key in skeletons(r, skeleton, typed).map(|s| (s, place as u32)) {
+            if let Err(at) = self.keys.binary_search(&key) {
+                self.keys.insert(at, key);
+            }
+        }
+        true
     }
 
     pub fn is_empty(&self) -> bool {
@@ -138,6 +169,23 @@ impl OwnWords {
             })
             .collect()
     }
+}
+
+/// The skeleton the pack builder keys `word` by (`manglish::key`); None for a word it could
+/// not key: one with no skeleton, or with a character outside the script.
+fn word_skeleton(r: &Romanisation, word: &str) -> Option<String> {
+    manglish::pack(word, manglish::block_base(r))?;
+    Some(r.word_skeleton(word)).filter(|skeleton| !skeleton.is_empty())
+}
+
+/// The skeletons a word is indexed by: its own, and those of the letters it was picked for.
+fn skeletons<'a>(
+    r: &'a Romanisation,
+    own: String,
+    typed: &'a [String],
+) -> impl Iterator<Item = String> + 'a {
+    let typed = typed.iter().map(|letters| r.skeleton(letters));
+    std::iter::once(own).chain(typed.filter(|skeleton| !skeleton.is_empty()))
 }
 
 /// Whether `word` is one of `words`, which are sorted by bytes.
@@ -261,6 +309,37 @@ mod tests {
         assert_eq!(found.len(), SHORTLIST);
         assert_eq!(found[0].word, "എന്റെ", "the exact skeleton comes first");
         assert_eq!(found[1].word, used);
+    }
+
+    #[test]
+    fn a_word_put_in_later_leaves_the_index_as_if_built_with_it() {
+        let all: &[(&str, &[&str])] = &[
+            ("എന്റെ", &["ente"]),
+            ("മലയാളം", &[]),
+            ("അവൻ", &["avan", "awan"]),
+            ("തൃശ്ശൂർ", &["trichur"]),
+        ];
+        let forms = |typed: &[&str]| typed.iter().map(|t| t.to_string()).collect::<Vec<_>>();
+        // Each word left out and put in again, first, last and between.
+        for (word, typed) in all {
+            let rest: Vec<(&str, &[&str])> = all.iter().filter(|(w, _)| w != word).copied().collect();
+            let mut index = own(&rest);
+            assert!(index.put(ml(), word, &forms(typed)));
+            assert_eq!(index, own(all), "{word}");
+        }
+        // A word already there takes its new letters and loses the old.
+        let mut index = own(all);
+        assert!(index.put(ml(), "അവൻ", &forms(&["avn"])));
+        let mut changed = all.to_vec();
+        changed[2] = ("അവൻ", &["avn"]);
+        assert_eq!(index, own(&changed));
+        // One the pack could not key is refused, and nothing changes.
+        assert!(!index.put(ml(), "क्या", &forms(&["kya"])));
+        assert_eq!(index, own(&changed));
+        // Into an empty index.
+        let mut index = OwnWords::default();
+        assert!(index.put(ml(), "അവൻ", &[]));
+        assert_eq!(index, own(&[("അവൻ", &[])]));
     }
 
     #[test]

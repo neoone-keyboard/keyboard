@@ -401,9 +401,10 @@ pub struct Engine {
     own: Mutex<OwnIndex>,
 }
 
-/// Each pack's own words (`own::OwnWords`), by its place in `Sources::packs`, as built from
-/// the store when its picked words last changed (`UserStore::picked_generation`). Empty, and
-/// never built, while the store holds no picked word.
+/// Each pack's own words (`own::OwnWords`), by its place in `Sources::packs`, as the store
+/// had them at `generation` (`UserStore::picked_generation`): built from the store when its
+/// picked words changed, except that a word just picked is put in (`Engine::note_picked`).
+/// Empty, and never built, while the store holds no picked word.
 #[derive(Debug, Default)]
 struct OwnIndex {
     generation: u64,
@@ -434,7 +435,7 @@ impl Engine {
     }
 
     pub fn new(sources: Sources, user: UserStore) -> Self {
-        Self {
+        let engine = Self {
             active: Self::default_active(&sources),
             sources,
             user: Mutex::new(user),
@@ -444,13 +445,20 @@ impl Engine {
             pack_problems: Vec::new(),
             shown: DEFAULT_SUGGESTIONS,
             own: Mutex::new(OwnIndex::default()),
-        }
+        };
+        // The user's own words are indexed now, not by the first suggest.
+        engine.own_words();
+        engine
     }
 
     /// Each pack's own words, by its place in `Sources::packs`: the native words the user
     /// picked from the bar as that pack's (`note_choice`) that its lexicon doesn't hold. Empty
     /// for a pack without romanised typing, and an empty list while nothing was ever picked.
-    /// Rebuilt from the store when its picked words changed since the last call.
+    /// Rebuilt from the store when its picked words changed since the last call: that is
+    /// when the engine opens with picked words in the store, and after one is forgotten,
+    /// removed or evicted (2,000 words take about 3.5 ms on the Mac; `make bench`). Those
+    /// calls rebuild it themselves, so a suggest finds it built, and a pick puts its one word
+    /// in (`note_picked`).
     fn own_words(&self) -> Arc<Vec<OwnWords>> {
         let generation = self.user().picked_generation();
         let mut own = self.own.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -775,8 +783,28 @@ impl Engine {
                     .iter()
                     .any(|m| m.word == chosen && m.missing > 0)
             });
-        self.user()
-            .pick(&pack.id, chosen, Some(typed).filter(|_| !partial));
+        // The index follows by this one word, so the next suggest need not rebuild it.
+        let (before, after, letters) = {
+            let mut user = self.user();
+            let before = user.picked_generation();
+            user.pick(&pack.id, chosen, Some(typed).filter(|_| !partial));
+            let letters = user.picked_word(chosen).map(|p| p.typed.to_vec());
+            (before, user.picked_generation(), letters)
+        };
+        let place = self.sources.packs.iter().position(|p| std::ptr::eq(p, pack));
+        let mut index = self.own.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        // Only if that pick was the one change since the index was built: when it also evicted
+        // a picked word (the store was full), the next suggest rebuilds.
+        if let (Some(place), Some(letters)) = (place, letters)
+            && index.generation == before
+            && after == before + 1
+        {
+            let packs = Arc::make_mut(&mut index.packs);
+            packs.resize_with(self.sources.packs.len(), OwnWords::default);
+            if packs[place].put(r, chosen, &letters) {
+                index.generation = after;
+            }
+        }
     }
 
     fn is_known_or_learned(&self, word: &str) -> bool {
@@ -937,12 +965,14 @@ impl Engine {
     /// Forgets learned words and words removed from the bar.
     pub fn forget_learned(&self) {
         self.user().forget_all();
+        self.own_words();
     }
 
     /// The user removed `word` from the bar: it is forgotten if learned and never
     /// suggested again (as typed, it still shows), until it is learned anew.
     pub fn remove_word(&self, word: &str) {
         self.user().remove(&normalize(word));
+        self.own_words();
     }
 
     /// Every learned word, as shown, most recently used first (the "Your words" screen).
@@ -958,6 +988,7 @@ impl Engine {
     /// Forgets one learned word without blocking it: suggested again only once learned anew.
     pub fn forget_word(&self, word: &str) {
         self.user().forget(&normalize(word));
+        self.own_words();
     }
 
     /// Un-removes a word removed from the bar; it is not learned by this.
