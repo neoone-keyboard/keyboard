@@ -114,7 +114,7 @@ Language packs are downloaded inside the app from https://neoone.jishnu.me. They
 The app collects no data. Typing never leaves the device.
 ```
 
-## Screenshots: iPhone 6.9" (1320 × 2868)
+## Screenshots: iPhone 6.9" (1320 × 2868) and 6.3" (1206 × 2622)
 
 In `screenshots/6.9/`, in upload order. Taken on the iPhone 17 Pro Max simulator from a Release build by `KeyboardUITests/AppStoreScreenshots` (its comment has the setup).
 
@@ -124,3 +124,5 @@ In `screenshots/6.9/`, in upload order. Taken on the iPhone 17 Pro Max simulator
 4. `04-languages.png`: the app's Languages screen: three languages installed, Assamese to download.
 5. `05-emoji-dark.png`: the emoji panel, dark mode.
 6. `06-home.png`: the app's home.
+
+App Store Connect's iPhone slot ("iPhone with Dynamic Island, medium display") takes 6.1" or 6.3" sizes only and scales them for every iPhone, so `screenshots/6.3/` holds the same six resized to 1206 × 2622 (`sips -z 2622 1206`); those are the ones uploaded.
