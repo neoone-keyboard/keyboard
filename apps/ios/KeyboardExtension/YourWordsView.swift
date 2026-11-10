@@ -326,6 +326,7 @@ private final class SectionHeader: UITableViewHeaderFooterView {
     override init(reuseIdentifier: String?) {
         super.init(reuseIdentifier: reuseIdentifier)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.accessibilityTraits = .header
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(titleLabel)
         NSLayoutConstraint.activate([

@@ -52,6 +52,8 @@ final class KeyboardViewController: UIInputViewController {
     private var swipeGeneration = 0
     /// The last swipe gave no word: the bar says so until the next key.
     private var swipeFailed = false
+    /// The return key's action as VoiceOver last said it (`returnTitle`).
+    private var spokenReturnTitle = "return"
     /// A swipe's words arriving later than this are dropped, and the bar asks for it again.
     private static let swipeTimeout: Duration = .milliseconds(250)
 
@@ -416,7 +418,12 @@ final class KeyboardViewController: UIInputViewController {
         updateAutocorrect()
         let shiftBefore = input.shift
         input.applyAutoCapitalization(autoCapitalization)
-        if input.shift != shiftBefore { keyboardView.refreshLabels() }
+        // Another field may have another return action, which the return key is called by.
+        let title = returnTitle
+        if input.shift != shiftBefore || title != spokenReturnTitle {
+            spokenReturnTitle = title
+            keyboardView.refreshLabels()
+        }
         checkMemoryBudget()
         requestSuggestions()
         refreshTopBar()
@@ -872,8 +879,28 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func reloadKeys() {
-        keyboardView.configure(layout: input.layout, theme: theme) { [unowned self] key in
-            input.label(for: key.action)
+        spokenReturnTitle = returnTitle
+        keyboardView.configure(
+            layout: input.layout, theme: theme,
+            label: { [unowned self] key in input.label(for: key.action) },
+            spoken: { [unowned self] key in input.spokenKey(for: key.action, returnTitle: spokenReturnTitle) }
+        )
+    }
+
+    /// What VoiceOver calls the return key: the field's action ("search", "go"), as the
+    /// system keyboard does.
+    private var returnTitle: String {
+        switch textDocumentProxy.returnKeyType ?? .default {
+        case .go: "go"
+        case .google, .yahoo, .search: "search"
+        case .join: "join"
+        case .next: "next"
+        case .route: "route"
+        case .send: "send"
+        case .done: "done"
+        case .emergencyCall: "emergency call"
+        case .continue: "continue"
+        default: "return"
         }
     }
 

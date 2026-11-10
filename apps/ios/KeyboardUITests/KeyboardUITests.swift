@@ -69,14 +69,14 @@ final class KeyboardUITests: XCTestCase {
     /// key switches to the other and back.
     func testKeyboardLanguages() throws {
         let key = try showKeyboard()
-        let first = key.label
+        let first = key.identifier
         shot("keyboard-\(first == "EN" ? "ml" : "en")")
         key.tap()
-        let other = app.staticTexts[first == "EN" ? "മ" : "EN"]
+        let other = app.keys[first == "EN" ? "മ" : "EN"]
         XCTAssertTrue(other.waitForExistence(timeout: 5))
         shot("keyboard-\(first == "EN" ? "en" : "ml")")
         other.tap()
-        XCTAssertTrue(app.staticTexts[first].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.keys[first].waitForExistence(timeout: 5))
     }
 
     /// Four languages at once (screenshots): the panel with English, Malayalam, Hindi and
@@ -101,19 +101,19 @@ final class KeyboardUITests: XCTestCase {
             visited.append(current)
             // Not the language's own label: Malayalam has a letter key മ.
             let labels = keyLabels.filter { $0.value != current }.map(\.key)
-            let key = app.staticTexts.matching(NSPredicate(format: "label IN %@", labels)).firstMatch
+            let key = app.keys.matching(NSPredicate(format: "identifier IN %@", labels)).firstMatch
             XCTAssertTrue(key.waitForExistence(timeout: 5), "\(current): a language key")
-            let next = keyLabels[key.label] ?? "?"
+            let next = keyLabels[key.identifier] ?? "?"
             shot("four-\(index)-\(current)")
             // Every page but the first, by its page key, then back to the letters.
             let own = pages[current] ?? []
             for label in own.dropFirst() {
-                let page = app.staticTexts[label]
+                let page = app.keys[label]
                 XCTAssertTrue(page.waitForExistence(timeout: 5), "\(current): page \(label)")
                 page.tap()
                 shot("four-\(index)-\(current)-\(label)")
             }
-            if let letters = own.first { app.staticTexts[letters].tap() }
+            if let letters = own.first { app.keys[letters].tap() }
             key.tap()
             current = next
         }
@@ -197,11 +197,37 @@ final class KeyboardUITests: XCTestCase {
         let field = self.field
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
-        let key = app.staticTexts.matching(NSPredicate(format: "label IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
+        let key = app.keys.matching(NSPredicate(format: "identifier IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
         guard key.waitForExistence(timeout: 5) else {
             throw XCTSkip("NeoOne Keyboard isn't the keyboard shown; add it in the simulator's Settings")
         }
         return key
+    }
+
+    /// VoiceOver's view of the keys: each key is a keyboard key named for what it types or
+    /// does, and the language key names the language it goes to.
+    func testKeysForVoiceOver() throws {
+        let languageKey = try showKeyboard()
+        XCTAssertTrue(languageKey.label.hasPrefix("switch to "), languageKey.label)
+        for label in ["space", "delete", "return", "numbers and symbols", "emoji"] {
+            XCTAssertTrue(spokenKey(label).exists, label)
+        }
+        // At the start of a sentence shift is on and the letters are spoken as capitals;
+        // with shift off, in lower case.
+        let shift = app.keys.matching(NSPredicate(format: "label IN %@", ["shift", "caps lock"])).firstMatch
+        XCTAssertTrue(shift.exists)
+        let shifted = (shift.value as? String) == "on"
+        XCTAssertTrue(spokenKey(shifted ? "Q" : "q").exists, "q, shift \(shifted ? "on" : "off")")
+        spokenKey("numbers and symbols").tap()
+        XCTAssertTrue(spokenKey("more symbols").waitForExistence(timeout: 5))
+        XCTAssertTrue(spokenKey("letters").exists)
+        spokenKey("letters").tap()
+        XCTAssertTrue(spokenKey("numbers and symbols").waitForExistence(timeout: 5))
+    }
+
+    /// The key VoiceOver calls `label`.
+    private func spokenKey(_ label: String) -> XCUIElement {
+        app.keys.matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
     /// Opens the panel by holding the language key, which reads the next language (മ, हि, অ
@@ -239,14 +265,14 @@ final class KeyboardUITests: XCTestCase {
             if ch == " " {
                 // The space bar: the middle of the bottom row, which holds return. ("English",
                 // its label, is also a row of the app's screen.)
-                let ret = app.staticTexts["return"].frame
+                let ret = app.keys["return"].frame
                 let window = app.windows.firstMatch
                 window.coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: window.frame.midX, dy: ret.midY)).tap()
                 continue
             }
             let letter = String(ch)
-            let key = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", letter)).firstMatch
+            let key = app.keys.matching(NSPredicate(format: "label ==[c] %@", letter)).firstMatch
             if !key.waitForExistence(timeout: 3) { shot("missing-key-\(letter)") }
             XCTAssertTrue(key.exists, "key \(letter)")
             key.tap()

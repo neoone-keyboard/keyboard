@@ -71,6 +71,7 @@ final class SettingsPanelView: UIView {
 
         titleLabel.text = "Keyboard settings"
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.accessibilityTraits = .header
         doneButton.setTitle("Done", for: .normal)
         doneButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         doneButton.accessibilityIdentifier = "settings-done"
@@ -78,6 +79,7 @@ final class SettingsPanelView: UIView {
         doneButton.setContentHuggingPriority(.required, for: .horizontal)
 
         themeControl.accessibilityIdentifier = "theme"
+        themeControl.accessibilityLabel = "Appearance"
         themeControl.addAction(UIAction { [weak self] _ in self?.themeChanged() }, for: .valueChanged)
 
         accentLabel.text = "Accent"

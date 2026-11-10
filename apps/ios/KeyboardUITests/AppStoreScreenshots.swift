@@ -78,7 +78,7 @@ final class AppStoreScreenshots: XCTestCase {
         type("party ")
         type("tonight ")
         // The emoji key: the second key of the bottom row (it has no label).
-        let numbers = app.staticTexts["123"].frame
+        let numbers = app.keys["123"].frame
         let window = app.windows.firstMatch
         window.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: numbers.maxX + 28, dy: numbers.midY)).tap()
@@ -115,20 +115,20 @@ final class AppStoreScreenshots: XCTestCase {
     }
 
     private func languageKey() -> XCUIElement {
-        app.staticTexts.matching(NSPredicate(format: "label IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
+        app.keys.matching(NSPredicate(format: "identifier IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
     }
 
     /// Types `text` by tapping the keyboard's keys (lower-case letters and space).
     private func type(_ text: String) {
         for ch in text {
             if ch == " " {
-                let ret = app.staticTexts["return"].frame
+                let ret = app.keys["return"].frame
                 let window = app.windows.firstMatch
                 window.coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: window.frame.midX, dy: ret.midY)).tap()
                 continue
             }
-            let key = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", String(ch))).firstMatch
+            let key = app.keys.matching(NSPredicate(format: "label ==[c] %@", String(ch))).firstMatch
             XCTAssertTrue(key.waitForExistence(timeout: 3), "key \(ch)")
             key.tap()
         }

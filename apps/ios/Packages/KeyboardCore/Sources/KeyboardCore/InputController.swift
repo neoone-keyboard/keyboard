@@ -526,6 +526,43 @@ public final class InputController {
         }
     }
 
+    /// What VoiceOver says for a key: the letter as it would be typed, the state of shift, the
+    /// page or language a key goes to. `returnTitle` is the return key's action ("search").
+    /// As Android's `InputController.spokenLabel`; `SpokenKey.text` is that string.
+    public func spokenKey(for action: KeyAction, returnTitle: String = "return") -> SpokenKey {
+        switch action {
+        case .character(let c): SpokenKey(Self.isLoneMark(c) ? c : label(for: action))
+        case .space: SpokenKey("space")
+        case .backspace: SpokenKey("delete")
+        case .shift:
+            switch shift {
+            case .off: SpokenKey("shift")
+            case .once: SpokenKey("shift", value: "on")
+            case .locked: SpokenKey("caps lock", value: "on")
+            }
+        case .returnKey: SpokenKey(returnTitle)
+        case .nextKeyboard: SpokenKey("next keyboard")
+        case .page(.letters): SpokenKey("letters")
+        case .page(.symbols): SpokenKey("numbers and symbols")
+        case .page(.moreSymbols): SpokenKey("more symbols")
+        case .page(.native(let id)): SpokenKey(language.nativeLayout?.page(id)?.label ?? id)
+        case .toggleLanguage: SpokenKey("switch to \(Self.name(of: nextLanguage))")
+        case .emoji: SpokenKey("emoji")
+        }
+    }
+
+    /// `spokenKey(for:returnTitle:)` as one string: "shift, on".
+    public func spokenLabel(for action: KeyAction, returnTitle: String = "return") -> String {
+        spokenKey(for: action, returnTitle: returnTitle).text
+    }
+
+    private static func name(of language: Language) -> String {
+        switch language {
+        case .english: "English"
+        case .pack(let pack): pack.name
+        }
+    }
+
     /// A single combining mark (e.g. a vowel sign) is drawn on a dotted circle, as is conventional.
     private static func isLoneMark(_ text: String) -> Bool {
         let scalars = text.unicodeScalars
