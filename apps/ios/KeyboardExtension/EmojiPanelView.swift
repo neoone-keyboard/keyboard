@@ -104,6 +104,7 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         grid.addGestureRecognizer(hold)
 
         lettersButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        lettersButton.accessibilityLabel = "letters"
         lettersButton.layer.cornerRadius = 6
         lettersButton.addAction(UIAction { [weak self] _ in self?.onLetters?() }, for: .touchUpInside)
         backspaceButton.setImage(UIImage(systemName: "delete.left", withConfiguration: Self.symbolConfig), for: .normal)
@@ -312,8 +313,10 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: Self.cellID, for: indexPath)
         if let cell = cell as? EmojiCell {
-            let emoji = shown(sections[indexPath.section].items[indexPath.item])
+            let item = sections[indexPath.section].items[indexPath.item]
+            let emoji = shown(item)
             cell.show(emoji, image: picture(for: emoji, in: cell), theme: theme)
+            cell.accessibilityCustomActions = toneActions(for: item)
         }
         cellsShown += 1
         if cellsShown % Self.logEvery == 0 { log.info("Emoji panel scrolled; \(statistics)") }
@@ -427,12 +430,31 @@ final class EmojiPanelView: UIView, UICollectionViewDataSource, UICollectionView
         case .ended:
             guard popupOptions.indices.contains(popupIndex) else { return }
             let chosen = popupOptions[popupIndex], base = popupOptions[0]
-            history.chooseTone(chosen, for: base)
             closePopup()
-            grid.reconfigureItems(at: grid.indexPathsForVisibleItems)
-            onEmoji?(chosen, base)
+            pickTone(chosen, for: base)
         default:
             closePopup()
+        }
+    }
+
+    /// `chosen`, a tone of `base` (or `base` itself), goes in and is kept as its tone.
+    private func pickTone(_ chosen: String, for base: String) {
+        history.chooseTone(chosen, for: base)
+        grid.reconfigureItems(at: grid.indexPathsForVisibleItems)
+        onEmoji?(chosen, base)
+    }
+
+    /// Holding to pick a tone doesn't work under VoiceOver: each tone is a custom action,
+    /// named by the toned emoji ("thumbs up: medium skin tone").
+    private func toneActions(for item: EmojiItem) -> [UIAccessibilityCustomAction] {
+        guard let catalog, let base = catalog.base(of: item.emoji) else { return [] }
+        let tones = catalog.tones(of: base)
+        guard !tones.isEmpty else { return [] }
+        return ([base] + tones).map { tone in
+            UIAccessibilityCustomAction(name: tone) { [weak self] _ in
+                self?.pickTone(tone, for: base)
+                return true
+            }
         }
     }
 
@@ -473,6 +495,7 @@ final class EmojiCell: UICollectionViewCell {
         contentView.addSubview(picture)
         contentView.layer.cornerRadius = 6
         isAccessibilityElement = true
+        accessibilityTraits = .button
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
@@ -548,6 +571,7 @@ private final class EmojiHeader: UICollectionReusableView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.accessibilityTraits = .header
         label.frame = bounds.insetBy(dx: 10, dy: 0)
         label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         addSubview(label)
@@ -557,6 +581,8 @@ private final class EmojiHeader: UICollectionReusableView {
 
     func show(_ name: String, theme: KeyboardTheme?) {
         label.text = name.uppercased()
+        // Spoken as written, not spelled out as capitals.
+        label.accessibilityLabel = name
         label.textColor = theme?.hintText
     }
 }

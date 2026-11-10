@@ -229,7 +229,12 @@ final class TopBarView: UIView {
         stripBase = nil
         updateVisibility()
         replaceItems(in: suggestionStack, with: bar.slots.enumerated().map { index, slot in
-            guard let slot else { return UIButton(type: .custom) }
+            guard let slot else {
+                // An empty slot is nothing to VoiceOver.
+                let empty = UIButton(type: .custom)
+                empty.isAccessibilityElement = false
+                return empty
+            }
             return slotButton(slot, bold: index == 1)
         })
         showMore(bar.more.map { slot in
@@ -256,6 +261,8 @@ final class TopBarView: UIView {
     private func slotButton(_ slot: SuggestionSlot, bold: Bool) -> UIButton {
         let button = UIButton(type: .custom)
         button.setTitle(slot.title, for: .normal)
+        // The word, not its drawn title (which may be in quotes).
+        button.accessibilityLabel = slot.suggestion.text
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: bold ? .semibold : .regular)
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.6
