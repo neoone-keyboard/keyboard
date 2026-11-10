@@ -5,7 +5,7 @@
 //! from the pack's `suffixes.tsv` (manifest role `suffixes`; the format is in
 //! Malayalam's file and `Suffixes::parse`): the stem is looked up by skeleton like
 //! any Manglish word, and the native stem and suffix are joined by the script's
-//! `ScriptRules::join_suffix` (Malayalam's is `join`).
+//! `ScriptRules::join_suffix`, from its `lang.json`'s `suffixJoins` (`script::data::Joins`).
 //!
 //! Only suffixes whose spelling ends the typed word are tried, and at most
 //! `MAX_LOOKUPS` stem skeletons are looked up per word. A pack without a suffix
@@ -31,7 +31,8 @@ const STEMS_PER_LOOKUP: usize = 3;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Join {
     /// A clitic or auxiliary that starts with a vowel (ആണോ, ഉണ്ട്, ഇല്ല, ഓ):
-    /// the vowel becomes a vowel sign on the stem's last consonant (see `join`).
+    /// the vowel becomes a vowel sign on the stem's last consonant
+    /// (`ScriptDef::join_suffix`).
     Vowel,
     /// A case ending that starts with a vowel (ഇൽ, ഉടെ, ഓട്). As `Vowel`, but a
     /// stem in ം takes the oblique ത്ത instead (മരം → മരത്തിൽ), which `Oblique`
@@ -132,106 +133,6 @@ pub(crate) fn load_ml() -> Suffixes {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/suffixes.tsv"),
     )
     .unwrap()
-}
-
-const VIRAMA: char = '\u{0D4D}';
-const ANUSVARA: char = 'ം';
-const SIGN_U: char = '\u{0D41}';
-
-/// The vowel sign an independent vowel takes after a consonant; None for അ,
-/// whose vowel is the consonant's own.
-fn sign_of(vowel: char) -> Option<Option<char>> {
-    Some(match vowel {
-        'അ' => None,
-        'ആ' => Some('\u{0D3E}'),
-        'ഇ' => Some('\u{0D3F}'),
-        'ഈ' => Some('\u{0D40}'),
-        'ഉ' => Some('\u{0D41}'),
-        'ഊ' => Some('\u{0D42}'),
-        'എ' => Some('\u{0D46}'),
-        'ഏ' => Some('\u{0D47}'),
-        'ഐ' => Some('\u{0D48}'),
-        'ഒ' => Some('\u{0D4A}'),
-        'ഓ' => Some('\u{0D4B}'),
-        'ഔ' => Some('\u{0D4C}'),
-        _ => return None,
-    })
-}
-
-/// The consonant a chillu stands for.
-fn chillu_base(c: char) -> Option<char> {
-    Some(match c {
-        'ൻ' => 'ന',
-        'ർ' => 'ര',
-        'ൽ' => 'ല',
-        'ൾ' => 'ള',
-        'ൺ' => 'ണ',
-        'ൿ' => 'ക',
-        _ => return None,
-    })
-}
-
-fn is_consonant(c: char) -> bool {
-    ('\u{0D15}'..='\u{0D3A}').contains(&c)
-}
-
-/// The glide between a stem ending in a vowel and a suffix starting with
-/// one: വ after u and o sounds (പൂ + ഇൽ → പൂവിൽ), യ after the rest
-/// (അമ്മ + ഓട് → അമ്മയോട്, എത്തി + ഓ → എത്തിയോ). None if `last` isn't a vowel.
-fn glide(last: char) -> Option<char> {
-    match last {
-        '\u{0D42}' | '\u{0D4A}' | '\u{0D4B}' | '\u{0D4C}' | '\u{0D57}' | 'ഉ' | 'ഊ' | 'ഒ' | 'ഓ' => {
-            Some('വ')
-        }
-        '\u{0D3E}'..='\u{0D40}' | '\u{0D46}'..='\u{0D48}' | 'അ'..='ഈ' | 'എ'..='ഐ' => {
-            Some('യ')
-        }
-        c if is_consonant(c) => Some('യ'), // its inherent a
-        _ => None,
-    }
-}
-
-/// Malayalam's joins (the mlym plug-in's `ScriptRules::join_suffix`): joins a stem and suffix
-/// with the sandhi `how` calls for; None
-/// when they don't join (a case ending on a stem in ം, say).
-///
-/// A vowel-initial suffix: a final ം becomes മ + the vowel sign (സുഖം + ആണോ
-/// → സുഖമാണോ); a chillu becomes its consonant + the sign (അവൻ + ഓട് →
-/// അവനോട്); a final ് or ു gives way to the sign (കഴിച്ചു + ഓ → കഴിച്ചോ);
-/// any other vowel takes a glide (`glide`).
-pub fn join(stem: &str, suffix: &str, how: Join) -> Option<String> {
-    let last = stem.chars().last()?;
-    let body = &stem[..stem.len() - last.len_utf8()];
-    match how {
-        Join::Consonant => {
-            let first = suffix.chars().next()?;
-            // ർ and ൾ take it too (അവർക്ക്, അവൾക്ക്); ൻ doesn't (അവന്).
-            let joins = is_consonant(last) || glide(last).is_some() || matches!(last, 'ർ' | 'ൾ');
-            (is_consonant(first) && joins).then(|| format!("{stem}{suffix}"))
-        }
-        Join::Oblique => (last == ANUSVARA).then(|| format!("{body}{suffix}")),
-        Join::Vowel | Join::Case => {
-            let mut chars = suffix.chars();
-            let sign = sign_of(chars.next()?)?;
-            let rest = chars.as_str();
-            let sign: String = sign.into_iter().collect();
-            if last == ANUSVARA {
-                return (how == Join::Vowel).then(|| format!("{body}മ{sign}{rest}"));
-            }
-            if let Some(base) = chillu_base(last) {
-                return Some(format!("{body}{base}{sign}{rest}"));
-            }
-            if last == VIRAMA || last == SIGN_U {
-                return body
-                    .chars()
-                    .last()
-                    .filter(|&c| is_consonant(c))
-                    .map(|_| format!("{body}{sign}{rest}"));
-            }
-            let glide = glide(last)?;
-            Some(format!("{stem}{glide}{sign}{rest}"))
-        }
-    }
 }
 
 /// A reading of the typed word as a stem plus suffixes.
@@ -397,6 +298,15 @@ mod tests {
         rules("mlym").unwrap()
     }
 
+    /// Malayalam's joins, from its `lang.json`: the stem's ending decides.
+    ///
+    /// A vowel-initial suffix: a final ം becomes മ + the vowel sign (സുഖം + ആണോ → സുഖമാണോ); a
+    /// chillu becomes its consonant + the sign (അവൻ + ഓട് → അവനോട്); a final ് or ു gives way
+    /// to the sign (കഴിച്ചു + ഓ → കഴിച്ചോ); any other vowel takes a glide.
+    fn join(stem: &str, suffix: &str, how: Join) -> Option<String> {
+        mlym().join_suffix(stem, suffix, how)
+    }
+
     #[test]
     fn malformed_lines_are_errors() {
         let ok = Suffixes::parse("# c\n\no,oo\tഓ\tvowel\nund\tഉണ്ട്\tvowel\tinner\n").unwrap();
@@ -471,8 +381,13 @@ mod tests {
         for s in ml().iter() {
             let first = s.native.chars().next().unwrap();
             match s.join {
-                Join::Vowel | Join::Case => assert!(sign_of(first).is_some(), "{s:?}"),
-                Join::Consonant => assert!(is_consonant(first), "{s:?}"),
+                Join::Vowel | Join::Case => {
+                    assert!(join("അമ്മ", &s.native, s.join).is_some(), "{s:?}")
+                }
+                Join::Consonant => {
+                    assert!(('\u{0D15}'..='\u{0D3A}').contains(&first), "{s:?}");
+                    assert!(join("അമ്മ", &s.native, s.join).is_some(), "{s:?}")
+                }
                 Join::Oblique => assert!(s.native.starts_with("ത്ത"), "{s:?}"),
             }
             assert!(

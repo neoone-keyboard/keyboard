@@ -319,27 +319,16 @@ mod tests {
     }
 
     /// The engine's rules for an Assamese pack normalise and classify as this config built
-    /// `as.fst`, so typed text meets the lexicon: both the coded ones (a pack without a `lang`
-    /// file) and the ones made from the file itself (`script::data`), which must also find the
-    /// same vowel-sign bases. On every char of the block, and on random strings of the chars
-    /// the replacements and NFC act on.
+    /// `as.fst`, so typed text meets the lexicon: the engine's own copy (a pack without a
+    /// `lang` file) and the ones made from the pack's file are one definition. On every char
+    /// of the block, and on random strings of the chars the replacements and NFC act on.
     #[test]
     fn the_engine_rules_for_assamese_match_the_config() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/langs/as/lang.json");
-        let coded = mlengine_core::script::for_pack("as", "beng", None).unwrap();
-        let data = mlengine_core::script::for_pack("as", "beng", Some(&path)).unwrap();
-        assert!(!std::ptr::addr_eq(coded, data));
-        for rules in [coded, data] {
-            check_rules(rules);
-        }
-        for c in '\u{0980}'..='\u{09FF}' {
-            for before in ["", "অ", "ক", "ক্"] {
-                let ctx = format!("{before}{c}");
-                assert_eq!(coded.mark_base(&ctx), data.mark_base(&ctx), "{ctx:?}");
-            }
-            assert_eq!(coded.ends_phrase(c), data.ends_phrase(c), "{c:?}");
-        }
-        assert_eq!(coded.inner_apostrophe(), data.inner_apostrophe());
+        let own = mlengine_core::script::for_pack("beng", None).unwrap();
+        let data = mlengine_core::script::for_pack("beng", Some(&path)).unwrap();
+        assert!(std::ptr::addr_eq(own, data), "the engine's copy is this file");
+        check_rules(data);
     }
 
     fn check_rules(rules: &dyn mlengine_core::script::ScriptRules) {

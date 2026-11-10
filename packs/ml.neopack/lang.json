@@ -1,0 +1,64 @@
+{
+  "id": "ml",
+  "name": "Malayalam",
+  "script": "mlym",
+  "block": ["0D00", "0D7F"],
+  "notLetter": [["0D64", "0D79"]],
+  "virama": "0D4D",
+  "bases": [["0D15", "0D3A"]],
+  "apostrophe": false,
+  "looseSigns": [
+    ["0D3E", "0D43"],
+    ["0D46", "0D48"],
+    ["0D4A", "0D4B"]
+  ],
+  "finalPairs": [["0D41", "0D4D"]],
+  "suffixJoins": {
+    "vowelSigns": [
+      ["0D05", ""],
+      ["0D06", "0D3E"],
+      ["0D07", "0D3F"],
+      ["0D08", "0D40"],
+      ["0D09", "0D41"],
+      ["0D0A", "0D42"],
+      ["0D0E", "0D46"],
+      ["0D0F", "0D47"],
+      ["0D10", "0D48"],
+      ["0D12", "0D4A"],
+      ["0D13", "0D4B"],
+      ["0D14", "0D4C"]
+    ],
+    "nasal": ["0D02", "0D2E"],
+    "finalForms": [
+      ["0D7B", "0D28"],
+      ["0D7C", "0D30"],
+      ["0D7D", "0D32"],
+      ["0D7E", "0D33"],
+      ["0D7A", "0D23"],
+      ["0D7F", "0D15"]
+    ],
+    "elide": ["0D4D", "0D41"],
+    "glides": [
+      {
+        "glide": "0D35",
+        "after": [["0D42", "0D42"], ["0D4A", "0D4C"], ["0D57", "0D57"], ["0D09", "0D0A"], ["0D12", "0D13"]]
+      },
+      {
+        "glide": "0D2F",
+        "after": [["0D3E", "0D40"], ["0D46", "0D48"], ["0D05", "0D08"], ["0D0E", "0D10"]]
+      }
+    ],
+    "inherentGlide": "0D2F",
+    "consonantAfter": ["0D7C", "0D7E"]
+  },
+  "notes": {
+    "about": "Malayalam as the engine has always read it. These rules were code (engine/core/src/script/mlym.rs, malayalam.rs and the joins in suffix.rs) until they became this file; the engine also carries a copy for a mlym pack that has no lang file. ml.fst is built by `lexbuild` (data/build-lexicons.sh) with these same rules, not by lexbuild-native, so the builder's keys (firstLetter, signs, maxWords, minCount) are not here.",
+    "block": "Malayalam, U+0D00-U+0D7F. Text is split into words at anything outside the block.",
+    "notLetter": "The digits ൦-൯, the fraction and number signs and the date mark (U+0D64-U+0D79) stay inside a run when text is split, as Malayalam text always has been, but a word is not made of them: letters are U+0D00-U+0D63 and the chillus U+0D7A-U+0D7F.",
+    "bases": "The consonants ക-ഺ. A vowel sign attaches to one; the chillus never take a sign.",
+    "replace": "None here. The normal form is the engine's own (normalize.rs): NFC, ’ to ', a consonant + virama + ZWJ that has an atomic chillu becomes that chillu (ന്‍ to ൻ), and a ZWJ or ZWNJ is kept only between a virama and a Malayalam letter.",
+    "looseSigns": "The vowel signs ാ ി ീ ു ൂ ൃ െ േ ൈ ൊ ോ. Loose spelling inserts one between consonants (ആവിശ്യം for ആവശ്യം), so the spelling without a medial sign is tried too. A final sign is inflection and is kept.",
+    "finalPairs": "A word ending in a consonant + ു is also written with ് (samvruthokaram): ഇന്നു and ഇന്ന്. Older text has ു where chat writes ്.",
+    "suffixJoins": "How a stem and a suffix of suffixes.tsv fuse. vowelSigns: the sign each independent vowel becomes on a consonant (അ is the consonant's own vowel). nasal: a final ം becomes മ before a vowel suffix (സുഖം + ആണോ is സുഖമാണോ), doesn't take a case ending, and is replaced by an oblique one (മരം + ത്തിൽ is മരത്തിൽ). finalForms: a chillu becomes its consonant before a vowel (അവൻ + ഓട് is അവനോട്). elide: a final ് or ു gives way to the suffix's vowel (കഴിച്ചു + ഓ is കഴിച്ചോ). glides: വ after u and o sounds (പൂ + ഇൽ is പൂവിൽ), യ after the other vowels and, as inherentGlide, after a bare consonant's own a (അമ്മ + ഓട് is അമ്മയോട്). consonantAfter: ർ and ൾ take a suffix that starts with a consonant (അവൾ + ക്ക് is അവൾക്ക്), as stems ending in a vowel do; ൻ doesn't."
+  }
+}

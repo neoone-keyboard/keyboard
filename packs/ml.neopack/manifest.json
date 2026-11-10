@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ml",
-  "version": "2026.11.06",
+  "version": "2026.11.11",
   "name": "Malayalam",
   "nativeName": "മലയാളം",
   "script": "mlym",
@@ -18,10 +18,12 @@
     "lm": "lm.mlkbnn",
     "suffixes": "suffixes.tsv",
     "chatForms": "chat-forms.tsv",
-    "layout": "layout.json"
+    "layout": "layout.json",
+    "lang": "lang.json"
   },
   "sha256": {
     "chat-forms.tsv": "084de0b02d1ffd7400f2f9d1838e9cc4d03199c02bb4624f4ca7706d7e25bccb",
+    "lang.json": "48bfaa3517310f3c89dd8c71c708ff271499babc118392465975ece872d4e184",
     "layout.json": "8064b883c57346c01094f4e040c72bc22b090391b80b3be93eb155aba2accf6b",
     "lm.mlkbnn": "4cb54319258e5fbac340675786638418413be6c37c7138cd6bf39546197dde4c",
     "manglish.fst": "afb22b4e6e5a6df38a275cf991b17b50fe449ae3f3bb0c54cc988996bd304c2e",

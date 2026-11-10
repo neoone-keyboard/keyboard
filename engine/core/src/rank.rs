@@ -209,7 +209,7 @@ const _: () = assert!(MANGLISH_MODEL_CONFIDENT_RELIEF <= MANGLISH_EXACT_BONUS);
 pub const MANGLISH_CHAT_FORM_RELIEF: f32 = MANGLISH_MODEL_CONFIDENT_RELIEF;
 /// A rare spelling with one medial vowel sign more than a word at least this
 /// much more probable is a loose spelling of it: loose typing puts a vowel
-/// between consonants (`malayalam::vowel_sign_drops`; a final sign is
+/// between consonants (`ScriptRules::vowel_sign_drops`; a final sign is
 /// inflection, വന്നോ against വന്ന). The common word is offered
 /// (`Engine::add_standard_neighbour`): `avishyam` reads as ആവിശ്യം (−12.53) but
 /// means ആവശ്യം (−9.44), which the model never reaches from `avishyam`, and

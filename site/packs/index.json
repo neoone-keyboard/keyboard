@@ -5,23 +5,23 @@
       "id": "as",
       "name": "Assamese",
       "nativeName": "অসমীয়া",
-      "version": "2026.11.06",
+      "version": "2026.11.11",
       "script": "beng",
       "minEngine": 2,
-      "size": 16091410,
-      "sha256": "d7a91b184c3bc566a3c8654b18a98ea25b557231a8ac6895b2d6a0866cde303c",
-      "url": "https://neoone.jishnu.me/packs/as-2026.11.06.neopack"
+      "size": 16094131,
+      "sha256": "a351dfde128195d2f2e4d85202a1075a110e1fbb8440ec4558dec7b95431c224",
+      "url": "https://neoone.jishnu.me/packs/as-2026.11.11.neopack"
     },
     {
       "id": "hi",
       "name": "Hindi",
       "nativeName": "हिन्दी",
-      "version": "2026.11.10",
+      "version": "2026.11.11",
       "script": "deva",
       "minEngine": 3,
-      "size": 26193326,
-      "sha256": "0d9cf30d582a8a3a6b4083a3d5181f081ac74ac0b44d742efa0f9ca3463ea9c8",
-      "url": "https://neoone.jishnu.me/packs/hi-2026.11.10.neopack",
+      "size": 26195042,
+      "sha256": "358c3ab9b1f2a6dc47af052534de57486301e10a302c4fd268fcbc7a47091887",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.11.neopack",
       "englishFingerprint": "9a50d0c85c79a0df"
     },
     {
@@ -40,12 +40,12 @@
       "id": "ml",
       "name": "Malayalam",
       "nativeName": "മലയാളം",
-      "version": "2026.11.06",
+      "version": "2026.11.11",
       "script": "mlym",
       "minEngine": 1,
-      "size": 31160630,
-      "sha256": "053f4492fde9b30a10ec262d487ff43856d17fd0fd7fb939ebc9a070b0f2dbd2",
-      "url": "https://neoone.jishnu.me/packs/ml-2026.11.06.neopack"
+      "size": 31164729,
+      "sha256": "eed36398b21e0173deff0c0c7ccfb020da975e82dddeaf8c90ddf8e705a1f508",
+      "url": "https://neoone.jishnu.me/packs/ml-2026.11.11.neopack"
     },
     {
       "id": "ta",

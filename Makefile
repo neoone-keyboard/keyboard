@@ -6,7 +6,9 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 # Stamped into the keyboard extension for its diagnostics report.
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
-ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
+# data/langs/{ml,hi,as}/lang.json are compiled into the engine (engine/core/src/script/mod.rs).
+ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
+  data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json
 
 .PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
@@ -72,13 +74,15 @@ test-engine:
 
 # The data checks: every pack's checksums, script rules and layout (scripts/pack.py --check),
 # the scripts' own tests, each pack's lexicons against its tables and script
-# (engine/core/tests/pack_check.rs reads every manifest in packs/), the older per-pack tests, and
-# the data pipeline. Last, that the published site lists every pack in packs/: that one fails
+# (engine/core/tests/pack_check.rs reads every manifest in packs/), the older per-pack tests,
+# the Malayalam, Hindi and Assamese script rules on every word of their lexicons against what
+# they gave as code (script_rules_recorded.rs), and the data pipeline. Last, that the published site lists every pack in packs/: that one fails
 # for a pack nobody has published yet (`make site-packs` does), so it runs after the rest.
 # A contributor's target is test-pack, below.
 PACK_CHECKS := python3 -I -m unittest discover -s scripts/tests && \
 	(cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored) && \
 	(cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored) && \
+	(cd engine && $(CARGO) test -q --release -p mlengine-core --test script_rules_recorded -- --ignored every_lexicon_word) && \
 	(cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored) && \
 	uv run --quiet --project data/pipeline pytest -q data/pipeline
 test-data:

@@ -78,7 +78,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
                 .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? [],
             installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
         )
-        // Each pack's script rules (its lang.json, or the engine's coded ones) are what
+        // Each pack's script rules (its lang.json, or the engine's own copy) are what
         // `nativeMarkBase` answers with from the first key, before the engine has opened.
         for pack in packs {
             _ = try? usePackScript(packDir: pack.folder.path)

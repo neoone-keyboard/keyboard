@@ -1,23 +1,24 @@
-//! Script plug-ins (M6 phase 2). Each script a pack can be written in has one implementation of
-//! [`ScriptRules`], keyed by its ISO 15924 code in lower case. Most scripts are data: a pack's
-//! `lang` file (`lang.json`) defines its script, and [`data::DataScript`] is the plug-in made
-//! from it (engine 4). The coded plug-ins (`mlym`, `deva`, `beng`) are for packs without that
-//! file, and Malayalam's for what data can't say (its chillus and suffix joins).
+//! Script rules. Each script a pack is written in has one [`ScriptRules`], keyed by its ISO
+//! 15924 code in lower case, and every script's rules are data: a pack's `lang` file
+//! (`lang.json`) defines its script, and [`data::DataScript`] is the plug-in made from it.
+//! Nothing here is written for one script.
+//!
+//! Packs for Malayalam, Hindi and Assamese were published before packs carried that file, so
+//! the engine holds a copy of those three ([`EMBEDDED`]: the same `data/langs/<id>/lang.json`
+//! their packs now carry), read through the same parser, for a pack in `mlym`, `deva` or `beng`
+//! that has no `lang` file. A pack's own file always wins.
 //!
 //! The engine serves one pack per script, so the rules in use for a script are global:
 //! `Sources::open` installs each pack's rules ([`install`]) before it reads the pack's files,
 //! and [`rules`], [`all`], [`normalize_word`] and `text::script` see them from then on. Before
-//! any pack is opened they are the coded plug-ins.
+//! any pack is opened they are the embedded three.
 
-mod beng;
 pub mod data;
-mod deva;
-mod mlym;
 
 use std::ops::RangeInclusive;
 use std::path::Path;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 use data::{DataScript, ScriptDef};
 
@@ -28,16 +29,15 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     /// The span of the script's characters, first to last. The transliterator's vocabulary,
     /// the LM's native pieces and the romanised-lexicon packing use it.
     fn block(&self) -> RangeInclusive<char>;
-    /// The script's characters, as ranges (the block, for a coded plug-in). Two scripts in use
-    /// never share one.
+    /// The script's characters, as ranges. Two scripts in use never share one.
     fn ranges(&self) -> Vec<RangeInclusive<char>> {
         vec![self.block()]
     }
     /// A letter or sign a word in this script may be made of (ZWJ and ZWNJ are handled by the
     /// caller). Narrower than `block`: digits and punctuation in the block are not letters.
     fn is_letter(&self, c: char) -> bool;
-    /// The script's half of the normal form. The engine normalises every word with
-    /// `normalize::normalize`, which today includes Malayalam's chillu rules.
+    /// The script's half of the normal form: `normalize::normalize` with the script's
+    /// replacements around it.
     fn normalize(&self, word: &str) -> String;
     /// The consonant at the end of `context_before` that a vowel sign typed next would attach
     /// to, if any. The keyboard shows the vowel-sign strip when there is one.
@@ -69,27 +69,49 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn inner_apostrophe(&self) -> bool {
         false
     }
-    /// Whether this coded plug-in has behaviour a `lang` file can't express, so a pack's file
-    /// doesn't replace it (Malayalam's chillus and joins).
-    fn needs_code(&self) -> bool {
-        false
-    }
 }
 
-/// The coded plug-ins. Malayalam first: `text::script` asks in this order, and the blocks
-/// don't overlap.
-static CODED: &[&dyn ScriptRules] = &[&mlym::Mlym, &deva::Deva, &beng::BENG];
+/// The `lang.json` of the packs published without one, by script: Malayalam's, Hindi's and
+/// Assamese's, as their lexicons were built. Malayalam first: `text::script` asks in this
+/// order, and the blocks don't overlap.
+///
+/// The beng copy is Assamese's, with its র → ৰ fold, as the Assamese pack is the only beng
+/// pack there is without the file. A Bengali pack brings its own.
+///
+/// `tests/script_rules_recorded.rs` holds what these rules gave when they were code. An edit
+/// to one of these files changes how every such installed pack is read.
+const EMBEDDED: [(&str, &str); 3] = [
+    ("mlym", include_str!("../../../../data/langs/ml/lang.json")),
+    ("deva", include_str!("../../../../data/langs/hi/lang.json")),
+    ("beng", include_str!("../../../../data/langs/as/lang.json")),
+];
 
-/// The rules in use, once a pack has installed any (`install`); null means `CODED`. Each
-/// table is leaked and only ever replaced, so a reader never sees one freed. A new table is
-/// made only when a pack brings rules other than those in use.
+/// The embedded files as plug-ins, parsed on first use.
+fn embedded_rules() -> &'static [&'static dyn ScriptRules] {
+    static RULES: OnceLock<Vec<&'static dyn ScriptRules>> = OnceLock::new();
+    RULES.get_or_init(|| {
+        EMBEDDED
+            .iter()
+            .map(|(code, json)| {
+                let def = ScriptDef::from_json(json)
+                    .unwrap_or_else(|e| panic!("the engine's lang.json for {code}: {e}"));
+                assert_eq!(def.code, *code, "the engine's lang.json for {code}");
+                DataScript::intern(def) as &'static dyn ScriptRules
+            })
+            .collect()
+    })
+}
+
+/// The rules in use, once a pack has installed any (`install`); null means the embedded
+/// ones. Each table is leaked and only ever replaced, so a reader never sees one freed. A new
+/// table is made only when a pack brings rules other than those in use.
 static TABLE: AtomicPtr<Vec<&'static dyn ScriptRules>> = AtomicPtr::new(std::ptr::null_mut());
 static WRITER: Mutex<()> = Mutex::new(());
 
 fn table() -> &'static [&'static dyn ScriptRules] {
     let p = TABLE.load(Ordering::Acquire);
     if p.is_null() {
-        CODED
+        embedded_rules()
     } else {
         // SAFETY: every non-null pointer stored in TABLE comes from Box::into_raw and is never
         // freed.
@@ -97,20 +119,20 @@ fn table() -> &'static [&'static dyn ScriptRules] {
     }
 }
 
-/// The rules for a script code: the ones a pack installed, else the coded plug-in.
+/// The rules for a script code: the ones a pack installed, else the embedded ones.
 pub fn rules(code: &str) -> Option<&'static dyn ScriptRules> {
     table().iter().copied().find(|r| r.code() == code)
 }
 
-/// The coded plug-in for a script code, whatever is installed.
-pub fn coded(code: &str) -> Option<&'static dyn ScriptRules> {
-    CODED.iter().copied().find(|r| r.code() == code)
+/// The engine's own copy of the rules for a script code, whatever is installed.
+pub fn embedded(code: &str) -> Option<&'static dyn ScriptRules> {
+    embedded_rules().iter().copied().find(|r| r.code() == code)
 }
 
-/// The scripts this engine has coded rules for. A pack in any other script brings its own
-/// (its `lang` file, engine 4).
+/// The scripts a pack may be in without a `lang` file. A pack in any other script brings its
+/// own.
 pub fn supported() -> Vec<&'static str> {
-    CODED.iter().map(|r| r.code()).collect()
+    EMBEDDED.iter().map(|(code, _)| *code).collect()
 }
 
 /// Every script in use.
@@ -145,21 +167,15 @@ pub fn install(new: &'static dyn ScriptRules) -> Result<(), String> {
     Ok(())
 }
 
-/// The rules for a pack `id` in `script`, with its `lang` file if it has one:
-///
-/// - with the file, the script it defines (`data::DataScript`), unless the coded plug-in for
-///   the script `needs_code` (Malayalam's), which is then used;
-/// - without, the coded plug-in (Assamese's for an `as` pack, see `beng`).
+/// The rules for a pack in `script`: the script its `lang` file defines, or, for a pack
+/// without one, the engine's own copy for that script (`EMBEDDED`).
 ///
 /// An error, in words, when the file is bad, names another script, or there is neither.
 /// Nothing is installed.
-pub fn for_pack(id: &str, script: &str, lang: Option<&Path>) -> Result<&'static dyn ScriptRules, String> {
-    let coded = coded(script);
+pub fn for_pack(script: &str, lang: Option<&Path>) -> Result<&'static dyn ScriptRules, String> {
     let Some(path) = lang else {
-        if script == "beng" && id == "as" {
-            return Ok(&beng::ASSAMESE);
-        }
-        return coded.ok_or_else(|| format!("no rules for script {script} (the pack has no lang file)"));
+        return embedded(script)
+            .ok_or_else(|| format!("no rules for script {script} (the pack has no lang file)"));
     };
     let def = ScriptDef::open(path)?;
     if def.code != script {
@@ -168,12 +184,9 @@ pub fn for_pack(id: &str, script: &str, lang: Option<&Path>) -> Result<&'static 
             def.code
         ));
     }
-    if let Some(c) = coded.filter(|c| c.needs_code()) {
-        return Ok(c);
-    }
     let rules = DataScript::intern(def);
     // Checked here as well as at install, so a pack is refused when it is opened.
-    if let Some(other) = CODED
+    if let Some(other) = embedded_rules()
         .iter()
         .find(|r| r.code() != script && data::overlaps(**r, rules))
     {
@@ -197,7 +210,7 @@ pub fn ends_phrase(c: char) -> bool {
 
 /// A word's normal form: `normalize::normalize`, then, for a word of a native script
 /// (`text::script`), that script's own rules (`ScriptRules::normalize`), which are what built
-/// its pack's lexicon. Malayalam's rules are `normalize` itself, so its words are unchanged.
+/// its pack's lexicon.
 pub fn normalize_word(word: &str) -> String {
     let normal = crate::normalize::normalize(word);
     match crate::text::script(&normal) {
@@ -231,30 +244,48 @@ mod tests {
     }
 
     #[test]
-    fn only_assamese_folds_the_bengali_ra() {
-        // G2: the fold is Assamese's (its lang file's `replace`), not the script's.
-        let bn = for_pack("bn", "beng", None).unwrap();
-        assert_eq!(bn.normalize("তোমার"), "তোমার");
-        let as_ = for_pack("as", "beng", None).unwrap();
-        assert_eq!(as_.normalize("তোমার"), "তোমাৰ");
-        let file = lang_file(r#"{"script": "beng", "block": ["0980", "09FF"], "replace": [["র", "ৰ"]]}"#);
-        let data = for_pack("bn", "beng", Some(file.path())).unwrap();
-        assert_eq!(data.normalize("তোমার"), "তোমাৰ", "a pack's own rules");
+    fn a_beng_pack_without_a_file_is_assamese_and_a_file_wins() {
+        // G2: the র → ৰ fold is Assamese's (its lang.json's `replace`), not the script's. The
+        // engine's copy for beng is that file, for the Assamese pack published without it.
+        let old = for_pack("beng", None).unwrap();
+        assert_eq!(old.normalize("তোমার"), "তোমাৰ");
+        assert!(std::ptr::addr_eq(old, embedded("beng").unwrap()));
+        // A Bengali pack brings its own rules and keeps its ra.
+        let file = lang_file(r#"{"script": "beng", "block": ["0980", "09FF"]}"#);
+        let bn = for_pack("beng", Some(file.path())).unwrap();
+        assert_eq!(bn.normalize("তোমার"), "তোমার", "a pack's own rules");
+        assert!(!std::ptr::addr_eq(bn, old));
     }
 
     #[test]
-    fn malayalam_keeps_its_code_and_unknown_scripts_need_a_file() {
+    fn a_packs_own_file_wins_for_every_script_and_unknown_scripts_need_one() {
+        // Malayalam too: nothing about it is code.
         let file = lang_file(r#"{"script": "mlym", "block": ["0D00", "0D7F"]}"#);
-        let ml = for_pack("ml", "mlym", Some(file.path())).unwrap();
-        assert!(std::ptr::addr_eq(ml, coded("mlym").unwrap()));
-        let err = for_pack("ta", "taml", None).unwrap_err();
+        let bare = for_pack("mlym", Some(file.path())).unwrap();
+        assert!(!std::ptr::addr_eq(bare, embedded("mlym").unwrap()));
+        assert_eq!(bare.other_final_u("ഇന്ന്"), None, "the file names no final pairs");
+        assert_eq!(
+            embedded("mlym").unwrap().other_final_u("ഇന്ന്").as_deref(),
+            Some("ഇന്നു")
+        );
+        let err = for_pack("taml", None).unwrap_err();
         assert!(err.contains("no lang file"), "{err}");
+    }
+
+    #[test]
+    fn a_pack_carrying_the_engines_file_gets_the_same_rules() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for (code, id) in [("mlym", "ml"), ("deva", "hi"), ("beng", "as")] {
+            let path = root.join(format!("data/langs/{id}/lang.json"));
+            let own = for_pack(code, Some(&path)).unwrap();
+            assert!(std::ptr::addr_eq(own, embedded(code).unwrap()), "{code}");
+        }
     }
 
     #[test]
     fn install_adds_a_script_and_refuses_an_overlap() {
         let file = lang_file(r#"{"script": "qzzz", "letters": [["F0000", "F00FF"]]}"#);
-        let new = for_pack("zz", "qzzz", Some(file.path())).unwrap();
+        let new = for_pack("qzzz", Some(file.path())).unwrap();
         install(new).unwrap();
         install(new).unwrap();
         assert!(std::ptr::addr_eq(rules("qzzz").unwrap(), new));
@@ -305,23 +336,140 @@ mod tests {
         );
     }
 
+    // What the coded plug-ins' own tests asserted (mlym.rs, malayalam.rs, deva.rs, beng.rs),
+    // now of the embedded rules. tests/script_rules_recorded.rs has the whole blocks.
+
     #[test]
-    fn malayalam_rules_match_the_old_functions() {
-        let ml = rules("mlym").unwrap();
-        for ctx in ["ക", "ന്റ", "കി", "ക്", "അവൻ", "abc", ""] {
-            assert_eq!(
-                ml.mark_base(ctx),
-                crate::malayalam::vowel_sign_base(ctx),
-                "{ctx:?}"
-            );
+    fn malayalam_vowel_sign_bases() {
+        let ml = embedded("mlym").unwrap();
+        assert_eq!(ml.mark_base("ക"), Some('ക'));
+        assert_eq!(ml.mark_base("അവ"), Some('വ'));
+        // ന + ് + റ: the next vowel sign attaches to റ.
+        assert_eq!(ml.mark_base("ന്റ"), Some('റ'));
+        for none in ["കി", "ക്", "അവൻ", "ക ", "അ", "abc", ""] {
+            assert_eq!(ml.mark_base(none), None, "{none:?}");
         }
-        for w in ["ഇന്ന്", "അതു", "വേണം", "ആവിശ്യം"] {
-            assert_eq!(ml.other_final_u(w), crate::malayalam::other_final_u(w));
-            assert_eq!(
-                ml.vowel_sign_drops(w),
-                crate::malayalam::vowel_sign_drops(w)
-            );
-            assert_eq!(ml.normalize(w), crate::normalize::normalize(w));
+        for (c, base) in [
+            ('\u{0D15}', true),
+            ('\u{0D3A}', true),
+            ('\u{0D14}', false),
+            ('\u{0D3B}', false),
+            ('\u{0D7B}', false),
+        ] {
+            assert_eq!(ml.mark_base(&c.to_string()).is_some(), base, "{c:?}");
+        }
+    }
+
+    #[test]
+    fn malayalam_final_u_and_vowel_sign_drops() {
+        let ml = embedded("mlym").unwrap();
+        assert_eq!(ml.other_final_u("ഇന്ന്").as_deref(), Some("ഇന്നു"));
+        assert_eq!(ml.other_final_u("അതു").as_deref(), Some("അത്"));
+        assert_eq!(ml.other_final_u("വേണം"), None);
+        assert_eq!(ml.other_final_u("ു"), None);
+        assert_eq!(ml.vowel_sign_drops("ആവിശ്യം"), ["ആവശ്യം"]);
+        assert_eq!(ml.vowel_sign_drops("കിളി"), ["കളി"], "the final ി is kept");
+        assert!(ml.vowel_sign_drops("വന്നോ").is_empty());
+        assert!(ml.vowel_sign_drops("അവൻ").is_empty());
+        assert_eq!(ml.normalize("അവന\u{0D4D}\u{200D}"), "അവൻ");
+    }
+
+    #[test]
+    fn malayalam_letters_and_word_chars() {
+        let ml = embedded("mlym").unwrap();
+        for c in ['ക', 'അ', 'ാ', '്', 'ം', 'ൻ', '\u{0D00}', '\u{0D63}'] {
+            assert!(ml.is_letter(c), "{c:?}");
+        }
+        for c in ['൦', '൯', '\u{0D64}', '\u{0D79}', 'a', 'क'] {
+            assert!(!ml.is_letter(c), "{c:?}");
+        }
+        assert!(ml.is_word_char('൦') && !ml.ends_phrase('।') && !ml.inner_apostrophe());
+    }
+
+    #[test]
+    fn devanagari_normal_form_letters_and_bases() {
+        let d = embedded("deva").unwrap();
+        // ज़ (U+095B) is a composition exclusion: NFC gives ज + nukta.
+        assert_eq!(d.normalize("\u{095B}िंदगी"), "\u{091C}\u{093C}िंदगी");
+        assert_eq!(d.normalize("\u{095E}िल्म"), "\u{092B}\u{093C}िल्म");
+        // ऩ ऱ ऴ compose and stay one code point.
+        assert_eq!(d.normalize("\u{0928}\u{093C}"), "\u{0929}");
+        assert_eq!(d.normalize("\u{0931}"), "\u{0931}");
+        // A joiner after a virama only changes the drawing; the lexicon has none.
+        assert_eq!(d.normalize("क्\u{200D}ष"), "क्ष");
+        assert_eq!(d.normalize("क्\u{200C}ष"), "क्ष");
+        assert_eq!(d.normalize("कह’"), "कह'");
+        for c in ['।', '॥', '०', '९', '॰', 'a', 'ക'] {
+            assert!(!d.is_letter(c), "{c}");
+        }
+        for c in ['क', 'अ', 'ा', '्', '़', 'ं', 'ँ', 'ः', 'ॐ', 'ऽ', '\u{0929}'] {
+            assert!(d.is_letter(c), "{c}");
+        }
+        assert!(d.ends_phrase('।') && d.ends_phrase('॥') && !d.ends_phrase('.'));
+        assert_eq!(d.mark_base("नमस"), Some('स'));
+        assert_eq!(d.mark_base("ज\u{093C}"), Some('ज'), "consonant + nukta");
+        assert_eq!(d.mark_base("\u{095B}"), Some('\u{095B}'));
+        for none in ["कि", "क्", "अ", "कं", "\u{093C}", "abc", ""] {
+            assert_eq!(d.mark_base(none), None, "{none:?}");
+        }
+        assert!(d.vowel_sign_drops("किताब").is_empty() && d.other_final_u("बात").is_none());
+    }
+
+    #[test]
+    fn assamese_normal_form_letters_and_bases() {
+        let b = embedded("beng").unwrap();
+        for (written, normal) in [
+            ("ৰাজ্য", "ৰাজ্য"),
+            ("ৱিকি", "ৱিকি"),
+            ("বাট", "বাট"),
+            ("তোমার", "তোমাৰ"),
+            ("প্রথম", "প্ৰথম"),
+            // Khanda ta the old way, the halves of ো in visual order, অ + া.
+            ("উত\u{09CD}\u{200D}সৱ", "উৎসৱ"),
+            ("মােৰ", "মোৰ"),
+            ("অাৰু", "আৰু"),
+            ("ম\u{09C7}\u{09BE}ৰ", "মোৰ"),
+            // The nukta letters are composition exclusions.
+            ("\u{09DF}", "\u{09AF}\u{09BC}"),
+            ("\u{09DC}", "\u{09A1}\u{09BC}"),
+            ("\u{09DD}", "\u{09A2}\u{09BC}"),
+            ("ক্\u{200C}ষ", "ক্ষ"),
+            ("ক্\u{200D}ষ", "ক্ষ"),
+            ("\u{200C}মই", "মই"),
+            ("হ’ল", "হ'ল"),
+        ] {
+            assert_eq!(b.normalize(written), normal, "{written:?}");
+        }
+        for c in ['০', '৯', '৳', '৷', '৺', '\u{09FE}', '।'] {
+            assert!(!b.is_letter(c), "{c}");
+        }
+        for c in ['ক', 'অ', 'া', '্', '়', 'ং', 'ঁ', 'ঃ', 'ৎ', 'ৰ', 'ৱ', '\u{09DC}'] {
+            assert!(b.is_letter(c), "{c}");
+        }
+        assert!(b.ends_phrase('।') && b.ends_phrase('৷') && !b.ends_phrase(','));
+        assert!(b.inner_apostrophe());
+        assert_eq!(b.mark_base("মোৰ"), Some('ৰ'));
+        assert_eq!(b.mark_base("ৱ"), Some('ৱ'));
+        assert_eq!(b.mark_base("য\u{09BC}"), Some('য'), "consonant + nukta");
+        for none in ["কি", "ক্", "উৎ", "অ", "হ'", ""] {
+            assert_eq!(b.mark_base(none), None, "{none:?}");
+        }
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn a_malayalam_base_is_the_last_char_and_a_consonant(s in "\\PC{0,24}") {
+            if let Some(c) = embedded("mlym").unwrap().mark_base(&s) {
+                let consonant = ('\u{0D15}'..='\u{0D3A}').contains(&c);
+                proptest::prop_assert!(consonant);
+                proptest::prop_assert_eq!(s.chars().last(), Some(c));
+            }
+        }
+
+        #[test]
+        fn malayalam_text_never_panics(s in "[\u{0D00}-\u{0D7F}\u{200C}\u{200D} ]{0,24}") {
+            let ml = embedded("mlym").unwrap();
+            let _ = (ml.mark_base(&s), ml.vowel_sign_drops(&s), ml.other_final_u(&s));
         }
     }
 }
