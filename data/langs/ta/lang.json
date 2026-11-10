@@ -1,0 +1,86 @@
+{
+  "id": "ta",
+  "name": "Tamil",
+  "script": "taml",
+  "block": [
+    "0B80",
+    "0BFF"
+  ],
+  "notWord": [
+    [
+      "0BE6",
+      "0BFA"
+    ]
+  ],
+  "firstLetter": [
+    [
+      "0B83",
+      "0B83"
+    ],
+    [
+      "0B85",
+      "0B94"
+    ],
+    [
+      "0B95",
+      "0BB9"
+    ]
+  ],
+  "virama": "0BCD",
+  "signs": [
+    [
+      "0BBE",
+      "0BCC"
+    ],
+    [
+      "0BD7",
+      "0BD7"
+    ],
+    [
+      "0BCD",
+      "0BCD"
+    ]
+  ],
+  "bases": [
+    [
+      "0B95",
+      "0BB9"
+    ]
+  ],
+  "apostrophe": false,
+  "replace": [
+    [
+      "‍",
+      ""
+    ],
+    [
+      "‌",
+      ""
+    ],
+    [
+      "ா்",
+      "ர்"
+    ],
+    [
+      "ஶ்ரீ",
+      "ஸ்ரீ"
+    ]
+  ],
+  "phraseBreaks": [
+    "।",
+    "॥"
+  ],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "tam",
+  "notes": {
+    "block": "Tamil, U+0B80-U+0BFF. Words are runs of its letters and signs. The Grantha letters ஜ ஶ ஷ ஸ ஹ (and க்ஷ, ஸ்ரீ as clusters) are ordinary consonants inside 0B95-0BB9.",
+    "notWord": "Digits ௦-௯, the old number signs ௰ ௱ ௲ and the day, month, year, debit, credit, rupee and number signs (U+0BF3-U+0BFA) are not word letters. ௐ (U+0BD0) is.",
+    "firstLetter": "Aytham ஃ (U+0B83) may start a word: it marks f in ஃபேஸ்புக், ஃபிரான்ஸ். Anusvara U+0B82 is not used in Tamil and can't start one.",
+    "virama": "The pulli (U+0BCD). Tamil shows it as a dot and has almost no conjuncts (only க்ஷ and ஸ்ரீ), so a pulli is simply 'no vowel here'.",
+    "signs": "Vowel signs U+0BBE-U+0BCC, the au length mark U+0BD7 and the pulli must follow a consonant. Aytham ஃ is left out: it follows a vowel (அஃது).",
+    "replace": "ZWJ and ZWNJ are dropped, as the engine's normal form drops them. ா + pulli is ர் typed with the wrong key, common in news text (செய்தாா் for செய்தார்): an aa sign can't carry a pulli. ஶ்ரீ (the spelling Unicode 4.1 recommends) is folded to ஸ்ரீ, which nearly all text uses. NFC already joins the two-part vowel signs (ெ + ா is ொ, ே + ா is ோ, ெ + ௗ is ௌ). ெ + ள typed for ௌ is NOT mended: தெளிவு has that sequence for real.",
+    "phraseBreaks": "Tamil ends sentences with Latin punctuation; the dandas are listed only for quoted Sanskrit verse."
+  }
+}
