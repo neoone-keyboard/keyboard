@@ -1,0 +1,15 @@
+NeoOne Keyboard
+Copyright 2026 Jishnu Viswanath
+
+The source code in this repository is licensed under the Apache License,
+Version 2.0 (see LICENSE).
+
+Data is not covered by that licence. The language packs (packs/), the
+English word lists and the trained models are built from third-party
+sources and keep those sources' licences, for example Wikipedia text under
+CC BY-SA 4.0. Each pack lists its sources and their licences in its
+manifest.json ("credits"); the apps show them under About and credits, and
+https://neoone.jishnu.me/credits lists them too.
+
+Third-party software built into the apps is listed, with its licence, in
+engine/shipped-crates.txt and in the apps' credits screens.
