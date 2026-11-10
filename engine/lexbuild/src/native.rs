@@ -1,13 +1,18 @@
 //! A pack language's native-script lexicon, from a language config (`data/langs/<id>/lang.json`)
-//! instead of code: which Unicode block its words are in, which letters may start a word,
+//! instead of code: which characters its words are made of, which letters may start a word,
 //! the replacements that make its text one spelling, and what ends a phrase. Used by
-//! `lexbuild-native` for languages whose script the engine core has no rules for yet (the
-//! Bengali-Assamese script of Assamese, say). Malayalam keeps its own path in `lib.rs`.
+//! `lexbuild-native`. Malayalam keeps its own path in `lib.rs`.
 //!
-//! Normal form: the engine's `normalize` (NFC, `’` to `'`, stray joiners dropped), with the
-//! config's `replace` pairs applied first (an old khanda ta encoding, which would otherwise
-//! lose its ZWJ) and again after. The romanised lookup keys are packed one byte per
-//! character like `manglish.fst`'s (`pack`), from the block base.
+//! The script half of the config (characters, signs, bases, virama, replacements, phrase
+//! breaks, apostrophes) is parsed by the engine core (`mlengine_core::script::data::ScriptDef`),
+//! which reads the same file from a pack's `lang` role at run time: one definition for the
+//! builder and the keyboard. This module adds what only the builder needs (`id`, `firstLetter`,
+//! `maxChars`, `maxWords`, `minCount`).
+//!
+//! Normal form: `ScriptDef::normalize` (the config's `replace` pairs, the engine's `normalize`,
+//! the pairs again). The romanised lookup keys are packed one byte per character like
+//! `manglish.fst`'s (`pack`), from the first code point of the script, so they need a script of
+//! at most 128 code points.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -15,7 +20,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use mlengine_core::lexicon::SEPARATOR;
-use mlengine_core::normalize::normalize;
+use mlengine_core::script::data::ScriptDef;
 use serde::Deserialize;
 
 use crate::{Counts, Entries, for_each_line};
@@ -23,26 +28,13 @@ use crate::{Counts, Entries, for_each_line};
 const ZWNJ: char = '\u{200C}';
 const ZWJ: char = '\u{200D}';
 
+/// The builder's own keys of `lang.json`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawConfig {
     id: String,
-    script: String,
-    block: [String; 2],
     #[serde(default)]
-    not_word: Vec<[String; 2]>,
     first_letter: Vec<[String; 2]>,
-    virama: String,
-    #[serde(default)]
-    signs: Vec<[String; 2]>,
-    #[serde(default)]
-    bases: Vec<[String; 2]>,
-    #[serde(default)]
-    apostrophe: bool,
-    #[serde(default)]
-    replace: Vec<[String; 2]>,
-    #[serde(default)]
-    phrase_breaks: Vec<String>,
     max_chars: usize,
     max_words: usize,
     min_count: u64,
@@ -52,18 +44,10 @@ struct RawConfig {
 #[derive(Debug, Clone)]
 pub struct Lang {
     pub id: String,
-    pub script: String,
-    pub block: (char, char),
-    not_word: Vec<(char, char)>,
+    /// The script, as the engine reads it from a pack's `lang` file.
+    pub def: ScriptDef,
+    /// Letters a word may start with; empty means any letter of the script.
     first_letter: Vec<(char, char)>,
-    pub virama: char,
-    /// Vowel signs and the virama, which must follow a `bases` letter.
-    signs: Vec<(char, char)>,
-    bases: Vec<(char, char)>,
-    /// Apostrophes may stand inside a word (Assamese হ'ল).
-    pub apostrophe: bool,
-    replace: Vec<(String, String)>,
-    phrase_breaks: HashSet<char>,
     pub max_chars: usize,
     pub max_words: usize,
     pub min_count: u64,
@@ -84,43 +68,17 @@ fn range(pair: &[String; 2]) -> io::Result<(char, char)> {
     Ok((code_point(&pair[0])?, code_point(&pair[1])?))
 }
 
-fn single_char(s: &str, what: &str) -> io::Result<char> {
-    let mut chars = s.chars();
-    match (chars.next(), chars.next()) {
-        (Some(c), None) => Ok(c),
-        _ => Err(io::Error::other(format!(
-            "{what} must be one character: {s:?}"
-        ))),
-    }
-}
-
 impl Lang {
     pub fn from_json(text: &str) -> io::Result<Self> {
+        let def = ScriptDef::from_json(text).map_err(io::Error::other)?;
         let raw: RawConfig = serde_json::from_str(text).map_err(io::Error::other)?;
-        let block = range(&raw.block)?;
-        if (block.1 as u32) < (block.0 as u32) || block.1 as u32 - block.0 as u32 >= 0x80 {
-            // `pack` gives each block character one byte, 0x80 and up.
-            return Err(io::Error::other("block must be at most 128 code points"));
-        }
         Ok(Self {
             id: raw.id,
-            script: raw.script,
-            block,
-            not_word: raw.not_word.iter().map(range).collect::<io::Result<_>>()?,
+            def,
             first_letter: raw
                 .first_letter
                 .iter()
                 .map(range)
-                .collect::<io::Result<_>>()?,
-            virama: code_point(&raw.virama)?,
-            signs: raw.signs.iter().map(range).collect::<io::Result<_>>()?,
-            bases: raw.bases.iter().map(range).collect::<io::Result<_>>()?,
-            apostrophe: raw.apostrophe,
-            replace: raw.replace.into_iter().map(|[a, b]| (a, b)).collect(),
-            phrase_breaks: raw
-                .phrase_breaks
-                .iter()
-                .map(|s| single_char(s, "a phrase break"))
                 .collect::<io::Result<_>>()?,
             max_chars: raw.max_chars,
             max_words: raw.max_words,
@@ -132,48 +90,43 @@ impl Lang {
         let text = fs::read_to_string(path)
             .map_err(|e| io::Error::new(e.kind(), format!("{}: {e}", path.display())))?;
         Self::from_json(&text)
+            .map_err(|e| io::Error::other(format!("{}: {e}", path.display())))
+    }
+
+    /// The script code ("beng").
+    pub fn script(&self) -> &str {
+        &self.def.code
+    }
+
+    /// The first code point of the script: `pack`'s base.
+    pub fn base(&self) -> char {
+        *self.def.span().start()
     }
 
     fn in_block(&self, c: char) -> bool {
-        (self.block.0..=self.block.1).contains(&c)
+        self.def.in_script(c)
     }
 
-    /// A letter or sign of the language: in the block and not a digit or symbol.
+    /// A letter or sign of the language: in the script and not a digit or symbol.
     pub fn is_word_char(&self, c: char) -> bool {
-        self.in_block(c) && !self.not_word.iter().any(|&(a, b)| (a..=b).contains(&c))
+        self.def.is_word_char(c)
     }
 
     fn is_first_letter(&self, c: char) -> bool {
-        in_ranges(&self.first_letter, c)
-    }
-
-    /// Every sign follows a base letter (a consonant or nukta), as in well-formed text.
-    fn signs_follow_bases(&self, chars: &[char]) -> bool {
-        chars.iter().enumerate().all(|(i, &c)| {
-            !in_ranges(&self.signs, c) || (i > 0 && in_ranges(&self.bases, chars[i - 1]))
-        })
+        if self.first_letter.is_empty() {
+            self.is_word_char(c) && !self.def.is_sign(c)
+        } else {
+            in_ranges(&self.first_letter, c)
+        }
     }
 
     pub fn is_phrase_break(&self, c: char) -> bool {
-        self.phrase_breaks.contains(&c) || crate::is_phrase_break(c)
-    }
-
-    fn apply_replace(&self, text: &str) -> String {
-        let mut out = text.to_string();
-        for (from, to) in &self.replace {
-            if out.contains(from.as_str()) {
-                out = out.replace(from.as_str(), to);
-            }
-        }
-        out
+        self.def.is_phrase_break(c) || crate::is_phrase_break(c)
     }
 
     /// The language's normal form of `text` (see the module comment).
     pub fn normalize(&self, text: &str) -> String {
-        let before = self.apply_replace(&normalize(&self.apply_replace(text)));
-        // A replacement can make text that NFC or the joiner rules would change again.
-        let after = self.apply_replace(&normalize(&before));
-        if after == before { before } else { after }
+        self.def.normalize(text)
     }
 
     fn is_token_char(&self, c: char) -> bool {
@@ -181,7 +134,7 @@ impl Lang {
             && (c.is_alphanumeric() || self.in_block(c) || matches!(c, ZWNJ | ZWJ | '\''))
     }
 
-    /// The tokens of a normalised line: runs of letters, the block, joiners and apostrophes,
+    /// The tokens of a normalised line: runs of letters, the script, joiners and apostrophes,
     /// with apostrophes trimmed from the ends (as the engine's `text::words`).
     pub fn words<'a>(&self, line: &'a str) -> impl Iterator<Item = &'a str> {
         line.split(move |c: char| !self.is_token_char(c))
@@ -196,17 +149,29 @@ impl Lang {
         let chars: Vec<char> = word.chars().collect();
         let apostrophes = chars.iter().filter(|&&c| c == '\'').count();
         let letters_only = chars.iter().all(|&c| {
-            self.is_word_char(c) || matches!(c, ZWNJ | ZWJ) || (c == '\'' && self.apostrophe)
+            self.is_word_char(c) || matches!(c, ZWNJ | ZWJ) || (c == '\'' && self.def.apostrophe)
         });
         let starts = chars.first().is_some_and(|&c| self.is_first_letter(c));
-        let lone_virama = chars.len() <= 2 && chars.last() == Some(&self.virama);
+        let lone_virama =
+            self.def.virama.is_some() && chars.len() <= 2 && chars.last() == self.def.virama.as_ref();
         letters_only
             && apostrophes <= 1
             && starts
-            && self.signs_follow_bases(&chars)
+            && self.def.signs_follow_bases(&chars)
             && !lone_virama
             && chars.len() <= self.max_chars
             && chars.last() != Some(&'\'')
+    }
+
+    /// The script fits `pack`'s one byte per character.
+    fn packable(&self) -> io::Result<()> {
+        let span = self.def.span();
+        if *span.end() as u32 - *span.start() as u32 >= 0x80 {
+            return Err(io::Error::other(
+                "romanised keys pack one byte per character: the script must span at most 128 code points",
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -265,8 +230,11 @@ pub fn pack(lang: &Lang, word: &str) -> Option<Vec<u8>> {
         .map(|c| match c {
             ZWNJ => Some(0x01),
             ZWJ => Some(0x02),
-            '\'' if lang.apostrophe => Some(b'\''),
-            c if lang.in_block(c) => Some(0x80 + (c as u32 - lang.block.0 as u32) as u8),
+            '\'' if lang.def.apostrophe => Some(b'\''),
+            c if lang.in_block(c) => {
+                let offset = c as u32 - lang.base() as u32;
+                (offset < 0x80).then(|| 0x80 + offset as u8)
+            }
             _ => None,
         })
         .collect()
@@ -279,8 +247,8 @@ pub fn unpack(lang: &Lang, bytes: &[u8]) -> Option<String> {
         .map(|&b| match b {
             0x01 => Some(ZWNJ),
             0x02 => Some(ZWJ),
-            b'\'' if lang.apostrophe => Some('\''),
-            0x80..=0xFF => char::from_u32(lang.block.0 as u32 + u32::from(b - 0x80)),
+            b'\'' if lang.def.apostrophe => Some('\''),
+            0x80..=0xFF => char::from_u32(lang.base() as u32 + u32::from(b - 0x80)),
             _ => None,
         })
         .collect()
@@ -291,6 +259,7 @@ pub fn unpack(lang: &Lang, bytes: &[u8]) -> Option<String> {
 /// Rows with an empty skeleton, a skeleton that isn't a–z, or a word that can't be packed are
 /// skipped and counted.
 pub fn romanised_entries(lang: &Lang, reader: impl BufRead) -> io::Result<(Entries, usize)> {
+    lang.packable()?;
     let mut entries = Vec::new();
     let mut skipped = 0;
     for line in reader.lines() {
@@ -334,13 +303,32 @@ mod tests {
         Lang::open(&path).unwrap()
     }
 
-    /// The engine's beng plug-in normalises and classifies as this config built `as.fst`, so
-    /// typed text meets the lexicon: on every char of the block, and on random strings of the
-    /// chars the replacements and NFC act on.
+    /// The engine's rules for an Assamese pack normalise and classify as this config built
+    /// `as.fst`, so typed text meets the lexicon: both the coded ones (a pack without a `lang`
+    /// file) and the ones made from the file itself (`script::data`), which must also find the
+    /// same vowel-sign bases. On every char of the block, and on random strings of the chars
+    /// the replacements and NFC act on.
     #[test]
-    fn the_engine_beng_rules_match_the_config() {
+    fn the_engine_rules_for_assamese_match_the_config() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/langs/as/lang.json");
+        let coded = mlengine_core::script::for_pack("as", "beng", None).unwrap();
+        let data = mlengine_core::script::for_pack("as", "beng", Some(&path)).unwrap();
+        assert!(!std::ptr::addr_eq(coded, data));
+        for rules in [coded, data] {
+            check_rules(rules);
+        }
+        for c in '\u{0980}'..='\u{09FF}' {
+            for before in ["", "অ", "ক", "ক্"] {
+                let ctx = format!("{before}{c}");
+                assert_eq!(coded.mark_base(&ctx), data.mark_base(&ctx), "{ctx:?}");
+            }
+            assert_eq!(coded.ends_phrase(c), data.ends_phrase(c), "{c:?}");
+        }
+        assert_eq!(coded.inner_apostrophe(), data.inner_apostrophe());
+    }
+
+    fn check_rules(rules: &dyn mlengine_core::script::ScriptRules) {
         let lang = assamese();
-        let rules = mlengine_core::script::rules("beng").unwrap();
         for c in '\u{0980}'..='\u{09FF}' {
             assert_eq!(rules.is_letter(c), lang.is_word_char(c), "{c:?}");
             let s = c.to_string();

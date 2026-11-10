@@ -1,5 +1,6 @@
-//! `lexbuild-native`: a pack language's lexicons from its language config and corpus, for
-//! languages whose script has no rules in the engine core (see `lexbuild::native`).
+//! `lexbuild-native`: a pack language's lexicons from its language config and corpus (see
+//! `lexbuild::native`). The config defines the script, as a pack's `lang` file does for the
+//! engine, so any script works without code.
 //!
 //!     lexbuild-native --lang-config data/langs/as/lang.json --native data/raw/text/as.txt \
 //!         --english-next packs/ml.neopack/next.fst --out data/raw/bundle-as
@@ -7,7 +8,9 @@
 //! writes `<id>.fst` (word frequencies), `next.fst` (the English pairs of `--english-next`,
 //! which were counted against the same `en.fst`, plus the native ones), `words.tsv` (the
 //! vocabulary, for the romanised keys) and `stats.txt`. With `--romanised-keys` (rows of
-//! `skeleton<TAB>word<TAB>count`) it writes `romanised.fst`; `--native` is then optional.
+//! `skeleton<TAB>word<TAB>count`) it writes `romanised.fst`; `--native` is then optional. With
+//! `--romanisation` (a pack's `romanisation.json`) instead, `romanised.fst` is keyed by the
+//! tables' walk and skeleton of every word in the vocabulary, as `lexbuild --lang` keys it.
 
 use std::collections::HashSet;
 use std::fmt::Write as _;
@@ -18,6 +21,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use lexbuild::native::{self, Lang};
+use lexbuild::romanisation::Table;
 use lexbuild::{Config, Counts, Entries, NextWords};
 use mlengine_core::lexicon::{Lexicon, build};
 
@@ -37,8 +41,12 @@ struct Args {
     #[arg(long)]
     english_next: Option<PathBuf>,
     /// `skeleton<TAB>word<TAB>count` rows: writes `romanised.fst`.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "romanisation")]
     romanised_keys: Option<PathBuf>,
+    /// A pack's `romanisation.json`: writes `romanised.fst` from the vocabulary (needs
+    /// `--native`).
+    #[arg(long, requires = "native")]
+    romanisation: Option<PathBuf>,
     /// Output directory.
     #[arg(long)]
     out: PathBuf,
@@ -70,6 +78,10 @@ fn write_fst(out: &Path, name: &str, entries: Entries, report: &mut String) -> i
 
 fn run(args: Args) -> io::Result<()> {
     let lang = Lang::open(&args.lang_config)?;
+    // The script as the engine will read it from the pack: the romanisation tables find their
+    // script's rules by its code.
+    let rules = mlengine_core::script::data::DataScript::intern(lang.def.clone());
+    mlengine_core::script::install(rules).map_err(io::Error::other)?;
     fs::create_dir_all(&args.out)?;
     let mut report = String::new();
 
@@ -126,6 +138,12 @@ fn run(args: Args) -> io::Result<()> {
         tsv.flush()?;
         let top: Vec<&str> = vocab.iter().take(20).map(|(w, _)| w.as_str()).collect();
         let _ = writeln!(report, "{} top 20: {}", lang.id, top.join(" "));
+        if let Some(path) = &args.romanisation {
+            let table = Table::load(path)?;
+            let entries = table.entries(&vocab);
+            let _ = writeln!(report, "romanised keys skipped: {}", vocab.len() - entries.len());
+            write_fst(&args.out, "romanised.fst", entries, &mut report)?;
+        }
     }
 
     if let Some(path) = &args.romanised_keys {

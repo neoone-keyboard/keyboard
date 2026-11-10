@@ -1,16 +1,18 @@
-//! Bengali-Assamese (beng), written today for Assamese. The normal form is the one
-//! `lexbuild-native` built `as.fst` with (`data/langs/as/lang.json`, `Lang::normalize`): the
-//! replacements below, the engine's `normalize::normalize` (NFC, `’` to `'`, every ZWJ and ZWNJ
-//! dropped, as only the Malayalam virama keeps one), and the replacements again:
+//! Bengali-Assamese (beng), the coded plug-in for a beng pack without a `lang` file. The
+//! normal form is the replacements below, the engine's `normalize::normalize` (NFC, `’` to `'`,
+//! every ZWJ and ZWNJ dropped, as only the Malayalam virama keeps one), and the replacements
+//! again (`ScriptDef::normalize` does the same for a script defined by data):
 //!
 //! - ত + virama + ZWJ, the old encoding of khanda ta, becomes ৎ (before the joiner is lost);
-//! - the Bengali ra র (U+09B0) folds to the Assamese ৰ (U+09F0); ৰ ৱ ব are kept;
 //! - া + ে (the halves of ো in visual order) becomes ো, and অ + া becomes আ.
 //!
 //! NFC leaves য় ড় ঢ় as base + nukta (U+09DF, U+09DC, U+09DD are composition exclusions).
 //!
-//! The ra fold is Assamese's, not the script's: a Bengali pack would need its own normal form
-//! (a language-level rule, or a plug-in per language). Assamese is the only beng pack.
+//! Folding the Bengali ra র (U+09B0) to the Assamese ৰ (U+09F0) is Assamese's rule, not the
+//! script's: it is in `data/langs/as/lang.json` `replace`, which a pack ships as its `lang` file
+//! (engine 4). [`ASSAMESE`] keeps the fold for an `as` pack published before that, without the
+//! file (`script::for_pack`); every other beng pack is [`BENG`], so a Bengali pack is never
+//! rewritten.
 //!
 //! A word is a run of the block's letters and signs, with apostrophes inside (হ'ল, ক'ত: the
 //! apostrophe marks the vowel o); the digits and the currency and fraction signs are not
@@ -22,8 +24,15 @@ use super::ScriptRules;
 
 const NUKTA: char = '\u{09BC}';
 
-/// `data/langs/as/lang.json` `replace`, in its order.
-const REPLACE: [(&str, &str); 4] = [
+/// The script's replacements.
+const SCRIPT: [(&str, &str); 3] = [
+    ("\u{09A4}\u{09CD}\u{200D}", "\u{09CE}"),
+    ("\u{09BE}\u{09C7}", "\u{09CB}"),
+    ("\u{0985}\u{09BE}", "\u{0986}"),
+];
+
+/// `data/langs/as/lang.json` `replace`, in its order: the script's and the ra fold.
+const ASSAMESE_REPLACE: [(&str, &str); 4] = [
     ("\u{09A4}\u{09CD}\u{200D}", "\u{09CE}"),
     ("\u{09B0}", "\u{09F0}"),
     ("\u{09BE}\u{09C7}", "\u{09CB}"),
@@ -31,11 +40,20 @@ const REPLACE: [(&str, &str); 4] = [
 ];
 
 #[derive(Debug)]
-pub struct Beng;
+pub struct Beng {
+    replace: &'static [(&'static str, &'static str)],
+}
 
-fn replace(text: &str) -> String {
+/// The script's rules: any beng pack without a `lang` file but Assamese.
+pub static BENG: Beng = Beng { replace: &SCRIPT };
+/// Assamese's, for an `as` pack published without its `lang` file (before engine 4).
+pub static ASSAMESE: Beng = Beng {
+    replace: &ASSAMESE_REPLACE,
+};
+
+fn replace(text: &str, pairs: &[(&str, &str)]) -> String {
     let mut out = text.to_string();
-    for (from, to) in REPLACE {
+    for &(from, to) in pairs {
         if out.contains(from) {
             out = out.replace(from, to);
         }
@@ -66,8 +84,8 @@ impl ScriptRules for Beng {
     fn normalize(&self, word: &str) -> String {
         // As `lexbuild::native::Lang::normalize`: a replacement can make text that NFC or the
         // joiner rules would change again, so one more round when it does.
-        let before = replace(&crate::normalize::normalize(&replace(word)));
-        let after = replace(&crate::normalize::normalize(&before));
+        let before = replace(&crate::normalize::normalize(&replace(word, self.replace)), self.replace);
+        let after = replace(&crate::normalize::normalize(&before), self.replace);
         if after == before { before } else { after }
     }
     fn mark_base(&self, context_before: &str) -> Option<char> {
@@ -91,7 +109,7 @@ mod tests {
 
     #[test]
     fn assamese_letters_are_kept_and_bengali_ra_folds() {
-        let b = Beng;
+        let b = &ASSAMESE;
         assert_eq!(b.normalize("ৰাজ্য"), "ৰাজ্য");
         assert_eq!(b.normalize("ৱিকি"), "ৱিকি");
         assert_eq!(b.normalize("বাট"), "বাট");
@@ -100,15 +118,25 @@ mod tests {
     }
 
     #[test]
+    fn the_script_keeps_the_bengali_ra() {
+        let b = &BENG;
+        assert_eq!(b.normalize("তোমার"), "তোমার");
+        assert_eq!(b.normalize("প্রথম"), "প্রথম");
+        assert_eq!(b.normalize("ৰাজ্য"), "ৰাজ্য");
+        assert_eq!(b.normalize("মােৰ"), "মোৰ");
+        assert_eq!(b.normalize("উত\u{09CD}\u{200D}সৱ"), "উৎসৱ");
+    }
+
+    #[test]
     fn khanda_ta_becomes_atomic() {
-        let b = Beng;
+        let b = &BENG;
         assert_eq!(b.normalize("উৎসৱ"), "উৎসৱ");
         assert_eq!(b.normalize("উত\u{09CD}\u{200D}সৱ"), "উৎসৱ");
     }
 
     #[test]
     fn visual_order_o_and_aa_are_mended() {
-        let b = Beng;
+        let b = &BENG;
         assert_eq!(b.normalize("মােৰ"), "মোৰ");
         assert_eq!(b.normalize("অাৰু"), "আৰু");
         // ে + া is canonically ো already.
@@ -117,7 +145,7 @@ mod tests {
 
     #[test]
     fn nukta_letters_are_base_plus_nukta() {
-        let b = Beng;
+        let b = &BENG;
         assert_eq!(b.normalize("\u{09DF}"), "\u{09AF}\u{09BC}");
         assert_eq!(b.normalize("\u{09DC}"), "\u{09A1}\u{09BC}");
         assert_eq!(b.normalize("\u{09DD}"), "\u{09A2}\u{09BC}");
@@ -126,7 +154,7 @@ mod tests {
 
     #[test]
     fn other_joiners_are_dropped() {
-        let b = Beng;
+        let b = &BENG;
         assert_eq!(b.normalize("ক্\u{200C}ষ"), "ক্ষ");
         assert_eq!(b.normalize("ক্\u{200D}ষ"), "ক্ষ");
         assert_eq!(b.normalize("\u{200C}মই"), "মই");
@@ -135,7 +163,7 @@ mod tests {
 
     #[test]
     fn digits_and_signs_are_not_letters() {
-        let b = Beng;
+        let b = &BENG;
         for c in ['০', '৯', '৳', '৷', '৺', '\u{09FE}'] {
             assert!(!b.is_letter(c), "{c}");
         }
@@ -150,7 +178,7 @@ mod tests {
 
     #[test]
     fn mark_base_is_the_last_consonant() {
-        let b = Beng;
+        let b = &BENG;
         assert_eq!(b.mark_base("ক"), Some('ক'));
         assert_eq!(b.mark_base("অসম"), Some('ম'));
         assert_eq!(b.mark_base("মোৰ"), Some('ৰ'));

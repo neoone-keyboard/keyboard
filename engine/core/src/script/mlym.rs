@@ -37,4 +37,8 @@ impl ScriptRules for Mlym {
     fn join_suffix(&self, stem: &str, suffix: &str, how: crate::suffix::Join) -> Option<String> {
         crate::suffix::join(stem, suffix, how)
     }
+    /// The chillus, the final-u spellings and the suffix joins are code.
+    fn needs_code(&self) -> bool {
+        true
+    }
 }

@@ -218,6 +218,9 @@ pub struct PackPaths {
     pub chat_forms: Option<PathBuf>,
     /// `layout.json`.
     pub layout: Option<PathBuf>,
+    /// `lang.json`: the pack's script defined by data (`script::data`). Without it, the
+    /// engine's coded plug-in for `script`.
+    pub lang: Option<PathBuf>,
 }
 
 impl PackPaths {
@@ -236,6 +239,7 @@ impl PackPaths {
             suffixes: None,
             chat_forms: None,
             layout: None,
+            lang: None,
         }
     }
 }
@@ -281,11 +285,12 @@ impl Sources {
 
     /// The pack at `paths`; None when it names no lexicon, an error when it can't be used.
     fn open_pack(paths: &PackPaths, english: Option<&Lexicon>) -> Result<Option<PackSources>, String> {
-        let rules =
-            script::rules(&paths.script).ok_or_else(|| format!("no rules for script {}", paths.script))?;
+        let rules = script::for_pack(&paths.id.0, &paths.script, paths.lang.as_deref())?;
         let Some(lexicon_path) = paths.lexicon.as_deref() else {
             return Ok(None);
         };
+        // From here on, words of the script are classified and normalised by the pack's rules.
+        script::install(rules)?;
         let lexicon =
             Lexicon::open(lexicon_path).map_err(|e| format!("lexicon unreadable: {e}"))?;
         let lm = paths

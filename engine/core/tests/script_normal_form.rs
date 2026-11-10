@@ -16,8 +16,12 @@ fn root() -> PathBuf {
 
 /// Checks every word of `packs/<id>.neopack/<file>`; returns (words, words with an apostrophe).
 fn check(id: &str, file: &str, code: &'static str) -> (usize, usize) {
-    let lexicon = Lexicon::open(&root().join(format!("packs/{id}.neopack/{file}"))).unwrap();
-    let rules = script::rules(code).unwrap();
+    let dir = root().join(format!("packs/{id}.neopack"));
+    let lexicon = Lexicon::open(&dir.join(file)).unwrap();
+    // The rules the engine uses for this pack, installed as opening it would.
+    let pack = mlengine_core::pack::Pack::open(&dir).unwrap();
+    let rules = script::for_pack(id, code, pack.file("lang").as_deref()).unwrap();
+    script::install(rules).unwrap();
     let (mut n, mut apostrophes, mut bad) = (0, 0, Vec::new());
     lexicon.words(|key, _| {
         let word = std::str::from_utf8(key).unwrap();

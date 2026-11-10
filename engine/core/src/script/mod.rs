@@ -1,20 +1,38 @@
 //! Script plug-ins (M6 phase 2). Each script a pack can be written in has one implementation of
-//! [`ScriptRules`], keyed by its ISO 15924 code in lower case. The rules are code because they
-//! are behaviour (how a word is normalised, where a vowel sign attaches); a pack's tables and
-//! word lists are data and live in the pack.
+//! [`ScriptRules`], keyed by its ISO 15924 code in lower case. Most scripts are data: a pack's
+//! `lang` file (`lang.json`) defines its script, and [`data::DataScript`] is the plug-in made
+//! from it (engine 4). The coded plug-ins (`mlym`, `deva`, `beng`) are for packs without that
+//! file, and Malayalam's for what data can't say (its chillus and suffix joins).
+//!
+//! The engine serves one pack per script, so the rules in use for a script are global:
+//! `Sources::open` installs each pack's rules ([`install`]) before it reads the pack's files,
+//! and [`rules`], [`all`], [`normalize_word`] and `text::script` see them from then on. Before
+//! any pack is opened they are the coded plug-ins.
 
 mod beng;
+pub mod data;
 mod deva;
 mod mlym;
 
 use std::ops::RangeInclusive;
+use std::path::Path;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicPtr, Ordering};
+
+use data::{DataScript, ScriptDef};
 
 /// What the engine needs to know about one native script.
 pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     /// ISO 15924, lower case: "mlym".
     fn code(&self) -> &'static str;
-    /// The script's Unicode block. Corpus tokenising and the romanised-lexicon packing use it.
+    /// The span of the script's characters, first to last. The transliterator's vocabulary,
+    /// the LM's native pieces and the romanised-lexicon packing use it.
     fn block(&self) -> RangeInclusive<char>;
+    /// The script's characters, as ranges (the block, for a coded plug-in). Two scripts in use
+    /// never share one.
+    fn ranges(&self) -> Vec<RangeInclusive<char>> {
+        vec![self.block()]
+    }
     /// A letter or sign a word in this script may be made of (ZWJ and ZWNJ are handled by the
     /// caller). Narrower than `block`: digits and punctuation in the block are not letters.
     fn is_letter(&self, c: char) -> bool;
@@ -51,34 +69,130 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn inner_apostrophe(&self) -> bool {
         false
     }
+    /// Whether this coded plug-in has behaviour a `lang` file can't express, so a pack's file
+    /// doesn't replace it (Malayalam's chillus and joins).
+    fn needs_code(&self) -> bool {
+        false
+    }
 }
 
-/// Malayalam first: `text::script` asks in this order, and the blocks don't overlap.
-static REGISTRY: &[&dyn ScriptRules] = &[&mlym::Mlym, &deva::Deva, &beng::Beng];
+/// The coded plug-ins. Malayalam first: `text::script` asks in this order, and the blocks
+/// don't overlap.
+static CODED: &[&dyn ScriptRules] = &[&mlym::Mlym, &deva::Deva, &beng::BENG];
 
-/// The rules for a script code, if this engine has them.
+/// The rules in use, once a pack has installed any (`install`); null means `CODED`. Each
+/// table is leaked and only ever replaced, so a reader never sees one freed. A new table is
+/// made only when a pack brings rules other than those in use.
+static TABLE: AtomicPtr<Vec<&'static dyn ScriptRules>> = AtomicPtr::new(std::ptr::null_mut());
+static WRITER: Mutex<()> = Mutex::new(());
+
+fn table() -> &'static [&'static dyn ScriptRules] {
+    let p = TABLE.load(Ordering::Acquire);
+    if p.is_null() {
+        CODED
+    } else {
+        // SAFETY: every non-null pointer stored in TABLE comes from Box::into_raw and is never
+        // freed.
+        unsafe { &*p }
+    }
+}
+
+/// The rules for a script code: the ones a pack installed, else the coded plug-in.
 pub fn rules(code: &str) -> Option<&'static dyn ScriptRules> {
-    REGISTRY.iter().copied().find(|r| r.code() == code)
+    table().iter().copied().find(|r| r.code() == code)
 }
 
-/// Every script code this engine has rules for.
+/// The coded plug-in for a script code, whatever is installed.
+pub fn coded(code: &str) -> Option<&'static dyn ScriptRules> {
+    CODED.iter().copied().find(|r| r.code() == code)
+}
+
+/// The scripts this engine has coded rules for. A pack in any other script brings its own
+/// (its `lang` file, engine 4).
 pub fn supported() -> Vec<&'static str> {
-    REGISTRY.iter().map(|r| r.code()).collect()
+    CODED.iter().map(|r| r.code()).collect()
 }
 
-/// Every registered script.
+/// Every script in use.
 pub fn all() -> impl Iterator<Item = &'static dyn ScriptRules> {
-    REGISTRY.iter().copied()
+    table().iter().copied()
 }
 
-/// True if `c` is part of a word in any registered script (`ScriptRules::is_word_char`).
+/// Makes `new` the rules for its script from now on, in place of the ones in use. Refused
+/// when its characters overlap another script's, as a word could then be in either.
+pub fn install(new: &'static dyn ScriptRules) -> Result<(), String> {
+    let _writer = WRITER.lock().unwrap_or_else(|e| e.into_inner());
+    let current = table();
+    if current.iter().any(|r| std::ptr::addr_eq(*r, new)) {
+        return Ok(());
+    }
+    if let Some(other) = current
+        .iter()
+        .find(|r| r.code() != new.code() && data::overlaps(**r, new))
+    {
+        return Err(format!(
+            "script {}'s characters overlap script {}'s",
+            new.code(),
+            other.code()
+        ));
+    }
+    let mut next: Vec<&'static dyn ScriptRules> = current.to_vec();
+    match next.iter_mut().find(|r| r.code() == new.code()) {
+        Some(slot) => *slot = new,
+        None => next.push(new),
+    }
+    TABLE.store(Box::into_raw(Box::new(next)), Ordering::Release);
+    Ok(())
+}
+
+/// The rules for a pack `id` in `script`, with its `lang` file if it has one:
+///
+/// - with the file, the script it defines (`data::DataScript`), unless the coded plug-in for
+///   the script `needs_code` (Malayalam's), which is then used;
+/// - without, the coded plug-in (Assamese's for an `as` pack, see `beng`).
+///
+/// An error, in words, when the file is bad, names another script, or there is neither.
+/// Nothing is installed.
+pub fn for_pack(id: &str, script: &str, lang: Option<&Path>) -> Result<&'static dyn ScriptRules, String> {
+    let coded = coded(script);
+    let Some(path) = lang else {
+        if script == "beng" && id == "as" {
+            return Ok(&beng::ASSAMESE);
+        }
+        return coded.ok_or_else(|| format!("no rules for script {script} (the pack has no lang file)"));
+    };
+    let def = ScriptDef::open(path)?;
+    if def.code != script {
+        return Err(format!(
+            "the lang file defines script {}, the manifest says {script}",
+            def.code
+        ));
+    }
+    if let Some(c) = coded.filter(|c| c.needs_code()) {
+        return Ok(c);
+    }
+    let rules = DataScript::intern(def);
+    // Checked here as well as at install, so a pack is refused when it is opened.
+    if let Some(other) = CODED
+        .iter()
+        .find(|r| r.code() != script && data::overlaps(**r, rules))
+    {
+        return Err(format!(
+            "script {script}'s characters overlap script {}'s",
+            other.code()
+        ));
+    }
+    Ok(rules)
+}
+
+/// True if `c` is part of a word in any script in use (`ScriptRules::is_word_char`).
 pub fn is_word_char(c: char) -> bool {
-    REGISTRY.iter().any(|r| r.is_word_char(c))
+    table().iter().any(|r| r.is_word_char(c))
 }
 
-/// True if `c` ends a phrase in any registered script (`ScriptRules::ends_phrase`).
+/// True if `c` ends a phrase in any script in use (`ScriptRules::ends_phrase`).
 pub fn ends_phrase(c: char) -> bool {
-    REGISTRY.iter().any(|r| r.ends_phrase(c))
+    table().iter().any(|r| r.ends_phrase(c))
 }
 
 /// A word's normal form: `normalize::normalize`, then, for a word of a native script
@@ -110,6 +224,53 @@ mod tests {
         assert!(rules("taml").is_none());
     }
 
+    fn lang_file(json: &str) -> tempfile::NamedTempFile {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(file.path(), json).unwrap();
+        file
+    }
+
+    #[test]
+    fn only_assamese_folds_the_bengali_ra() {
+        // G2: the fold is Assamese's (its lang file's `replace`), not the script's.
+        let bn = for_pack("bn", "beng", None).unwrap();
+        assert_eq!(bn.normalize("তোমার"), "তোমার");
+        let as_ = for_pack("as", "beng", None).unwrap();
+        assert_eq!(as_.normalize("তোমার"), "তোমাৰ");
+        let file = lang_file(r#"{"script": "beng", "block": ["0980", "09FF"], "replace": [["র", "ৰ"]]}"#);
+        let data = for_pack("bn", "beng", Some(file.path())).unwrap();
+        assert_eq!(data.normalize("তোমার"), "তোমাৰ", "a pack's own rules");
+    }
+
+    #[test]
+    fn malayalam_keeps_its_code_and_unknown_scripts_need_a_file() {
+        let file = lang_file(r#"{"script": "mlym", "block": ["0D00", "0D7F"]}"#);
+        let ml = for_pack("ml", "mlym", Some(file.path())).unwrap();
+        assert!(std::ptr::addr_eq(ml, coded("mlym").unwrap()));
+        let err = for_pack("ta", "taml", None).unwrap_err();
+        assert!(err.contains("no lang file"), "{err}");
+    }
+
+    #[test]
+    fn install_adds_a_script_and_refuses_an_overlap() {
+        let file = lang_file(r#"{"script": "qzzz", "letters": [["F0000", "F00FF"]]}"#);
+        let new = for_pack("zz", "qzzz", Some(file.path())).unwrap();
+        install(new).unwrap();
+        install(new).unwrap();
+        assert!(std::ptr::addr_eq(rules("qzzz").unwrap(), new));
+        assert_eq!(all().filter(|r| r.code() == "qzzz").count(), 1);
+        assert_eq!(
+            crate::text::script("\u{F0001}\u{F0002}"),
+            crate::text::Script::Native("qzzz")
+        );
+        let clash = DataScript::intern(
+            ScriptDef::from_json(r#"{"script": "qzzy", "letters": [["F0080", "F0180"]]}"#).unwrap(),
+        );
+        let err = install(clash).unwrap_err();
+        assert!(err.contains("overlap script qzzz"), "{err}");
+        assert!(rules("qzzy").is_none());
+    }
+
     #[test]
     fn blocks_do_not_overlap() {
         let scripts: Vec<_> = all().collect();
@@ -133,7 +294,7 @@ mod tests {
 
     #[test]
     fn words_are_normalised_by_their_script() {
-        assert_eq!(normalize_word("তোমার"), "তোমাৰ");
+        assert_eq!(normalize_word("মােৰ"), "মোৰ");
         assert_eq!(normalize_word("\u{095B}रा"), "ज\u{093C}रा");
         assert_eq!(normalize_word("അവന\u{0D4D}\u{200D}"), "അവൻ");
         assert_eq!(normalize_word("don\u{2019}t"), "don't");

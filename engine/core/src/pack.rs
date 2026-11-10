@@ -1,6 +1,6 @@
 //! Language packs (M6 design): a folder `<id>.neopack/` holding `manifest.json` and the
 //! language's data files. The manifest maps roles (`lexicon`, `romanisedLexicon`,
-//! `romanisation`, `nextWords`, `translit`, `lm`, `suffixes`, `chatForms`, `layout`) to file
+//! `romanisation`, `nextWords`, `translit`, `lm`, `suffixes`, `chatForms`, `layout`, `lang`) to file
 //! names in the folder; `Pack::open` reads and checks it, and `Paths::with_packs` turns it into
 //! the paths the engine opens.
 
@@ -21,8 +21,11 @@ pub const FORMAT: u32 = 1;
 /// script plug-ins `mlym`, `deva` and `beng` (Hindi and Assamese need it). 3: an `lm` in a
 /// pack whose script isn't Malayalam's (Hindi's): the LM's native pieces are the pack's script
 /// (`Lm::set_native`). Engine 2 would load such an LM but see none of its native pieces, and
-/// rank the pack's words worse than with no LM.
-pub const PACK_ENGINE: u32 = 3;
+/// rank the pack's words worse than with no LM. 4: the `lang` role, a `lang.json` that defines
+/// the pack's script as data (`script::data`), so a pack may be in any script. Only a pack
+/// whose script has no coded plug-in (`script::supported`) needs 4: a pack in mlym, deva or beng
+/// may carry the file and keep a lower `minEngine`, as older engines ignore the role.
+pub const PACK_ENGINE: u32 = 4;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -73,7 +76,7 @@ pub enum PackError {
     Malformed(String),
     /// A format this engine doesn't read.
     Format(u32),
-    /// A script this engine has no rules for.
+    /// A script this engine has no rules for, or a bad `lang` file: why, in words.
     Script(String),
     /// The pack needs a newer engine.
     Engine(u32),
@@ -87,7 +90,7 @@ impl fmt::Display for PackError {
             Self::Unreadable(e) => write!(f, "manifest unreadable: {e}"),
             Self::Malformed(e) => write!(f, "manifest malformed: {e}"),
             Self::Format(v) => write!(f, "pack format {v}, this engine reads {FORMAT}"),
-            Self::Script(s) => write!(f, "no rules for script {s}"),
+            Self::Script(why) => write!(f, "script rules: {why}"),
             Self::Engine(v) => write!(f, "pack needs engine {v}, this is {PACK_ENGINE}"),
             Self::NoLexicon => write!(f, "pack has no lexicon file"),
         }
@@ -112,9 +115,6 @@ impl Pack {
         if manifest.format != FORMAT {
             return Err(PackError::Format(manifest.format));
         }
-        if crate::script::rules(&manifest.script).is_none() {
-            return Err(PackError::Script(manifest.script));
-        }
         if manifest.min_engine > PACK_ENGINE {
             return Err(PackError::Engine(manifest.min_engine));
         }
@@ -122,6 +122,17 @@ impl Pack {
             dir: dir.to_path_buf(),
             manifest,
         };
+        if let (Some(name), None) = (pack.manifest.files.get("lang"), pack.file("lang")) {
+            return Err(PackError::Script(format!(
+                "the manifest names a lang file, {name:?}, that isn't in the pack"
+            )));
+        }
+        crate::script::for_pack(
+            &pack.manifest.id,
+            &pack.manifest.script,
+            pack.file("lang").as_deref(),
+        )
+        .map_err(PackError::Script)?;
         if pack.file("lexicon").is_none() {
             return Err(PackError::NoLexicon);
         }
@@ -156,6 +167,7 @@ impl Pack {
             suffixes: self.file("suffixes"),
             chat_forms: self.file("chatForms"),
             layout: self.file("layout"),
+            lang: self.file("lang"),
         }
     }
 }
@@ -228,7 +240,7 @@ mod tests {
         let cases = [
             (FULL.replace("\"format\": 1", "\"format\": 2"), "Format"),
             (FULL.replace("\"mlym\"", "\"taml\""), "Script"),
-            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 4"), "Engine"),
+            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 5"), "Engine"),
         ];
         for (manifest, want) in cases {
             let dir = pack_dir(&manifest, &["ml.fst"]);
