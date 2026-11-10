@@ -114,6 +114,28 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
     #expect(!script.isReadable(by: support))
 }
 
+/// An id listed twice, the newest version for engine 3 and an older one kept for engine 2: each
+/// build gets one entry for it, the newest it reads, whatever the order.
+@Test func eachBuildGetsTheNewestVersionItReadsOncePerID() {
+    let base = host("kept")
+    func e(_ id: String, _ version: String, _ minEngine: Int, script: String = "deva") -> PackIndex.Entry {
+        PackIndex.Entry(id: id, name: id == "hi" ? "Hindi" : "Assamese", version: version, script: script, size: 1,
+                        sha256: "", url: base.appending(path: "\(id)-\(version).neopack"), minEngine: minEngine)
+    }
+    let entries = [e("hi", "2026.11.10", 3), e("hi", "2026.11.06", 2), e("as", "2026.11.06", 2, script: "beng"),
+                   e("hi", "2026.11.01", 1)]
+    for packs in [entries, entries.reversed()] {
+        let index = PackIndex(packs: packs)
+        let two = index.newest(readableBy: support)
+        #expect(two.map(\.id) == ["as", "hi"])
+        #expect(two.map(\.version) == ["2026.11.06", "2026.11.06"])
+        let three = index.newest(readableBy: PackSupport(format: 1, engine: 3, scripts: ["deva", "beng"]))
+        #expect(three.map(\.version) == ["2026.11.06", "2026.11.10"])
+        let one = index.newest(readableBy: PackSupport(format: 1, engine: 1, scripts: ["deva", "beng"]))
+        #expect(one.map(\.version) == ["2026.11.01"])
+    }
+}
+
 @Test func theIndexIsFetched() async throws {
     let url = host("index").appending(path: "index.json")
     let body = Data(#"{"format": 1, "packs": [{"id": "hi", "name": "Hindi", "version": "1", "script": "deva", "size": 9, "sha256": "aa", "url": "hi.neopack", "minEngine": 1}]}"#.utf8)
@@ -220,7 +242,9 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
 
 /// The index the site publishes (site/packs/index.json, from scripts/publish-packs.py) decodes,
 /// lists every pack in packs/ at its manifest's version, script and minEngine, and points at
-/// https pack files named by id and version.
+/// https pack files named by id and version. Any other entry of an id is one kept for older
+/// engines (site-src/kept-packs.json): older and for a lower engine than the pack in packs/,
+/// and the one an app on its engine picks. An app on the engine of packs/ picks those.
 @Test func thePublishedIndexMatchesThePacks() throws {
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -230,13 +254,27 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
     let index = try PackIndex.decode(Data(contentsOf: file), base: URL(string: "https://example.test/packs/index.json")!)
     let packs = PackDescriptor.scan(repoRoot.appending(path: "packs"))
     #expect(!packs.isEmpty)
-    #expect(index.packs.map(\.id) == packs.map(\.id))
-    for (entry, pack) in zip(index.packs, packs) {
-        #expect(entry.version == pack.version)
-        #expect(entry.script == pack.script)
-        #expect(entry.minEngine == pack.minEngine)
+    let ids = index.packs.map(\.id).reduce(into: [String]()) { if $0.last != $1 { $0.append($1) } }
+    #expect(ids == packs.map(\.id), "by id, an id's entries together")
+    for entry in index.packs {
         #expect(entry.url.scheme == "https")
-        #expect(entry.url.lastPathComponent == "\(pack.id)-\(pack.version).neopack")
+        #expect(entry.url.lastPathComponent == "\(entry.id)-\(entry.version).neopack")
         #expect(entry.sha256.count == 64)
+    }
+    let scripts = Set(packs.map(\.script))
+    let latest = PackSupport(format: 1, engine: packs.map(\.minEngine).max() ?? 1, scripts: scripts)
+    #expect(index.newest(readableBy: latest).map(\.id).sorted() == packs.map(\.id).sorted())
+    for pack in packs {
+        let listed = index.packs.filter { $0.id == pack.id }
+        #expect(listed.contains { $0.version == pack.version && $0.script == pack.script && $0.minEngine == pack.minEngine },
+                "\(pack.id) \(pack.version)")
+        #expect(index.newest(readableBy: latest).first { $0.id == pack.id }?.version == pack.version)
+        for kept in listed where kept.version != pack.version {
+            #expect(PackVersion(kept.version) < PackVersion(pack.version), "\(kept.id) \(kept.version)")
+            #expect(kept.minEngine < pack.minEngine, "\(kept.id) \(kept.version)")
+            let older = PackSupport(format: 1, engine: kept.minEngine, scripts: scripts)
+            #expect(index.newest(readableBy: older).first { $0.id == pack.id }?.version == kept.version,
+                    "\(kept.id) \(kept.version) is what engine \(kept.minEngine) picks")
+        }
     }
 }

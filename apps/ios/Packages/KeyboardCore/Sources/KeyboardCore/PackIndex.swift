@@ -71,6 +71,18 @@ public struct PackIndex: Sendable, Equatable {
         self.packs = packs
     }
 
+    /// For each pack id, the highest version this build reads (`support`), by name. An index
+    /// may list an id more than once: the newest version, and older ones kept for apps whose
+    /// engine can't read it (a lower `minEngine`), so every app is offered the language.
+    public func newest(readableBy support: PackSupport) -> [Entry] {
+        var best: [String: Entry] = [:]
+        for entry in packs where entry.isReadable(by: support) {
+            if let other = best[entry.id], !(PackVersion(other.version) < PackVersion(entry.version)) { continue }
+            best[entry.id] = entry
+        }
+        return best.values.sorted { ($0.name, $0.id) < ($1.name, $1.id) }
+    }
+
     /// The index in `data`, fetched from `base` (for relative pack URLs).
     public static func decode(_ data: Data, base: URL) throws -> PackIndex {
         guard let file = try? JSONDecoder().decode(File.self, from: data) else { throw Refusal.notJSON }

@@ -706,5 +706,20 @@ index and the credits page from `packs/`. Its upload step (`make site-deploy`) i
 the project's Cloudflare Worker and R2 bucket. On another host, upload
 `build/site-packs/*.neopack` and `site/packs/index.json` yourself.
 
+An index may list the same `id` more than once. Each app offers, per language, the highest
+`version` its engine reads, so one language shows as one row. Use this when a new version
+raises `minEngine`: apps that are still on the older engine can't read the new version, and
+without an older entry they would stop offering the language. Hindi 2026.11.10 needs engine
+3 because of its LM. The index still lists 2026.11.06 (engine 2) for the apps already
+released, and engine 3 apps offer 2026.11.10 as an update over it.
+
+`make site-packs` takes these older entries from `site-src/kept-packs.json`, not from `packs/`.
+List the old version there with the `size`, `sha256` and `url` the index had when it published
+that version (they are in git history of `site/packs/index.json`). Keep its file on the host.
+The script refuses an entry that isn't older, and for a lower `minEngine`, than the pack in
+`packs/`. It also refuses one that no app would pick any more because another entry is at
+least as new for the same engines. Delete such entries. Delete the rest once no app in use
+has the older engine.
+
 Packs built from share-alike sources are themselves CC BY-SA 4.0. Publish them without DRM
 and keep their credits.
