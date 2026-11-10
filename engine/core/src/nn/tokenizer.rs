@@ -3,6 +3,8 @@
 //! covers becomes its UTF-8 byte pieces, scored `min_score - UNK_PENALTY` as SentencePiece's
 //! byte fallback does. Ids 0–3 are pad, unk, bos and eos; ids 4–259 the byte pieces.
 
+use std::ops::RangeInclusive;
+
 use fst::raw::Output;
 use fst::{IntoStreamer, Map, MapBuilder, Streamer};
 
@@ -30,8 +32,9 @@ pub mod flag {
     pub const WORD_START: u8 = 1;
     /// Has an ASCII letter.
     pub const LATIN: u8 = 2;
-    /// Has a Malayalam character (U+0D00–U+0D7F).
-    pub const MALAYALAM: u8 = 4;
+    /// Has a character of the model's native script block (`Tokenizer::set_native`;
+    /// Malayalam's, U+0D00–U+0D7F, unless set).
+    pub const NATIVE: u8 = 4;
     /// Neither: punctuation, digits, a bare `WORD_START`.
     pub const OTHER: u8 = 8;
     /// A byte-fallback piece (`<0x41>`).
@@ -72,7 +75,10 @@ fn byte_of(piece: &str) -> Option<u8> {
         .flatten()
 }
 
-fn flags_of(id: u32, piece: &str) -> u8 {
+/// The native block a tokeniser flags until told otherwise (`Tokenizer::set_native`).
+pub const MALAYALAM_BLOCK: RangeInclusive<char> = '\u{0D00}'..='\u{0D7F}';
+
+fn flags_of(id: u32, piece: &str, native: &RangeInclusive<char>) -> u8 {
     if id <= EOS {
         return flag::CONTROL;
     }
@@ -83,11 +89,8 @@ fn flags_of(id: u32, piece: &str) -> u8 {
     if piece.starts_with(WORD_START) {
         f |= flag::WORD_START;
     }
-    if piece
-        .chars()
-        .any(|c| ('\u{0D00}'..='\u{0D7F}').contains(&c))
-    {
-        f |= flag::MALAYALAM;
+    if piece.chars().any(|c| native.contains(&c)) {
+        f |= flag::NATIVE;
     } else if piece.chars().any(|c| c.is_ascii_alphabetic()) {
         f |= flag::LATIN;
     } else {
@@ -109,7 +112,7 @@ impl Tokenizer {
         let mut flags = Vec::with_capacity(pieces.len());
         let mut min_score = f32::INFINITY;
         for (id, piece) in pieces.iter().enumerate() {
-            let f = flags_of(id as u32, piece);
+            let f = flags_of(id as u32, piece, &MALAYALAM_BLOCK);
             if f & flag::BYTE != 0 {
                 bytes[usize::from(byte_of(piece).unwrap())] = id as u32;
             } else if f & flag::CONTROL == 0 {
@@ -153,6 +156,14 @@ impl Tokenizer {
     /// The piece's text.
     pub fn piece(&self, id: u32) -> &str {
         &self.pieces[id as usize]
+    }
+
+    /// Flags the pieces with a character of `block` `NATIVE` instead of Malayalam's: the
+    /// script of the pack whose LM this is (`Engine` sets it from the pack's script rules).
+    pub fn set_native(&mut self, block: RangeInclusive<char>) {
+        for (id, piece) in self.pieces.iter().enumerate() {
+            self.flags[id] = flags_of(id as u32, piece, &block);
+        }
     }
 
     /// The piece's `flag` bits.
@@ -324,9 +335,37 @@ mod tests {
         assert_eq!(t.flags(BOS), flag::CONTROL);
         assert_eq!(t.flags(id("<0x41>")), flag::BYTE);
         assert_eq!(t.flags(id("▁the")), flag::WORD_START | flag::LATIN);
-        assert_eq!(t.flags(id("▁എന്റെ")), flag::WORD_START | flag::MALAYALAM);
+        assert_eq!(t.flags(id("▁എന്റെ")), flag::WORD_START | flag::NATIVE);
         assert_eq!(t.flags(id("n")), flag::LATIN);
         assert_eq!(t.flags(id(".")), flag::OTHER);
+    }
+
+    #[test]
+    fn the_native_flag_follows_the_block_it_is_given() {
+        let mut t = tiny();
+        let id = |t: &Tokenizer, p: &str| (0..t.len() as u32).find(|&i| t.piece(i) == p).unwrap();
+        t.set_native('\u{0900}'..='\u{097F}');
+        let (ml, the) = (id(&t, "▁എന്റെ"), id(&t, "▁the"));
+        assert_eq!(t.flags(ml), flag::WORD_START | flag::OTHER);
+        assert_eq!(t.flags(the), flag::WORD_START | flag::LATIN);
+        let mut pieces: Vec<String> = (0..t.len() as u32)
+            .map(|i| t.piece(i).to_string())
+            .collect();
+        pieces.push("▁हम".into());
+        let mut deva = Tokenizer::new(pieces, vec![-1.0; t.len() + 1]).unwrap();
+        let hum = id(&deva, "▁हम");
+        assert_eq!(
+            deva.flags(hum),
+            flag::WORD_START | flag::OTHER,
+            "Malayalam's block by default"
+        );
+        deva.set_native('\u{0900}'..='\u{097F}');
+        assert_eq!(deva.flags(hum), flag::WORD_START | flag::NATIVE);
+        assert_eq!(
+            deva.encode("हम"),
+            [hum],
+            "the block changes flags, not tokens"
+        );
     }
 
     #[test]

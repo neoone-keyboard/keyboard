@@ -292,7 +292,12 @@ impl Sources {
             .lm
             .as_deref()
             .and_then(|p| Lm::open(p).ok())
-            .filter(|lm| Self::lm_fits(lm, english, &lexicon));
+            .filter(|lm| Self::lm_fits(lm, english, &lexicon))
+            .map(|mut lm| {
+                // Its native pieces are the pack's script (Malayalam's block for ml, as before).
+                lm.set_native(rules.block());
+                lm
+            });
         let romanisation = paths
             .romanisation
             .as_deref()

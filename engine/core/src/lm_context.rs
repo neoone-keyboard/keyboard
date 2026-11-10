@@ -28,8 +28,8 @@ pub fn lm_words(before: &str) -> Vec<String> {
     out
 }
 
-/// Log probabilities that the next word is English, Malayalam in any script, and in
-/// Malayalam script (design §6).
+/// Log probabilities that the next word is English, the pack's language (Malayalam for the LM
+/// of design §6) in any script, and in its native script.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Lang {
     pub log_en: f32,
@@ -263,7 +263,7 @@ impl LmContext {
 pub struct NextPiece {
     /// The piece without its word mark.
     pub text: String,
-    /// A Latin piece (English candidates); otherwise Malayalam script.
+    /// A Latin piece (English candidates); otherwise the pack's native script.
     pub latin: bool,
     /// ln p(t | ctx) + lang(t).
     pub log_p: f32,
@@ -279,7 +279,7 @@ pub trait ContextScores {
     fn weighted(&self, word: &str) -> f32;
     /// The same for the English words that begin with the typed letters, as one candidate.
     fn prefix_delta(&self, typed: &str) -> f32;
-    /// The `k` likeliest word-start pieces that are Latin or Malayalam script, in the next
+    /// The `k` likeliest word-start pieces that are Latin or the native script, in the next
     /// word's language.
     fn next_pieces(&self, k: usize) -> Vec<NextPiece>;
     /// The first piece of `word` as `next_pieces` would give it, if it would.
@@ -336,7 +336,7 @@ impl LmView<'_> {
         if f & flag::WORD_START == 0 || english != (f & flag::LATIN != 0) {
             return None;
         }
-        let (log_p, first, latin) = if f & flag::MALAYALAM != 0 {
+        let (log_p, first, latin) = if f & flag::NATIVE != 0 {
             (lp + lang.log_ml - lang.log_script, tab.first_ml[t], false)
         } else if f & flag::LATIN != 0 {
             (lp + tab.p_en[t].ln(), tab.first_en[t], true)
@@ -358,7 +358,7 @@ impl LmView<'_> {
     }
 
     /// The clamped tier-0 correction for `word` and whether it is Latin, or None when its
-    /// first piece isn't a Latin or Malayalam word start, or the lexicon has no word starting
+    /// first piece isn't a Latin or native-script word start, or the lexicon has no word starting
     /// with it (design §6).
     pub fn delta(&self, word: &str) -> Option<(f32, bool)> {
         let tok = self.lm.tokenizer();
@@ -368,7 +368,7 @@ impl LmView<'_> {
             return None;
         }
         let (tab, next, lang) = (self.lm.tables(), self.ctx.next()[t], self.ctx.lang());
-        let (raw, latin) = if f & flag::MALAYALAM != 0 {
+        let (raw, latin) = if f & flag::NATIVE != 0 {
             (next - lang.log_script - tab.first_ml[t], false)
         } else if f & flag::LATIN != 0 {
             // A piece never seen in English text has p_en = 0: the correction is then the
@@ -461,7 +461,7 @@ fn lang(next: &[f32], lm: &Lm) -> Lang {
             continue;
         }
         let p = f64::from(lp.exp());
-        if f & flag::MALAYALAM != 0 {
+        if f & flag::NATIVE != 0 {
             ml += p;
             script += p;
         } else if f & flag::LATIN != 0 {

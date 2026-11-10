@@ -35,3 +35,32 @@ def test_malayalam_words_are_frequency_ordered():
     counts = [c for _, c in words]
     assert counts == sorted(counts, reverse=True)
     assert words[0][0] == "ഒരു"
+
+
+HI = LEX.parents[3] / "packs/hi.neopack"
+
+
+def hindi_engine():
+    return mlengine.Engine(
+        english=str(LEX / "en.fst"),
+        malayalam=str(HI / "hi.fst"),
+        manglish=str(HI / "hinglish.fst"),
+        romanisation=str(HI / "romanisation.json"),
+        layout=str(HI / "layout.json"),
+        next_words=str(HI / "next.fst"),
+        pack="hi",
+        script="deva",
+    )
+
+
+def test_another_pack_loads_under_its_own_id():
+    engine = hindi_engine()
+    assert "hi:lexicon" in engine.loaded_sources()
+    texts = [t for t, kind, _ in engine.suggest("kya", "latin", True)]
+    assert "क्या" in texts
+
+
+def test_the_native_layout_is_the_packs():
+    bar = hindi_engine().suggest("मैं ", "native", True)
+    assert bar and all(kind == "next_word" for _, kind, _ in bar)
+    assert any(not t.isascii() for t, _, _ in bar)

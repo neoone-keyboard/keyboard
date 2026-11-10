@@ -219,6 +219,12 @@ impl Lm {
         &self.tokenizer
     }
 
+    /// Which script's pieces the tokeniser flags `NATIVE` (`Tokenizer::set_native`): the
+    /// block of the pack the model belongs to. Malayalam's until set.
+    pub fn set_native(&mut self, block: std::ops::RangeInclusive<char>) {
+        self.tokenizer.set_native(block);
+    }
+
     /// The per-piece tables shipped with the model.
     pub fn tables(&self) -> &Tables {
         &self.tables

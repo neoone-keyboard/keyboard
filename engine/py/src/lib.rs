@@ -15,14 +15,19 @@ use pyo3::prelude::*;
 
 /// The engine over the given lexicon files, transliterator model (`translit`, a `.mlkbnn`)
 /// and language model (`lm`); a missing or unreadable file is left out, and an LM built
-/// against other lexicons is not loaded, exactly as on the device.
+/// against other lexicons is not loaded, exactly as on the device. The pack is Malayalam's
+/// (`pack="ml"`, `script="mlym"`) unless another is named: `malayalam`, `manglish` and the
+/// other pack paths are then that pack's (its lexicon, its romanised lexicon, ...).
 #[pyclass]
-struct Engine(Core);
+struct Engine {
+    core: Core,
+    pack: String,
+}
 
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None, suffixes=None, chat_forms=None, layout=None))]
+    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None, suffixes=None, chat_forms=None, layout=None, pack="ml", script="mlym"))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         english: Option<PathBuf>,
@@ -35,8 +40,10 @@ impl Engine {
         suffixes: Option<PathBuf>,
         chat_forms: Option<PathBuf>,
         layout: Option<PathBuf>,
+        pack: &str,
+        script: &str,
     ) -> Self {
-        let ml = PackPaths {
+        let paths = PackPaths {
             lexicon: malayalam,
             romanised: manglish,
             romanisation,
@@ -46,19 +53,23 @@ impl Engine {
             next_words,
             translit,
             lm,
-            ..PackPaths::new("ml", "mlym")
+            ..PackPaths::new(pack, script)
         };
-        Engine(Core::open(&Paths {
-            english,
-            english_next: None,
-            packs: vec![ml],
-            user_dir: None,
-        }))
+        Engine {
+            core: Core::open(&Paths {
+                english,
+                english_next: None,
+                packs: vec![paths],
+                user_dir: None,
+            }),
+            pack: pack.to_string(),
+        }
     }
 
     /// Suggestions for the text before the cursor, in bar order (the middle
-    /// slot first). Each item is (text, kind, score); `layout` is "latin", or "malayalam"
-    /// for the Malayalam pack's native layout (Latin when that pack isn't loaded).
+    /// slot first). Each item is (text, kind, score); `layout` is "latin", or "native" for the
+    /// pack's native layout ("malayalam" for the Malayalam pack's; Latin when the pack isn't
+    /// loaded).
     fn suggest(
         &self,
         context: &str,
@@ -68,13 +79,17 @@ impl Engine {
         let layout = match layout {
             "latin" => Layout::Latin,
             "malayalam" => self
-                .0
+                .core
                 .lang_of_id("ml")
+                .map_or(Layout::Latin, Layout::Native),
+            "native" => self
+                .core
+                .lang_of_id(&self.pack)
                 .map_or(Layout::Latin, Layout::Native),
             other => return Err(PyValueError::new_err(format!("unknown layout {other:?}"))),
         };
         Ok(self
-            .0
+            .core
             .suggest(context, layout, autocorrect)
             .candidates
             .into_iter()
@@ -85,12 +100,12 @@ impl Engine {
     /// How many candidates `suggest` returns at most (`Engine::set_max_suggestions`; 3 until
     /// set), for measuring the keyboard's longer bar.
     fn set_max_suggestions(&mut self, n: usize) {
-        self.0.set_max_suggestions(n);
+        self.core.set_max_suggestions(n);
     }
 
     /// Names of the sources that loaded, e.g. ["english", "ml:lexicon", "ml:lm"].
     fn loaded_sources(&self) -> Vec<String> {
-        self.0.loaded_sources()
+        self.core.loaded_sources()
     }
 
     /// Sets the LM weights for sweeps (`mlengine_core::lm_context::LmWeights`); a field left
@@ -106,7 +121,7 @@ impl Engine {
         next_bigram: Option<f32>,
     ) {
         let d = LmWeights::default();
-        self.0.set_lm_weights(LmWeights {
+        self.core.set_lm_weights(LmWeights {
             en: en.unwrap_or(d.en),
             ml: ml.unwrap_or(d.ml),
             clip: clip.unwrap_or(d.clip),
