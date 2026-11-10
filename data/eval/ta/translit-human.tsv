@@ -1,7 +1,8 @@
 # Human transliteration eval set: context<TAB>latin<TAB>native (context empty).
-# 4648 distinct manual pairs (AK-Freq, AK-NEI, AK-NEF; in that order) of the Aksharantar
+# 4648 distinct manual pairs (AK-Freq, AK-NEF, AK-NEI; in that order) of the Aksharantar
 # tam_test.json split, AI4Bharat (Madhani et al., 2022), CC BY. Built by
 # `python -m mlkb.langs.pairs`. Never train on these words.
+# section: AK-Freq
 	agachchiththarippu	அகச்சித்தரிப்பு
 	agazhvu	அகழ்வு
 	akazhvu	அகழ்வு
@@ -2605,6 +2606,7 @@
 	heplathaan	ஹெப்லதான்
 	heraaldo	ஹெரால்டோ
 	heymadait	ஹேமடைட்
+# section: AK-NEF
 	floyd	ஃபளாய்ட்
 	fleming	ஃபளெமிஙக்
 	fond	ஃபாண்ட்
@@ -3434,6 +3436,7 @@
 	howe	ஹோவே
 	haute	ஹௌட்
 	house	ஹௌஸ்
+# section: AK-NEI
 	fatehpur	ஃபதேபுர்
 	fatima	ஃபாடிமா
 	pfaudler	ஃபாட்லர்
