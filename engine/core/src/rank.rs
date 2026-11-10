@@ -163,7 +163,7 @@ pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
 /// commoner inflection (देनेवाले, −0.84, for `denewaali`) led the word the model read at −0.1.
 /// Readings closer than this are still ranked by frequency (गलगण्ड over गलगंड for `galgand`).
 ///
-/// Measured on the held-out transliteration sets (`mlkb.langs.eval_pack`: the first native
+/// Measured on the held-out transliteration sets (`mlkb.eval.pack`'s top-1: the first native
 /// suggestion is the target), before → at 0.3: Tamil 44.0% → 47.8%, Assamese 51.5% → 54.5%,
 /// Hindi 56.2% → 57.9%; at 0.5: 47.4%, 54.1%, 57.3%; at 0.7: 46.4%, 52.9%, 57.0%. Dropping the
 /// trailing readings instead scored the same first suggestion and lost words from the longer
@@ -243,7 +243,7 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// Tamil's held-out words are past it: for `praptitkoi` the Assamese lexicon has প্ৰাপ্তিত
 /// (read at −0.8) and not প্ৰাপ্তিতকৈ (−0.08), and only প্ৰাপ্তিত was offered.
 ///
-/// Measured on the held-out sets (`mlkb.langs.eval_pack`), target in the three shown / in the
+/// Measured on the held-out sets (`mlkb.eval.pack --stages`), target in the three shown / in the
 /// 20: Tamil 49.7% → 54.4% / 56.8% → 62.8%, Assamese 57.3% → 60.5% / 64.7% → 68.9%, Hindi
 /// 65.7% → 65.5% / 82.3% → 82.7% (96.7% of its targets are lexicon words). First instead of
 /// second, from a lead of 0.3 per token: Tamil first native 47.8% → 51.4%, Assamese 54.5% →

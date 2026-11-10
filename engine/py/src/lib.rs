@@ -76,7 +76,7 @@ impl Engine {
 
     /// The pack's words the skeleton lookup finds for a typed Latin word, as the engine's
     /// romanised search sees them: (word, log probability, skeleton letters missing, edit
-    /// distance, spelled). For `mlkb.langs.eval_pack`.
+    /// distance, spelled). For `mlkb.eval.pack --stages`.
     fn lookup(&self, typed: &str) -> Vec<(String, f32, usize, usize, bool)> {
         let Some((r, lex)) = self.parts.packs.first().and_then(|p| {
             Some((p.romanisation.as_ref()?, p.romanised.as_ref()?))

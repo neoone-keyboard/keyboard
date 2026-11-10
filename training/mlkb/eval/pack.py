@@ -26,11 +26,33 @@ Columns:
 This measures the pack through the engine's lexicon search and ranking. The model alone (beam
 search, no lexicon, no ranking) is `mlkb.langs.eval_translit`; the two differ, and the engine
 can be the lower one. `python -m mlkb.eval` is the gated eval with baselines (ml, hi).
+
+`--stages` (needs torch: `uv run --group train`) says where the engine loses words. It decodes
+each word with the model alone (beam `--beam`, cached under `training/build/<id>/`), and files
+every row whose first native suggestion is not the target under the first stage that fits:
+  normal-form        the target is not in the engine's normal form: it can never be offered
+  model-miss         the model alone doesn't have it in its beam either
+  shown-second       it is in the bar, behind another native word
+  off-bar            it is in the 20 suggestions the bar scrolls through, past the three shown
+  english-word       the typed letters are an English word: the transliterator isn't asked
+  past-20            a candidate (a lexicon word the model read, or its free spelling) that
+                     more than 20 others outscored
+  below-floor        a lexicon word the constrained beam found, under `rank::MANGLISH_MODEL_FLOOR`
+  beam-width         a lexicon word the constrained beam finds only when wider than the engine's
+  beam-miss          a lexicon word the constrained beam doesn't find at any width
+  free-not-offered   not a lexicon word; the free beam spells it, but a lexicon word was found
+                     for the letters, so the free spelling isn't offered
+  free-differs       not a lexicon word, and the engine's free beam (one hypothesis) spells
+                     another word than the model's beam does
+The counts are for all such rows, for those the model alone has first (what the engine loses
+to it), and for those it has in its first three. `--misses OUT` writes each row and its stage.
 """
 
 import argparse
+import hashlib
 import json
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -54,6 +76,23 @@ ROLES = {
     "lm": "lm",
 }
 ALL = "all"
+# `engine::MODEL_WIDTH`, `rank::MANGLISH_MODEL_FLOOR` and `nn::translit::MAX_CANDIDATES - 1`.
+MODEL_WIDTH = 4
+MODEL_FLOOR = -1.0
+WIDEST = 14
+STAGES = (
+    "normal-form",
+    "model-miss",
+    "shown-second",
+    "off-bar",
+    "english-word",
+    "past-20",
+    "below-floor",
+    "beam-width",
+    "beam-miss",
+    "free-not-offered",
+    "free-differs",
+)
 
 
 def manifest(pack: Path) -> dict:
@@ -121,6 +160,93 @@ def _print(label: str, tallies: dict[str, Tally]) -> None:
         )
 
 
+def model_alone(lang: str, model_path: Path, words: list[str], width: int) -> dict[str, list[str]]:
+    """The model's beam for each word, without the lexicon; cached under `training/build/<lang>/`
+    by the model file's hash."""
+    digest = hashlib.sha256(model_path.read_bytes()).hexdigest()[:16]
+    cache = ROOT / f"training/build/{lang}/model-alone-{digest}-{width}.json"
+    found: dict[str, list[str]] = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
+    todo = [w for w in dict.fromkeys(words) if w not in found]
+    if todo:
+        import torch
+
+        from mlkb.translit.decode import beam
+        from mlkb.translit.export import dequantised_model
+        from mlkb.translit.vocab import native
+
+        torch.set_num_threads(4)
+        vocab = native(lang)
+        model = dequantised_model(model_path)
+        for word in todo:
+            found[word] = [text for text, _ in beam(model, word, width, vocab=vocab)]
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(found, ensure_ascii=False), encoding="utf-8")
+    return found
+
+
+def stage(engine, latin: str, target: str, bar: list[str], beam: list[str]) -> str:
+    """Why the first native suggestion for `latin` isn't `target` (the module's list); `bar` is
+    the engine's 20 suggestions, `beam` the model's own."""
+    if engine.normalize(target) != target:
+        return "normal-form"
+    if target not in beam:
+        return "model-miss"
+    if target in bar[:3]:
+        return "shown-second"
+    if target in bar:
+        return "off-bar"
+    if engine.is_english(latin):
+        return "english-word"
+    held = engine.model(latin, MODEL_WIDTH, True)
+    if engine.lexicon_log_prob(target) is not None:
+        score = next((s for text, s, known in held if known and text == target), None)
+        if score is not None:
+            return "below-floor" if score < MODEL_FLOOR else "past-20"
+        wide = engine.model(latin, WIDEST, False)
+        return "beam-width" if any(text == target for text, _, _ in wide) else "beam-miss"
+    free = next((text for text, _, known in held if not known), None)
+    if free != target:
+        return "free-differs"
+    whole = any(missing == 0 for _, _, missing, _, _ in engine.lookup(latin))
+    read = any(known and s >= MODEL_FLOOR for _, s, known in held)
+    return "free-not-offered" if whole or read else "past-20"
+
+
+def stages(pack: Path, m: dict, rows: list[tuple[str, translit.Row]], width: int, without: tuple[str, ...]):
+    """The model alone beside the engine, and the stage of each engine miss: the summary lines,
+    the stage counts (all misses, the model's top-1, its top-3) and the misses."""
+    engine = open_pack(pack, without)
+    engine.set_max_suggestions(20)
+    beams = model_alone(m["id"], pack / m["files"]["translit"], [row.latin for _, row in rows], width)
+    count: Counter[str] = Counter()
+    by_stage = {k: Counter() for k in ("all", "model1", "model3")}
+    misses = []
+    for section, row in rows:
+        target, beam = row.malayalam, beams[row.latin]
+        bar = [text for text, _, _ in engine.suggest(translit.query(row), "latin", True)]
+        native = [t for t in bar[:3] if not t.isascii()]
+        count["model1"] += beam[:1] == [target]
+        count["model3"] += target in beam[:3]
+        count["lexicon"] += engine.lexicon_log_prob(target) is not None
+        count["in20"] += target in bar
+        if native[:1] == [target]:
+            count["engine only"] += beam[:1] != [target]
+            continue
+        s = stage(engine, row.latin, target, bar, beam)
+        by_stage["all"][s] += 1
+        by_stage["model1"][s] += beam[:1] == [target]
+        by_stage["model3"][s] += target in beam[:3]
+        misses.append((s, section, row.latin, target, " ".join(bar[:3]), " ".join(beam[:3])))
+    n = max(len(rows), 1)
+    lines = [
+        f"{count['lexicon'] / n:.1%} of the targets are lexicon words; the engine has {count['in20'] / n:.1%} "
+        "in its 20 suggestions",
+        f"model alone (beam {width}): top-1 {count['model1'] / n:.1%}  top-3 {count['model3'] / n:.1%}",
+        f"engine right where the model alone is wrong: {count['engine only']:,}",
+    ]
+    return lines, by_stage, misses
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--lang", help="the pack's id: packs/<id>.neopack and its held-out set")
@@ -129,6 +255,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--limit", type=int, default=0, help="first N rows only (0: all)")
     p.add_argument("--no-lm", action="store_true", help="leave the pack's language model out of both runs")
     p.add_argument("--json", type=Path, metavar="OUT", help="also write the numbers as JSON")
+    p.add_argument("--stages", action="store_true", help="the model alone, and the stage that loses each miss")
+    p.add_argument("--beam", type=int, default=8, help="the model alone's beam, for --stages")
+    p.add_argument("--misses", type=Path, metavar="OUT", help="write each miss and its stage (TSV); implies --stages")
     args = p.parse_args(argv)
     if not args.lang and not args.pack:
         p.error("give --lang or --pack")
@@ -158,6 +287,19 @@ def main(argv: list[str] | None = None) -> int:
         tallies = score(engine, rows)
         _print(label, tallies)
         results[label] = {section: t.rates() for section, t in tallies.items()}
+    if (args.stages or args.misses) and "translit" in m["files"]:
+        lines, by_stage, misses = stages(pack, m, rows, args.beam, drop)
+        print("\n".join(lines))
+        print(f"{'stage':<18}{'all misses':>12}{'model top-1':>13}{'model top-3':>13}")
+        for s in STAGES:
+            print(f"{s:<18}{by_stage['all'][s]:>12,}{by_stage['model1'][s]:>13,}{by_stage['model3'][s]:>13,}")
+        totals = [sum(by_stage[k].values()) for k in ("all", "model1", "model3")]
+        print(f"{'total':<18}{totals[0]:>12,}{totals[1]:>13,}{totals[2]:>13,}")
+        results["stages"] = {k: dict(v) for k, v in by_stage.items()}
+        if args.misses:
+            args.misses.parent.mkdir(parents=True, exist_ok=True)
+            table = ["stage\tsection\tlatin\ttarget\tbar\tmodel"] + ["\t".join(row) for row in misses]
+            args.misses.write_text("\n".join(table) + "\n", encoding="utf-8")
     if args.json:
         out = {"pack": m["id"], "version": m["version"], "set": path.name, **results}
         args.json.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
