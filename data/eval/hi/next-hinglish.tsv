@@ -1,0 +1,1006 @@
+# Next-word eval set, Hinglish (gate split): roman<TAB>native, word-aligned sentences.
+# From the Dakshina dataset v1.0 (Google Research, Roark et al., 2020), CC BY-SA 4.0:
+# hi/romanized/hi.romanized.rejoined.dev.{roman,native}.txt, shuffled with seed 20261103 and split into
+# disjoint halves (gate from the first, tune from the second). Punctuation dropped, sentences with
+# digits skipped, only pairs with the same word count (2 to 20) kept. The test sentences are not used.
+# Eval only: these sentences are removed from the LM training text. Built by training/mlkb/eval/next_sets.py --lang hi.
+yah bhang ki jati ka hi ek paudha hai	यह भांग की जाति का ही एक पौधा है
+unhen kuchh hii din pahle yojna aaayog ka sachiv banaya gaya thaa	उन्हें कुछ ही दिन पहले योजना आयोग का सचिव बनाया गया था
+hargovin‍d bhargav bharat ke uttar pradesh ki pandrahvi vidhansabha sabha mein vidhayak rahe	हरगोविन्द भार्गव भारत के उत्तर प्रदेश की पंद्रहवी विधानसभा सभा में विधायक रहे
+parinam spasht rup se kuch mahinon men hi dekhe ja sakte hain	परिणाम स्पष्ट रूप से कुछ महीनों में ही देखे जा सकते हैं
+aabha dhuliya	आभा धूलिया
+bhramargeet parichay	भ्रमरगीत परिचय
+vah laddkah se lhasa gay aur fir vahan se asam pahunche	वह लद्दाख से ल्हासा गये और फिर वहाँ से असम पहुँचे
+ucch pradarshan	उच्च प्रदर्शन
+unhen ernakulam renj ke up mahanirikshak ke roop men padonnit kiya gaya	उन्हें एर्नाकुलम रेंज के उप महानिरीक्षक के रूप में पदोन्नित किया गया
+vikram ne kaha ki unhe raja bali se bhent ka rasta pata karna hai	विक्रम ने कहा कि उन्हें राजा बलि से भेंट का रास्ता पता करना है
+yahan kai pramukh cinemaghar aur mahaan film nirmataon ke film studeo hai	यहाँ कई प्रमुख सिनेमाघर और महान फिल्म निर्माताओं के फिल्म स्टूडियो है
+match ko dobara khela gaya	मैच को दोबारा खेला गया
+saath hi vo donon asli mukhyamantri ko hataakar duplicate lagane wali saajish mein bhi fanste hain	साथ ही वो दोनों असली मुख्यमंत्री को हटाकर डूप्लीकेट लगाने वाली साज़िश में भी फँसते हैं
+sagariy dharaon ka gyan sagariy karkat ke adhyyan mein bhi sahayak hota hai	सागरीय धाराओं का ज्ञान सागरीय कर्कट के अध्ययन में भी सहायक होता है
+isahake ke samkaalin logon ne pahle ise swikar nahin kiya tha	इसहाक़ के समकालीन लोगों ने पहले इसे स्वीकार नहीं किया था
+devaki dridhtapurvak kahti hai ham putron ko janma denge taki hamara aathvaan putra yathaashighr is atyachari ko samaapt kar sake	देवकी दृढ़तापूर्वक कहती है हम पुत्रों को जन्म देंगे ताकि हमारा आठवां पुत्र यथाशीघ्र इस अत्याचारी को समाप्त कर सके
+dwara sthapit kiya gaya tha	द्वारा स्थापित किया गया था
+peshewar scuba gotakhoron pure chehere wale mask ka upayog karte hain	पेशेवर स्कूबा गोताखोरों पूरे चेहरे वाले मास्क का उपयोग करते है
+aakash chopda	आकाश चोपड़ा
+kaalidas ke shaakuntalam mein ansuyaa naam ki shakuntalaa ki ek sakhi bhi kahi gai hai	कालिदास के शाकुंतलम् में अनसूया नाम की शकुंतला की एक सखी भी कही गई है
+saat ikaiyo vala ek uttung gama kiran durdarshi bhi hanle me hal hi me sthapit kiya gaya hai	सात इकाइयों वाला एक उत्तुंग गामा किरण दूरदर्शी भी हान्ले में हाल ही में स्थापित किया गया है
+hindi men jivani sahity ka yah pahla granth hai	हिंदी में जीवनी साहित्य का यह पहला ग्रंथ है
+aaj ke davedar yadavendra sharma chandra	आज के दावेदार यादवेन्द्र शर्मा चन्द्र
+ushik siddhant ke anusar padarth kailrik ki vruddhi se ushna hota tha tatha uske hraas se shital	उषिक सिद्धांत के अनुसार पदार्थ कैलरिक की वृद्धि से उष्ण होता था तथा उसके ह्रास से शीतल
+khady apmishran roktham karykarm	खाद्य अपमिश्रण रोकथाम कार्यक्रम
+teri meri love story ishaan khurana	तेरी मेरी लव स्टोरी ईशान खुराना
+jaisimha ne agraha swikar kiya aur apne putra avanijanshraya pulkesi ko naagbhatt pratham ko samarthan dene ke liye bheja	जयसिम्हा ने आग्रह स्वीकार किया और अपने पुत्र अवनिजनश्रया पुलकेसी को नागभट्ट प्रथम को समर्थन देने के लिए भेजा
+vichaarnaa ke dauraan hi bhaartiy jlsaa men vidroh shuru ho gayaa	विचारणा के दौरान ही भारतीय जलसेना में विद्रोह शुरू हो गया
+kalal arthat sharab banane evam bechnevale	कलाल अर्थात् शराब बनाने एवं बेचनेवाले
+jammu aur kashmir men al kayda ki upsthiti spasht nahin hai	जम्मू और कश्मीर में अल क़ायदा की उपस्थिति स्पष्ट नहीं है
+vishwa bhasa parivar evam bharatiy bhashayen	विश्व भाषा परिवार एवं भारतीय भाषाएँ
+menjo menjo ek italian restorant	मेंज़ो मेंज़ो एक इतालियन रेस्टोरेंट
+asgar wajahat shresht kahaniyan neshnal buk trast nayi delhi	असग़र वजाहत श्रेष्ठ कहानियाँ नेशनल बुक ट्रस्ट नयी दिल्ली
+aigukka koriyaai deshbhakti ka geet uttar koriya ka rashtragan hai	ऍगुक्का कोरियाई देशभक्ति का गीत उत्तर कोरिया का राष्ट्रगान है
+is prakar hindu dharm me karm ka arth koi gatividhi koi kaam karna ya bhautikvadi karya karna ho sakta hai	इस प्रकार हिंदू धर्म में कर्म का अर्थ कोई गतिविधि कोई काम करना या भौतिकवादी कार्य करना हो सकता है
+yaha par steel tatha rasayano ka utpadan hota hai	यहां पर स्टील तथा रसायनों का उत्पादन होता है
+sanjay dutt kunvar vijay pal singh	संजय दत्त कुँवर विजय पाल सिंह
+gurgaon delhi meerut	गुड़गाँव दिल्ली मेरठ
+upanyas gadya lekhan ki ek vidha hai |	उपन्यास गद्य लेखन की एक विधा है |
+hel angreji hale ek uttar london men barnet baro ka jila hai	हेल अंग्रेज़ी hale एक उत्तर लंदन में बार्नेट बरो का जिला है
+yah vajra daityon se yuddh karne ke liye ise siklops naamak devta se praapt hua tha	यह वज्र दैत्यों से युद्ध करने के लिए इसे साइक्लोप्स नामक देवता से प्राप्त हुआ था
+sanvidhanvaad british upniveshwaad ki den hai	संविधानवाद ब्रिटिश उपनिवेशवाद की देन है
+isse fir rogi svabhavik roop se svasthya laabh karta hai	इससे फिर रोगी स्वाभाविक रूप से स्वास्थ्य लाभ करता है
+khadya apmisharn jaanch ke aasaan parikshan dr॰ anupama singh evam dr॰ maanvikaa sahgal	खाद्य अपमिश्रण जाँच के आसान परीक्षण डॉ॰ अनुपमा सिंह एवं डॉ॰ मानविका सहगल
+yahin rahkar unhonne apna krantikari upnyas boshovik ki kartoot likha	यहीं रहकर उन्होंने अपना क्रान्तिकारी उपन्यास बोल्शेविकों की करतूत लिखा
+totum pot naamak is pradarshni ke baad nirshpad mukhy kriya kii taiyrar marne ke liye vidaai lete hain	तोट्टम पाट नामक इस प्रदर्शनी के बाद निष्पादक मुख्य क्रिया की तैयारी करने के लिए विदाई लेते है
+yah jyadatar ekaschhriya ya ek chhote vakyansh ke roop men hota hai	यह ज्यादातर एकाक्षरिक या एक छोटे वाक्यांश के रूप में होता है
+manasik rog	मानसिक रोग
+antah muktak kavya ki vah vidha hai jismen katha ka koi purvapar sambandh nahi hota	अत मुक्तक काव्य की वह विधा है जिसमें कथा का कोई पूर्वापर संबंध नहीं होता
+jab tak yakub ka dehaant hua vah kaabul wadi sindh tusharistan karman fars aur khurasan le chuka tha	जब तक याक़ूब का देहांत हुआ वह काबुल वादी सिंध तुषारिस्तान केरमान फ़ार्स और ख़ुरासान ले चुका था
+tisri prototype dwara composite pankhon aur punchh ko shamil karke is mamle ko sambodhit gaya	तीसरे प्रोटोटाइप द्वारा कम्पोजिट पंखों और पूंछ को शामिल करके इस मामले को संबोधित गया
+ve malyal manorama namak malayalam patra ke sampadak the	वे मलयल मनोरमा नामक मलयालम पत्र के सम्पादक थे
+purane kile ki taraf ganv ke bahar mahadev mandir hai jo navin bana hua hai	पुराने किले की तरफ गांव के बाहर महादेव मंदिर है जो नवीन बना हुआ है
+aadhikarik jaalsthal	आधिकारिक जालस्थल
+patel b com paarit hai	पटेल बी काम पारित है
+vo pratham bhartiya svatantrtaa ke baad hain jinhonne vyaktigat rajat padak jita	वो प्रथम भारतीय स्वतंत्रता के बाद हैं जिन्होंने व्यक्तिगत रजत पदक जीता
+aries ko yuddh aur vibhishika hi prita thi	एरीज़ को युद्ध और विभीषिका ही प्रिय थी
+sanrachanatmak visheshtayein prakrutik nikshep tatha shavon ko gadana bhi sandarbha honge	संरचनात्मक विशेषताएं प्राकृतिक निक्षेप तथा शवों को गाड़ना भी सन्दर्भ होंगे
+itne kam paise men unke pariwar ka gujara nahin hota tha	इतने कम पैसे में उनके परिवार का गुज़ारा नहीं होता था
+khun ki aahuti ke naam par murgon ki yah ladaai chhote aur bade sanskritiyon ki mel ka pramaan hai	खून की आहुति के नाम पर मुर्गों की यह लडाइ छोटे और बडे संस्कृतियों की मेल का प्रमाण है
+felix anthony fiji ka ek bhaaratiy vyakti hai jo ki majdur sangh ka netaa aur rajnitigy hai	फ़िलिक्स एंटनी फिजी का एक भारतीय व्यक्ति है जो कि मजदूर संघ का नेता और राजनीतिज्ञ है
+isi tarah shabd yahu ka upayog aksar rufiyan ya thag ke paryay ke rup me kiya jata hai	इसी तरह शब्द याहू का उपयोग अक्सर रुफियन या थग के पर्याय के रूप में किया जाता है
+kisi kaam ko pure manoyog ke sath pura karne me bhagvati charan bejod the	किसी काम को पूरे मनोयोग के साथ पूरा करने में भगवती चरण बेजोड़ थे
+dalit shabd ka shaabdik arth hai dalan kiya hua	दलित शब्द का शाब्दिक अर्थ है दलन किया हुआ
+lokakathaon ke anusar is gaanv ke nivaasiyon ko yah ajgar bahut pareshan kiya karta tha	लोककथाओं के अनुसार इस गाँव के निवासियों को यह अजगर बहुत परेशान किया करता था
+bata thailand	बाटा थाइलैंड
+siddhanta anuvanshiki ya sankramano ko shamil karte hai	सिद्धांत आनुवंशिकी या संक्रमणों को शामिल करते हैं
+fal se circa bhi banaya jata hai adhikansh fal taja khaya jata hai	फल से सिरका भी बनाया जाता है अधिकांश फल ताजा खाया जाता है
+lesotho bhogolik drushti se dakshin africa se ghira hua hain aur aarthik rup se ekikrut hai	लेसोथो भौगोलिक दृष्टि से दक्षिण अफ्रीका से घिरा हुआ है और आर्थिक रूप से एकीकृत है
+alfred company se judkar unhone veer abhimanyu bhakt prahlad shrikrushnaavtaar adi anek natak likhe	अल्फ्रेड कम्पनी से जुड़कर उन्होंने वीर अभिमन्यु भक्त प्रहलाद श्रीकृष्णावतार आदि अनेक नाटक लिखे
+inmen se kuchh is prakar se hain	इनमें से कुछ इस प्रकार से हैं
+unhonne vyaavaasik pokar khilaadi daniel negrenu se prashiksan liya hai	उन्होंने व्यावासिक पोकर खिलाडी डैनियल नेग्रेनु से प्रशिक्षण लिया है
+prtyek bhasha ka apna dhwani siddhant aur uccharan niyam hota hai	प्रत्येक भाषा का अपना ध्वनि सिद्धान्त और उच्चारण नियम होता है
+jonathan tudu	जोनाथन टुडू
+pake jane ke dar se sare chor sandipeepan muni ke ashram men chhip gaye	पकडे जाने के डर से सारे चोर संदीपन मुनि के आश्रम में छिप गये
+sansad bhavan mein bharat ki sansdiya karyavahi hoti hai	संसद भवन में भारत की संसदीय कार्यवाही होती है
+nrlc me shravaal chitra imaarat ke sanrkshan ka prashikshan bhi chalaya gaya	एनआरएलसी मे श्रवाल चित्र इमारत के संरक्षण का प्रशिक्षण भी चलाया गया
+vibhajan ke baad in dinon ko prashan karne ki jimmedari unhi ki thi	विभाजन के बाद इन दोनों को प्रशासन करने कि ज़िम्मेदारी उन्ही की थी
+pushyabhuti vansh aur harshvardhan	पुष्यभूति वंश और हर्षवर्धन
+aanuvanshikta ke lihaj se bhi in pedon men kafi samanta dekhane ko mili hai	आनुवांशिकता के लिहाज से भी इन पेड़ों में काफी समानता देखने को मिली है
+naevell rabbarmaade kaha gaya hai yeh sankramankalin rojgar sevao ke rup me acchi tarah se vicched labho ki peshkash karega	नएवेल्ल् राब्बरमादे कहा गया है यह संक्रमणकालीन रोजगार सेवाओं के रूप में अच्छी तरह से विच्छेद लाभों की पेशकश करेगा
+adhiktar muslim badshahon ke smarak makbare bane hain	अधिकतर मुस्लिम बादशाहों के स्मारक मकबरे बने हैं
+yahan sast bazar hai v saath hi kai tho vastuon ka bazar bhi hai	यहाँ सस्ता बाजार है व साथ ही कई थोक वस्तुओं का बाजार भी है
+delhi ke musalmaan shasakon dvara arajkata failaane ke kaaran uttar bharat mein dhime dhime angareji shaasan failtaa jaa rha tha	दिल्ली के मुसलमान शासकों द्वारा अराजकता फैलाने के कारण उत्तर भारत में धीमे धीमे अंग्रेजी शासन फैलता जा रहा था
+sanvidhanvad ki yah niti har jagah angrezo ki marji ke mutabik nahi chali	संविधानवाद की यह नीति हर जगह अंग्रेज़ों की मर्जी के मुताबिक नहीं चली
+swbhav se dhairyvan hone ke saath saath ve udghat hai	स्वभाव से धैर्यवान होने के साथ साथ वे उद्घत है
+isi ke sath sath ful bhi kharide jate hai	इसी के साथ साथ फूल भी खरीदे जाते हैं
+iska nirmaan director cut ke raajan shaahi ne kiya hai	इसका निर्माण डाइरेक्टर कट के राजन शाही ने किया है
+kans ke karagar men bhi devki sahmi hui hirni nahin varan sinhani jaisi dikhai deti hai	कंस के कारागार में भी देवकी सहमी हुई हिरनी नहीं वरन् सिंहनी जैसी दिखाई देती है
+goregaon aur fil city sthit studio men hi adhikansh filmon ki shuting hotin hain	गोरेगांव और फिल सिटी स्थित स्टूडियो में ही अधिकांश फिल्मों की शूटिंग होतीं हैं
+kuch manasik rogon ki chikitsa prakrutik dhang se bhi hoti hai	कुछ मानसिक रोगों की चिकित्सा प्राकृतिक ढंग से भी होती है
+ke kuthala shahidi sake ne apako rajwadashai sampt karne aur riyasati pramandal ki sthapna ke liye prerit kiya	के कुठाला शहीदी साके ने आपको रज़वाड़ाशाही समाप्त करने और रियासती प्रजामंडल की स्थापना के लिए प्रेरित किया
+bam girne ke baad air fild se combact air petrol ka sampark sekhon tatha ghumman se toot gaya tha	बम गिरने के बाद एयर फील्ड से कॉम्बैट एयर पेट्रोल का सम्पर्क सेखों तथा घुम्मन से टूट गया था
+dirghatmas ek prachin rishi the	दीर्घतमस एक प्राचीन ऋषि थे
+atah do kii sankhya ke pratyay ke liye chentan iishwar kii satta avashayk hai	अतः दो की संख्या के प्रत्यय के लिए चेतन ईश्वर की सत्ता आवश्यक है
+yah parinishthit pashchimi hindi ka ek roop hai	यह परिनिष्ठित पश्चिमी हिंदी का एक रूप है
+joypurah relway station	जॉयपुराह रेलवे स्टेशन
+rasarohan ki kriya xylem ke bhitar se hoti hai	रसारोहण की क्रिया जाइलम के भीतर से होती है
+ve ek din ka dharmik granth padh rahe the to unhe ek jagah raja bali ka prasang mila	वे एक दिन एक धार्मिक ग्रन्थ पढ़ रहे थे तो उन्हें एक जगह राजा बलि का प्रसंग मिला
+naseeruddin shah	नसीरुद्दीन शाह
+sarvadhik pavitra bhaison ke liye gaanv se thoda dur hat kar ek pavitra sthan ka nirman kiya jaata hai	सर्वाधिक पवित्र भैंसों के लिए गांव से थोड़ा दूर हट कर एक पवित्र स्थान का निर्माण किया जाता है
+unka akhiri test match australia ke anya bade khiladiyon dennis lilee aur rod marsh ka bhi akahari tha	उनका आखिरी टेस्ट मैच ऑस्ट्रेलिया के अन्य बड़े खिलाड़ियों डेनिस लिली और रॉड मार्श का भी आखिरी था
+shahabano prakaran	शाहबानो प्रकरण
+ek sanvidagat anubandh jismen sanvidha dinank ko purv nirdharit byaaj daron par byaaj dar rashi ka niptaan nirdisht hota hai	एक संविदागत अनुबंध जिसमें संविदा दिनांक को पूर्व निर्धारित ब्याज दरों पर ब्याज दर राशि का निपटान निर्दिष्ट होता है
+charit varnan mein kavi ne samaas shaili ka hi avalamban kiya hai	चरित वर्णन में कवि ने समास शैली का ही अवलंबन किया है
+iske darbar me ibrahim jaise asantusht afgan sardaro ka jamavada tha	इसके दरबार में इब्राहिम जैसे असन्तुष्ट अफगान सरदारों का जमावाड़ा था
+anya prakaar mein shaamil hai vichitra aur safed prakaar jo vishist losi ke ailelik ke parivartan ke kaaran hai	अन्य प्रकार में शामिल है विचित्र और सफेद प्रकार जो विशिष्ट लोसी के ऐलेलिक के परिवर्तन के कारण है
+is bich narayan lal ko sthaniya nivasiyo ki sahayata se ek pathshala me saat rupaye masik par naukari mil gayi	इसी बीच नारायण लाल को स्थानीय निवासियों की सहायता से एक पाठशाला में सात रुपये मासिक पर नौकरी मिल गयी
+in jhatkon se hajaron kshtigrast ho gay	इन झटकों से हजारों क्षतिग्रस्त हो गये
+ghumman us samay khud ek saber jet ka pichha kar rahe the	घुम्मन उस समय खुद एक सेबर जेट का पीछा कर रहे थे
+anya abhivruttiparikshanon ke sambandh mein yahi kaha ja sakta hai ki vishisht yogytamapak udaharanon ki kami nahin hai	अन्य अभिवृत्तिपरीक्षणों के संबंध में यही कहा जा सकता है कि विशिष्ट योग्यतामापक उदाहरणों की कमी नहीं है
+aur computer baitha gaya ramesh aajaad	और कम्प्यूटर बैठ गया रमेश आजाद
+is trust ke vartaman adhyaksh meer najaf ali khan hai jo saptam nizam meer usman ali khan ke pote hain	इस ट्रस्ट के वर्तमान अध्यक्ष मीर नजफ़ अली खान है जो सप्तम निज़ाम मीर उस्मान अली खान के पोते हैं
+meghalay police ka mukhyalay sachivalay pahadi secretarial hill shillong mein sthit hai	मेघालय पुलिस का मुख्यालय सचिवालय पहाड़ी सेक्रेटेरियट हिल शिलांग में स्थित है
+baal komal se lekar rukhda kada jaise suar ka aur nukila tak jaise sahi ka hota hai	बाल कोमल से लेकर रुखड़ा कड़ा जैसे सूअर का और नुकीला तक जैसे साही का होता है
+parsa dakshini nepaal ke rupndehi jile men ek gramin vikaas samiti hai	पर्सा दक्षिणी नेपाल के रुपन्देही जिले में एक ग्रामीण विकास समिति है
+samajik buddhisampann vyakti any vyaktiyon ke sath sucharu sambandh bana rakhane ki kala aur naipuny ye yukt hota hai	सामाजिक बुद्धिसंपन्न व्यक्ति अन्य व्यक्तियों के साथ सुचारु संबंध बना रखने की कला और नैपुण्य ये युक्त होता है
+rasaynik jariye aaklan karne ke baad libiya sarkar opcw cw nasht karne ke liye ek samay seema men badhy hogi	रासायनिक जरिए आकलन करने के बाद लीबिया सरकार ओपीसीडब्ल्यू सीडब्ल्यू नष्ट करने के लिए एक समय सीमा में बाध्य होगी
+kuchh prabhaavit vyakti gambhir rup se aksham ho jate hain	कुछ प्रभावित व्यक्ति गंभीर रूप से अक्षम हो जाते हैं
+kar diya	कर दिया
+bhojshala raja bhoj dwara nirmit sanskrut adhyan ka kendr tatha sarswati ka mandir tha	भोजशाला राजा भोज द्वारा निर्मित संस्कृत अध्ययन का केन्द्र तथा सरस्वती का मन्दिर था
+brahmana chassutalapa sambuddha chapi bhasi re	ब्रह्मणा चस्सुतालापा सम्बुद्धा चापि भासि रे
+tibbati aur tanguta log is samrajya ko minyak samrajya mi nyak bulate the	तिब्बती और तान्गूत लोग इस साम्राज्य को मिन्याक साम्राज्य mi nyak बुलाते थे
+ham chaar tarike se karma karte hai	हम चार तरीके से कर्म करते हैं
+yah kasba pahale nichai par sthit hone ke karam aswasthakar tha lekin ab iski jalvayu pahale jaisi aswasthakar nahi hain	यह कस्बा पहले निचाई पर स्थित होने के कारण अस्वस्थकर था लेकिन अब इसकी जलवायु पहले जैसी अस्वस्थकर नहीं है
+pahli baar kisi chalti huyi railgadi mein radio ki suvidha pradaan ki gayi thi	पहली बार किसी चलती हुयी रेलगाड़ी में रेडियो की सुविधा प्रदान की गयी थी
+madhya ke upjau maidan men gehu jau shahtut narangi angur aur madhu prachur matra men utpann hote hain	मध्य के उपजाऊ मैदान में गेहूँ जौ शहतूत नारंगी अंगूर और मधु प्रचुर मात्रा में उत्पन्न होते हैं
+jab uska bhai apni bahan ko chhudane ata hai to raja use mar deta hai	जब उसका भाई अपनी बहन को छुड़ाने आता है तो राजा उसे मार देता है
+clark aur lois agali raat ek saath bitaakar automobile dwara arctic se laut jate hain	क्लार्क और लोइस अगली रात एक साथ बिताकर ऑटोमोबाइल द्वारा आर्कटिक से लौट जाते हैं
+nai kavita ne dharm darshan niti aachar sabhi prakar ke mulyo ko chunauti di hai	नई कविता ने धर्म दर्शन नीति आचार सभी प्रकार के मूल्यों को चुनौती दी है
+kesari ko rishi muniyo ne atyant balshali aur sevabhavi santan hone ka ashirvad diya	केसरी को ऋषि मुनियों ने अत्यंत बलशाली और सेवाभावी संतान होने का आशीर्वाद दिया
+salim ali ka janm bombey ke ek sulemani bohra muslim pariwaar men huaa	सालिम अली का जन्म बॉम्बे के एक सुलेमानी बोहरा मुस्लिम परिवार में हुआ
+unake do betom mem se eka naresa gujarala rajya sabha sadasya hai aura dusara beta visala hai	उनके दो बेटों में से एक नरेश गुजराल राज्य सभा सदस्य है और दूसरा बेटा विशाल है
+jamalganj railway station	जमालगंज रेलवे स्टेशन
+lagan sampadit karen	लगन संपादित करें
+paresh rawal	परेश रावल
+nakhon thai bhasha men nagar ka rup hai jabki khmer men phnom ka arth pahad hain	नखोन थाई भाषा में नगर का रूप है जबकि ख्मेर में फनोम का अर्थ पहाड़ है
+nausena jo samudro jhilom v nadiyo par ladti hai	नौसेना जो समुद्रों झीलों व नदियों पर लड़ती है
+rajesh‍wari bharat ke uttar pradesh ki solahvin vidhansabha sabha mein vidhayak rahin	राजेश्वरी भारत के उत्तर प्रदेश की सोलहवीं विधानसभा सभा में विधायक रहीं
+in kundo ko pahadi ke pattharon ko katkar banaya gaya tha	इन कुंडों को पहाड़ी के पत्थरों को काटकर बनाया गया था
+ye delhi sthit jamia milia islamiya me hindi vibhag ke adhyaksha reh chuke hai	ये दिल्ली स्थित जामिया मिलिया इस्लामिया में हिन्दी विभाग के अध्यक्ष रह चुके हैं
+sarkaron badlati gai aur is jile ka vikas bhi hota gaya	सरकारें बदलती गई और इस जिले का विकास भी होता गया
+gayatri patel	गायत्री पटेल
+hishe lanchugapa bharat ke varishth sadan rajyasabha ke sadasya hain	हिशे लाचुंगपा भारत के वरिष्ठ सदन राज्यसभा के सदस्य हैं
+connecticut sanyukt rajy men kshetr ke hisaab se teesra sabse chhota rajy hai	कनेक्टिकट संयुक्त राज्य में क्षेत्र के हिसाब से तीसरा सबसे छोटा राज्य है
+sau vichardharae	सौ विचारधाराएँ
+simentikaran vidhi dvara pehli bar italy me balistar ispat ka nirman kiya gaya	सिमेंटीकरण विधि द्वारा पहली बार इटली में बलिस्टर इस्पात का निर्माण किया गया
+yaha delhi ki parikrama sewa ka bhi holt hota hai	यहां दिल्ली की परिक्रमा सेवा का भी हॉल्ट होता है
+ashok yahan bhi puja ke liye aaya tha	अशोक यहाँ भी पूजा के लिए आया था
+ithaka ghati tathis	इथाका घाटी टॅथिस
+aisa pratit hota hai ki college namankan men tej giravat se college ki unnati na hogi	ऐसा प्रतीत होता है कि कॉलेज नामांकन में तेज गिरावट से कॉलेज की उन्नति ना होगी
+tapaswi kuch nahi bola aur ve fir tapasya karne lage	तपस्वी कुछ नहीं बोला और वे फिर तपस्या करने लगे
+kuchh aprabhavi rupon ko protin ke doshon se joda gaya hai jo dystrophin glycoprotein complex banate hain	कुछ अप्रभावी रूपों को प्रोटीन के दोषों से जोड़ा गया है जो डिस्ट्रोफ़िन ग्लाइकोप्रोटीन कॉमप्लेक्स बनाते हैं
+parmanand bhattacharya	परमानंद भट्टाचार्य
+iska fal jise jangli log piyaal kahte hain khaaya jaata hai	इसका फल जिसे जंगली लोग पियाल कहते हैं खाया जाता है
+vaha anugraha kisi niyama para adharita hota hai ya paramatma ki avihita iccha para	वह अनुग्रह किसी नियम पर आधारित होता है या परमात्मा की अविहित इच्छा पर
+tatha vartaman men rajya ke raghubar das sarkar men ajasu party ke vidhayak shri chandraprakas chaudhary cabinet mantri hain	तथा वर्तमान में राज्य के रघुबर दास सरकार में आजसू पार्टी के विधायक श्री चंद्रप्रकास चौधरी केबिनेट मंत्री हैं
+devnarayan fad parmpara	देवनारायण फड़ परम्परा
+is aanuvanshik sthiti ke karan kutte ke baal kam hote hain	इस आनुवंशिक स्थिति के कारण कुत्ते के बाल कम होते हैं
+har varga ke log is nritya me bhag lete hai	हर वर्ग के लोग इस नृत्य मे भाग लेते है
+aanvik star par ilaaj mein sammlit pashuon ke mastisk rasaayn ko saamanya rup se bahaal paya gaya	आणविक स्तर पर इलाज में सम्मलित पशुओं के मस्तिष्क रसायन को सामान्य रूप से बहाल पाया गया
+isse bismil ki atma ko apaar kashat hua	इससे बिस्मिल की आत्मा को अपार कष्ट हुआ
+aise vyutpanna chloride bromide iodide alcohol sodium alcoxide amine markaiptan nitrate nitrite nitrite hydrogen phasphate tatha hydrogen sulphate hai	ऐसे व्युत्पन्न क्लोराइड ब्रोमाइड आयोडाइड ऐल्कोहाल सोडियम ऐल्कॉक्साइड ऐमिन मरकैप्टन नाइट्रेट नाइट्राइट नाइट्राइट हाइड्रोजन फास्फेट तथा हाइड्रोजन सल्फेट हैं
+sarabjeet singh pakisthan men aatangwaad aur jasusi ke aarop men girftaar bhartiy	सरबजीत सिंह पाकिस्तान में आतंकवाद और जासूसी के आरोप में गिरफ्तार भारतीय
+upbhokta mamlon ka vibhag aavshyak vastu viniyaman aur pravrtan anubhaag	उपभोक्ता मामलों का विभाग आवश्यक वस्तु विनियमन और प्रवर्तन अनुभाग
+stil frojing	स्टील फोर्जिंग
+iske do vibhag hai gulistan aur chaman	इसके दो विभाग हैं गुलिस्तान और चमन
+kam se kam ek jodi kapde to lete hi hain	कम से कम एक जोड़ी कपड़े तो लेते ही हैं
+iske vishay men aisi prasiddhi hai ki dahiyon ke keshav namak upadhyay brahman ne yah talab khudwaya tha	इसके विषय में ऐसी प्रसिद्धि है कि दहियों के केशव नामक उपाध्याय ब्राह्मण ने यह तालाब खुदवाया था
+mahant is ranpoorn aur pavitr saje huy jhande ko dopahar baad uthaata hai	महन्त इस रंगपूर्ण और पवित्र सजे हुऐ झण्डे को दोपहर बाद उठाता है
+mi mein sthit hai	मि में स्थित है
+dwadashi ke din kashan ko yogya braahman athava pandit ko daan kar den	द्वादशी के दिन कलश को योग्य ब्राह्मण अथवा पंडित को दान कर दें
+audyogik prabandh avm sangthan sharda avm bhular	औद्योगिक प्रबंध एवं संगठन शारदा एवं भूलर
+dusre chhor par vruhad vikalp pradan karne vali arthniti ko arthik azadi kahte hain	दूसरे छोर पर वृहद विकल्प प्रदान करने वाली अर्थनीति को आर्थिक आजादी कहते हैं
+in panch men se pahle char sambdhon men ek aur aadesh dena aur dusri aur uska palan karna nihit hai	इन पाँच में से पहले चार संबंधों में एक ओर आदेश देना और दूसरी ओर उसका पालन करना निहित है
+bullus venkateshwarulu telugu bhsha ke vikhyat sahityakar hain	बुलुस वेंकटेश्वरुलु तेलुगू भाषा के विख्यात साहित्यकार हैं
+asanghosh kavita kosh par	असंगघोष कविता कोष पर
+filip vee kaardan food and agrikalchar organizeshan ke teesre mahanirdeshak the	फिलिप वी कार्डन फूड एंड एग्रीकल्चरल आर्गनाइज़ेशन के तीसरे महानिदेशक थे
+bahut sare bengali film men bhi is nrutya ko dikhaya gaya hai	बहुत सारे ब्ंगाली फिल्म मे भी इस नृत्य को दिखाया गया है
+koniya railway junction	कौनीया रेलवे जंक्शन
+phir shiva ki agya se samast vikaro ka sanhar hota hai	फिर शिव की आज्ञा से समस्त विकारों का संहार होता है
+kaushambi ko aaj unhi yashaswi lgon men gina jata hai	कौशांबी को आज उन्हीं यशस्वी लोगों में गिना जाता है
+chauranga internet movie database par	चौरंगा इंटरनेट मूवी डेटाबेस पर
+unhone kiriti rai naamak ek kaalpanik jaasusi charitra ka srijan kiya	उन्होने किरीटि राय नामक एक काल्पनिक जासूसी चरित्र का सृजन किया
+yah sthal panipat ki ladai se talluk rakhata hai	यह स्थल पानीपत की लड़ाई से ताल्लुक रखता है
+jiska sevan rugnavastha aur sharirik durbalta me kiya jata hai	जिसका सेवन रूग्णावस्था और शारीरिक दुर्बलता में किया जाता है
+kabhi kabhi tab tak koi lakshan spasht nahi hota jab tak aburd badhkar pratit nahi hone lagta	कभी कभी तब तक कोई लक्षण स्पष्ट नहीं होता जब तक अर्बुद बढ़कर प्रतीत नहीं होने लगता
+unki tapsya se prasann hokar brahma ji ne unhen rajrshi ka pad pradhan kiya	उनकी तपस्या से प्रसन्न होकर ब्रह्मा जी ने उन्हें राजर्षि का पद प्रदान किया
+chhaatra aandolan aur jp se judav hi raha ki samaaj ke jwalant muddon par vah baraabar likhte rahe	छात्र आंदोलन और जेपी से जुड़ाव ही रहा कि समाज के ज्वलंत मुद्दों पर वह बराबर लिखते रहे
+ghatnasthan par	घटनास्थान पर
+barbecue sauce	बारबेक्यू सॉस
+seema malhota britain ki rajnitigya	सीमा मल्होत्रा ब्रिटेन की राजनीतिज्ञ
+ismein keval liliput ki yatra ko dikhaya gaya hai	इसमें केवल लिलिपुट की यात्रा को दिखाया गया है
+petarsburg pairets ki aadhikarik website	पिट्सबर्ग पाइरेट्स की आधिकारिक वेबसाइट
+n kuchh khana n pina sona aur aaram karna bhulkar sadhana men leen rahe	न कुछ खाना न पीना सोना और आराम करना भूलकर साधना में लीन रहे
+fir aisa lagta hai ki bunnu mar gaya hai	फिर ऐसा लगता है कि बुन्नू मर गया है
+kalyug savant ise mahabharat samvant ya yudhishthir savant kahte hain	कलियुग संवत् इसे महाभारत सम्वत या युधिष्ठिर संवत् कहते हैं
+jabki purush gharelu saamaan ko uthaakar jhund ke samaanaantar maarga par hi chalne ka prayaas karte hain	जबकि पुरुष घरेलू सामान को उठाकर झुण्ड के समानान्तर मार्ग पर ही चलने का प्रयास करते हैं
+in yatriyo me we apne pariwaro v pashu dhn ko sath le jate hai	इन यात्रओं में वे अपने परिवारों व पशु ध्न को साथ ले जाते हैं
+salim ne apne parivar ke anya sadasyon ko bhi prabhavit kiya	सालिम ने अपने परिवार के अन्य सदस्यों को भी प्रभावित किया
+lgmd dono uopari hathon aur pairon ko prabhavit karate huye sabhi manspeshiyon mein kamjori ka eksaman viatran dikhata hai	lgmd दोनों ऊपरी हाथों और पैरों को प्रभावित करते हुए सभी मांसपेशियों में कमजोरी का एकसमान वितरण दिखाता है
+kintu iska bhi karan raadwesh ki bhaavna nahin hai	किंतु इसका भी कारण रागद्वेष की भावना नहीं है
+adhunik hindi kavya me paschatya darshan ram kishan saini	आधुनिक हिंदी काव्य में पाश्चात्य दर्शन राम किशन सैनी
+chanal patrakar ka sadak ke gaddhe dekhane ka najriya krantikari roop se badal chuka hoga	चैनल पत्रकार का सड़क के गड्ढे देखने का नजरिया क्रांतिकारी रूप से बदल चुका होगा
+rashtrapati ki manjuri aur sanyukt rajya congress adhiniyam ke dvara manad nagrikta keval saat vyaktiyon ko di gayi hai	राष्ट्रपति की मंजूरी और संयुक्त राज्य कांग्रेस अधिनियम के द्वारा मानद नागरिकता केवल सात व्यक्तियों को दी गयी है
+donald buchart sam ivans hari fannel ben mike aur jems dikinson lestershayar ne apni list ye ki shurvaat ki	डोनाल्ड बुचर्ट सैम इवांस हैरी फननेल बेन माइक और जेम्स डिकिंसन लेस्टरशायर ने अपनी लिस्ट ए की शुरुआत की
+marathi chalchitra udyog bhi mumbai men hi sthit hai	मराठी चलचित्र उद्योग भी मुंबई में ही स्थित है
+aashcharyajanak rup se iskaa bahut kam hai	आश्चर्यजनक रूप से इसका बहुत कम है
+is ispat ko garam karke pitai ki jati hai jisse yeh samaras ho jae	इस इस्पात को गरम करके पिटाई की जाती है जिससे यह समरस हो जाए
+burai ki samsyaa	बुराई की समस्या
+veh ek maharaj rasoiya ek mejban cookbook ke lekhak aur ek restaurent salahakar bhi hai	वह एक महाराज रसोइया एक मेजबान कुकबुक के लेखक और एक रेस्तरां सलाहकार भी है
+khiriya banar bharat ke uttar pradesh rajya ke eitah jile ke aliganj prakhand ka ek gaon hai	खिरिया बनार भारत के उत्तर प्रदेश राज्य के एटा जिले के अलीगंज प्रखण्ड का एक गाँव है
+rangers football club scotish peshevar football league me khelta hai jo glasgo me scottland ke ek football club adharit hai	रेंजर्स फुटबॉल क्लब स्कॉटिश पेशेवर फुटबॉल लीग में खेलता है जो ग्लासगो में स्कॉटलैंड के एक फुटबॉल क्लब आधारित है
+brij bihari prasad bihar rajya ke purv vidhayak aur mantri rahe the	बृज बिहारी प्रसाद बिहार राज्य के पूर्व विधायक और मंत्री रहे थे
+pir panjal parvatmala	पीर पंजाल पर्वतमाला
+aatah sarvagyan chetan ishwar is jagat ke nimitta karan evam prayojak karta hain	अतः सर्वज्ञ चेतन ईश्वर इस जगत् के निमित्त कारण एवं प्रायोजक कर्ता हैं
+yah us desh ke madhya vibhag me sthit hai	यह उस देश के मध्य विभाग में स्थित है
+emma espo	एम्मा एस्पो
+is rog ka vishesh lakshan mal ke saath rakt ana hai	इस रोग का विशेष लक्षण मल के साथ रक्त आना है
+vishv me boli jane wali sabhi bhashao aur boliyo me jivantata milti hai	विश्व में बोली जाने वाली सभी भाषाओं और बोलियों में जीवंतता मिलती है
+sikal sell rog ke any ruppon men hb star adhik ho jata hai	सिकल सेल रोग के अन्य रूपों में hb स्तर अधिक हो जाता है
+is bich richrd wright ne dev heroes ke saath ji ka gathan kiya	इस बीच रिचर्ड राइट ने डेव हैरिस के साथ जी का गठन किया
+inke putra dharmdhvaja aur pautr kritdhvaja evam mitdhvaja the	इनके पुत्र धर्मध्वज और पौत्र कृतध्वज एवं मितध्वज थे
+yah brunei sarkar ke purna svamitva me hai	यह ब्रुनेई सरकार के पूर्ण स्वामित्व में है
+uske baad mukhy kirdaar nibhane ke irade ke sath unhone patkatha ko bechane ki koshish ki	उसके बाद मुख्य किरदार निभाने के इरादे के साथ उन्होंने पटकथा को बेचने की कोशिश की
+rajneeti men aane ke pahle yah pradhyapak thin	राजनीति में आने के पहले यह प्राध्यापक थीं
+aur bharat ke aligarh muslim vishwavidyalay ke rector the	और भारत के अलीगढ़ मुस्लिम विश्वविद्यालय के रेक्टर थे
+indra ke paas jo vajra tha vah maharshi dadhuchi ki haddiyon se bana tha	इन्द्र के पास जो वज्र था वह महर्षि दधीचि की हडि्डयों से बना था
+jarjiya ke anya bade shahar mekan colambus aur savana hain	जार्जिया के अन्य बड़े शहर मेकन कोलंबस और सवाना हैं
+dwip ka adhikthtar kshetr sapat hai sifr tatrekha ke aas paas hi kuchh meter unchaai ki chattanen upsathit hain	द्वीप का अधिकतर क्षेत्र सपाट है सिर्फ तटरेखा के आस पास ही कुछ मीटर ऊँचाई की चट्टाने उपस्थित हैं
+vyasan ki rokhtham ke liye kiye jane wale pramukh upayon men nimn baton ko dhyan rakha jana chahiye	व्यसन की रोकथाम के लिए किए जाने वाले प्रमुख उपायों में निम्न बातों को ध्यान रखा जाना चाहिये
+le voyage day guliver a liliput at chase less gents georges milis ke dvara nirdeshit ek fransisi laghu shanta anukulan	ले वोयाज डे गुलिवर ऐ लिलिपुट एट चेज़ लेस जेंट्स जोर्जेस मिलीस के द्वारा निर्देशित एक फ़्रांसिसी लघु शांत अनुकूलन
+chako malyalam bhasha ke vikhyat sahitykar hain	चाको मलयालम भाषा के विख्यात साहित्यकार हैं
+inhin sthaanon par ghiraniyon ka upyoga hotaa hai	इन्हीं स्थानों पर घिरनियों का उपयोग होता है
+kheti ke kshetron ke aaspaas dhaan mungfali tamatar mirch aur kele jaise faslon ka mor vyapak roop se khaate hain	खेती के क्षेत्रों के आसपास धान मूंगफली टमाटर मिर्च और केले जैसे फसलों का मोर व्यापक रूप से खाते हैं
+adhunik railway door sanchar s k kaul	आधुनिक रेलवे दूर संचार एस के कौल
+parankan parchi	परांकन पर्ची
+sabhi devon ko samaan star par maana gaya	सभी देवों को समान स्तर पर माना गया
+mein hogaa	में होगा
+ek aur vigyan manuashya ki suraksha badha deta hai to dusri aur achintya chintaon ko hi utapnna kar deta hai	एक ओर विज्ञान मनुष्य की सुरक्षा बढ़ा देता है तो दूसरी ओर अचिंत्य चिंताओं को भी उत्पन्न कर देता है
+dilli mumbai london franch america karachi jaise sthanon pr unhone anek karykarm diye	दिल्ली मुम्बई लंदन फ्रांस अमेरिका करांची जैसे स्थानों पर उन्होंने अनेक कार्यक्रम दिए
+ram bahadur ray hindi ke prasiddha patrakar evam indira gandhi rashtriya kala kendra ke adhyaksh hai	राम बहादुर राय हिंदी के प्रसिद्ध पत्रकार एवं इंदिरा गांधी राष्ट्रीय कला केन्द्र के अध्यक्ष हैं
+parinamsvarup aptan ki apni ungli ke andar ek tattoo tattoo tha	परिणामस्वरूप अप्टन की अपनी उंगली के अंदर एक टैटू टैटू था
+kaartiya nirdeshank paddhati	कार्तीय निर्देशांक पद्धति
+tothis par ulkapindon ke banaye huye kai sare prahar cretar hain	टॅथिस पर उल्कापिंडों के बनाए हुए कई सरे प्रहार क्रेटर हैं
+haldwani ke gaulapar kshetra mein ek isbt nirmanadhin hai	हल्द्वानी के गौलापार क्षेत्र में एक आईएसबीटी निर्माणाधीन है
+taron se prapt honewali prakashtarangon se vyaktikaran dwara taron ki disha duri tatha visthar ka nirdharan kiya jata hai	तारों से प्राप्त होनेवाली प्रकाशतरंगों से व्यतिकरण द्वारा तारों की दिशा दूरी तथा विस्तार का निर्धारण किया जाता है
+is ke teen kendriya imaaratein jaavaa arbi aur greek taraj par banaaee gayi hain	इस के तीन केंद्रीय इमारतें जावा अरबी और ग्रीक तरज पर बनाई गई हैं
+baad me tamil ke liye is lipi ka prayog hone laga	बाद में तमिल के लिए इस लिपि का प्रयोग होने लगा
+mein samapt ho gaya	में समाप्त हो गया
+bargasaan jivan aur chetanaa ko sanyukt karta hai kahin kahin to inhen abhinn mantaa pratit hota hai	बर्गसाँ जीवन और चेतना को संयुक्त करता है कहीं कहीं तो इन्हें अभिन्न मानता प्रतीत होता है
+hiranyakeshi nadi ghatprabha nadi ki sahayak nadi hai	हिरण्यकेशि नदी घाटप्रभा नदी की सहयक नदी है
+iske sampadak krushnadutta paliwal hain	इसके संपादक कृष्णदत्त पालीवाल हैं
+karbadhishoshan ispat ki pitai karne ke baad bhi ismein nyunadhik asamta rehti hai	कार्बाधिशोषण इस्पात की पिटाई करने के बाद भी इसमें न्यूनाधिक असमता रहती है
+karachi prastutkartao	कराची प्रस्तुतकर्ताओं
+musabbar prajatiyon ki suchi	मुसब्बर प्रजातियों की सूची
+karan singh bharat ke uttar pradesh ki pratham vidhansabha sabha me vidhayak rahe	करन सिंह भारत के उत्तर प्रदेश की प्रथम विधानसभा सभा में विधायक रहे
+halravai dulraai mangavai joi soi kuchh gavai	हलरावै दुलराई मँगावै जोई सोई कछु गावै
+aankda sangrah ka kaarya aksar pratibhaagi avlokan sakshatkar prashnavali aadi ke madhyam se kiya jaata hai	आँकड़ा संग्रह का कार्य अक्सर प्रतिभागी अवलोकन साक्षात्कार प्रश्नावली आदि के माध्यम से किया जाता है
+valkanikaran press mein ya bhaap ki upsthiti mein ya shusk taap par sampann hota hai	वल्कनीकरण प्रेस में या भाप की उपस्थिति में या शुष्क ताप पर संपन्न हाता है
+pravarsen ke samkaalin shaktishaali naresh ke abhaav mein wakatak rajya andhrapradesh tatha madhyabharat mein vistrit ho gaya	प्रवरसेन के समकालीन शक्तिशाली नरेश के अभाव में वाकाटक राज्य आंध्रप्रदेश तथा मध्यभारत में विस्तृत हो गया
+yeh sanstha nano samagri vikas nano praudyogiki n	यह संस्था नेनो सामग्री विकास नेनो प्रौद्योगिकी एन
+tula rashi ke jatakon ki manodasha ka keval yahi varnan nahin hai	तुला राशि के जातकों की मनोदशा का केवल यही वर्णन नहीं है
+miyao log	मियाओ लोग
+is vriksh ke fal se nikli gai guthli ko mingi kehte hai	इस वृक्ष के फल से निकाली गई गुठली को मींगी कहते हैं
+isi yug me sapushpak paudhe yani ful vale paudhe aur pakshi pehli bar prithvi par kram vikas se utpanna hue	इसी युग में सपुष्पक पौधे यानि फूल वाले पौधे और पक्षी पहली बार पृथ्वी पर क्रम विकास से उत्पन्न हुए
+panch varsh ki avastha me balak ko akshargyan diya gaya	पांच वर्ष की अवस्था में बालक को अक्षरज्ञान दिया गया
+pracina kala mem ispata utpadana ki do vidhiyam pracalita thim	प्राचीन काल में इस्पात उत्पादन की दो विधियाँ प्रचलित थीं
+vruhdthon ko bhaskar punyamitra ka rajya kayam hona vaan ke hashcharit se bhi samarthit hai	वृहद्थों को भास्कर पुण्यमित्र का राज्य कायम होना वाण के हषचरित से भी समर्थित है
+uttarayan surya ke rehne par devtao ka din aur dakshinayan surya rehne tak uski raat hoti hai	उत्तरायण सूर्य के रहने पर देवताओं का दिन और दक्षिणायन सूर्य रहने तक उसकी रात होती है
+isi prakar aaykar ke niyam bhi iske pratikool padte hain	इसी प्रकार आयकर के नियम भी इसके प्रतिकूल पड़ते हैं
+zee news	ज़ी न्यूज़
+jisne rome ko ek bhari aupnivesh prant bana diya	जिसने रोम को एक भारी औपनिवेशिक प्रान्त बना दिया
+kshatriya tab tak sangharsh se piche nahi hatata jab tak uska mastishka hi na kat jae	क्षत्रिय तब तक संघर्ष से पीछे नहीं हटता जब तक उसका मस्तिष्क ही न कट जाए
+akshansh vrutt	अक्षांश वृत्त
+us marg par raja aage badhte rahe	उस मार्ग पर राजा आगे बढ़ते रहे
+uttar koria kii arthvyavstha	उत्तर कोरिया की अर्थव्यवस्था
+par yah krutrim prayaas anttogtwa vifal huaa	पर यह कृत्रिम प्रयास अंततोगत्वा विफल हुआ
+kahin kahin gahan mantron ki vyakhya mein inhen kathinaai kaa bhi samana karna pada	कहीं कहीं गहन मंत्रों की व्याख्या में इन्हें कठिनाई का भी सामना करना पड़ा
+iska pradhan karyalay mumbai bharat men hai	इसका प्रधान कार्यालय मुंबई भारत में है
+bharat ka adhikansh uttari tatha pashchimottar bhaag is samay harsh ke samrajya ke antargat tha	भारत का अधिकांश उत्तरी तथा पश्चिमोत्तर भाग इस समय हर्ष के साम्राज्य के अन्तर्गत था
+purv madhy railway bhartiy rel ki ek ikaai hai	पूर्व मध्य रेलेवे भारतीय रेल की एक इकाई है
+yah delhi metro rail ki yellow line shakha ka ek station bhi hai	यह दिल्ली मेट्रो रेल की येलो लाइन शाखा का एक स्टेशन भी है
+england ke alava scotland wells aur uttar irland bhi united kingdom men shamil hain	इंग्लैंड के अलावा स्कॉटलैंड वेल्स और उत्तर आयरलैंड भी यूनाइटेड किंगडम में शामिल हैं
+bharat sarkaar ne kashmiri rajnitik adhikaron ke liye samman ke abhav ko pradarshit kiya hai	भारत सरकार ने कश्मीरी राजनीतिक अधिकारों के लिए सम्मान के अभाव को प्रदर्शित किया है
+kahin kahin kuch kalakaron ne ise bachane ki jugat ki aur kuch vidhayen bachi rah gayi	कहीं कहीं कुछ कलाकारों ने इसे बचाने की जुगत की और कुछ विधाएं बची रह गई
+kaaranon ke anusaar chikitsaa abhist hai	कारणों के अनुसार चिकित्सा अभीष्ट है
+aashe se adhik jahaz ka hissa paani ke upar tha parantu yah jald li dubne ki kagaar pe tha	आधे से अधिक जहाज़ का हिस्सा पानी के ऊपर था परन्तु यह जल्द ली डूबने की कगार पे था
+raja mandiron ki vyvastha ke liye kabhi kabhi bhumikar ka daan de deta tha	राजा मंदिरों की व्यवस्था के लिये कभी कभी भूमिकर का दान दे देता था
+pavitra upvan angreji	पवित्र उपवन अंग्रेजी
+anuttarit dinesh pathak	अनुत्तरित दिनेश पाठक
+nagarjunkonda se prapt abhilekhon se yah gyaat hota hai ki pahli shataabdi ee	नागार्जुनकोंडा से प्राप्त अभिलेखों से यह ज्ञात होता है कि पहली शताब्दी ई
+bharatiy paramparaa ki pahchaan chhau nritya	भारतीय परंपरा की पहचान छाऊ नृत्य
+veh vesh badalakar us kutiya me vikram se mila jisme ve sadhna karte the	वह वेश बदलकर उस कुटिया में विक्रम से मिला जिसमें वे साधना करते थे
+man teen prakar ke kary bhi karta hai icchhaon ka nirman unka niyantran aur unki santushti	मन तीन प्रकार के कार्य भी करता है इच्छाओं का निर्माण उनका नियंत्रण और उनकी संतुष्टि
+rait ka naam sirf aabhar suchi men prakat hota hai	राइट का नाम सिर्फ आभार सूची में प्रकट होता है
+hindi rangamanca para sanskrta natakom ka bhi prabhava hai	हिन्दी रंगमंच पर संस्कृत नाटकों का भी प्रभाव है
+europewalon ke baal lahardaar ghunghrale chikne aur resham se mulayam hote hain	यूरोपवालों के बाल लहरदार घुँघराले चिकने और रेशम से मुलायम होते हैं
+yuva nar madao ki tarah ki tarah lagte hai lekin pankho ka rang badami hota hai	युवा नर मादाओं की तरह की तरह लगते हैं लेकिन पंखों का रंग बादामी होता है
+agle din anita sahil ke ghar uske ghar jati hai aur uske sath coffee piti hai	अगले दिन अनीता साहिल के घर उसके घर जाती है और उसके साथ कोफ़्फ़ी पीती है
+ajanta ki chitrakala ko wakatak kaal mein adhik protsahan mila jo sansaar mein advitiya bhittichitra maana gaya hai	अजंता की चित्रकला को वाकाटक काल में अधिक प्रोत्साहन मिला जो संसार में अद्वितीय भित्तिचित्र माना गया है
+yah kafi bauddh samaaj men mahilaon ki ucch sthiti ke anusaar hai	यह काफी बौद्ध समाज में महिलाओं की उच्च स्थिति के अनुसार है
+apne sena ka naash hoe dekh vishwamitr ke sau putr atayant kupit ho vashishth ji ko maarne daude	अपनी सेना का नाश होते देख विश्वामित्र के सौ पुत्र अत्यन्त कुपित हो वशिष्ठ जी को मारने दौड़े
+iske aarambh ka thik pata nahi hai	इसके आरंभ का ठीक पता नहीं है
+paschim bengal ke rajyapalon ki suchi	पश्चिम बंगाल के राज्यपालों की सूची
+singapore ke saharon ki suchi	सिंगापुर के शहरों की सूची
+ammonium bicarbonate tatha ammonium carbonate ka mishran hota hai iska upayog	अमोनियम बाइकार्बोनेट तथा अमोनियम कार्बोनेट का मिश्रण होता है इसका उपयोग
+vartman men astitwa rakhane waali adhiktar jatiya nishachari ratri ko sakriya hain	वर्तमान में अस्तित्व रखने वाली अधिकतर जातियाँ निशाचरी रात्रि को सक्रीय हैं
+turkey bhashayen	तुर्की भाषाएँ
+dus neurotic aavashyaktao ki janch karne par harni ne unhe teen vyapak shrenio me rakha hai	दस न्यूरोटिक आवश्यकताओं की जांच करने पर हरनी ने उन्हें तीन व्यापक श्रेणीओं में रखा हैं
+vittiya sansthaan email money transfer emt seva dvara vibhinn sansthanon ke khaton ke bich antran ko suvidhajanak banate hain	वित्तीय संस्थान ईमेल मनी ट्रांसफर emt सेवा द्वारा विभिन्न संस्थानों के खातों के बीच अंतरण को सुविधाजनक बनाते हैं
+pehle is pahad me chadhne ke liye bhandaripara ka gadhpichavade ki or se pahadi raste the	पहले इस पहाड मे चढने के लिये भंडारीपारा का गढपिछवारे की ओर से पहाडी रास्ते थे
+usme antyanupras to upalabdh hai parantu paudhi ke antim charan ko thoda chota kar diya gaya hai	उसमें अंत्यानुप्रास तो उपलब्ध है परंतु पौढ़ी के अंतिम चरण को थोड़ा छोटा कर दिया गया है
+raja mahamudabaad pehle kulpati aur ahmad upkulapati bane	राजा महमूदबाद पहले कुलपति और अहमद उपकुलपति बने
+ayurvedic upchar	आयुर्वेदिक उपचार
+hazara aur nuristani samuday ke log bhi yaha baste hai	हज़ारा और नूरिस्तानी समुदाय के लोग भी यहाँ बसते हैं
+fiona mare ph	फिओना मरे पीएच
+ve apne samrajya ko aupcharik rup se shwet aur ucch mahan shiya rajya phiyov byiya lhayiya lhayiya bulate the	वे अपने साम्राज्य को औपचारिक रूप से श्वेत और उच्च महान शिया राज्य फियोव ब्यिय ल्हयिय ल्हयिय बुलाते थे
+aath saal tak yah samiti rashtrabhasha prachar samiti vardha se sambandh rahi	आठ साल तक यह समिति राष्ट्रभाषा प्रचार समिति वर्धा से संबद्ध रही
+samvaidhanik upchar	संवैधानिक उपचार
+bharat bhushan agarwal hindi ke pratishthit saahityakaar the	भारत भूषण अग्रवाल हिन्दी के प्रतिष्ठित साहित्यकार थे
+ek saal baad jetpur me unhone sahajanand ko apne sampraday ka acharya pad bhi de diya	एक साल बाद जेतपुर में उन्होंने सहजानंद को अपने सम्प्रदाय का आचार्य पद भी दे दिया
+sanjay pandhye bundelkhand ekikrut party ke sansthapak hain aur vartaman men parti ke rashtriya sanyojak hai	संजय पाण्डेय बुंदेलखंड एकीकृत पार्टी के संस्थापक हैं और वर्तमान में पार्टी के राष्ट्रीय संयोजक है
+daikromet bhi jalviley hota hai	डाइक्रोमेट भी जलविलेय होता है
+gajipur uttar pradesh mein sthit ek lok sabha nirvachan kshetra hai	गाजीपुर उत्तर प्रदेश मे स्थित एक लोक सभा निर्वाचन क्षेत्र है
+king ne shighra hi unki ameriki yatra mein katauti kar di aur unhen agali udan se ghar bhej diya	किंग ने शीघ्र ही उनकी अमेरिकी यात्रा में कटौती कर दी और उन्हें अगली उड़ान से घर भेज दिया
+pativrata dharm kii bahu mahim hai	पतिव्रता धर्म की बहुत महिमा है
+jabki yah jainon se km hai	जबकि यह जैनों से कम है
+ve sanchar mantri sansadiya karya mantri suchna prasaran mantri videsh mantri aur aavas mantri jaise mahatvpurn pado par rahe	वे संचार मन्त्री संसदीय कार्य मन्त्री सूचना प्रसारण मन्त्री विदेश मन्त्री और आवास मन्त्री जैसे महत्वपूर्ण पदों पर रहे
+bahuspurti ke uday aur ast ke kram se is varsh ki ganana ki jati hai	बृहस्पति के उदय और अस्त के क्रम से इस वर्ष की गणना की जाती है
+nirmal soni	निर्मल सोनी
+yah lal litmus ko nila kar deti hai iska sandra vilayan liquor ammonia kahlata hai	यह लाल लिटमस को नीला कर देता है इसका सान्द्र विलयन लिकर अमोनिया कहलाता है
+jaayanand bharti ka janam paudi janpad ke arakandi graam mein hua	जयानन्द भारती का जन्म पौड़ी जनपद के आरकन्डाई ग्राम में हुआ
+pratham paddhati men we ritiyan hain jismen taap parivartit hota hai tatha mapan taapparivartan par nirbhar hota hai	प्रथम पद्धति में वे रीतियाँ हैं जिनमें ताप परिवर्तित होता है तथा मापन तापपरिवर्तन पर निर्भर होता है
+ado gucci ne american motors corporation amc se kiye samjhaute sahit anya naye bajaron men apne karobar ka vistar kiya	एल्दो गूची ने अमेरिकन मोटर्स कॉर्पोरेशन amc से किये समझौते सहित अन्य नए बाज़ारों में अपने कारोबार का विस्तार किया
+is staan me hajaro vyaktiyo ke baithane ki shamta wala samtal jagah hai	इस स्थान मे हजारो व्यक्तियो के बैठने की क्षमता वाला समतल जगह है
+salman khan aalok raj malhotra raj v puja ka god liya putr	सलमान खान आलोक राज मल्होत्रा राज व पूजा का गोद लिया पुत्र
+ekmatr karan to samagra ya ishvar hi hai manushya anivaryata ke adhin hai	एकमात्र कारण तो समग्र या ईश्वर ही है मनुष्य अनिवार्यता के अधीन हैं
+in naamo me thodi her pher ho sakta hai kintu is prakriya ki avasthao me prayh koi antar nahi hota	इन नामों में थोड़ी हेर फेर हो सकता है किन्तु इस प्रक्रिया की अवस्थाओं में प्रायः कोई अन्तर नहीं होता
+salim ali ki prarambhik siksha saint xaviers college mumbai me hui	सालिम अली की प्रारंभिक शिक्षा सेंट जेवियर्स कॉलेज मुंबई में हुई
+apni sena tatha putro ke nasht ho jane se vishvamitra bade dukhi huye	अपनी सेना तथा पुत्रों के नष्ट हो जाने से विश्वामित्र बड़े दुःखी हुये
+purtagaali samudri kutta purtagali samudri kutton ke sambandh mein svaasthy mudde	पुर्तगाली समुद्री कुत्ता पुर्तगाली समुद्री कुत्तों के संबंध में स्वास्थ्य मुद्दे
+kamal kapoor	कमल कपूर
+i ramvilas sharma	ई रामविलास शर्मा
+banataa hai	बनता है
+cheru marmarangal	चेरू मर्मरंगल
+sarvagya narayan	सर्वज्ञ नारायण
+jab kisi restaurant men bhojan karne jaany to khane men prayukt vastuon ko pahchanane kii koshish karen	जब किसी रेस्टारेण्ट में भोजन करने जाँय तो खाने में प्रयुक्त वस्तुओं को पहचानने की कोशिश करें
+keeton ke sharir par jo tantumay uddhardh hote hain unhe bhi baal kahate hain	कीटों के शरीर पर जो तंतुमय उद्वर्ध होते हैं उन्हें भी बाल कहते हैं
+madhu aapte	मधु आप्टे
+prakash pravardhaka vivar rahit laser nirman ki soch ka parinam hai arthat jisme vivar ko samapt kiya ja sake	प्रकाश प्रवर्धक विवर रहित लेसर निर्माण की सोच का परिणाम है अर्थात जिसमें विवर को समाप्त किया जा सके
+vaise aap grishma ritu ko chodkar kisi bhi samay yaha aa jaa sakte hai	वैसे आप ग्रीष्म ऋतु को छोड़कर किसी भी समय यहां आ जा सकते हैं
+neelkanthvani swami ramanand ke darshan ko utsuk the	नीलकंठवर्णी स्वामी रामानंद के दर्शन को उत्सुक थे
+vikram ko wah bhavan sauphkar yogi usi van men kahin chala gaya	विक्रम को वह भवन सौंपकर योगी उसी वन में कहीं चला गया
+gujaral ke chote bhai satish gujaral ek vikhyat chitrakar tatha vastukar bhi hai	गुजराल के छोटे भाई सतीश गुजराल एक विख्यात चित्रकार तथा वास्तुकार भी है
+ise prarambh men raja n maankar nagabh dwitiy pratihaar shashak ke savrakshan men viksit hone wala shashak bataya gaya hai	इसे प्रारंभ में राजा न मानकर नागभ द्वितीय प्रतिहार शासक के संरक्षण में विकसित होने वाला शासक बताया गया है
+ismein thode samay ke liye uchch dhara pradan karne ki kshamta hoti hai	इसमें थोड़े समय के लिये उच्च धारा प्रदान करने की क्षमता होती है
+yah kriya nischit niyamon ke anusar hoti hai in niyamon ka hi prakrut niyam ka naam diya jata hai	यह क्रिया निश्चित नियमों के अनुसार होती है इन नियमों का ही प्राकृत नियम का नाम दिया जाता है
+kayi hafton ke bad halanki waters ne ek dusri avdharna ki kalpna shuru ki	कई हफ्तों के बाद हालांकि वाटर्स ने एक दूसरी अवधारणा की कल्पना शुरू की
+pitar pooja ka bhi bhari mahatv hai	पितर पूजा का भी भारी महत्व है
+samuche desh men asahayog andolan shuru karne men shahajahanpur ke swayamsevakon ki aham bhumika thi	समूचे देश में असहयोग आन्दोलन शुरू करने में शाहजहाँपुर के स्वयंसेवकों की अहम् भूमिका थी
+banataa hai	बनता है
+is kabile ke log zeharan kabile ke bhi sambandhi hai aur unke etihasik mitrapaksh me rahe hai	इस कबीले के लोग ज़हरान क़बीले के भी सम्बन्धी हैं और उनके ऐतिहासिक मित्रपक्ष में रहे हैं
+unke pita shiva charan vohra railway ke ek uchh adhikari the	उनके पिता शिव चरण वोहरा रेलवे के एक उच्च अधिकारी थे
+iski gardan pith aur pet mein chamkile pankh hote hain daine gol tatha ghumavdaar aur chhote hote hain	इसकी गर्दन पीठ और पेट में चमकीले पंख होते हैं डैने गोल तथा घुमावदार और छोटे होते हैं
+aaj roktham ke liye pleg ka tika saksham hai	आज रोकथाम के लिए प्लेग का टीका सक्षम है
+oceania aur thetis hi yunani devpariwar ke aadi pita aur mata hai	ओसीआनास और थीटिस ही यूनानी देवपरिवार के आदि पिता और माता है
+mangolia ke praanton ke imag kaha jata hai	मंगोलिया के प्रांतों को अइमग कहा जाता है
+yah ek unchi drudh diwal se ghiri hui hai jismen do bade lal pathhar ke mahrab vale darwaje hain	यह एक ऊँची द्दढ़ दीवाल से घिरी हुई है जिसमें दो बड़े लाल पत्थर के महराब वाले दरवाजे हैं
+iska naam shri arthat devi lakshmi se prapt hota hai iska matlab hai pavitr shraddhey	इसका नाम श्री अर्थात देवी लक्ष्मी से प्राप्त होता है इसका मतलब है पवित्र श्रद्धेय
+ek udaharan kisi khai tatha us khai ko wapis bharne ka ho sakta hai	एक उदाहरण किसी खाई तथा उस खाई को वापस भरने का हो सकता है
+hindi me kshanik aur ksarinka me koi fark nahi	हिन्दी में क्षणिक और क्शड़िंक में कोई फ़र्क नहीं
+iska tatparya kala aur bharatiya shilpkala mahakavya pauranik kathaye darshan gyan ke liye hai	इसका तात्पर्य कला और भारतीय शिल्पकला महाकाव्य पौराणिक कथायें दर्शन ज्ञान के लिये हैं
+aaj ki rashtrabhasha hindi ka purv rup	आज की राष्ट्रभाषा हिंदी का पूर्व रूप
+vaise prakrit kavya tatha subhashit ko vaidarbhi shaili ka nam diya gaya hai	वैसे प्राकृत काव्य तथा सुभाषित को वैदर्भी शैली का नाम दिया गया है
+usne jamindaron ulemaon evam santon ke prati dostana niti apnai	उसने जमींदारों उलेमाओं एवं सन्तो के प्रति दोस्ताना नीति अपनाई
+ditiy ayuvrridhdi vimari ke karan	दितिय आयुवृर्ध्दि वीमारी के कारण
+dayaa devi	दया देवी
+samuhik rup se in sanrachnao ko uchit rup se samjhane ke lie nimnalikhit sar paribhasha viksit ki gai hai	सामूहिक रूप से इन संरचनाओं को उचित रूप से समझने के लिए निम्नलिखित सार परिभाषा विकसित की गई है
+paitruk prabhav aur sathiyom ke dabav se bachho ke manasik vikas par asar dalta hai	पैतृक प्रभाव और साथियों के दबाव से बच्चो के मानसिक विकास पर असर डालता है
+sachivalay ke alag alag bhag anubhag hain	सचिवालय के अलग अलग भाग अनुभाग हैं
+wah anita aur sem ko ek sath bina kapdon ke dekh kar acharya me pad jata hai	वह अनीता और सेम को एक साथ बिना कपड़ों के देख कर आश्चर्य में पड़ जाता है
+purtagaali samudri kutte utkrist saathi hote hain	पुर्तगाली समुद्री कुत्ते उत्कृष्ट साथी होते हैं
+etihaasik prakriya ke parinaam svarup hi sanvidhaanik rajyon ka janam hua	ऐतिहासिक प्रक्रिया के परिणाम स्वरूप ही संविधानिक राज्यों का जन्म हुआ
+thos avasthaa rasaayan mein padaarthon ke sanshlesan unki pahchaan aur rasayanik sanghatan ka adhyayan kiya jata hai	ठोस अवस्था रसायन में पदार्थों के संश्लेषण उनकी पहचान और रासायनिक संघटन का अध्ययन किया जाता है
+samajik nav rachana ki karmabhumi chitrakoot bharatiy paksh	सामाजिक नव रचना की कर्मभूमि चित्रकूट भारतीय पक्ष
+ande ke chhilke anya ekanki tatha beej natak mohan rakesh	अंडे के छिलके अन्य एकांकी तथा बीज नाटक मोहन राकेश
+pathantar chitr aur tika sahit vyakhyayit repanzel	पाठांतर चित्र और टीका सहित व्याख्यायित रॅपन्ज़ेल
+parantu antariksh me jane vali vah tisri mahila thi	परन्तु अंतरिक्ष में जाने वाली वह तीसरी महिला थी
+webster ke vichaar mein castlereagh yah samajh chukaa tha ki yuddh se bachane ke liye taiyaar hona aavshyak hai	वैब्स्टर के विचार में कैसलरे यह समझ चुका था कि युद्ध से बचने के लिए तैयार होना आवश्यक है
+bharat ki swatantrata ke paschat shastriji ko uttar pradesh ke sansadiy sachiv ke rup me niyukt kiya gaya tha	भारत की स्वतन्त्रता के पश्चात शास्त्रीजी को उत्तर प्रदेश के संसदीय सचिव के रूप में नियुक्त किया गया था
+bharatiy darshan	भारतीय दर्शन
+turkana jheel	तुर्काना झील
+iski parikalpana javaharlal nehru ne ki thi	इसकी परिकल्पना जवाहरलाल नेहरू ने की थी
+hindu devi devta	हिन्दू देवी देवता
+warhead par ek ton tak ka parmanu hathiyar le jane men saksham	वॉरहेड पर एक टन तक का परमाणु हथियार ले जाने में सक्षम
+ye forged rolls jo steel plant evam railway mein istemaal kiya jata hai uska bhi utpadan karti hai	ये फॉर्गेड रॉल्स जो स्टील प्लांट एवं रेलवे में इस्तेमाल किया जाता है उसका भी उत्पादन करती है
+gagan sethi	गगन सेठी
+dharatal par milne vale apeshrakrat samtal nimn bhu bhag ko maidan kehte hai	धरातल पर मिलने वाले अपेश्राक्रत समतल निम्न भू भाग को मैदान कह्ते हैं
+visakhapatnam guntur pradesh	विशाखापट्नम गुंटूर प्रदेश
+frank grilo aulrovi par	फ्रैंक ग्रिलो ऑलरोवि पर
+unhone bharti reserve bank men bhi grade b adhikari ke taur par kaam kiya hain	उन्होंने भर्ती रिज़र्व बैंक में भी ग्रेड बी अधिकारी के तौर पर काम किया हैं
+ke jordar naare lagaye aur h s r a ke pamphlet hava me uchal diye	के जोरदार नारे लगाये और एच॰ एस॰ आर॰ ए॰ के पैम्फलेट हवा में उछाल दिये
+johnny jawab deta hai tower tower rapunzel rapunzel	जॉनी जवाब देता है टॉवर टॉवर रॅपन्ज़ेल रॅपन्ज़ेल
+jahan ilaj ke dauran hi unki haalat girti chali gayi	जहाँ इलाज के दौरान ही उनकी हालत गिरती चली गयी
+iske alawa aie akraman baahari logon ke sath apne rajnitik sambandhon banane ke liye bhi kiye jate the	इसके अलावा ऐसे आक्रमण बाहरी लोगों के साथ अपने राजनीतिक संबंधो बनाने के लिए भी किए जाते थे
+kaisa hota hai mahabhiyoga	कैसा होता है महाभियोग
+pumo ka arth hai ladki ya beti aur ri ka arth hi sherpa bhasha men pahad	पुमो का अर्थ है लड़की या बेटी और री का अर्थ है शेरपा भाषा में पहाड़
+unhen atal bihari wajpeyee ki sarkar ne rajya sabha ka sadsya manonit kiya	उन्हें अटल बिहारी वाजपेयी की सरकार ने राज्य सभा का सदस्य मनोनीत किया
+in gatividhiyon ka vivran dete huye jadhav ne kaha	इन गतिविधियों का विवरण देते हुए जाधव ने कहा
+beriliyam oxaid ek akaarbanik yaugik hai	बेरिलियम ऑक्साइड एक अकार्बनिक यौगिक है
+vah bharatiy vyanjan ka sabse janamana chehra hai	वह भारतीय व्यंजन का सबसे जानामाना चेहरा है
+yah pratimayen kadli stambh se nirmit ki jaati hain	यह प्रतिमायें कदली स्तम्भ से निर्मित की जाती हैं
+tak mana jata hai jinke samay men prakrut sahity kii pratinidhi rachnaayen huin	तक माना जाता है जिनके समय में प्राकृत साहित्य की प्रतिनिधि रचनाएँ हुईं
+amax vishva bhar me travelers cheque pradan karne vali sabse badi company hai	एमेक्स विश्व भर में ट्रेवलर्स चेक प्रदान करने वाली सबसे बड़ी कंपनी है
+iske aadhaar par unki umar kaid barkraar rahi	इसके आधार पर उनकी उम्र कैद बरकरार रही
+pahale yahan se taxion ke sanchalan ka dayitva haldwani taxi union ke upar tha	पहले यहां से टैक्सियों के संचालन का दायित्व हल्द्वानी टैक्सी यूनियन के ऊपर था
+iske dwara vidyaarthiyon ko unki lagabhag samaan yogyataa ki kakshaon mein vargikrit karne mein sahaayataa milti hai	इसके द्वारा विद्यार्थियों को उनकी लगभग समान योग्यता की कक्षाओं में वर्गीकृत करने में सहायता मिलती है
+trijya ya ardhavyas kisi vritt ke kendra se uski paridhi tak ki duri ko kahte hain	त्रिज्या या अर्धव्यास किसी वृत्त के केन्द्र से उसकी परिधि तक की दूरी को कहते हैं
+paarad bhasm	पारद भस्म
+sammit thos aur parikramaj prushth kharad par taiyar kiye jaa sakte hain	सममित ठोस और परिक्रमज पृष्ठ खराद पर तैयार किए जा सकते हैं
+is tarah se unhone apne aap ko teji se pramukh rajnitik shakti ke rup men sthapit kar liya	इस तरह से उन्होंने अपने आप को तेजी से प्रमुख राजनीतिक शक्ति के रूप में स्थापित कर लिया
+vastukar jaita va uske putra napa punja	वास्तुकार जैता व उसके पुत्र नापा पुंजा
+in parivaro me ghar ka mukhiya matrpakshiya purush hota hai	इन परिवारों में घर का मुखिय मातृपक्षीय पुरुष होता है
+yah assam berma aur malaya mein adhik sugamta se hota hai	यह असम बर्मा और मलाया में अधिक सुगमता से होता है
+iske paschim me albama aur dakshin me florida rajya sthita hai	इसके पश्चिम में अलबामा और दक्षिण में फ्लोरिडा राज्य स्थित हैं
+ve sabhi ujbek samuday se hai aur apne ganon men ujbekistan kii log dhunon aur kavitaaon ka mishran karte hain	वे सभी उज़बेक समुदाय से हैं और अपने गानों में उज़्बेकिस्तान की लोक धुनों और कविताओं का मिश्रण करते हैं
+nai kavita parampara ko nahi manti	नई कविता परंपरा को नहीं मानती
+bharat sanvidhan	भारत संविधान
+ve ek dev ko nahi jante	वे एक देव को नहीं जानते
+is kavi ke jeevan ke baare mein itihas mein darja koi jyada vivaran nahi hai	इस कवी के जीवन के बारे में इतिहास में दर्ज कोई ज्यादा विवरण नही है
+ismein lambe chaude lawn jalaashay fav‍vaare aur sadakein bani hui hain	इसमें लंबे चौड़े लान जलाशय फव्वारे और सड़कें बनी हुई हैं
+janmjat hriday kii kharabiyaan hriday men jaane vale rakt ke samany pravah ko badl det hai	जन्मजात हृदय की खराबियां हृदय में जाने वाले रक्त के सामान्य प्रवाह को बदल देती हैं
+is box ko uske yatra box ke roop men sandrbhit kiya jata hai	इस बॉक्स को उसके यात्रा बॉक्स के रूप में सन्दर्भित किया जाता है
+lisa lazarus angela frasar	लीसा लस़ारस एंजेला फ्रसर
+vajr inka pratik aur bail pavitra pashu hai	वज्र इनका प्रतीक और बैल पवित्र पशु है
+ambedkar ki prayason ka hi ye parinaam hai ki daliton ke adhikaron ko bhartiya samvidhaan mein jagah di gayi	अंबेडकर की प्रयासों का ही ये परिणाम है कि दलितों के अधिकारों को भारतीय संविधान में जगह दी गई
+khanva ke yuddh ko jitne ke bad babar ne gaji ki upadhi dharan ki	खानवा के युद्ध को जीतने के बाद बाबर ने ग़ाजी की उपाधि धरण की
+iska anubhav prapt karna aur ek hi jivan men sabhi karmon ka fal bhugtna asambhav hai	इसका अनुभव प्राप्त करना और एक ही जीवन में सभी कर्मों का फल भुगतना असंभव है
+iske alave buli mahto v kanka mohnta jaise kai kudmi veer shahid swantrata aandolan itihaas ke pannon men gayab hain	इसके अलावे बुली महतो व कंका मोहन्ता जैसे कई कुड़मी वीर शहीद स्वतंत्रता आंदोलन इतिहास के पन्नों में गायब हैं
+isi dauran use pata chalta hai ki vo janma se gunga nahi hai aur uska ilaj kiya ja sakta hai	इसी दौरान उसे पता चलता है कि वो जन्म से गूंगा नहीं है और उसका इलाज किया जा सकता है
+adhikariyo ko manmane nirnay ki chuth hone ke sthan par kanun ke rajya ka paksh lena hi sanvidhanvad hai	अधिकारियों को मनमाने निर्णय की छूट होने के स्थान पर कानून के राज्य का पक्ष लेना ही संविधानवाद है
+ke sabhi lesotho convention abc ke netritv me ek gathbandhan sarakar me national assembly sansad ke nichle sadan ke hai	के सभी लेसोथो कन्वेंशन एबीसी के नेतृत्व में एक गठबंधन सरकार में नेशनल असेंबली संसद के निचले सदन के हैं
+prakrutik dhara mein pramukh apavahan dhara drift current evam stream current hoti hain	प्राकृतिक धारा में प्रमुख अपवहन धारा ड्रिफ्ट करंट एवं स्ट्रीम करंट होती हैं
+unke mata pita ka naam krushna charan daas aur tohfa devi tha	उनके माता पिता का नाम कृष्ण चरण दास और तोहफा देबी था
+austreliya men potts point sydney	ऑस्ट्रेलिया में पौट्स पॉइंट सिडनी
+iske saundry par anurakt hokar apolo aur posaidan ise chahne lage	इसके सौंदर्य पर अनुरक्त होकर अपोलो और पोसाइडान इसे चाहने लगे
+ye teji se mitra banate hai aur lambe samay tak use nibhate bhi hai	ये तेजी से मित्र बनाते हैं और लम्बे समय तक उसे निभाते भी हैं
+jab subah hui to sannyasi ne dusre ghade se chullu bhar pani lekar rajkumari par chinte mare	जब सुबह हुई तो संन्यासी ने दूसरे घड़े से चुल्लू भर पानी लेकर राजकुमारी पर छींटे मारे
+parantu voiceroy bach gaya	परन्तु वायसराय बच गया
+iske turant baad waters apne naye yekal album the proz and conz of hich highking ka daura shuru kiya	इसके तुरंत बाद वाटर्स अपने नए एकल एल्बम द प्रॉज़ एंड कॉन्ज़ ऑफ़ हिच हाइकिंग का दौरा शुरू किया
+kuch kshetro me yah ek tarah ke sampattikar ke rup me lagaya jata tha	कुछ क्षेत्रों में यह एक तरह के संपत्तिकर के रूप में लगाया जाता था
+deendayal shodh sansthan ke safalta ki kahani	दीनदयाल शोध संस्थान के सफलता की कहानी
+tatparya yah ki sabhi bacteria virus kavak aur bijanu niskriy ho jaate hain	तात्पर्य यह कि सभी बैक्टीरिया वायरस कवक और बीजाणु निष्क्रिय हो जाते हैं
+samuche roman saamraajya mein plague bandargahon se aarnbh hokar durvarti nagaron ki or faila tha	समूचे रोमन साम्राज्य में प्लेग बदंरगाहों से आरंभ होकर दूरवर्ती नगरों की ओर फैला था
+lekin donon ke bich niji shatruta ke kaaran yah vyavsthaa kaam nahin kar saki	लेकिन दोनों के बीच निजी शत्रुता के कारण यह व्यवस्था काम नहीं कर सकी
+akhilendra mishra	अखिलेन्द्र मिश्रा
+cbi men apne karykaal ke duaran unhone lingbhed ka anubhav kiya	सीबीआई में अपने कार्यकाल के दौरान उन्होंने लिंगभेद का अनुभव किया
+asani se anukulan	आसानी से अनुकूलन
+aisa sakshya dhang ke khajurahe abhilekh me bhi mila hai	ऐसा साक्ष्य धंग के खजुराहे अभिलेख में भी मिला है
+in pratibandhon ko abhigruhit kaha jata hai jo nimn hai sanvarak saahchryata tatsamkata aur vyutkramniyata	इन प्रतिबंधों को अभिगृहीत कहा जाता है जो निम्न हैं संवरक साहचर्यता तत्समकता और व्युत्क्रमणीयता
+udaharan sodium cynide potassium cynide methil cynide aadi	उदाहरण सोडियम सायनाइड पोटैशियम सायनाइड मेथिल सायनाइड आदि
+bhavishy ka dharm evm darshan	भविष्य का धर्म एवं दर्शन
+check sankhya	चॅक संख्या
+arthik ajadi business standard	आर्थिक आजादी बिजनेस स्टैण्डर्ड]
+baad me is film ko tamil me dub kiya gaya	बाद में इस फिल्म को तमिल में डब किया गया
+uzbec bhasha mein yaangi yer ka matlab nayi bhoomi hota hai	उज़बेक भाषा में यांगि येर का मतलब नई भूमि होता है
+toda log samuh men nivaas karna pasand karte hain	टोडा लोग समूह में निवास करना पसंद करते हैं
+`club ke sadasya aur kavi george sterling ne is punah paribhashit shabd par apni pratikriya is tarah se vyakt ki	क्लब के सदस्य और कवि जॉर्ज स्टर्लिंग ने इस पुनः परिभाषित शब्द पर अपनी प्रतिक्रिया इस तरह से व्यक्त की
+mesopotamia ki purani bhasha sumeriy tatha italy ki pracheen bhsha etraskan isi tarah ki bhashayen hain	मेसोपोटेमिया की पुरानी भाषा सुमेरीय तथा इटली की प्राचीन भाषा एत्रस्कन इसी तरह की भाषाएँ हैं
+ek karod ki botal krishna chandra	एक करोड़ की बोतल कृष्ण चन्द्र
+byaaj dar jokhim bachaav vyavsthaa sandarshika	ब्याज दर जोखिम बचाव व्यवस्था संदर्शिका
+mul kahani i	मूल कहानी ई
+iske dene ke baad rogi idhar udhar chhatpatata hai aur shaaririk ainthan vyakt karta hai	इसके देने के बाद रोगी इधर उधर छटपटाता है और शारीरिक ऐंठन व्यक्त करता है
+atah purush adhik avruttiyon men prabavit hote hain	अतः पुरुष अधिक आवृत्तियों में प्रभावित होते हैं
+natak men patakhon aur nakabon jaise natakiy taknikon ka prayog kiya gaya hai	नाटक में पटाख़ों और नक़ाबों जैसी नाटकीय तकनीकों का प्रयोग किया गया है
+kabhi kabhi ye mahamari taun devta ira se abhinna aur ninib ki bhanti yuddh ke devta mane gae hai	कभी कभी ये महामारी ताऊन देवता इरा से अभिन्न और निनिब की भाँति युद्ध के देवता माने गए हैं
+yahan par jainiyon ke bhi padamprbhu nemnaath aur arishtnemi ke suprasiddh mandir hain	यहाँ पर जैनियों के भी पदमप्रमु नेमनाथ और अरिष्टनेमी के सुप्रसिद्ध मन्दिर हैं
+ghavo ka ilaj karne me yunani aur roman ghrit kumari ka upayog karte the	घावों का इलाज करने में यूनानी और रोमन घृत कुमारी का उपयोग करते थे
+isliye is jagh ka naam taalkatora rakha gaya	इसलिए इस जगह का नाम तालकटोरा रखा गया
+krons atyachari tha jise pachadkar jyus ne apne bhai behno ki raksha ki thi	क्रोनस् अत्याचारी था जिसे पछाड़कर ज्यूस ने अपने भाई बहनों की रक्षा की थी
+laal bauna	लाल बौना
+kirti stambh	कीर्ति स्तम्भ
+william h glen adhyaksh vaishvik vyapaar sevayen	विलियम एच ग्लेन अध्यक्ष वैश्विक व्यापार सेवाएँ
+maalwa kshetra ke log punjabi ki upboli malwai bolte hain	मालवा क्षेत्र के लोग पंजाबी की उपबोली मलवई बोलते हैं
+imarat puri tarah se vatanukulit hai	इमारत पूरी तरह से वातानुकूलित है
+sudhir pandey	सुधीर पांडे
+iska aavas kshetra ganga yamuna aur sindhu nadiyo ke dakshin se lekar pure dakshin bharat tak faila hua hai	इसका आवास क्षेत्र गंगा यमुना और सिंधु नदियों के दक्षिण से लेकर पूरे दक्षिण भारत तक फैला हुआ है
+samucha photograph ek sekend ke alp khand men hi utara ja sakta hai	समूचा फोटोग्राफ़ एक सेकेंड के अल्प खंड में ही उतारा जा सकता है
+bastar sambhag ke pravesh dvara charama se tis km dur rashtriya rajmarg par sthit hai	बस्तर संभाग के प्रवेश द्वार चारामा से तीस किमी दूर राष्ट्रीय राजमार्ग पर स्थित है
+adim asmitamulak samuh jaati vyavastha men shamil nahi hai	आदिम अस्मितामूलक समूह जाति व्यवस्था में शामिल नहीं हैं
+aathave dashak ke log balram manish rai	आठवें दशक के लोग बलराम मनीष राय
+inme se paschim kone ki chat sabse nichli chhat thi	इनमें से पश्चिमी कोने की छत सबसे निचली छत थी
+unke nana nani holocaust uttarjivi the	उनके नाना नानी होलोकौस्ट उत्तरजीवी थे
+cornia jo ankh ki pardarshi khidki hai pratyaropan ke lie ek vishesh rup se upayukt hai	कॉर्निया जो आंख की पारदर्शी खिड़की है प्रत्यारोपण के लिए एक विशेष रूप से उपयुक्त है
+vastivik viman men hat switch elron yar rudder trim jaisi vastyon ko niyantrik kar sakte hain	वास्तविक विमान में हैट स्विच ऐलिरॉन या रूडर ट्रिम जैसी वस्तुओं को नियंत्रित कर सकते हैं
+aap ismein apni aur apne hi yug ki atyant saras katha payenge	आप इसमें अपनी और अपने ही युग की अत्यन्त सरस कथा पाएंगे
+is shehar me kis se mili hamse to chute mehfile	इस शहर में किस से मिलीं हमसे तो छूटें महफ़िलें
+deviyon ka teyyam bhagwati vke naam se jana jata hai	देवियों का तेय्यम भगवती के नाम से जाना जाता है
+madhyapradesh vidhan sabha ke manniya upadhyaksho ki suchi	मध्यप्रदेश विधान सभा के माननीय उपाध्यक्षों की सूची
+unhone dekha ki uye bandhan bhitar ka hai bahar ka nahi	उन्होंने देखा की ये बंधन भीतर का है बाहर का नहीं
+jyada matra me avasadko ka sevan karne se vyakti ki mrityu bhi ho jati hai	ज्यादा मात्रा में अवसदकों का सेवन करने से व्यक्ति की मृत्यु भी हो जाती है
+kachhe rubber men bhautik ya yantrik bal nahi hota	कच्चे रबर में भौतिक या यांत्रिक बल नहीं हाता
+iv nirnay kaun leta hai aur kya unhen saniti dwara grahan kiya jata hai	iv निर्णय कौन लेता है और क्या उन्हें समिति द्वारा ग्रहण किया जाता है
+tibbet asia mahadvipa ucch pathari zameen vala ek etihasik kshetra hai	तिब्बत एशिया महाद्वीप उच्च पठारी जमीन वाला एक ऐतिहासिक क्षेत्र है
+gyaan ke bina ek sufi yaa shaikh ke bina shaikh shaitaan ke haathon mein ke upakaran hai	ज्ञान के बिना एक सूफी या शैख के बिना शैख शैतान के हाथों में एक उपकरण है
+sanskrut naatakon mein aam aam logon ki bhasha ke roop mein magahi kaa hi prayog hua hai	संस्कृत नाटकों में आम आम लोगों की भाषा के रूप में मगही का ही प्रयोग हुआ है
+shuragam sutra baudh dharm ke mahayan sampraday ka sutragranth hai	शूरांगम् सूत्र बौद्ध धर्म के महायान संप्रदाय का सूत्रग्रंथ है
+om puri	ओम पुरी
+yadi isne vikshipt ko badhaya hai to uske shaman ke vishesh upay yojana bhi isi ka kaam hai	यदि इसने विक्षिप्तता को बढ़ाया है तो उसके शमन के विशेष उपाय खोजना भी इसी का काम है
+vikram raja bali se vida lekar prasann chitt hokar mrutyulok ki or laut chale	विक्रम राजा बलि से विदा लेकर प्रसन्न चित्त होकर मृत्युलोक की ओर लौट चले
+yah acchi pratha nahi hai	यह अच्छी प्रथा नहीं है
+shodhkartaon ko vishwas hai ki is taknik se namav rogiyon mein bhi jeevant daant ugaaye jaa sakenge	शोधकर्ताओं को विश्वास है कि इस तकनीक से मानव रोगियों में भी जीवंत दांत उगाये जा सकेंगे
+ranchi aur patna hawai adde se bason va taxiyon dwara paryatak aasaani se dhanbad tak pahunch sakte hain	रांची और पटना हवाई अड्डे से बसों व टैक्सियों द्वारा पर्यटक आसानी से धनबाद तक पहुँच सकते हैं
+prashant bhushan	प्रशांत भूषण
+iii kya ve bahari anusandhan pr bharosa karte hain ya kya ve shodhkartaon kii team ko niyukt karte hain	iii क्या वे बाहरी अनुसन्धान पर भरोसा करते हैं या क्या वे शोधकर्ताओं की टीम को नियुक्त करते हैं
+yah irani kalganana ke anusar farvaridin maah ka pahala din tha	यह ईरानी कालगणना के अनुसार फ़रवरदीं माह का पहला दिन था
+unke rachnaaon par wadivelu ka khaas prabhav nazar aata hai	उनके रचनाओं पर वडिवेलू का ख़ास प्रभाव नज़र आता है
+iske alawa inhone farsi hindi nepali aur fransisi men bhi gaya hua hai	इसके अलावा इन्होनें फ़ारसी हिन्दी नेपाली और फ़्रांसीसी में भी गया हुआ है
+batakh ki chaal	बतख की चाल
+satish koll	सतीश कॉल
+| swaminarayan ki shikshapatri swaminarayan sampraday ka mool granth hai	| स्वामिनारायण की शिक्षापत्री स्वामिनारायण सम्प्रदाय का मूल ग्रन्थ है
+acharya shankar ka brahma vad ram svarup singh	आचार्य शंकर का ब्रह्म वाद राम स्वरूप सिंह
+camspten joystick	केमप्सटन जॉयस्टिक
+us sab samagri ki janch padtal ki vaigyanik kaal ka bhi vikas hota gaya	उस सब सामग्री की जाँच पड़ताल की वैज्ञानिक कला का भी विकास होता गया
+yah vishay duniya ke sabhi kshetron aur jagahon mein dharmon ka adhyyan karta hai jahan manushya rahte hain	यह विषय दुनिया के सभी क्षेत्रों और जगहों में धर्मों का अध्ययन करता है जहां मनुष्य रहते हैं
+audyogik ghotaale	औद्योगिक घोटाले
+yahan dilli vikaas pradhikarn ka ek bada bas diipo hai jiske karan yah naam pada	यहाँ दिल्ली विकास प्राधिकरण का एक बङा बस डिपो है जिसके कारण यह नाम पङा
+royal bears sahit sisters grim li	रॉयल बैले सहित सिस्टर्स ग्रिम लि
+iske tahat vah har v‍yakti aa jata hai jiskaa shosan ut‍pidan hua hai	इसके तहत वह हर व्यक्ति आ जाता है जिसका शोषण उत्पीडन हुआ है
+rashi gun	राशि गुण
+uttar purva pashchimi purvi evam madhya bharat mein kshetriy kendra prastavit hai evam shighra hi khulane vale hain	उत्तर पूर्व पश्चिमी पूर्वी एवं मध्य भारत में क्षेत्रीय केन्द्र प्रस्तावित है एवं शीघ्र ही खुलने वाले है
+asamanya palkon se aankhon men ragad hoti hai jo cornea men fode ke vistar karan banti hai	असामान्य पलकों से आंखों में रगड़ होती है जो कोर्निया में फोड़े के विस्तार कारण बनती है
+kalinjar aur ajaigarh chandelon ke hath mein hi rahe	कलिंजर और अजयगढ़ चन्देलों के हाथ में ही रहे
+prakrti ki hariyali aur hari bhari pattiyo se vriksho ka shringar naye v ujjaval bhavishya ka sandesh sunati hai	प्रकृति की हरियाली और हरी भरी पत्तियों से वृक्षों का श्रंगार नये व उज्जवल भविष्य का संदेश सुनाती है
+bhutaan ke shahron ki suchi	भूटान के शहरों की सूची
+naina branan aagra prakhand agra utter pradesh sthit ek gaaon hai	नैनना ब्राह्णण आगरा प्रखंड आगरा उत्तर प्रदेश स्थित एक गाँव है
+inka janma uttara pradesh ke pratapgadh jile me malhupur ganv me hua tha	इनका जन्म उत्तर प्रदेश के प्रतापगढ़ जिले में मल्हूपुर गाँव में हुआ था
+anju bala bharat se hindi ki ek lekhika hain	अंजू बाला भारत से हिन्दी की एक लेखिका हैं
+us samyy bhartiya videsh niti mein yah ek bahut bada badlaav tha	उस समय भारतीय विदेश नीति में यह एक बहुत बड़ा बदलाव था
+vikram ne muskurakar kaha ki veh bhavan jyo ka tyo chodkar ve usi samay aa gae the	विक्रम ने मुस्कुराकर कहा कि वह भवन ज्यों का त्यों छोड़कर वे उसी समय आ गए थे
+ghodon aur bailon ke baal gaddhon men bhare jate hain	घोड़ों और बैलों के बाल गद्दों में भरे जाते हैं
+iske viparit oxford angreji shabdkosh men brobdingnaag shabd bahut bade ya vishalkaay ke paryay ke rup men prakat hota hai	इसके विपरीत ऑक्सफोर्ड अंग्रेजी शब्दकोश में ब्रोबडिंगनाग शब्द बहुत बड़े या विशालकाय के पर्याय के रूप में प्रकट होता है
+phir drishti ko nasagrabhag par sthir karke shaant baith jaaye	फिर दृष्टि को नासाग्रभाग पर स्थिर करके शांत बैठ जाएँ
+kai log iski bhent chadh chuke the	कई लोग इसकी भेंट चढ़ चुके थे
+jungle me unhone ghor tapasya shuru ki aur bhagvan vishnu ki stuti karne lage	जंगल में उन्होंने घोर तपस्या शुरु की और भगवान विष्णु की स्तुति करने लगे
+yah sabhi din khula rahta hai	यह सभी दिन खुला रहता है
+disney cartoon	डिस्नी कार्टून
+chloroflorocarbon cfc nontoxic na jalanevala carbon chlorine aur florine ke paramanuo se yukt rasayan hote hai	क्लोरोफ्लोरोकार्बन सीएफसी nontoxic न जालनेवाला कार्बन क्लोरीन और फ्लोरीन के परमाणुओं से युक्त रसायन होते हैं
+raja ne apni tapasya jari rakhi	राजा ने अपनी तपस्या जारी रखी
+khadya apmishran par prasnottar	खाद्य अपमिश्रण पर प्रश्नोत्तर
+yah ek vyakti ke liye ek sidha swayn mulyankan hai	यह एक व्यक्ति के लिए एक सीधा स्वयं मूल्यांकन है
+pae dj ko aisa lagta hai ki bahar ki duniya men uske liye kuch nahi rakkha hai	पर डीजे को ऐसा लगता है कि बाहर की दुनिया में उसके लिये कुछ नहीं रखा है
+sanjay benarji	संजय बेनर्जी
+in bhadjkile bayanbaji ke changul men fanskar musalmanon se hinsak ghatnaayen ghatiat ho rahi thee	इन भडकीले बयानबाजी के चंगुल में फंसकर मुसलमानो से हिंसक घटनाए घटीत हो रही थी
+apke yog prem evam prakriti prem ke falsvarup hi bhivani me prakritik chikitsalaya ki sthapna hui	आपके योग प्रेम एवं प्रकृति प्रेम के फलस्वरुप ही भिवानी में प्राकृतिक चिकित्सालय की स्थापना हुई
+ki padvi prapt ki	की पदवी प्राप्त की
+laghu bal transdyusro ka prayog joystiko dwara menu chayan karyon ke liye atirikt niyantranon ke roop men kiya jata hai	लघु बल ट्रांसड्यूसरों का प्रयोग जॉयस्टिकों द्वारा मेनू चयन कार्यों के लिए अतिरिक्त नियंत्रणों के रूप में किया जाता है
+ek aur laal trikon narendra kohli	एक और लाल त्रिकोण नरेंद्र कोहली
+siroman peerpainti bhagalpur bihar sthit ek gaon hai	सिरोमन पीरपैंती भागलपुर बिहार स्थित एक गाँव है
+nagarikta ne nishtha ko pratisthapit kar diya hai jo ek pratikatmak parivartan ki tulana men kuch adhik hai	नागरिकता ने निष्ठा को प्रतिस्थापित कर दिया है जो एक प्रतीकात्मक परिवर्तन की तुलना में कुछ अधिक है
+singh rashi ka swami surya hai aur is rashi ka tatwa agni hai	सिंह राशि का स्वामी सूर्य है और इस राशि का तत्व अग्नि है
+jyadatar mamlo me yah samudri janvaro ki rakshatmak pratikriya ke taur par hota hai	ज्यादातर मामलों में यह समुद्री जानवरों की रक्षात्मक प्रतिक्रिया के तौर पर होता है
+ek kishori ke roop mein unki pahli naukari burger king mein bachchon ki dekhbhal karna tha	एक किशोरी के रूप में उनकी पहली नौकरी बर्गर किंग में बच्चोंं की देखभाल करना था
+unke sampark se yahan pashchaty sabhyata ka prabhav padna prarambh hua	उनके संपर्क से यहां पाश्चात्य सभ्यता का प्रभाव पड़ना प्रारंभ हुआ
+yah philadelphia phillies ka gharelu maidan hai	यह फिलाडेल्फिया फ़िलीज़ का घरेलू मैदान है
+piche isi ki alochna ko apna lakshya banaya	पीछे इसी की आलोचना को अपना लक्ष्य बनाया
+raja virasrimkala aur anya samman ke sath use upahar me diya	राजा वीरस्रिम्कला और अन्य सम्मान के साथ उसे उपहार में दिया
+inme se sabse prasiddh hai marine park aur safari	इनमें से सबसे प्रसिद्ध हैं मरीन पार्क और सफारी
+les nebis piyre bonard eddard vuilard pheliks vailotan	लेस नेबिस पियरे बोनार्ड एडॉर्ड वुइलार्ड फेलिक्स वैलोटन
+is prakar sury ke udayroop ke adhaar par khepri aru astrup ke adhaar pr atum ki kalpana ki gaii	इस प्रकार सूर्य के उदयरूप के आधार पर खेप्री और अस्तरूप के आधार पर अतुम की कल्पना की गई
+jis rashtriy sandrbh ke tahat sheyardharak pratinidhitw sambandhi vicharon ko sthapit kiya jata hai we parivartniy aur mahatwpurn hai	जिस राष्ट्रीय सन्दर्भ के तहत शेयरधारक प्रतिनिधित्व संबंधी विचारों को स्थापित किया जाता है वे परिवर्तनीय और महत्वपूर्ण हैं
+navjat shishu gandh aur swad variyatao ke sath janm leta hai	नवजात शिशु गंध और स्वाद वरीयताओ के साथ जन्म लेता है
+chhote bhanvar kai jharnon ke aadhar sthan par dikhai dete hain	छोटे भंवर कई झरनों के आधार स्थान पर दिखाई देते हैं
+is kaal men hone wale mudran kala le avoshkar ne bhasha vikas men mahan yogdan diya	इस काल में होने वाले मुद्रण कला के आविष्कार ने भाषा विकास में महान योगदान दिया
+sanstha ab maharashtra rashtrabhasha sabha ke naam se kaam karne lagi	संस्था अब महाराष्ट्र राष्ट्रभाषा सभा के नाम से काम करने लगी
+magar vikram tanik bhi vichalit nahin huye	मगर विक्रम तनिक भी विचलित नहीं हुए
+vartaman parivarik vighatan evam parivartano ko is prakram ki arambhik avastha bataya jata hai	वर्तमान पारिवारिक विघटन एंव परिवर्तनों को इस प्रक्रम की आरंभिक अवस्था बताया जाता है
+vanaspati ke vistar tatha prakar ke vichar se bharat ko kai vanaspatik kshetro me vibhajit kiya gaya hai jo mukhyata	वनस्पति के विस्तार तथा प्रकार के विचार से भारत को कई वानस्पतिक क्षेत्रों में विभाजित किया गया है जो मुख्यत
+samiti vikas block	समिति विकास ब्लॉक
+tahsil jila vibhag aur rajy star par shikshkon ke shivir aayojit kar unka margdarshan kiya jata hai	तहसील जिला विभाग और राज्य स्तर पर शिक्षकों के शिविर आयोजित कर उनका मार्गदर्शन किया जाता है
+unki teen behne hai jinme abhinetri nutan aur ek bhai shamil hai	उनकी तीन बहनें हैं जिनमें अभिनेत्री नूतन और एक भाई शामिल हैं
+inhone apne jivan ke sambandh men kuch bhi nahi likha hai	इन्होंने अपने जीवन के संबंध में कुछ भी नहीं लिखा है
+jaise jaise yah aage badhti hai nirdeshak dwara khuaii ke aakar ka nirnay bhi liya ja sakta hai	जैसे जैसे यह आगे बढ़ती है निदेशक द्वारा खुदाई के आकार का निर्णय भी लिया जा सकता है
+kavita ke upri aayojan nai kavita wahan nahin kar sakti	कविता के ऊपरी आयोजन नई कविता वहन नहीं कर सकती
+harivansh acharya mah jodi naamke jodi mein se ek hai	हरिवंश आचार्य मह जोडी नामके जोड़ी में से एक है
+sakaratmak gun	सकारात्मक गुण
+is album ke jari hone par lagbhag kisi ka dhyan nahi gaya	इस एल्बम के जारी होने पर लगभग किसी का ध्यान नहीं गया
+kuch dino ke baad sahil ka janmdin hota hai	कुछ दिनों के बाद साहिल का जन्मदिन होता है
+is disha men kuch deshon me school nagarikta shiksha upalabdh karte hain	इस दिशा में कुछ देशों में स्कूल नागरिकता शिक्षा उपलब्ध करते हैं
+is naam ka prayog in vishyon ke liye hota hai	इस नाम का प्रयोग इन विषयों के लिए होता है
+saujanya alok kumar singh chauhan gram agavanapur thana badh zila patna bihar	सौजन्य आलोक कुमार सिंह च्हवान ग्राम अगवानपुर थाना बाढ जिला पटना बिहार
+prashasanik drushti se yh mimaropa prashasanik kshetra ka bhag hai aur prant ka darja rakhata hai	प्रशासनिक दृष्टि से यह मिमारोपा प्रशासनिक क्षेत्र का भाग है और प्रान्त का दर्जा रखता है
+rashtriy nyayaiik data grid enjedeejii bhi ii nyayalay ekikrit mishan mod priyoujna ka ang hai	राष्ट्रीय न्यायिक डाटा ग्रिड एनजेडीजी भी ई न्यायालय एकीकृत मिशन मोड परियोजना का अंग है
+jama ka yuddh iska antim aur nirnaayak yuddh tha	जामा का युद्ध इसका अंतिम और निर्णायक युद्ध था
+brihaspati ke rashi badalne se iska aarambh mana jata hai	बृहस्पति के राशि बदलने से इसका आरंभ माना जाता है
+muslimon ka kanoon shariat par adharit hai anya dharmik samudayon ke kannon bharatiy sansad ke samvishan par adharit hain	मुस्लिमों का कानून शरीअत पर आधारित है अन्य धार्मिक समुदायों के कानून भारतीय संसद के संविधान पर आधारित हैं
+is bar unhone pranayam se shvas rok kar mahadarun tap kiya	इस बार उन्होंने प्राणायाम से श्वास रोक कर महादारुण तप किया
+tab wahi teenon jagannath balbhadra aur subhadra ki murtiyan mandir men sthapit ki gayin	तब वही तीनों जगन्नाथ बलभद्र और सुभद्रा की मूर्तियां मंदिर में स्थापित की गयीं
+jagannath mandir indhistory com	जगन्नाथ मंदिर इण्डहिस्ट्री कॉम
+unka manna hai ki bollywood ka patkatha lekhan hollywood se ekdam bhinn hai	उनका मानना है कि बॉलीवुड का पटकथा लेखन हॉलीवुड से एकदम भिन्न है
+chukandar ki kheti par aashrit chini ki kai milen bhi yaha stapit ho gai hain	चुकंदर की खेती पर आश्रित चीनी की कई मिलें भी यहाँ स्थापित हो गई हैं
+alara kalama gautama buddha ke samkaaleen ek darshnik evam yogi the	आलार कालाम गौतम बुद्ध के समकालीन एक दार्शनिक एवं योगी थे
+samani samrajya	सामानी साम्राज्य
+ek chir parichit samuh purnakon z ka samucchay jismen sankhyayen	एक चिर परिचित समूह पूर्णांकों z का समुच्चय जिसमें संख्याएं
+bambai ka kila	बंबई का किला
+ye jivanu sharir ke pramukh ango me pradah karte hai aur ahat raktvahaniyo se raktastrav hota hai	ये जीवाणु शरीर के प्रमुख अंगों में प्रदाह करते हैं और आहत रक्तवाहनियों से रक्तस्त्राव होता है
+bhudhvaar ki naadi muhurah mein dhan viniyojan ka kaarya karna labhkari rehta hai	बुधवार की नाडी मुहूर्त में धन विनियोजन का कार्य करना लाभकारी रहता है
+sabse ullekhaniy men se ek haisrat mohan jo kanpur se sammanit the aur lucknow jane ki yojana bana rahe the	सबसे उल्लेखनीय में से एक हैसरत मोहन जो कानपुर से सम्मानित थे और लखनऊ जाने की योजना बना रहे थे
+hire nikalte rahe aur dekhte hi dekhte pahle to tila dhwast ho gaya aur fir wahan ek gaddha banane laga	हीरे निकलते रहे और देखते ही देखते पहले तो टीला ध्वस्त हो गया और फिर वहाँ एक गड्ढा बनने लगा
+nitrothen ek carbonic yaugik hai	नाइट्रोइथेन एक कार्बनिक यौगिक है
+unki hindi rachnaon mein dola biwi ka mazar atit ka chehra loga ek nadi rait bhari pramukh hain	उनकी हिंदी रचनाओं में डोला बीबी का मजार अतीत का चेहरा लोगां एक नदी रेत भरी प्रमुख हैं
+chhidra yugm se dorak piroyen	छिद्र युग्म से डोरक पिरोएँ
+bharat mein manorog vigyan abhi tak alp viksit avastha mein hai	भारत में मनोरोग विज्ञान अभी तक अल्प विकसित अवस्था में है
+unka bachapan pramukhtaya solapur shahar mein bita	उनका बचपन प्रमुखतया सोलापुर शहर में बीता
+vidrohiyon ne bhi manav adhikar ka drupyog kiya hai aur jise jaatiy safai kahte hain usmen lagi hui hai	विद्रोहियों ने भी मानव अधिकार का दुरुपयोग किया है और जिसे जातीय सफाई कहते हैं उसमें लगी हुई है
+jyadatar mamlon men ve paramuk pratyaksh malikon ke bajaay vishvasashrit aijento ke roop me kaary kar rahi hain	ज्यादातर मामलों में वे प्रमुख प्रत्यक्ष मालिकों के बजाय विश्वासाश्रित एजेंटों के रूप में कार्य कर रही हैं
+kartik elangovan	कार्तिक एलंगोवन
+alladin ke chirag ki kahani rudra dev jhari	अलादीन के चिराग की कहानी रूद्र देव झारी
+suryamalla misran bachapan se hi pratibhasampann the	सूर्यमल्ल मिश्रण बचपन से ही प्रतिभासंपन्न थे
+preran bhatthi mein dhatu prerit vidyudhara ke parvah ko aavrudh karti hai jisse ushma utpann hoti hai	प्रेरण भट्ठी में धातु प्रेरित विद्युद्धारा के प्रवाह को अवरुद्ध करती है जिससे ऊष्मा उत्पन्न होती है
+mumbai duniya ke nauven sabse adhik aabadi vale shahron men se ek hai	मुंबई दुनिया के नौवें सबसे अधिक आबादी वाले शहरों में से एक है
+paap ke sambandh mein karam ke parinaamon par adhik bade paimaane par charchaa ki gayi hai	पाप के संबंध में कर्म के परिणामों पर अधिक बड़े पैमाने पर चर्चा की गयी है
+tak hota hai	तक होता है
+in khandon ki samagri ka sankshipt vivvaran is prakar hai	इन खंडों की सामग्री का संक्षिप्त विवरण इस प्रकार है
+ye pashu dekhne men bahut badsurat lagte hain	ये पशु देखने में बहुत बदसूरत लगते हैं
+yah missile teen stage mein maar karegi	यह मिसाइल तीन स्टेज में मार करेगी
+adhunik hindi kavyon mein pashchatya chintan dr ram kisan saini	आधुनिक हिंदी काव्यों में पाश्चात्य चिंतन डॉ॰ राम किसन सैनी
+iske kai rup sanskaran hain jismen se ek dakshin bharar se bhi mili hai aurr jo sukhant hai	इसके कई रूप संस्करण हैं जिसमें से एक दक्षिण भारत से भी मिली है और जो सुखान्त है
+idukki lok sabha nirvachan kshetr bharat ke kerala rajya ka ek lok sabha nirvachan kshetra hai	इदुक्की लोक सभा निर्वाचन क्षेत्र भारत के केरल राज्य का एक लोक सभा निर्वाचन क्षेत्र है
+is prakar hajaar chaturgon ka ekkalp kaha jata hai	इस प्रकार हजार चतुर्युगों का एककल्प कहा जाता है
+unke aadesh par betal unhe pahadi para le aae aur unse bole ki ve iske aage nahi ja sakte	उनके आदेश पर बेताल उन्हें पहाड़ी पर ले आए और उनसे बोले कि वे इसके आगे नहीं जा सकते
+bahri kala havard finstar grandma moses bob justin	बाहरी कला हावर्ड फ़िन्सटर ग्रैंडमा मोसेस बॉब जस्टिन
+ant me restaurent ke karmchariyo ke puchkar apne svad pehchanne ki kshamta ko parkhe	अन्त में रेस्टारेण्ट के कर्मचारियों के पूछकर अपने स्वाद पहचानने की क्षमता को परखें
+mahasaagariy dharayen saagariy jivan ke liye bhi mahattvapurn hoti hain	महासागरीय धाराएं सागरीय जीवन के लिये भी महत्त्वपूर्ण होती हैं
+yah lambe pedo par basera banate hai	यह लंबे पेड़ों पर बसेरा बनाते हैं
+police ne ansu gas ke gole dwar ki or dal kar chhatron ko chetavani di	पुलिस ने आंसू गैस के गोले द्वार की ओर डाल कर छात्रों को चेतावनी दी
+isliye in kamiyo ka prabandhan bahut mahatvapurna hai	इसलिए इन कमियों का प्रबंधन बहुत महत्वपूर्ण है
+is samay uttari bharat adhiktam tapman tatha nyuntam vayudaab ke kshetra men parivartit hone lagta hai	इस समय उत्तरी भारत अधिकतम तापमान तथा न्यूनतम वायुदाब के क्षेत्र में परिवर्तित होने लगता है
+europe aur america ke kai vishvavidyalayo me unke vyakhyan ho chuke hai	यूरोप और अमेरिका के कई विश्वविद्यालयों में उनके व्याख्यान हो चुके हैं
+dalit vimarsh prasangikta kal aaj aur kal	दलित विमर्श प्रासंगिकता कल आज और कल
+iske baad ekta kapoor ki komedy film kya cool hain hum mein najar aayin	उसके बाद एकता कपूर की कॉमेडी फिल्म क्या कूल हैं हम में नजर आयीं
+daaku aur jawan internet movie detabase par	डाकू और जवान इण्टरनेट मूवी डेटाबेस पर
+iska aayudh trishul hai tahe sike haath men matsy bhi rahat hai	इसका आयुध त्रिशूल है तथा इसके हाथ में मत्स्य भी रहता है
+jo desh jitna hi sabhyata me pragatishil hai usme vikshiptatanivarak chikitsak aur chikitsalaya bhi utne adhik hai	जो देश जितना ही सभ्यता में प्रगतिशील हे उसमें विक्षिप्ततानिवारक चिकित्सक और चिकित्सालय भी उतने अधिक हैं
+iske alava anya kaaran hai kasarat ki kami dhumrapaan aur kuposana	इसके अलावा अन्या कारण है कसरत की कमी धूम्रपान और कुपोषण
+ghaggar hakra nadi	घग्गर हकरा नदी
+congress ka dhyan rajniti ki aur tha par gandhi ji use rachnatmak karyo ki aur bhi khinchna chahte the	कांग्रेस का ध्यान राजनीति की ओर था पर गांधी जी उसे रचनात्मक कार्यों की ओर भी खींचना चाहते थे
+uttejak dravya adhikanshatah mukh se liye jaate hain lekin kuch padarth jaise methedrin injekshan dvara bhi liye jaate hain	उत्तेजक द्रव्य अधिकांशतः मुख से लिए जाते हैं लेकिन कुछ पदार्थ जैसे मेथेड्रीन इंजेक्शान द्वारा भी लिए जाते हैं
+punrvasu nakshtr ke chauthe charan ke malik hain guru chandrama jaatak ke andar kalpnashilata bharte hain	पुनर्वसु नक्षत्र के चौथे चरण के मालिक हैं गुरु चन्द्रमा जातक के अन्दर कल्पनाशीलता भरते हैं
+uske hi is vidhya ke liye santhanik savrachna fremwork sambandhi vichar kiya	उसने ही इस विद्या के लिए सांस्थानिक संरचना फ्रेमवर्क सम्बन्धी विचार किया
+shrikant shastri kaal jaise maghi sahitya kaal ki bhi parikalpana kar li hai	श्रीकांत शास्त्री काल जैसे मगही साहित्य काल की भी परिकल्पना कर ली है
+hyderabad mein nadi par kai pulon hain	हैदराबाद में नदी पर कई पुलों हैं
+che mahine ho jaane ke baad shishu ki drishti acchi ho jati hai	छह महीने हो जाने के बाद शिशु की दृष्टि अच्छी हो जाती है
+in teeno krtiyo me nabhadas ki kirti ka mul aadhar bhaktmal hi hai	इन तीनों कृतियों में नाभादास की कीर्ति का मूल आधार भक्तमाल ही है
+europe ki sanyukta vyavastha ki sthapna bhi isi dhara ke adhar par ho saki thi	यूरोप की संयुक्त व्यवस्था की स्थापना भी इसी धारा के आधार पर हो सकी थी
+kharivansh acharya sano chhanda	हरिवंश आचार्य सानो छँदा
+jinna ko khan se pakistan aandolan me purn samarthan mila aur unhone rajnitik salah bhi di	जिन्ना को खान से पाकिस्तान आंदोलन में पूर्ण समर्थन मिला और उन्होंने राजनीतिक सलाह भी दी
+yahi karan hai ki samjhaute ke utpadan bhandaran aur rasaynik hathiyaron ke istemaal ko nishedh kiya gaya hai	यही कारण है कि समझौते के उत्पादन भंडारण और रासायनिक हथियारों के इस्तेमाल को निषेध किया गया है
+agni rekha internet movie database par	अग्नि रेखा इंटरनेट मूवी डेटाबेस पर
+aap hindi rngmanch ke bare men kya sochte hain krupaya batayen	आप हिंदी रंगमंच के बारे में क्या सोचते हैं कृपया बताएं
+anantram bharat ke uttar pradesh ki chauthi vidhansabha sabha men vidhayak rahe	अनन्तराम भारत के उत्तर प्रदेश की चौथी विधानसभा सभा में विधायक रहे
+anuvansika sankramana tatha svasththa bahuta sari bimariyam bahuta sare tathyo para nirbhara karati hai	अनुवांशिक संक्रमण तथा स्वास्थ्था बहुत सारी बिमारियँ बहुत सारे तथ्यो पर निर्भर करती है
+aise men sajhedaar bhi jyadatar fayde men rahte hain	ऐसे में साझेदार भी ज्यादातर फायदे में रहते हैं
+janaki mandir google manchitra par	जानकी मन्दिर गूगल मानचित्र पर
+car truck aadi ke pahiye nikalne ke iye prayukt jack iska udaharan hai	कार ट्रक आदि के पहिये निकालने के लिये प्रयुक्त जैक इसका उदाहरण है
+vishwamitra ne sampurna bhojan us yachak ko de diya aur swayam nirahar rah gaye	विश्वामित्र ने सम्पूर्ण भोजन उस याचक को दे दिया और स्वयं निराहार रह गये
+cybil prahar	साइबिल प्रहार
+x link wala swarup sarva samanya hai	x लिंक वाला स्वरूप सर्व सामान्य है
+shashi kapoor	शशि कपूर
+bundelkhand ko hashm samrajya ke bahar mana gaya hai	बुंदेलखंड को ह्मष साम्राजय् के बाहर माना गया है
+india a ne toss jita aur ballebaji karne ke liye chune gaye	इंडिया ए ने टॉस जीता और बल्लेबाजी करने के लिए चुने गए
+jo lakdi aur lakdi ki bani chijen jaise farnichar aadi katarkar kha jate hain	जो लकडी और लकडी की बनी चीज़ेँ जैसे फर्निचर आदि कुतरकर खा जाते हैँ
+phir bhi manovaigyaniko ne kam se kam teen prakar ki mapanpaddhati ka vikas kiya hai	फिर भी मनोवैज्ञानिकों ने कम से कम तीन प्रकार की मापनपद्धति का विकास किया है
+ash vishwa tennis jagat ke sabse bhadra khiladiyon men se ek mane jate the	ऐश विश्व टेनिस जगत के सबसे भद्र खिलाड़ियों में से एक माने जाते थे
+atah inhen resham keet kahte hain	अतः इन्हें रेशम कीट कहते हैं
+mahapandit rahul sankrityayan ne magahi bhasha ke vikasatmak itihaas ko nimn roop mein prastut kiya hai	महापंडित राहुल सांकृत्यायन ने मगही भाषा के विकासात्मक इतिहास को निम्न रूप में प्रस्तुत किया है
+men vijay prapt hui aur samrajya ke kendra ko roman dekiya ke prant men rupantarit kar diya gaya	में विजय प्राप्त हुई और साम्राज्य के केंद्र को रोमन देकिया के प्रान्त में रूपान्तरित कर दिया गया
+isme shri kaak bhushundi ji sampurna ramayan ko ati sankshipt mein kahte hain	इसमें श्री काक भुशुंडि जी सम्पूर्ण रामायण को अति संक्षिप्त में कहते हैं
+is chikitsa ke lakshya graft banam host tatha krons rog hai	इस चिकित्सा के लक्ष्य ग्राफ्ट बनाम होस्ट तथा क्रोंस रोग हैं
+chid ka tel kath men nahi rahata varn kath ke bhanjak aasvan se banta hai	चीड़ का तेल काठ में नहीं रहता वरन् काठ के भंजक आसवन से बनता है
+yah shabd thai nagarikon ke sandarbha men bhi istemal kiya jata hai	यह शब्द थाई नागरिकों के सन्दर्भ में भी इस्तेमाल किया जाता है
+janm sambandhi vrutant men chandelon ka kalin men rahana pratham pratapi shasak banana bhi shamil hain	जन्म सम्बन्धी वृतांत में चन्देलों का कलिं में रहना प्रथम प्रतापी शासक बनना भी शामिल हैं
+kumbh rashi ke jatako ko sahasapurvak chamkile rang ka suit pehante dekhna asamanya nahi hai	कुंभ राशि के जातकों को साहसपूर्वक चमकीले रंग का सूट पहनते देखना असामान्य नहीं है
+dhabbedar lakadbaggha vansh krokuta	धब्बेदार लकड़बग्घा वंश क्रोकुटा
+sanyukat rajya america aur canada mein yah chhah mahine hai	संयुक्त राज्य अमेरिका और कनाडा में यह छह महीने है
+kaner ka mukhy vishaila parinaam hrady ki manspeshiyon par hota hai	कनेर का मुख्य विषैला परिणाम हृदय की मांसपेशियों पर होता है
+jab yah base chalai gai thi tab inka rang laal hua karta tha	जब यह बसें चलाई गई थीं तब इनका रंग लाल हुआ करता था
+is sanskar ko noye eid bhi kaha jata hai	इस संस्कार को नोए ईद भी कहा जाता है
+vigyapan men ek pahadi guide is dhun ko gungunata hua dikhaya gaya hai	विज्ञापन में एक पहाड़ी गाइड इस धुन को गुनगुनाता हुआ दिखाया गया है
+sabhi jaiv anu jaise carbohidred amino aml protin rna tatha dna carbnic yaugik hi hain	सभी जैव अणु जैसे कार्बोहाइड्रेट अमीनो अम्ल प्रोटीन आरएनए तथा डीएनए कार्बनिक यौगिक ही हैं
+al bahah prant aur asir prant ki sarwaat pahadiyon men basne wale pahadi gamd	अल बाहाह प्रान्त और असीर प्रान्त की सरवात पहाड़ियों में बसने वाले पहाड़ी ग़म्द​
+tarapore ne lagaataar dushman taink aur artilari faayar ke tahat filo par hamla kiya	तारापोर ने लगातार दुश्मन टैंक और आर्टिलरी फायर के तहत फिलो पर हमला किया
+sankrit pali tatha shaurseni prakrut vibhinna yogon men is madhyadesh ki bhasha thi	संस्कृत पालि तथा शौरसेनी प्राकृत विभिन्न युगों में इस मध्यदेश की भाषा थी
+samaaj kary ke tahat vyavsayik drushti se viksit chhah pranaliyon ke madhyam se logon ki madad ki jati hai	समाज कार्य के तहत व्यावसायिक दृष्टि से विकसित छह प्रणालियों के माध्यम से लोगों की मदद की जाती है
+mandir ki sanrchana	मंदिर की संरचना
+laxmikant berde	लक्ष्मीकांत बेर्डे
+daravanepan ke itihaas mein ek mil kaa patthar lekin rolling stone ke kurt loder ne ise	डरावनेपन के इतिहास में एक मील का पत्थर लेकिन रॉलिंग स्टोन के कर्ट लोडर ने इसे
+bali itihaas	बाली इतिहास
+nagendra singh bharat ki solahvin lok sabha ke saansad hain	नागेन्द्र सिंह भारत की सोलहवीं लोक सभा के सांसद हैं
+vyakaranik aadhar sabse adhik pramanik hota hai	व्याकरणिक आधार सबसे अधिक प्रामाणिक होता है
+iski rachana bharat ke mahan kavi evam sahityakar suryakant tipathi nirala ne ki	इसकी रचना भारत के महान कवि एवं साहित्यकार सूर्यकांत त्रिपाठी निराला ने की
+film kiran hindi ki ek filmi maasik patrika hai	फिल्म किरण हिन्दी की एक फिल्मी मासिक पत्रिका है
+barakar nadi ke oopar bane is baandh ka nirmaan baadh ko rokne ke liye kiya gaya tha	बराकर नदी के ऊपर बने इस बाँध का निर्माण बाढ़ को रोकने के लिए किया गया था
+rashi tatva	राशि तत्त्व
+surfers paradise queensland the moroccon	सर्फर्स पैराडाइज़ क्वीन्सलैंड द मोरोक्कन
+iske atirikt yatra vrittant baal sahitya sahityik nibandh aur kavita sangraha bhi prakashit hue hai	इसके अतिरिक्त यात्रा वृत्तांत बाल साहित्य साहित्यिक निबंध और कविता संग्रह भी प्रकाशित हुए हैं
+chandar sudha kaa devataa tha aur sudha ne hamesha ek bhakt ki tarah hi use sammaan diyaa thaa	चन्दर सुधा का देवता था और सुधा ने हमेशा एक भक्त की तरह ही उसे सम्मान दिया था
+yah raktsambandhiyon ka naisargik samuh maloom padta hai	यह रक्तसंबंधियों का नैसर्गिक समूह मालूम पड़ता है
+narayan panikkar malyalam bhasha ke vikhyat sahityakar hain	नारायण पणिक्कर मलयालम भाषा के विख्यात साहित्यकार हैं
+hadappa aur mohenjodado ki khudai se sabse pahle nikalne vale vastuon mein chhote chhote patthar ki muharen thi	हड़प्पा और मोहनजोदड़ो की खुदाई से सबसे पहले निकलने वाले वस्तुओं में छोटे छोटे पत्थर की मुहरें थी
+dakshini america ke shaharon ki suchi	दक्षिणी अमेरिका के शहरों की सूची
+ye girijaghar sent meri ko samarpit hai	ये गिरजाघर सेंट मेरी को समरपित है
+is mandir ko hinduyon ke char dham men se ek gina jata hai	इस मंदिर को हिन्दुओं के चार धाम में से एक गिना जाता है
+ptakai bharat ke purvottar men burma ke saath lagi antarrashtriy simavarti kshetra par sthit pahadi shrunkhalaon ka naam hai	पटकाई भारत के पूर्वोत्तर में बर्मा के साथ लगी अंतरराष्ट्रीय सीमावर्ती क्षेत्र पर स्थित पहाड़ी शृंखलाओं का नाम है
+saffariyon ne jaranj shahar ko apni rajdhani banaya jo adhunik afghanistan ke dakshin paschim men sthit neemruj prant men hai	सफ़्फ़ारियों ने ज़रंज शहर को अपनी राजधानी बनाया जो आधुनिक अफ़ग़ानिस्तान के दक्षिण पश्चिम में स्थित नीमरूज़ प्रान्त में है
+sanyukt arab amirat ke shaharon ki suchi	संयुक्त अरब अमीरात के शहरों की सूची
+unke mathe ke beech men keval ek bada sa kale rang ka sing hai	उनके माथे के बीच में केवल एक बड़ा सा काले रंग का सींग है
+paas aane par pata chala ki uske pati kii mrityu ho gai hai aur ab vah bilkul besahara hai	पास आने पर पता चला कि उसके पति की मृत्यु हो गई है और अब वह बिल्कुल बेसहारा है
+ibrahimi dharm jaise yahudi dharm isai dharma islam dharma ityadi men is shabd ka prayog dekhne ko milta hai	इब्राहीमी धर्म जैसे यहूदी धर्म ईसाई धर्म इस्लाम धर्म इत्यादि में इस शब्द का प्रयोग देखने को मिलता है
+yah keval pahla kadam hai	यह केवल पहला कदम है
+muslim lekhikayen jaise zulfi sheikh farzna dange haseena mulla fatima mujawar aur naseema deshmukh bhi marathi men likh rahi hai	मुस्लिम लेखिकाएं जैसे जुल्फी शेख फरजाना डांगे हसीना मुल्ला फातिमा मुजावर और नसीमा देशमुख भी मराठी में लिख रही हैं
+school ke baad unhonne sena ke liye aavedan kiya aur chayanit huye	स्कूल के बाद उन्होंने सेना के लिए आवेदन किया और चयनित हुए
+moderna museet stockholm	मॉडर्ना मुसीट स्टॉकहोम
+iska ras pittnashak hai	इसका रस पित्तनाशक है
+gulliver ke charitra ka ullekh joy kogawa ki kavita what do i remember of the evacuation mein kiya gaya hai	गुलिवर के चरित्र का उल्लेख जोय कोगावा की कविता वॉट डू आई रिमेम्बर ऑफ़ द इवाक्युशन में किया गया है
+halanki samadhan turant nahi kiya gaya	हालांकि समाधान तुरंत नहीं किया गया
+delhi junkshan	दिल्ली जंक्शन
+uttar pashan kaal	उत्तर पाषाण काल
+yeh mukadma kai morcho par hindustani ekta ko majabut karne vala sabit hua	यह मुकदमा कई मोर्चों पर हिन्दुस्तानी एकता को मजबूत करने वाला साबित हुआ
+prophet ka matlab paigam dene vala aur prophesi karne vala	प्रोफेट का मतलब पैगाम देने वाला और प्रोफेसी करने वाला
+aasmaan kitna neela shri govind mishr	आसमान कितना नीला श्री गोविन्द्र मिश्र
+pink floyd band ke sadasyon ki ghoshana nahi ki gai thi aur unhe darshakon se ek joshila swagat mila	पिंक फ़्लॉइड बैंड के सदस्यों की घोषणा नहीं की गई थी और उन्हें दर्शकों से एक जोशीला स्वागत मिला
+yeh kehna sarvatha uchit hoga ki vakatak rajya ko samrajya ke rup me parinat karna usi ka karya tha	यह कहना सर्वथा उचित होगा कि वाकाटक राज्य को साम्राज्य के रूप में परिणत करना उसी का कार्य था
+shrutlekhan ke liye upayogi software	श्रुतलेखन के लिए उपयोगी सॉफ्टवेयर
+colingpong paschim bangal men em paraytak nagar hai	कालिंपोंग पश्चिम बंगाल में एक पर्यटक नगर है
+bhartiya samvidhan ki prastavana se lekar sabhi anukshed inhin manviiy adhikaron kii raksha karte nazar aate hain	भारतीय संविधान की प्रस्तावना से लेकर सभी अनुच्छेद इन्ही मानवीय अधिकारों की रक्षा करते नज़र आते हैं
+isaka itihasa satabdiyom se cala a raha hai	इसका इतिहास शताब्दियों से चला आ रहा है
+halanki aavrutti tivrata aur in sankaton ki avadhi prachand roop se bhinn hoti hai	हालांकि आवृत्ति तीव्रता और इन संकटों की अवधि प्रचंड रूप से भिन्न होती है
+ise bhaaropiya bhasa pariwar bhi kahte hain	इसे भारोपीय भाषा परिवार भी कहते हैं
+yahan bhi use parajay haat lagi	यहाँ भी उसे पराजय हाथ लगी
+bhugol me matratmak kranti	भूगोल में मात्रात्मक क्रांति
+turant upyukt chikitsa apekshit hai	तुरंत उपयुक्त चिकित्सा अपेक्षित है
+yuvraj internet movie database par	युवराज इंटरनेट मूवी डेटाबेस पर
+bharatiya sanvidhan mahabhiyog kya hai	भारतीय संविधान महाभियोग क्या है
+nisichar kis ladai barnisi bibidh prakar	निसिचर कीस लराई बरनिसि बिबिध प्रकार
+aajadi ki pahli ladai rajendra mohan bhatnaagar	आजादी की पहली लड़ाई राजेंद्र मोहन भटनागर
+sansmaran smriti lekha	संस्मरण स्मृति लेखा
+halanki pathak ke vivek ke adhar par ek adhik gahara arth nikala jaa sakta hai	हालांकि पाठक के विवेक के आधार पर एक अधिक गहरा अर्थ निकला जा सकता है
+is pratirup ko banaane ke liye do chhadon mein samadurasth chhed karein	इस प्रतिरूप को बनाने के लिये दो छड़ों में समदूरस्थ छेद करें
+padmini hindi filmon ki ek abhinetri thin	पद्मिनी हिन्दी फ़िल्मों की एक अभिनेत्री थीं
+pratyek varsh chaubis ekadashiyan hoti hain	प्रत्येक वर्ष चौबीस एकादशियाँ होती हैं
+lombock bali ke purv men dweep hai	लोम्बोक बाली के पूर्व में द्वीप है
+biredlife species factsheet	बर्डलाइफ स्पेसीज फैक्टशीट
+sabhi din ke samay agraar rahe hain aur hoohon pakshiyon chhipkaliyon ko apna gras banate hain	सभी दिन के समय अग्रसर रहते हैं और चूहों पक्षियों छिपकलियों को अपना ग्रास बनाते हैं
+aatma visuddha gyan svarup nishkriya aur anant hai jiv ko yah gyan nahi rehta	आत्मा विशुद्ध ज्ञान स्वरूप निष्क्रिय और अनंत है जीव को यह ज्ञान नहीं रहता
+yah mysore ke pramukh shaikshik sansthanon mem se ek hai	यह मैसूर के प्रमुख शैक्षिक संस्थानों मेम से एक है
+jafarpur railway station	जाफरपुर रेलवे स्टेशन
+marlins park ki aadhikarik website	मार्लिंस पार्क की आधिकारिक वेबसाइट
+yadi garmi achchi padti hai to varsha bhi khoob hoti hai	यदि गर्मी अच्छी पड़ती है तो वर्षा भी खूब होती है
+punyamitrssena patisswaminn hatvaa raajyan karishyati	पुण्यमित्रस्सेना पतिस्स्वामिनं हत्वा राज्यं करिष्यति
+yah kirgijstan ke dakshin men prasiddha fargana wadi men sthit hai aur kirgijstan ke baatken prant ki rajdhani hai	यह किर्गिज़स्तान के दक्षिण में प्रसिद्ध फ़रग़ना वादी में स्थित है और किर्गिज़स्तान के बातकेन प्रांत की राजधानी है
+umra ke is padav ka koi samajik tatha jaivik samabandh nahi hai	उम्र के इस पडाव का कोई सामाजिक तथा जैविक संबंध नही है
+new delhi pravin prakashan	नई दिल्ली प्रवीण प्रकाशन
+urja ke mul stotra dr ganesh dutt	उर्जा के मूल स्तोत्र डॉ॰ गणेश दत्त
+pehle chuhe marte hai tab aadmi ko rog lagta hai	पहले चूहे मरते हैं तब आदमी को रोग लगता है
+mahatma gandhi dusre tal par baitha karte the	महात्मा गाँधी दूसरे तल पर बैठा करते थे
+iska pryog sambhog ke liye kiya jata hai aur alag prajatiyon men iaska aakaar aur aaktriti alag alag hoti hai	इसका प्रयोग संभोग के लिए किया जाता है और अलग प्रजातियों मे इसका आकार और आकृति अलग अलग होती है
+is ghatana ke baad se us talab ke ek bhag sonai va dusara bhag rupai naam se prasiddh ho gaya	इस घटना के बाद से उस तालाब के एक भाग सोनाई व दूसरा भाग रूपई नाम से प्रसिद्ध हो गया
+uccya nyayalay	उच्च न्यायालय
+abdul waris khan bharat ke uttar pradesh ki pandharah vidhansabhavi sabha men vidhayak rahe	अब्दुल वारिस खां भारत के उत्तर प्रदेश की पंद्रहवी विधानसभा सभा में विधायक रहे
+nidan se pahale kuch ya koi bhi lakshan dikhai nahi de sakte hain	निदान से पहले कुछ या कोई भी लक्षण दिखाई नहीं दे सकते हैं
+iski ladki jalane ke kaam ata hai tatha patton se dono pattal banaye jate hain	इसकी लकड़ी जलाने के काम आती है तथा पत्तों से दोना पत्तल बनाए जाते हैं
+unke is prakar kahne se trishanku ne krodhit hokar vashishth ji ke putron ko apshabd kahe	उनके इस प्रकार कहने से त्रिशंकु ने क्रोधित होकर वशिष्ठ जी के पुत्रों को अपशब्द कहे
+yah bhram bhi sad plata rahega	यह भ्रम भी सदा पलता रहेगा
+gary wenarchuk	ग्यारी वेनरचुक
+nice britisa sasana kala mem chattisagarha mem padastha setalamenta aphisara si	नीचे ब्रिटिश शासन काल में छत्तीसगढ़ में पदस्थ सेटलमेंट आफीसर सी
+vidyut pravrutti hai	विद्युत प्रवृत्ति है
+francis bukanan martin hunter aur globe jaise paschaty vidvano ki murtiyo bhi hai	फ्रांसिस बुकानन मार्टिन हंटर और ग्लोब जैसे पाश्चात्य विद्वानों की मूर्तियों भी हैं
+strabo kehte hai ki kakeshas me ek sing vale ghode pae jate the jinke sir mrig ki tarah hote the	स्ट्रैबो कहते हैं कि काकेशस में एक सींग वाले घोड़े पाए जाते थे जिनके सिर मृग की तरह होते थे
+unhone mahavidyalaya ke chatra sangh ke mahasachiv ke pad ke chunav me bhag liya aur nirvirodh nirvachit ho gae	उन्होंने महाविद्यालय के छात्र संघ के महासचिव के पद के चुनाव में भाग लिया और निर्विरोध निर्वाचित हो गए
+kavi ki ekantikata keval chintan ke dharatal par hai abhivyakti ke star par nahi	कवि की एकान्तिकता केवल चिन्तन के धरातल पर है अभिव्यक्ति के स्तर पर नहीं
+kanfushiwad ke anusaar samaaj ka sangathan paanch prakaar ke sambandhon par aadhaarit hai	कनफ़ूशीवाद के अनुसार समाज का संगठन पाँच प्रकार के संबंधों पर आधारित है
+pavan urja	पवन ऊर्जा
+mudra rashi	मुद्रा राशि
+shri narayan guru	श्री नारायण गुरु
+us shiva ki shaivi prakriti rachna prarambh me satogun se sanyukt rehti hai	उस शिव की शैवी प्रकृति रचना प्रारम्भ में सतोगुण से संयुक्त रहती है
+vaidik tatha upnishad yug men dharm rajnaitik samajik aarthik avm sahityik drushti se vikas hua	वैदिक तथा उपनिशद युग में धर्म राजनैतिक सामाजिक आर्थिक एवं साहित्यिक दृष्टि से विकास हुआ
+plutonium alloy banaa sakne mein saksham hota hai	प्लूटोनियम एलॉय बना सकने में सक्षम होता है
+mansik rogi ko do sthalon par sada ladte rahna padta hai ek bhitari aur dusri bahari	मानसिक रोगी को दो स्थलों पर सदा लड़ते रहना पड़ता है एक भीतरी और दूसरी बाहरी
+inke najdiki gaonon men khabda khurd cherai hai	इनके नज़दीकी गांवों में खाबड़ा खुर्द चेराई है
+likhit itihaas ka aarambh paddy athva gaddy men veergatha ke roop men hua	लिखित इतिहास का आरंभ पद्य अथवा गद्य में वीरगाथा के रूप में हुआ
+tendue unpar ghat lagae rehte hai aur gir ke jungle me mor aasani se unke shikar ban jate hai	तेंदुए उनपर घात लगाए रहते हैं और गिर के जंगल में मोर आसानी से उनके शिकार बन जाते हैं
+bharat sarakar ke anudan se brhat hindi sabdakosh prakashit kiya gaya	भारत सरकार के अनुदान से बृहत् हिंदी शब्दकोश प्रकाशित किया गया
+sandeepan muni ka aashram gaaon ke nikat thaa jahan bhagwaan shree krishna aur sudama shiksha garahn kar rahe the	संदीपन मुनि का आश्रम गाँव के निकट था जहाँ भगवान श्री कृष्ण और सुदामा शिक्षा ग्रहण कर रहे थे
+unki fans aur galat number jaisi kahaniyan doordarshan par prastut ki gai hain	उनकी फांस और गलत नम्बर जैसी कहानियाँ दूरदर्शन पर प्रस्तुत की गई हैं
+bhagwan maheshvar aadi purus hain	भगवान महेश्वर आदि पुरुष हैं
+kalalon ko prachin kaal mein shaundik kahte the	कलालों को प्राचीन काल में शौंडिक कहते थे
+sarfira internet movie database par	सरफिरा इंटरनेट मूवी डेटाबेस पर
+yah pustaken jo sarveyaron ki aane waali pidhiyon ke liye bhi ek granth ke samaan hain	यह पुस्तकेँ जो सर्वेयरोँ की आने वाली पीढियोँ के लिये भी एक ग्रंथ के समान हैं
+musibat ki haar baal natak	मुसीबत की हार बाल नाटक
+uski krurta shakti aur atank ke karan koi bhi uska virodh karne ka sahas nahi karta	उसकी क्रूरता शक्ति और आतंक के कारण कोई भी उसका विरोध करने का साहस नहीं करता
+puratatwik naitikta	पुरातात्विक नैतिकता
+nabhadas ki teen krtiya upalabdh hai bhaktmal asthayam rambhakti sambandhi sphut pad	नाभादास की तीन कृतियाँ उपलब्ध हैं भक्तमाल अष्टयाम रामभक्ति संबंधी स्फुट पद
+great britain ke purtgali samudri kutto ka club	ग्रेट ब्रिटेन के पुर्तगाली समुद्री कुत्तों का क्लब
+bata india	बाटा इंडिया
+denmark ka rajsi singhasan iksinge ke singo se nirmit tha	डेनमार्क का राजसी सिंहासन इकसिंगे के सींगों से निर्मित था
+abusaleh sharaf	अबुसलेह शरफ
+saath hi ke ek kamare men rabndranath tagore ko likhi chitthi hai	साथ ही के एक कमरे में रवींद्रनाथ टैगोर को लिखी चिट्ठी है
+kala me aam taur par dikhai dene vale iksinge ke sarpil singo ki utpatti inhi sroto se hui hai	कला में आम तौर पर दिखाई देने वाले इकसिंगे के सर्पिल सींगों की उत्पत्ति इन्हीं स्रोतों से हुई है
+jo krushna ko apne rakt men dharan kar saken	जो कृष्ण को अपने रक्त में धारण कर सकें
+iske uprant gardbhilla aur naagon ka adhikar is pradesh men hua	इसके उपरांत गर्दभिल्ला और नागों का अधिकार इस प्रदेश पर हुआ
+uske pita use apni sakht dekh rekh aur nigarani men rakhte hain	उसके पिता उसे अपनी सख़्त देख रेख और निगरानी में रखते हैं
+inmen antaraanvik duriya laghu hoti hain	इनमें अंतराआण्विक दूरियाँ लघु होती हैं
+par n to kabhi pakde gaye aur n hi krantikari karyon ko karne se apna par pichhe khicha	पर न तो कभी पकड़े गये और न ही क्रांतिकारी कार्यो को करने से अपना पैर पीछे खीचा
+dusra siddhant yah hai kisi kisi tarkik nirnay ka ek nikat uddeshya aur ek durasth uddeshya hota hai	दूसरा सिद्धांत यह है किसी किसी तार्किक निर्णय का एक निकट उद्देश्य और एक दूरस्थ उद्देश्य होता है
+rasayanik hathiyar mahavinash ke aujaar padtaal	रासायनिक हथियार महाविनाश के औजार पड़ताल
+film nirman ka samuhikaran ko communist rajya ki programmik purti ke liye kendriy tha	फिल्म निर्माण का सामूहीकरण को कम्युनिस्ट राज्य की प्रोग्रामिक पूर्ति के लिए केंद्रीय था
+yadi aisa n hua to dhuri ke ghumte hi usmen thartharahat paida hogi aur shuri ko tolan kharab ho jayaga	यदि ऐसा न हुआ तो धुरी के घूमते ही उसमें थरथराहट पैदा होगी और धुरी को तोलन खराब हो जायगा
+basemet vidhi se ispaat ka utpad kaafi sasta ho gaya	बेसमेर विधि से इस्पात का उत्पादन काफी सस्ता हो गया
+mala ise vishesh priya thi	माला इसे विशेष प्रिय थी
+yah shahtut ke patton ko khata hai	यह शहतूत के पत्तों को खाता है
+yah prabhamandal pratikshan uske yogakshem kaa nirvahan karta rahata hai	यह प्रभामंडल प्रतिक्षण उसके योगक्षेम का निर्वहन करता रहता है
+in char adharon par bhashaon ki adhikadhik samanta nischit karte unka vargikaran kiya jata hai	इन चार आधारों पर भाषाओं की अधिकाधिक समानता निश्चित करते उनका वर्गीकरण किया जाता है
+mohan joshi kuber desai hotel malik	मोहन जोशी कुबेर देसाई हॉटेल मालिक
+musi de art moderne de la ville de paris paris	मुसी डे आर्ट मॉर्डने डे ला विले डे पैरिस पेरिस
+yeh vividh utpadon vyaparon ka ek samuh hai	यह विविध उत्पादों व्यापारों का एक समूह है
+iski maata udhambaai thi jo kudasiya begum ke naam se prasiddh thin	इसकी माता उधमबाई थी जो कुदसिया बेगम के नाम से प्रसिद्ध थीं
+ve bhul gaye ki akhhet ke liye ve akele nahi nikale hain	वे भूल गए कि आखेट के लिए वे अकेले नहीं निकले हैं
+matartmak kranti kii nimn kamiyan hain	मात्रात्मक क्रांति की निम्न कमियां हैं
+vjay kumar malhotra bhartiya rajneta	विजय कुमार मलहोत्रा भारतीय राजनेता
+alu cup png apne pehle oneday me umpire ke rup me khada tha	अलू कप पीएनजी अपने पहले वनडे में अंपायर के रूप में खड़ा था
+yahan lori iski tulna us giga ghar se karte hain jismen ve hain	यहां लोरी इसकी तुलना उस गीगा घर से करते हैं जिसमें वे हैं
+vashisht ji ne un sabko nasht karke un pr brahmand asht chhod diya	वशिष्ठ जी ने उन सबको नष्ट करके उन पर ब्रह्माण्ड अस्त्र छोड़ दिया
+musalmanon ke aane ke pahale hinduon ki itihaas sambandh mein apni anokhi dhaarna thi	मुसलमानों के आने के पहले हिंदुओं की इतिहास संबंध में अपनी अनोखी धारण थी
+yah miami marlins ka gharelu maidan hai	यह मियामी मार्लिंस का घरेलू मैदान है
+dilwada jain mandir jain dharm ki adbhut kala	दिलवाड़ा जैन मंदिर जैन धर्म की अदभुत कला
+men vastupal aur tejpal namak do bhaiyon dwara banavaya gaya tha	में वास्तुपाल और तेजपाल नामक दो भाईयों द्वारा बनवाया गया था
+iske baad police use is baat ko dabane ke liye paise maangti hai	इसके बाद पुलिस उसे इस बात को दबाने के लिए पैसे मांगती है
+wah bharat ke pahle rashtrapati dr rajendra prasad ki bhai ki ladki hai	वह भारत के पहले राष्ट्रपति डॉ राजेंद्र प्रसाद की भाई की लड़की है
+devian art	डेविअन आर्ट
+bharni bhadavari jyotish ke pratham charan ke adhipati shukra surya jatak ko abhimani aur chapalus priya banata hai	भरणी भदावरी ज्योतिष के प्रथम चरण के अधिपति शुक्र सूर्य जातक को अभिमानी और चापलूस प्रिय बनाता है
+bhinn bhinn jantuon men bal ki vruddhi bhinn bhinn dar se hoti hai	भिन्न भिन्न जंतुओं में बाल की वृद्धि भिन्न भिन्न दर से होती है
+aapke sampaadan mein jabalpur se dalit sahit‍ya ki pramukh evam prakhar patrikaa tisra paksh ka prakashan ho raha hai	आपके संपादन में जबलपुर से दलित साहित्य की प्रमुख एवं प्रखर पत्रिका तीसरा पक्ष का प्रकाशन हो रहा है
+kisi bhi chikitsa upchar ke samaan in upcharon ke kai pratikul prabhav hain	किसी भी चिकित्सा उपचार के सामान इन उपचारों के कई प्रतिकूल प्रभाव हैं
+matrashastr posology posology ke antargat aushadhiyon ki upyukt matraon ka adhyayan kiya jata hai	मात्राशास्त्र posology पोसोलाजी के अंतर्गत औषधियों की उपयुक्त मात्राओं का अध्ययन किया जाता है
+esinapthin ek carbonic yogik hai	एसिनाप्थिन एक कार्बनिक यौगिक है
+sulochna laatkar	सुलोचना लाटकर
+iske alawa garmani ke poorvi bhag men kuchh bhaag poland ko tatha kuch soviyat sangh ko de diya gaya	इसके अलावा जर्मनी के पूर्वी भाग में कुछ भाग पोलैण्ड को तथा कुछ सोवियत संघ को दे दिया गया
+devnaagari ke har niyamit varga mein pahle do varna aghos aur un ke baad ke do ghos hote hain	देवनागरी के हर नियमित वर्ग में पहले दो वर्ण अघोष और उन के बाद के दो घोष होते हैं
+vah trade union neta puran chand joshi se bahut prabhavit hue the aur unhe apna guru mante the	वह ट्रेड यूनियन नेता पूरन चन्द जोशी से बहुत प्रभावित हुए थे और उन्हें अपना गुरु मानते थे
+is prakar sampurn dhanurvidhya ka dnyan prapt karke vishwamitra badla lene ke liye vashishth jee ke aasharam men pahunche	इस प्रकार सम्पूर्ण धनुर्विद्या का ज्ञान प्राप्त करके विश्वामित्र बदला लेने के लिये वशिष्ठ जी के आश्रम में पहुँचे
+yahan hakra nadi ka sukha hua prachin marg hai jiske kinare sindhu ghati sabhyata ke bahut se khandahar milte hain	यहाँ हकरा नदी का सुखा हुआ प्राचीन मार्ग है जिसके किनारे सिन्धु घाटी सभ्यता के बहुत से खंडहर मिलते हैं
+tak raha	तक रहा
+jaadaa dekar bukhaar aata hai aur aniyamit dhang se ghatataa badhataa hai	जाड़ा देकर बुखार आता है और अनियमित ढंग से घटता बढ़ता है
+aankh meri baki unka prabhakar machve	आंखे मेरी बाकी उनका प्रभाकर माचवे
+anaupacharik taur par rastriya mandi utpadakata mein giravat ki avadhi hai	अनौपचारिक तौर पर राष्ट्रीय मंदी उत्पादकता में गिरावट की अवधि है
+dynamic neurobix badhao yadadast live hindustan	डायनैमिक न्यूरोबिक्स बढ़ाओ याददाश्त लाइव हिन्दुस्तान
+marin core men lieutenant colonel hain	मरीन कोर में लेफ्टिनेंट कर्नल हैं
+panchajan ek vaidik pad hai jiske kai sambandhit shabda vedon mukhyatayaa rigved mein milte hain	पंचजन एक वैदिक पद है जिसके कई संबंधित शब्द वेदों मुख्यतया ऋग्वेद में मिलते हैं
+pahli inkyuari raj narayan ne karvaayi thi jo bina kisi nateeje ke samapt ho gayi aisa bataya gaya	पहली इन्क्वायरी राज नारायण ने करवायी थी जो बिना किसी नतीजे के समाप्त हो गयी ऐसा बताया गया
+is samuday ki altai bhasha namak apni alag turki bhasha hai	इस समुदाय की अल्ताई भाषा नामक अपनी अलग तुर्की भाषा है
+jyus ki bhanti iska pradhan ayudh vajra tha yadyapi iske hatho me mashal bhi sushobhit hoti thi	ज्यूस की भाँति इसका प्रधान आयुध वज्र था यद्यपि इसके हाथों में मशाल भी सुशोभित होती थी
+shrek film srhunkhala men rapnjel ek sahayak patr hai	श्रेक फ़िल्म श्रृंखला में रॅपन्ज़ेल एक सहायक पात्र है
+wah agnipind sarakkar pichhe chala gaya aur pravesh dwar saaf ho gaya	वह अग्निपिण्ड सरककर पीछे चला गया और प्रवेश द्वार साफ़ हो गया
+vijay aisa karne ke liye sahamat hota hai	विजय ऐसा करने के लिए सहमत होता है
+bharat mein iran ke raajdut gholamreza ansari ne kaha ki iran maamle ki janch kar raha hai	भारत में ईरान के राजदूत गुलामरजा अंसारी ने कहा कि ईरान मामले की जांच कर रहा है
+europe men huye punarjagaran aur gyanoday andolanon ke baad manaviy mulyon ka mahima madan hua	यूरोप में हुए पुर्नजागरण और ज्ञानोदय आंदोलनों के बाद मानवीय मूल्यों का महिमा मंडन हुआ
+sahitya academy	साहित्य अकादमी
+in devtaon men atimanviy dharatal par manviy prakriti ke durgunon tatha satgunon ki yojna ki gai	इन देवताओं में अतिमानवीय धरातल पर मानवीय प्रकृति के दुर्गुणों तथा सत्गुणों की योजना की गई
+urdu kahanikaar rajendra singh bedi nand kishor vikram	उर्दू कहानीकार राजेन्द्र सिंह बेदी नन्द किशोर विक्रम
+kavita men shrikrushna ke vishay ki un kahaniyon ka varnan hai jinka sambandh unke janam se lekar ant tak hai	कविता में श्रीकृष्ण के विषय की उन कहानियों का वर्णन है जिनका संबंध उनके जन्म से लेकर अंत तक है
+madyavyasnita alcohalijm	मद्यव्यसनिता अल्कोहलिज्म
+me senapati fan ven ne sinhaasan par adhikar kar liye	में सेनापति फ़न वेन ने सिंहासन पर अधिकार कर लिया
+bure haal men baluchisthan jaagran	बुरे हाल में बलूचिस्तान जागरण
+bharatiya jantantr me aaj jis vyakti ki chap sabse badi hai veh tula rashi ka hi jatak tha	भारतीय जनतंत्र में आज जिस व्यक्ति की छाप सबसे बड़ी है वह तुला राशि का ही जातक था
+uske pichhe pichhe bhari sankhya men karnalganj thane se police bhi aa gayi	उसके पीछे पीछे भारी संख्या में कर्नलगंज थाने से पुलिस भी आ गयी
+vishu ke samay surya vishuvat rkha pae seedha chamakta hai aur donon dhruv prakash vritt par padte hain	विषुव के समय सूर्य विषुवत रेखा पर सीधा चमकता है और दोनों ध्रुव प्रकाश वृत्त पर पड़ते हैं
+sohan rahi ke anusar geet vidha sahitya ki sabse kathin evam shresth vidha hai	सोहन राही के अनुसार गीत विधा साहित्य की सबसे कठिन एवं श्रेष्ठ विधा है
+nitse sapenahavara ne kaha tha ki sansara mem andhe sankalpa ka sasana vyapaka hai	नीत्शे शापेनहावर ने कहा था कि संसार में अंधे संकल्प का शासन व्यापक है
+inke dwara giraye pankhon ki pahchan kar use sangrah karne ki anumati bhartiya kanoon deta hai	इनके द्वारा गिराए पंखों की पहचान कर उसे संग्रह करने की अनुमति भारतीय कानून देता है
+ise bharatiya murtikala ka vishvkosh aur hindu devi devatao ka ajayabaghar kehte hai	इसे भारतीय मूर्तिकला का विश्वकोश और हिन्दू देवी देवताओं का अजायबघर कहते हैं
+meyang chang bharat ke ek prasidhha tv evam film kalakar tatha gayak hain	मेयांग चांग भारत के एक प्रसिद्ध टीवी एवं फिल्म कलाकार तथा गायक हैं
+purtgali samudhri kutten ke nasslen ke profile	पुर्तगाली समुद्री कुत्तों के नस्लों के प्रोफाइल
+tananyika jhil	तांगान्यीका झील
+dusre karan men surya ki kirane jal ki satah par ek saman nahi padti	दूसरे कारण में सूर्य की किरणें जल की सतह पर एक समान नहीं पड़तीं
+manushya mein apne shreshth vyaktiyon ka anukaran karne ka swabhavik gun hai	मनुष्य में अपने श्रेष्ठ व्यक्तियों का अनुकरण करने का स्वाभाविक गुण है
+hindu ghoshiyon ki samajik paramparayen hindu rajputon ke samrup hoti hai	हिन्दू घोषियों की सामाजिक परम्पराएँ हिन्दू राजपूतों के समरूप होती है
+yah kaoshiung shahar ke pas sthit hai	यह काओशिउंग शहर के पास स्थित है
+nakshatriya bhauitiki aur mukt electron laser ka adhyayana unke vishisht kshetro me se tha	नक्षत्रीय भैतिकी और मुक्त इलेक्ट्रॉन लेजर का अध्ययन उनके विशिष्ट क्षेत्रों में से था
+jhode chapeli choliya jaise nritya hudke ki thap par sammohan ki sima tak le jate hai	झोड़े छपेली छोलिया जैसे नृत्य हुड़के की थाप पर सम्मोहन की सीमा तक ले जाते हैं
+sanyukt pariwaar men sanbdhiyon ka dayra pati patni tatha unki avivahit santanon se bhi adhik vyapak hota hai	संयुक्त परिवार में संबंधियों का दायरा पति पत्नी तथा उनकी अविवाहित संतानों से भी अधिक व्यापक होता है
+paramparaa ke anusar nabhadas dom athavaa maharashtriya braahman jaati ke the	परंपरा के अनुसार नाभादास डोम अथवा महाराष्ट्रीय ब्राह्मण जाति के थे
+iska ullekh ram prasad bismil ne apni atmakatha men kiya hai	इसका उल्लेख राम प्रसाद बिस्मिल ने अपनी आत्मकथा में किया है
+ye swift ka jana maana kaafi laba karya hai aur angreji sahitya ka ek classic upnayas hai	ये स्विफ्ट का जाना माना काफी लंबा कार्य है और अंग्रेजी साहित्य का एक क्लासिक उपन्यास है
+puni lachhiman updes anoopa soopankha jimi kinhi kuroopa	पुनि लछिमन उपदेस अनूपा सूपनखा जिमि कीन्हि कुरूपा
+takniki sandarbha mein shrutalekhan se aashay hai ki computer ko bolkar likhavana	तकनीकी सन्दर्भ में श्रुतलेखन से आशय है कि कम्प्यूटर को बोलकर लिखवाना
+avyavastha ka labh uthakar harivarman chaturth ne apna rajya sthapit kiya	अव्यवस्था का लाभ उठाकर हरिवर्मन् चतुर्थ ने अपना राज्य स्थापित किया
+antssaakshya ke abhaav mein inki janm tatha murtya ki tithiya anishchit hain	अंतस्साक्ष्य के अभाव में इनकी जन्म तथा मृत्यु की तिथियाँ अनिश्चित हैं
+sichuan praant	सिचुआन प्रान्त
+sankochi aur sharmile prabhav ke sath jhijhakne wale jaatak kanya rashi ke hi dekhe jaate hain	सकोची और शर्मीले प्रभाव के साथ झिझकने वाले जातक कन्या राशि के ही देखे जाते है
+is din kadali stambhon ki pahale chandvanshiy kunwar ya unke pratinidhi pujan karte hain	इसी दिन कदली स्तम्भों की पहले चंदवंशीय कुँवर या उनके प्रतिनिधि पूजन करते है
+kushal shasak apne charitr ka udaharn prastut karke apne rajy ko janta ka sarvtomukhi sudhar kar sakta hai	कुशल शासक अपने चरित्र का उदाहरण प्रस्तुत करके अपने राज्य की जनता का सर्वतोमुखी सुधार कर सकता है
+gujral ne ise maanane se inkaar kar diya kyonki sanjay gandhi ko koi sarkari oohada prapta nahi tha	गुजराल ने इसे मानने से इन्कार कर दिया क्योंकि संजय गांधी को कोई सरकारी ओहदा प्राप्त नहीं था
+unke pita yale school of medicine me professor chikitsa se sambandhit pustako ke lekhak the	उनके पिता येल स्कूल ऑफ़ मेडीसीन में प्रोफेसर चिकित्सा से सम्बंधित पुस्तकों के लेखक थे
+isse sabit hota hai ki chotanagpur ke kudmi shesh bharata ke kudmiyo se purnataya bhinna hai	इससे साबित होता है कि छोटानागपुर के कुड़मी शेष भारत के कुर्मियों से पूर्णतया भिन्न हैं
+isse pehle ye record austrelia ke purva kaptan alan border ke nam se tha	इससे पहले ये रिकॉर्ड ऑस्ट्रेलिया के पूर्व कप्तान एलन बॉर्डर के नाम से था
+awara internet movie database par	आवारा इंटरनेट मूवी डेटाबेस पर
+yah sanskrut tatha bharatvidya se sambandhit stariya pustakon ke prakashan ke liye vikhyaat hai	यह संस्कृत तथा भारतविद्या से सम्बन्धित स्तरीय पुस्तकों के प्रकाशन के लिये विख्यात है
+samchamlli arumdaun nai joguk	साम्छाँल्ली आरुम्दाऊन नै जोगूक्
+haemoglobin ke sabhi anuvanshik prakar hanikarak nahi hote hain is avadharana ko anuvanshik bahurupata ke rup me jana jata hai	हीमोग्लोबिन के सभी अनुवांशिक प्रकार हानिकारक नहीं होते हैं इस अवधारणा को आनुवंशिक बहुरूपता के रूप में जाना जाता है
+iske baad bundelkhand ka itihas angrezi samrajya ki neetiyon ki hi abhivyakti karta hai	इसके बाद बुंदेलखंड का इतिहास अंग्रेजी साम्राज्य की नीतियों की ही अभिव्यक्ति करता है
+bhimshankar se kuchh hi duri par shinoli aur ghodagaon hai jahan aapko har tarah ki suvidha milegi	भीमशंकर से कुछ ही दूरी पर शिनोली और घोड़गांव है जहां आपको हर तरह की सुविधा मिलेगी
+pratham shatabdi men yahan saatvahan nareshon ka rajy tha	प्रथम शताब्दी में यहाँ सातवाहन नरेशों का राज्य था
+chaaku kainchi bananaa yahan ka prachin vyavasaay hai	चाकू कैंची बनाना यहाँ का प्राचीन व्यवसाय है
+atvs pranali ke vibhinna ghatako ke sanchalan ke lie driver prl mem viksit kiye gaye hai	atvs प्रणाली के विभिन्न घटकों के संचालन के लिए ड्राइवर पीआरएल में विकसित किए गए हैं
+yah maargoa se ek ghante ki duri par hai	यह मारगाँव से एक घण्टे की दूरी पर है
+suvaa suvaa zila aur kendriya prabhag ka prashasanik kendra bhi hai	सूवा सूवा जिला और केन्द्रीय प्रभाग का प्रशासनिक केन्द्र भी है
+is jodi ko british royal navy dvara bacha liya jata hai	इस जोड़ी को ब्रिटिश रॉयल नेवी द्वारा बचा लिया जाता है
+yahan hum devaki ke paramparagat charitra ke viparit sahasi ojaswi jujharu vyaktitwa se parichit hote hain	यहां हम देवकी के परम्परागत चरित्र के विपरीत साहसी ओजस्वी जुझारु व्यक्तित्व से परिचित होते हैं
+sahiba internet movie database par	साहिबाँ इंटरनेट मूवी डेटाबेस पर
+sparrow ki vyaktigat swachhata bhi bahut buri thi jo pepe lee pew ki ek visheshta hai	स्पैरो की व्यक्तिगत स्वच्छता भी बहुत बुरी थी जो पेपे ली प्यू की एक विशेषता है
+yah bhakti par adharit prem tha	यह भक्ति पर आधारित प्रेम था
+albert jheel	ऐल्बर्ट झील
+hindustan samachar agency ke din laute	हिन्दुस्थान समाचार एजेंसी के दिन लौटे
+use kahaniyan sunana aur baith kar kaam karna pasand hai	उसे कहानियाँ सुनाना और बैठ कर काम करना पसंद है
+nimnlikhit mahatvpurn karyakram uplabdhiyon ka varnan kuch is tarah hai	निम्नलिखित महत्वपूर्ण कार्यक्रम उपलब्धियों का वर्णन कुछ इस तरह है
+bhuvigyan me bhukamp tarango ke adhyayan me paravartan upayogi hai	भूविज्ञान में भूकम्प तरंगों के अध्ययन में परावर्तन उपयोगी है
+ismen bhinn prakar kee silen jalvyaghr see layan varlas ityadi shamil hain	इसमें भिन्न प्रकार की सीलें जलव्याघ्र सी लायन वाल्रस इत्यादि शामिल हैं
+iske chalte musalmanon ka manana hai we bharat ke vasi nahin hain aur inhone kashmiri logon ko vimukh kiya	इसके चलते मुसलमानों का मानना है वे भारत के वासी नहीं हैं और इन्होंने कश्मीरी लोगों को विमुख किया
+ahasanganj railway station nogaon zilla	अहसानगंज रेलवे स्टेशन नोगांव जिला
+vaigyanik parikalitron ke aane se slide rule ka prayog lagbhag poori tarah samapth ho gaya	वैज्ञानिक परिकलित्रों के आने से स्लाइड रूल का प्रयोग लगभग पूरी तरह समाप्त हो गया
+we yog sadhana men siddhhast the isliye ek jagah achal hokar baith gaye	वे योग साधना में सिद्धहस्त थे इसलिए एक जगह अचल होकर बैठ गए
+the martian film	द मार्शियन फ़िल्म
+cherussheri namputiri malayalam kavi	चेरुश्शेरि नंपूतिरि मलयालम कवि
+pray pravahika ke lakshan dasto me rakt aur sleshm hote hai	प्राय प्रवाहिका के लक्षण दस्तों में रक्त और श्लेष्मा होते हैं
+yah subah khule me pae jate hai aur din ki garmi ke dauran chayadar sthan me rehte hai	यह सुबह खुले में पाए जाते हैं और दिन की गर्मी के दौरान छायादार स्थान में रहते हैं
+haan rajvansh	हान राजवंश
+vidyutarasayanik shreni dvara vibhavantar ki ganna kar sakte hai	विद्युतरासायनिक श्रेणी द्वारा विभवान्तर की गणना कर सकते हैं
+in samachar channelo ne bade star par pradesh bhar me apne sanvadadatao ki niyukti kar rakhi thi	इन समाचार चैनलों ने बड़े स्तर पर प्रदेश भर में अपने संवाददाताओं की नियुक्ति कर रखी थी
+halanki waters ne age ki prastutiyon ki sambhavana se inkar nahi kiya lekin sirf vishesh avasar ke liye	हालांकि वाटर्स ने आगे की प्रस्तुतियों की संभावना से इन्कार नहीं किया लेकिन सिर्फ विशेष अवसर के लिए
+bhadrak high school se apni metric ki pariksha pass karne ke baad vah ravenshaw college cuttack men dakhil jho gaye	भद्रक हाई स्कूल से अपनी मैट्रिक की परीक्षा पास करने के बाद वह रावेनशॉ कॉलेज कटक में दाखील हो गए
+nayi kavita bharat ki jameen se prerna praapt nahi karti	नई कविता भारत की जमीन से प्रेरणा प्राप्त नहीं करती
+usne antatah is avashyakta ko vapas le liya lekin tabhi jab ek prashikshu ne ek mukadma dayar kiya	उसने अंततः इस आवश्यकता को वापस ले लिया लेकिन तभी जब एक प्रशिक्षु ने एक मुकदमा दायर किया
+yah khabar tezi se faili aur hajaron log apna bhagya ajmane kudalon aur favadon ke saath teelen par tut paden	यह ख़बर तेज़ी से फैली और हज़ारों लोग अपना भाग्य आज़माने कुदालों और फावड़ों के साथ टीले पर टूट पड़े
+ispaat utpdan mein mukhyatah do prakar ki vidyut bhatthiyon prayukt hoti hain	इस्पात उत्पादन में मुख्यत दो प्रकार की विद्युत् भट्ठियों प्रयुक्त होती हैं
+warnan i jordan junior lezard freres and company llc ke varisth prabandh nideshak	वर्नन ई जॉर्डन जूनियर लेज़ार्ड फ़्रेरेस एंड कंपनी एलएलसी के वरिष्ठ प्रबंध निदेशक
+neelkanth chaturdhan	नीलकंठ चतुर्धर
+antatah use chuna hua guldast ki kaha ja sakta hai	अंतत उसे चुना हुआ गुलदस्ता की कहा जा सकता है
+uske chaar pote the	उसके चार पोते थे
+dilli se prakashit hindi pakshik pratham pravakta ke bhi sampadak aur baad me salahakar sampadak rahe	दिल्ली से प्रकाशित हिंदी पाक्षिक प्रथम प्रवक्ता के भी संपादक और बाद में सलाहकार संपादक रहे
+jadta dasta shoshan anyay asmita sangharsh tatha daridrata adi ke staro se ghanibhut amanisha kya samapt ho saki hai	जड़ता दासता शोषण अन्याय अस्मिता संघर्ष तथा दरिद्रता आदि के स्तरों से घनीभूत अमानिशा क्या समाप्त हो सकी है
+shaharon ki suchi	शहरों की सूची
+hamari hindi bhasha men sandhi ke dwara pure shabdon ko likhne ki parampara nahi hai	हमारी हिंदी भाषा में संधि के द्वारा पुरे शब्दों को लिखने की परम्परा नहीं है
+marne ke baad jeevan jis sthal men vishram pata hai uska swami osiris mana jata tha	मरने के बाद जीवन जिस स्थल में विश्राम पाता है उसका स्वामी ओसिरिस माना जाता था
+wayots dajor aarmenia ka ek prant hai	वायोत्स द्ज़ोर आर्मेनिया का एक प्रांत है
+pratham bar chetavani	प्रथम बार चेतावनी
+shahari ilakon men gauriya ki chhah tarah hi prajatiyan paai jati hain	शहरी इलाकों में गौरैया की छह तरह ही प्रजातियां पाई जाती हैं
+unka janm badaun men hua	उनका जन्म बदायूँ में हुआ
+bada bhanvar	बड़ा भंवर
+nachiketa vaidik yug ke ek tejasvi rishibalak the	नचिकेता वैदिक युग के एक तेजस्वी ऋषिबालक थे
+shak savant yesa anumaan kiya jata hai ki dakshin ke pratishtanpur ke raja shaliwaahan ne is sawant ko chalaya	शक संवत् ऐसा अनुमान किया जाता है कि दक्षिण के प्रतिष्ठानपुर के राजा शालिवाहन ने इस संवत् को चलाया
+yah karoti tantrik kendrak ke motor neurons ke aveshtan ke karan pragami merushirsh sambandhi pakshaghat ka karan banta hai	यह करोटी तंत्रिका केंद्रक के मोटर न्यूरॉन्स के आवेष्टन के कारण प्रगामी मेरूशीर्ष संबंधी पक्षाघात का कारण बनता है
+khanjadah shabd rajput ka rajputana shabd ka farsi roop hai	खानजदाह शब्द राजपूत का राजपूताना शब्द का फारसी रूप है
+parinamasvarup logo me in rogo ke bare me dar va agyanata ki galat dharanae dur nahi hui hai	परिणामस्वरूप लोगों में इन रोगों के बारे में डर व अज्ञानता की गलत धारणाएं दूर नहीं हुई हैं
+bakri ke liye isse adhik bhagy ki vastu kya hai ki wah sher ke sharir ka ansh ban jaye	बकरी के लिए इससे अधिक भाग्य की वस्तु क्या है कि वह शेर के शरीर का अंश बन जाए
+ise aap rok vahi sakte	इसे आप रोक वही सकते
+sudesh kumar mahto	सुदेश कुमार मह्तो
+deendayal shodh sansthan nanaji deshmukh dwara sthapit ek gramin vikas sanstha hai	दीनदयाल शोध संस्थान नानाजी देशमुख द्वारा स्थापित एक ग्रामीण विकास संस्था है
+is sampurn ko navahegelavadiyo ne murt sarvavyapi kaha hai	इस संपूर्ण को नवहेगेलवादियों ने मूर्त्त सर्वव्यापी कहा है
+bekd pomfrt ek parsi vyanjan hai	बेक्ड पॉम्फ्रेट एक पारसी व्यंजन है
+usse manushyo ke sath sath devi devta bhi bhayabhit rehne lage	उससे मनुष्यों के साथ साथ देवी देवता भी भयभीत रहने लगे
+sawal yah uthata hai ki ve kan hain	सवाल यह उठता है कि वे कौन हैं
+keshika kriya	केशिका क्रिया
+wed bhartiyon ke pavitr dharm granth hain	वेद भाारतीयों के पवित्र धर्म ग्रन्थ हैं
+shatpath brahman shukl yajurved ka brahmangranth hai	शतपथ ब्राह्मण शुक्ल यजुर्वेद का ब्राह्मणग्रन्थ है
+edwin myor the structure ov the naavel	एडविन म्योर द स्ट्रक्चर ऑव द नावेल
+is yug me bhi vasudev anivarya hai	इस युग में भी वसुदेव अनिवार्य हैं
+udaharan ke liye ek atma jismen brahman ki prakriti hai shudra aur iske viprit roop main janm le sakta hai	उदाहरण के लिए एक आत्मा जिसमें ब्राह्मण की प्रकृति है शुद्र और इसके विपरीत रूप में जन्म ले सकता है
+vachanamrut swaminarayan sampraday ka ek mul granth hai	वचनामृत स्वामीनारायण सम्प्रदाय का एक मूल ग्रंथ है
+youth vivaah apne shuddh roop mein kisi bhi kabile mein nahi milta	यूथ विवाह अपने शुद्ध रूप में किसी भी कबीले में नहीं मिलता
+yam myhotiniya aur saath hi maanspshi kshay aur kamjori dwara chinhit hai	यह मायोटिनिया और साथ ही मांसपेशी क्षय और कमजोरी द्वारा चिह्नित है
+bhartiy sena	भारतीय सेना
+isa kanuna dvara apadravyikarana tatha jhuthe nama se khadyom ka becana dandaniya hai	इस कानून द्वारा अपद्रव्यीकरण तथा झूठे नाम से खाद्यों का बेचना दंडनीय है
+shiva parvati	शिव पार्वती
+imarti kam ke liye is vriksha ki lakdi pratham shreni ki mani gai hai	इमारती काम के लिये इस वृक्ष की लकड़ी प्रथम श्रेणी की मानी गई है
+yah ek parvekshi aur samiksha par adhikar shetra kee sabhi adalaton lesotho	यह एक पर्यवेक्षी और समीक्षा पर अधिकार क्षेत्र की सभी अदालतों लेसोथो
+iske andar vyavsaayik kanoon audyogik kanoon aadi aate hain	इसके अन्दर व्यावसायिक कानून औद्योगिक कानून आदि आते हैं
+kuchi ko tere chhod kar jogi hi ban jaye magar	कूची को तेरे छोड कर जोगी ही बन जाएं मगर
+lagta hai bekar gae hum raahi masoom raza dvara likhit ek nibandh sangrah hai	लगता है बेकार गए हम राही मासूम रज़ा द्वारा लिखित एक निबंध संग्रह है
+uddalak rishi ke putra nachiketa	उद्दालक ऋषि के पुत्र नचिकेता
+us sthaan par mahal ka avshes roopi patthar ve iten aaj bhi maujud hai	उस स्थान पर महल के अवशेष रूपी पत्थर व ईटें आज भी मौजुद है
+is samay tak band ke anya sadasyon ne barrett je vyvahar men parivartan par gaur karna shuru kiya	इस समय तक बैंड के अन्य सदस्यों ने बैरेट के व्यवहार में परिवर्तन पर गौर करना शुरू किया
+penain ke purv narthbarland tatha darham ki koyle ki khadanen hain	पेनाइन के पूर्व नार्थंबरलैंड तथा डरहम की कोयले की खदानें हैं
+ati vishisht seva medal	अति विशिष्ट सेवा मेडल
+umakant rajak	उमाकांत रजक
+newyork newyork madison avenue aur fifth par	न्यूयॉर्क न्यूयॉर्क मैडिसन ऐवन्यू और फिफ्थ पर
+tol tamil bhsha ke vikhyat sahityakar d	तोल तमिल भाषा के विख्यात साहित्यकार डी
+shishu alag abhivyakti dikhlaata hai jab usko sukhad ya apriya gandh aur swaad se prastut karaaya jaata hai	शिशु अलग अभिव्यक्ति दिख्लाता है जब उसको सुखद या अप्रिय गंध और स्वाद से प्रसतुत कराया जाता है
+sabko siksha upalabdha karana	सबको शिक्षा उपलब्ध कराना
