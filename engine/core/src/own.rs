@@ -174,7 +174,7 @@ impl OwnWords {
 /// The skeleton the pack builder keys `word` by (`manglish::key`); None for a word it could
 /// not key: one with no skeleton, or with a character outside the script.
 fn word_skeleton(r: &Romanisation, word: &str) -> Option<String> {
-    manglish::pack(word, manglish::block_base(r))?;
+    manglish::pack(word, manglish::block_base(r)?)?;
     Some(r.word_skeleton(word)).filter(|skeleton| !skeleton.is_empty())
 }
 

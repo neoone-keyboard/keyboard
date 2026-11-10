@@ -18,9 +18,12 @@ const ZWNJ: char = '\u{200C}';
 const ZWJ: char = '\u{200D}';
 
 /// The first code point of the script block `r`'s words are packed from (`pack`): its
-/// script's (U+0D00 for Malayalam, U+0900 for Devanagari).
-pub fn block_base(r: &Romanisation) -> char {
-    crate::script::rules(r.script()).map_or('\u{0D00}', |rules| *rules.block().start())
+/// script's (U+0D00 for Malayalam, U+0900 for Devanagari). None when no script rules are in
+/// use for the tables' script: its words can't be packed or unpacked, so nothing is keyed or
+/// found. A pack never gets here so: the engine refuses one whose tables are for another
+/// script than its own (`Sources::open`).
+pub fn block_base(r: &Romanisation) -> Option<char> {
+    crate::script::rules(r.script()).map(|rules| *rules.block().start())
 }
 
 /// One byte per character: the 128 code points of the script block from `base` become
@@ -61,7 +64,7 @@ pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
         return None;
     }
     key.push(SEPARATOR);
-    key.extend(pack(word, block_base(r))?);
+    key.extend(pack(word, block_base(r)?)?);
     Some(key)
 }
 
@@ -93,9 +96,9 @@ pub struct Match {
 /// skeleton first, then longer ones, each group by frequency.
 pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     let typed_skeleton = r.skeleton(typed);
-    if typed_skeleton.is_empty() {
+    let Some(base) = block_base(r).filter(|_| !typed_skeleton.is_empty()) else {
         return Vec::new();
-    }
+    };
     let mut exact_prefix = typed_skeleton.clone().into_bytes();
     exact_prefix.push(SEPARATOR);
     // Words with exactly this skeleton, then the most frequent longer ones.
@@ -103,7 +106,6 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     let mut keys = lexicon.top_completions(&exact_prefix, TOP_K);
     keys.extend(lexicon.top_completions(typed_skeleton.as_bytes(), TOP_K));
 
-    let base = block_base(r);
     let mut shortlist: Vec<(f32, Match)> = Vec::with_capacity(keys.len());
     let mut seen = std::collections::HashSet::new();
     for (key, count) in keys {
@@ -220,6 +222,22 @@ mod tests {
     fn keys_are_skeleton_then_packed_word() {
         assert_eq!(key(ml(), "എന്റെ"), Some(b"ent\0\x8E\xA8\xCD\xB1\xC6".to_vec()));
         assert_eq!(key(ml(), "\u{0D4D}"), None, "a lone virama has no skeleton");
+    }
+
+    #[test]
+    fn tables_for_a_script_without_rules_key_and_find_nothing() {
+        // Not Malayalam's block by default: a word packed from the wrong base is another word.
+        let json = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json"),
+        )
+        .unwrap();
+        let other = Romanisation::parse(&json.replace("\"script\": \"mlym\"", "\"script\": \"qzzq\"")).unwrap();
+        assert_eq!(block_base(ml()), Some('\u{0D00}'));
+        assert_eq!(block_base(&other), None);
+        assert_eq!(key(&other, "എന്റെ"), None);
+        let lex = lexicon(&[("എന്റെ", 100)]);
+        assert_eq!(lookup(ml(), &lex, "ente").len(), 1);
+        assert!(lookup(&other, &lex, "ente").is_empty());
     }
 
     #[test]

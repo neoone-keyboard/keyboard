@@ -308,6 +308,15 @@ impl Sources {
             .romanisation
             .as_deref()
             .and_then(|p| Romanisation::load(p).ok());
+        // The romanised lexicon packs each word from the script's first code point: tables for
+        // another script would unpack every key as other words.
+        if let Some(r) = romanisation.as_ref().filter(|r| r.script() != rules.code()) {
+            return Err(format!(
+                "the romanisation tables are for script {}, the pack is in {}",
+                r.script(),
+                rules.code()
+            ));
+        }
         let romanised = romanisation.is_some();
         Ok(Some(PackSources {
             id: paths.id.clone(),
