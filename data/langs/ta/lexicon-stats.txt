@@ -1,0 +1,7 @@
+ta tokens: 117215332, distinct forms: 7125852
+next.fst pairs: 148348 ta, 149977 English
+ta.fst: 300000 keys, 3580640 bytes
+next.fst: 298325 keys, 5389625 bytes
+ta top 20: ஒரு என்று மற்றும் என்ற இந்த இது என்பது அவர் வேண்டும் ஆம் கொண்டு உள்ள நான் அவன் பல இவர் என்னும் அந்த என் அல்லது
+romanised keys skipped: 0
+romanised.fst: 299999 keys, 6280057 bytes

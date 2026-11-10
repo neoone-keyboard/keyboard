@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "id": "ta",
+  "version": "2026.11.10",
+  "name": "Tamil",
+  "nativeName": "தமிழ்",
+  "script": "taml",
+  "romanised": {
+    "name": "Tanglish"
+  },
+  "minEngine": 4,
+  "files": {
+    "lexicon": "ta.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "lang.json": "921de21419e75521bd4a3432f41b24958fd24633c2db0593c2ab8c6d83c7e2a8",
+    "layout.json": "c630694441dc112d55d5b3010f9827cf4e0323db7f5ce5f580c2a634da7ff7e7",
+    "next.fst": "e7b834bbc3fbb57a07190cc92a0b5b0af989b504401ba33e7b00bbfe342c1ee0",
+    "romanisation.json": "3647b0520c7b5fb9e4282d37767285847f76e799c2d106322f56ff3692a2b44a",
+    "romanised.fst": "266a6b080f4ff1c7d872c1b643d208166238ff288382e098318db398fe677e7f",
+    "ta.fst": "8dd124f282787d395412066aa25a0e376aed7c798d6f6c94836d9aa717a1e62d"
+  },
+  "credits": [
+    {
+      "name": "Tamil Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ta.wikipedia.org/"
+    },
+    {
+      "name": "Tamil Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ta.wikisource.org/"
+    },
+    {
+      "name": "Tamil Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ta.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}
