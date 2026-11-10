@@ -1,0 +1,29 @@
+{
+  "id": "gu",
+  "name": "Gujarati",
+  "script": "gujr",
+  "block": ["0A80", "0AFF"],
+  "notWord": [["0AE6", "0AEF"], ["0AF0", "0AF1"]],
+  "firstLetter": [
+    ["0A85", "0A94"],
+    ["0A95", "0AB9"]
+  ],
+  "virama": "0ACD",
+  "signs": [
+    ["0ABE", "0AC5"],
+    ["0AC7", "0AC9"],
+    ["0ACB", "0ACD"],
+    ["0AE2", "0AE3"]
+  ],
+  "bases": [
+    ["0A95", "0AB9"],
+    ["0ABC", "0ABC"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 1000,
+  "minCount": 1,
+  "notes": {
+    "about": "A test fixture (engine/core/tests/data_script.rs): Gujarati, a script the engine has no code for, defined only by this file. Test-sized: a dozen sentences of corpus."
+  }
+}

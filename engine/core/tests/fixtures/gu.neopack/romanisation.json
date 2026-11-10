@@ -1,0 +1,213 @@
+{
+  "format": 1,
+  "script": "gujr",
+  "virama": "્",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "અ": "a",
+    "આ": "a",
+    "ઇ": "i",
+    "ઈ": "i",
+    "ઉ": "u",
+    "ઊ": "u",
+    "ઋ": "ri",
+    "ૠ": "ri",
+    "ઌ": "li",
+    "એ": "e",
+    "ઐ": "ai",
+    "ઓ": "o",
+    "ઔ": "au",
+    "ઍ": "e",
+    "ઑ": "o"
+  },
+  "vowelSigns": {
+    "ા": "a",
+    "િ": "i",
+    "ી": "i",
+    "ુ": "u",
+    "ૂ": "u",
+    "ૃ": "ri",
+    "ૄ": "ri",
+    "ૢ": "li",
+    "ે": "e",
+    "ૈ": "ai",
+    "ો": "o",
+    "ૌ": "au",
+    "ૅ": "e",
+    "ૉ": "o"
+  },
+  "consonants": {
+    "ક": "k",
+    "ખ": "kh",
+    "ગ": "g",
+    "ઘ": "gh",
+    "ઙ": "n",
+    "ચ": "ch",
+    "છ": "chh",
+    "જ": "j",
+    "ઝ": "jh",
+    "ઞ": "n",
+    "ટ": "t",
+    "ઠ": "th",
+    "ડ": "d",
+    "ઢ": "dh",
+    "ણ": "n",
+    "ત": "t",
+    "થ": "th",
+    "દ": "d",
+    "ધ": "dh",
+    "ન": "n",
+    "પ": "p",
+    "ફ": "ph",
+    "બ": "b",
+    "ભ": "bh",
+    "મ": "m",
+    "ય": "y",
+    "ર": "r",
+    "લ": "l",
+    "ળ": "l",
+    "વ": "v",
+    "શ": "sh",
+    "ષ": "sh",
+    "સ": "s",
+    "હ": "h",
+    "ક઼": "q",
+    "ખ઼": "kh",
+    "ગ઼": "g",
+    "જ઼": "z",
+    "ઝ઼": "zh",
+    "ડ઼": "d",
+    "ઢ઼": "dh",
+    "ફ઼": "f",
+    "ય઼": "y"
+  },
+  "finals": {
+    "ં": "n",
+    "ઁ": "n",
+    "ઃ": "h",
+    "ઽ": ""
+  },
+  "clusters": {
+    "ક્ષ": "ksh",
+    "જ્ઞ": "gy",
+    "શ્ર": "shr",
+    "ત્ર": "tr"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "h",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mph",
+        "np"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "zh",
+        "j"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ei",
+        "e"
+      ]
+    ],
+    "singles": {
+      "c": "k",
+      "q": "k",
+      "f": "p",
+      "z": "j",
+      "w": "v",
+      "x": "ks"
+    },
+    "collapseDoubles": true,
+    "dropBetweenConsonants": "a",
+    "dropFinalVowel": {
+      "vowels": "",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "notes": "A test fixture: Hindi's tables moved to the Gujarati block (U+0A80), for the letters Gujarati has. Not a romanisation anyone has checked."
+}
