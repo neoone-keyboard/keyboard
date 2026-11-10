@@ -20,7 +20,16 @@
 //! read as `ml` and `en`, and opening such a log rewrites it (`compact`) in the new tags.
 //!
 //! Learned words stay in one log for every language; a word's language follows from its
-//! script and the packs. Splitting the log by language later is one more migration.
+//! script and the packs, except a word picked from the bar, which says its own: `W lang word`
+//! or `W lang word typed`, a native-script word of the language `lang` (a pack's id) that the
+//! user tapped in the bar though the pack's lexicon doesn't hold it, and the Latin letters it
+//! was picked for, lowercased (left out when they were only the word's beginning). It is a
+//! learned word like any other (the list, uses, phrases, `R` and `F`), and the engine also
+//! finds it from Latin letters as it finds the pack's own words (`own::OwnWords`). A word keeps
+//! the last `MAX_TYPED_FORMS` runs of letters. Each pick writes `L word` before its `W` line
+//! the first time, so an older build, which skips `W`, still has the word learned; a log
+//! without `W` lines loads as it did. Splitting the log by language later is one more
+//! migration.
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File, OpenOptions};
@@ -37,6 +46,10 @@ pub const CAPACITY: usize = 5_000;
 pub const TIMES_TO_LEARN: u32 = 2;
 /// Longest word stored, in chars.
 pub const MAX_WORD_CHARS: usize = 48;
+/// Most runs of Latin letters kept for a picked word (`UserStore::pick`); the oldest goes.
+pub const MAX_TYPED_FORMS: usize = 4;
+/// Longest language id in a `W` line, in bytes.
+const MAX_LANG_BYTES: usize = 32;
 
 const LOG_NAME: &str = "learned-words.log";
 
@@ -46,6 +59,33 @@ struct Entry {
     seen: u32,
     learned: bool,
     last_used: u64,
+    /// Set for a word picked from the bar (`UserStore::pick`).
+    picked: Option<Picked>,
+}
+
+/// What a `W` line says of a word.
+#[derive(Debug, Clone, PartialEq)]
+struct Picked {
+    lang: LangId,
+    /// The Latin letters it was picked for, lowercased, the latest last.
+    typed: Vec<String>,
+}
+
+impl Picked {
+    /// The `W` lines that record it: one for each run of letters, or one without any.
+    fn lines(&self) -> usize {
+        self.typed.len().max(1)
+    }
+}
+
+/// A word picked from the bar (`UserStore::picked`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PickedWord<'a> {
+    pub word: &'a str,
+    /// The language it was offered as a word of: a pack's id.
+    pub lang: &'a LangId,
+    /// The Latin letters it was picked for, lowercased, the latest last.
+    pub typed: &'a [String],
 }
 
 #[derive(Debug, Default)]
@@ -63,6 +103,10 @@ pub struct UserStore {
     personal: Personal,
     /// A habit line with a tag from before languages were ids was replayed.
     old_habit_tags: bool,
+    /// Counts every change to the picked words (`picked_generation`).
+    picked_generation: u64,
+    /// The `W` lines `compact` would write.
+    picked_lines: usize,
 }
 
 /// Lookups ignore ASCII case, so "Thom" typed at a sentence start is still the learned "Thom".
@@ -83,6 +127,21 @@ fn acceptable(word: &str) -> bool {
 /// a phrase's context joins its words with one. A phone number never is.
 fn in_phrase(word: &str) -> bool {
     acceptable(word) && !word.contains(' ')
+}
+
+/// A language id a `W` line may carry: a pack's manifest id (`hi`), short and without
+/// whitespace.
+fn lang_tag(lang: &str) -> bool {
+    !lang.is_empty()
+        && lang.len() <= MAX_LANG_BYTES
+        && !lang.chars().any(|c| c.is_whitespace() || c.is_control())
+}
+
+/// The Latin letters a word may be picked for: ASCII letters only.
+fn latin_letters(typed: &str) -> bool {
+    !typed.is_empty()
+        && typed.len() <= MAX_WORD_CHARS
+        && typed.bytes().all(|b| b.is_ascii_alphabetic())
 }
 
 impl UserStore {
@@ -136,6 +195,14 @@ impl UserStore {
             ["R", word] if acceptable(word) => self.apply_remove(word),
             ["F", word] if acceptable(word) => self.apply_forget(word),
             ["U", word] if acceptable(word) => self.apply_restore(word),
+            ["W", lang, word] if lang_tag(lang) && in_phrase(word) => {
+                self.apply_pick(&LangId(lang.to_string()), word, None);
+            }
+            ["W", lang, word, typed]
+                if lang_tag(lang) && in_phrase(word) && latin_letters(typed) =>
+            {
+                self.apply_pick(&LangId(lang.to_string()), word, Some(typed));
+            }
             ["N", word, n @ ..] if ok(&[word]) => {
                 if let Some(n) = count(n) {
                     self.personal.apply_use(word, n);
@@ -305,6 +372,46 @@ impl UserStore {
         self.append("L", word);
     }
 
+    /// The user tapped `word` in the bar, offered as a word of `lang` (a pack's id) though
+    /// the pack's lexicon doesn't hold it: it is learned at once, with its language and the
+    /// Latin letters it was picked for (`typed`; None, or letters that are no Latin word, add
+    /// none). A removed word is restored.
+    pub fn pick(&mut self, lang: &LangId, word: &str, typed: Option<&str>) {
+        if !lang_tag(&lang.0) || !in_phrase(word) {
+            return;
+        }
+        let typed = typed.filter(|t| latin_letters(t)).map(str::to_ascii_lowercase);
+        let mut lines = Vec::new();
+        if !self.is_learned(word) {
+            lines.push(format!("L\t{word}"));
+        }
+        lines.push(match &typed {
+            Some(typed) => format!("W\t{}\t{word}\t{typed}", lang.0),
+            None => format!("W\t{}\t{word}", lang.0),
+        });
+        self.apply_pick(lang, word, typed.as_deref());
+        self.append_lines(&lines);
+    }
+
+    /// The words picked from the bar (`pick`), in no particular order.
+    pub fn picked(&self) -> impl Iterator<Item = PickedWord<'_>> {
+        self.entries.values().filter_map(|e| {
+            let picked = e.picked.as_ref()?;
+            Some(PickedWord {
+                word: &e.display,
+                lang: &picked.lang,
+                typed: &picked.typed,
+            })
+        })
+    }
+
+    /// Changes whenever the picked words do (one is picked, picked for other letters,
+    /// removed, forgotten or evicted): what is built from `picked` is rebuilt then. 0 until
+    /// the first.
+    pub fn picked_generation(&self) -> u64 {
+        self.picked_generation
+    }
+
     /// Records that a word not in any lexicon was typed; learns it the second time.
     /// A removed word starts counting again from zero: typed `TIMES_TO_LEARN` more times,
     /// it is learned and no longer removed (the user re-adds it by using it).
@@ -357,6 +464,10 @@ impl UserStore {
     }
 
     pub fn forget_all(&mut self) {
+        if self.picked_lines > 0 {
+            self.picked_generation += 1;
+            self.picked_lines = 0;
+        }
         self.entries.clear();
         self.removed.clear();
         self.personal.clear();
@@ -373,14 +484,50 @@ impl UserStore {
     fn apply_remove(&mut self, word: &str) {
         self.clock += 1;
         let k = key(word);
-        self.entries.remove(&k);
+        self.drop_entry(&k);
         self.removed.insert(k, self.clock);
         self.personal.purge(word);
     }
 
     fn apply_forget(&mut self, word: &str) {
-        self.entries.remove(&key(word));
+        self.drop_entry(&key(word));
         self.personal.purge(word);
+    }
+
+    /// Takes the entry keyed `k` out, with what it was picked for.
+    fn drop_entry(&mut self, k: &str) {
+        if let Some(picked) = self.entries.remove(k).and_then(|e| e.picked) {
+            self.picked_generation += 1;
+            self.picked_lines -= picked.lines();
+        }
+    }
+
+    /// Learns `word` as a picked word of `lang`, and adds `typed` (lowercase Latin letters) as
+    /// the latest letters it was picked for.
+    fn apply_pick(&mut self, lang: &LangId, word: &str, typed: Option<&str>) {
+        self.apply_learn(word);
+        let Some(entry) = self.entries.get_mut(&key(word)) else {
+            return;
+        };
+        let before = entry.picked.clone();
+        let lines_before = before.as_ref().map_or(0, Picked::lines);
+        let picked = entry.picked.get_or_insert_with(|| Picked {
+            lang: lang.clone(),
+            typed: Vec::new(),
+        });
+        picked.lang = lang.clone();
+        if let Some(typed) = typed {
+            let typed = typed.to_ascii_lowercase();
+            picked.typed.retain(|t| *t != typed);
+            picked.typed.push(typed);
+            if picked.typed.len() > MAX_TYPED_FORMS {
+                picked.typed.remove(0);
+            }
+        }
+        self.picked_lines = self.picked_lines - lines_before + picked.lines();
+        if before.as_ref() != Some(&*picked) {
+            self.picked_generation += 1;
+        }
     }
 
     fn apply_restore(&mut self, word: &str) {
@@ -414,6 +561,7 @@ impl UserStore {
             seen: 0,
             learned: false,
             last_used: clock,
+            picked: None,
         });
         entry.last_used = clock;
         entry
@@ -427,7 +575,7 @@ impl UserStore {
             .min_by_key(|(_, e)| (e.learned, e.last_used))
             .map(|(k, _)| k.clone())
         {
-            self.entries.remove(&oldest);
+            self.drop_entry(&oldest);
         }
     }
 
@@ -469,7 +617,7 @@ impl UserStore {
 
     /// About as many lines as `compact` writes.
     fn state_lines(&self) -> usize {
-        self.entries.len() + self.removed.len() + self.personal.len()
+        self.entries.len() + self.picked_lines + self.removed.len() + self.personal.len()
     }
 
     /// Rewrites the log from the map so it never grows without bound.
@@ -491,6 +639,17 @@ impl UserStore {
             if e.learned {
                 text.push_str(&format!("L\t{}\n", e.display));
                 lines += 1;
+                if let Some(picked) = &e.picked {
+                    let lang = &picked.lang.0;
+                    if picked.typed.is_empty() {
+                        text.push_str(&format!("W\t{lang}\t{}\n", e.display));
+                        lines += 1;
+                    }
+                    for typed in &picked.typed {
+                        text.push_str(&format!("W\t{lang}\t{}\t{typed}\n", e.display));
+                        lines += 1;
+                    }
+                }
             } else {
                 for _ in 0..e.seen {
                     text.push_str(&format!("S\t{}\n", e.display));
@@ -1222,5 +1381,172 @@ mod tests {
         let reopened = UserStore::open(dir.path());
         assert_eq!(reopened.learned_count(), CAPACITY);
         assert_eq!(reopened.personal.len(), store.personal.len());
+    }
+
+    fn hi() -> LangId {
+        LangId("hi".into())
+    }
+
+    fn picked(store: &UserStore) -> Vec<(String, String, Vec<String>)> {
+        let mut found: Vec<_> = store
+            .picked()
+            .map(|p| (p.lang.0.clone(), p.word.to_string(), p.typed.to_vec()))
+            .collect();
+        found.sort();
+        found
+    }
+
+    #[test]
+    fn a_picked_word_keeps_its_language_and_letters_across_restarts() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut store = UserStore::open(dir.path());
+            store.pick(&hi(), "रौबदार", Some("Raubdar"));
+            store.pick(&hi(), "रौबदार", Some("raubdaar"));
+            store.pick(&hi(), "रौबदार", Some("raubdar"));
+            store.pick(&LangId("as".into()), "প্ৰাপ্তিতকৈ", None);
+        }
+        let store = UserStore::open(dir.path());
+        assert!(store.is_learned("रौबदार"), "a picked word is a learned one");
+        assert_eq!(
+            picked(&store),
+            [
+                ("as".to_string(), "প্ৰাপ্তিতকৈ".to_string(), vec![]),
+                (
+                    "hi".to_string(),
+                    "रौबदार".to_string(),
+                    vec!["raubdaar".to_string(), "raubdar".to_string()]
+                ),
+            ]
+        );
+        assert_eq!(store.learned_words(), ["প্ৰাপ্তিতকৈ", "रौबदार"]);
+        let log = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(
+            log.lines().any(|l| l == "L\tरौबदार"),
+            "an older build, which skips `W`, still has the word learned: {log}"
+        );
+    }
+
+    #[test]
+    fn a_word_keeps_only_its_latest_typed_letters() {
+        let mut store = UserStore::in_memory();
+        for i in 0..MAX_TYPED_FORMS + 2 {
+            let typed = format!("raub{}", "a".repeat(i));
+            store.pick(&hi(), "रौबदार", Some(&typed));
+        }
+        let forms = &picked(&store)[0].2;
+        assert_eq!(forms.len(), MAX_TYPED_FORMS);
+        assert_eq!(forms.last().unwrap(), &format!("raub{}", "a".repeat(MAX_TYPED_FORMS + 1)));
+        assert!(!forms.contains(&"raub".to_string()), "the oldest went: {forms:?}");
+    }
+
+    #[test]
+    fn unacceptable_picks_are_refused_live_and_on_replay() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(LOG_NAME),
+            "W\thi\nW\t\tरौब\traub\nW\thi\tदो शब्द\tdo\nW\thi\tरौब\tra ub\nW\thi\tरौब\tराउब\n\
+             W\thi\tरौब\traub\textra\nW\thi\tठीक\nW\thi\tरौबदार\traubdar\n",
+        )
+        .unwrap();
+        let mut store = UserStore::open(dir.path());
+        assert_eq!(
+            picked(&store),
+            [
+                ("hi".to_string(), "ठीक".to_string(), vec![]),
+                ("hi".to_string(), "रौबदार".to_string(), vec!["raubdar".to_string()]),
+            ],
+            "a `W` line alone learns its word"
+        );
+        store.pick(&LangId("h i".into()), "रौब", Some("raub"));
+        store.pick(&LangId(String::new()), "रौब", Some("raub"));
+        store.pick(&hi(), "दो शब्द", Some("do"));
+        store.pick(&hi(), "", Some("raub"));
+        assert_eq!(picked(&store).len(), 2);
+        // Letters that are no Latin word are left out; the word is still picked.
+        store.pick(&hi(), "रौब", Some("r4ub"));
+        assert_eq!(picked(&store)[1], ("hi".to_string(), "रौब".to_string(), vec![]));
+    }
+
+    #[test]
+    fn forgetting_or_removing_a_picked_word_drops_the_pick() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        let start = store.picked_generation();
+        store.pick(&hi(), "रौबदार", Some("raubdar"));
+        store.pick(&hi(), "ठीकठाक", Some("thikthak"));
+        let both = store.picked_generation();
+        assert_ne!(start, both, "the generation says the picked words changed");
+        store.learn("Thom");
+        store.note_used("रौबदार", None, None, true, None);
+        assert_eq!(store.picked_generation(), both, "other events leave it alone");
+        store.forget("रौबदार");
+        let one = store.picked_generation();
+        assert_ne!(both, one);
+        store.remove("ठीकठाक");
+        assert_ne!(one, store.picked_generation());
+        assert!(picked(&store).is_empty());
+        assert!(picked(&UserStore::open(dir.path())).is_empty());
+        // Learned again by typing, it is a plain learned word: no language, no letters.
+        store.learn("रौबदार");
+        assert!(picked(&store).is_empty());
+        store.pick(&hi(), "रौबदार", Some("raubdar"));
+        let before = store.picked_generation();
+        store.forget_all();
+        assert_ne!(before, store.picked_generation());
+        assert!(picked(&store).is_empty());
+    }
+
+    #[test]
+    fn an_evicted_picked_word_changes_the_generation() {
+        let mut store = UserStore::in_memory();
+        store.pick(&hi(), "रौबदार", Some("raubdar"));
+        let before = store.picked_generation();
+        for i in 0..CAPACITY {
+            store.learn(&format!("word{i}"));
+        }
+        assert!(picked(&store).is_empty());
+        assert_ne!(before, store.picked_generation());
+    }
+
+    #[test]
+    fn compaction_keeps_picked_words_with_their_language_and_letters() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = UserStore::open(dir.path());
+        store.pick(&hi(), "रौबदार", Some("raubdar"));
+        store.pick(&hi(), "रौबदार", Some("robdar"));
+        store.note_used("रौबदार", None, None, true, None);
+        for _ in 0..(CAPACITY * 4 + 10) {
+            store.learn("Thom");
+        }
+        let text = fs::read_to_string(dir.path().join(LOG_NAME)).unwrap();
+        assert!(text.lines().count() < 100, "log was compacted");
+        let reopened = UserStore::open(dir.path());
+        assert_eq!(
+            picked(&reopened),
+            [(
+                "hi".to_string(),
+                "रौबदार".to_string(),
+                vec!["raubdar".to_string(), "robdar".to_string()]
+            )]
+        );
+        assert_eq!(reopened.uses("रौबदार"), 1);
+        assert_eq!(reopened.learned_words(), ["Thom", "रौबदार"]);
+    }
+
+    #[test]
+    fn a_log_without_picked_words_loads_as_before_and_has_none() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join(LOG_NAME),
+            "L\tThom\nS\tAnu\nL\tरौबदार\nN\tरौबदार\t3\nC\traubdar\tरौबदार\nH\thi\t2\n",
+        )
+        .unwrap();
+        let store = UserStore::open(dir.path());
+        assert!(store.is_learned("Thom") && store.is_learned("रौबदार"));
+        assert_eq!(store.uses("रौबदार"), 3);
+        assert_eq!(store.choice("raubdar"), Some("रौबदार"));
+        assert_eq!(store.picked().count(), 0);
+        assert_eq!(store.picked_generation(), UserStore::in_memory().picked_generation());
     }
 }
