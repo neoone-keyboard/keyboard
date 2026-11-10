@@ -1,4 +1,5 @@
 import UIKit
+import KeyboardCore
 
 /// One key: its label, the long-press hint in the corner, and a pressed state.
 final class KeyCapView: UIView {
@@ -12,10 +13,16 @@ final class KeyCapView: UIView {
     private let icon = UIImageView()
     private var theme: KeyboardTheme?
     private var isSpecial = false
+    /// VoiceOver typed the key (in touch typing, the finger lifted on it; or a double-tap).
+    var onActivate: (@MainActor () -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isUserInteractionEnabled = false
+        // One element per key, read as it types; with `.keyboardKey` VoiceOver can type on
+        // lift (touch typing), as on the system keyboard. The drawn labels inside are hidden.
+        isAccessibilityElement = true
+        accessibilityTraits = .keyboardKey
         layer.cornerRadius = 6
         layer.shadowOffset = CGSize(width: 0, height: 1)
         layer.shadowRadius = 0
@@ -41,6 +48,21 @@ final class KeyCapView: UIView {
         isSpecial = special
         self.theme = theme
         applyColors()
+    }
+
+    /// What VoiceOver says for the key (`InputController.spokenKey`), and its long-press
+    /// choices as custom actions. `identifier` is the drawn label, for UI tests.
+    func configureAccessibility(_ spoken: SpokenKey, identifier: String, actions: [UIAccessibilityCustomAction]) {
+        accessibilityLabel = spoken.label
+        accessibilityValue = spoken.value
+        accessibilityIdentifier = identifier
+        accessibilityCustomActions = actions
+    }
+
+    override func accessibilityActivate() -> Bool {
+        guard let onActivate else { return false }
+        onActivate()
+        return true
     }
 
     override func layoutSubviews() {

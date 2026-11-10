@@ -78,7 +78,7 @@ final class VideoFootage: XCTestCase {
         sleep(2)
         for word in ["mera"] {
             for ch in word {
-                let key = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", String(ch))).firstMatch
+                let key = app.keys.matching(NSPredicate(format: "label ==[c] %@", String(ch))).firstMatch
                 XCTAssertTrue(key.waitForExistence(timeout: 3), "key \(ch)")
                 key.tap()
                 usleep(450_000)
@@ -119,12 +119,12 @@ final class VideoFootage: XCTestCase {
         var current = "en"
         func key() -> XCUIElement {
             let labels = keyLabels.filter { $0.value != current }.map(\.key)
-            return app.staticTexts.matching(NSPredicate(format: "label IN %@", labels)).firstMatch
+            return app.keys.matching(NSPredicate(format: "identifier IN %@", labels)).firstMatch
         }
         for _ in 0..<4 {
             let k = key()
             XCTAssertTrue(k.waitForExistence(timeout: 5), "no language key")
-            let next = keyLabels[k.label] ?? "en"
+            let next = keyLabels[k.identifier] ?? "en"
             k.tap()
             current = next
             sleep(2)
@@ -152,7 +152,7 @@ final class VideoFootage: XCTestCase {
     }
 
     private func languageKey() -> XCUIElement {
-        app.staticTexts.matching(NSPredicate(format: "label IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
+        app.keys.matching(NSPredicate(format: "identifier IN %@", ["മ", "हि", "অ", "EN"])).firstMatch
     }
 
     private func openKeyboards() {

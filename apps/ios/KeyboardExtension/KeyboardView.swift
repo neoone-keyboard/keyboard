@@ -13,6 +13,7 @@ final class KeyboardView: UIView {
     private var layout = KeyboardLayout(rows: [])
     private var theme: KeyboardTheme?
     private var label: (@MainActor (Key) -> String)?
+    private var spoken: (@MainActor (Key) -> SpokenKey)?
     private var frames: [KeyFrame] = []
     private var caps: [KeyCapView] = []
     /// `index` is the touched key's cap, or nil once the keys were replaced mid-touch.
@@ -49,12 +50,17 @@ final class KeyboardView: UIView {
 
     /// Replaces every key. Touches in progress keep their gesture (another finger's
     /// key still types when this one switches page) but lose their highlight and popup.
-    func configure(layout: KeyboardLayout, theme: KeyboardTheme, label: @escaping @MainActor (Key) -> String) {
+    /// `spoken` is what VoiceOver says for a key (`InputController.spokenKey`).
+    func configure(
+        layout: KeyboardLayout, theme: KeyboardTheme,
+        label: @escaping @MainActor (Key) -> String, spoken: @escaping @MainActor (Key) -> SpokenKey
+    ) {
         for id in Array(activeTouches.keys) { activeTouches[id]?.index = nil }
         hidePopup()
         self.layout = layout
         self.theme = theme
         self.label = label
+        self.spoken = spoken
         trail.fillColor = theme.accent.cgColor
         caps.forEach { $0.removeFromSuperview() }
         caps = layout.rows.flatMap { $0 }.map { _ in
@@ -78,15 +84,41 @@ final class KeyboardView: UIView {
         layout = KeyboardLayout(rows: [])
     }
 
-    /// Re-reads every key's label, e.g. after shift changes.
+    /// Re-reads every key's label, drawn and spoken, e.g. after shift changes.
     func refreshLabels() {
-        guard let theme, let label else { return }
+        guard let theme, let label, let spoken else { return }
         for (cap, key) in zip(caps, layout.rows.flatMap { $0 }) {
             let title = label(key)
             cap.configure(
                 title: title, hint: Self.hint(key), special: Self.isSpecial(key.action),
                 symbol: Self.symbol(key.action, label: title), theme: theme
             )
+            cap.configureAccessibility(spoken(key), identifier: title, actions: accessibilityActions(for: key))
+            cap.onActivate = { [weak self] in self?.typeForAccessibility(key.action) }
+        }
+    }
+
+    /// VoiceOver typed a key: as a tap, without the touch's long-press or swipe.
+    private func typeForAccessibility(_ action: KeyAction) {
+        onPress?(action)
+        onEvent?(.tap(action))
+    }
+
+    /// Holding a key and sliding to an alternate doesn't work under VoiceOver: each alternate
+    /// is a custom action, and holding the language key (settings) is one too.
+    private func accessibilityActions(for key: Key) -> [UIAccessibilityCustomAction] {
+        if key.action == .toggleLanguage {
+            return [UIAccessibilityCustomAction(name: "Keyboard settings") { [weak self] _ in
+                self?.onEvent?(.openSettings)
+                return true
+            }]
+        }
+        guard case .character = key.action else { return [] }
+        return key.alternates.map { alternate in
+            UIAccessibilityCustomAction(name: alternate) { [weak self] _ in
+                self?.onEvent?(.commitAlternate(alternate))
+                return true
+            }
         }
     }
 
