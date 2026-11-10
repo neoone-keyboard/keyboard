@@ -6,7 +6,7 @@ private let refusals: [PackInstaller.Refusal] = [
     .archive("truncated central directory"), .noManifest, .manifest("keyNotFound"), .format(2),
     .id("EN"), .script("taml"), .engine(9), .fileName("../x"), .noLexicon, .noChecksum("x.fst"),
     .missingFile("x.fst"), .checksum("x.fst"), .older(installed: "2026.11.07", offered: "2026.11.01"),
-    .io("No space left on device"),
+    .io("No space left on device"), .noScriptRules("taml"), .unusable("script rules: lang.json: no characters"),
 ]
 
 private let failures: [PackDownloader.Failure] = [

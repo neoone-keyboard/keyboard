@@ -82,7 +82,7 @@ public enum PackUpdates {
         let base = englishFingerprint.lowercased()
         return installed.compactMap { pack in
             let usable = available.filter { entry in
-                entry.id == pack.id && entry.minEngine <= support.engine && support.scripts.contains(entry.script)
+                entry.id == pack.id && entry.minEngine <= support.engine && support.reads(script: entry.script)
                     && (entry.englishFingerprint.map { $0.lowercased() == base } ?? true)
             }
             guard let best = usable.max(by: { PackVersion($0.version) < PackVersion($1.version) }) else { return nil }

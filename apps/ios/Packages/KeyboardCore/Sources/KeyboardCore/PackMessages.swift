@@ -31,7 +31,7 @@ public enum PackMessages {
         case .noManifest: notAPack
         case .manifest, .checksum, .missingFile: damaged
         case .format, .script, .engine: newerApp
-        case .id, .fileName, .noLexicon, .noChecksum: badPack
+        case .id, .fileName, .noLexicon, .noChecksum, .noScriptRules, .unusable: badPack
         case .older(let installed, _): "You already have a newer version of this language (\(installed))."
         case .io: noRoom
         }

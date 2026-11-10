@@ -8,13 +8,23 @@ public struct PackSupport: Sendable, Equatable {
     public let format: Int
     /// The engine's `PACK_ENGINE`: the highest `minEngine` it reads.
     public let engine: Int
-    /// ISO 15924 codes with script rules ("mlym", "deva", "beng").
+    /// ISO 15924 codes with coded script rules ("mlym", "deva", "beng").
     public let scripts: Set<String>
+    /// Whether the engine reads a pack in any other script that brings its script's rules (the
+    /// `lang` role, a `lang.json`; engine 4).
+    public let packScripts: Bool
 
-    public init(format: Int, engine: Int, scripts: Set<String>) {
+    public init(format: Int, engine: Int, scripts: Set<String>, packScripts: Bool = false) {
         self.format = format
         self.engine = engine
         self.scripts = scripts
+        self.packScripts = packScripts
+    }
+
+    /// Whether a pack in `script` can be read, given that it brings its rules when the engine
+    /// has none (`PackInstaller` checks that it does).
+    public func reads(script: String) -> Bool {
+        packScripts || scripts.contains(script)
     }
 }
 
@@ -45,6 +55,10 @@ public struct PackInstaller: Sendable {
         case id(String)
         /// A script this engine has no rules for.
         case script(String)
+        /// A script without coded rules, and the pack brings none (no `lang` file).
+        case noScriptRules(String)
+        /// The engine can't use the unpacked pack (`PackInstaller.engineCheck`): why, in its words.
+        case unusable(String)
         /// The pack's `minEngine`, above this engine's.
         case engine(Int)
         /// A name in `files` that isn't a plain file name.
@@ -70,6 +84,8 @@ public struct PackInstaller: Sendable {
             case .format(let v): "pack format \(v); needs a newer NeoOne Keyboard"
             case .id(let id): "pack id \(id) is not allowed"
             case .script(let s): "script \(s); needs a newer NeoOne Keyboard"
+            case .noScriptRules(let s): "script \(s) has no rules in the pack (lang.json)"
+            case .unusable(let why): "the keyboard can't use this pack: \(why)"
             case .engine(let v): "pack needs engine \(v); needs a newer NeoOne Keyboard"
             case .fileName(let name): "file name \(name) is not allowed"
             case .noLexicon: "pack has no lexicon"
@@ -87,10 +103,15 @@ public struct PackInstaller: Sendable {
 
     public let packsFolder: URL
     public let support: PackSupport
+    /// The engine's own check of an unpacked pack folder (the FFI's `pack_problem`: the
+    /// manifest, the lexicon, the script's rules from its `lang.json`): why it can't be used,
+    /// or nil. Run before the pack is moved where the keyboard looks.
+    public let engineCheck: (@Sendable (URL) -> String?)?
 
-    public init(packsFolder: URL, support: PackSupport) {
+    public init(packsFolder: URL, support: PackSupport, engineCheck: (@Sendable (URL) -> String?)? = nil) {
         self.packsFolder = packsFolder
         self.support = support
+        self.engineCheck = engineCheck
     }
 
     /// Installs the pack in `archive` (a `.neopack` zip) and returns it as installed.
@@ -136,6 +157,7 @@ public struct PackInstaller: Sendable {
             } catch {
                 throw Refusal.manifest(String(describing: error))
             }
+            if let why = engineCheck?(incoming) { throw Refusal.unusable(why) }
             try Self.moveIntoPlace(incoming, destination)
         } catch {
             try? fm.removeItem(at: incoming)
@@ -187,7 +209,13 @@ public struct PackInstaller: Sendable {
     private func check(_ manifest: Manifest, files: [String: ZipReader.Entry]) throws {
         guard manifest.format == support.format else { throw Refusal.format(manifest.format) }
         guard Self.allowedID(manifest.id) else { throw Refusal.id(manifest.id) }
-        guard support.scripts.contains(manifest.script) else { throw Refusal.script(manifest.script) }
+        if !support.scripts.contains(manifest.script) {
+            // Any other script is read when the pack brings its rules (engine 4).
+            guard support.packScripts else { throw Refusal.script(manifest.script) }
+            guard let lang = manifest.files["lang"], files[lang] != nil else {
+                throw Refusal.noScriptRules(manifest.script)
+            }
+        }
         guard manifest.minEngine <= support.engine else { throw Refusal.engine(manifest.minEngine) }
         for name in manifest.files.values.sorted() where !Self.plainName(name) {
             throw Refusal.fileName(name)

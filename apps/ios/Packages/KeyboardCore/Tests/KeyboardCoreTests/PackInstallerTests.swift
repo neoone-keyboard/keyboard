@@ -198,6 +198,55 @@ private func refusal(_ body: () throws -> Void) -> PackInstaller.Refusal? {
     #expect(f.listing().isEmpty)
 }
 
+/// An engine 4 build, which reads a pack in any script that brings its rules (`lang.json`).
+private let engine4 = PackSupport(format: 1, engine: 4, scripts: ["mlym", "deva", "beng"], packScripts: true)
+
+private func tamilZip(withRules: Bool) -> TestZip {
+    var files = ["x.fst": Data("lexicon".utf8)]
+    var roles = ["lexicon": "x.fst"]
+    if withRules {
+        files["lang.json"] = Data(#"{"script": "taml", "block": ["0B80", "0BFF"]}"#.utf8)
+        roles["lang"] = "lang.json"
+    }
+    return packZip(id: "ta", script: "taml", minEngine: 4, files: files, roles: roles)
+}
+
+@Test func aPackInAnyScriptIsInstalledWhenItBringsItsRules() throws {
+    let f = try Fixture()
+    defer { f.cleanUp() }
+    let installer = PackInstaller(packsFolder: f.packs, support: engine4)
+    #expect(refusal { try installer.install(archive: f.archive(tamilZip(withRules: false))) } == .noScriptRules("taml"))
+    #expect(f.listing().isEmpty)
+    let pack = try installer.install(archive: f.archive(tamilZip(withRules: true)))
+    #expect(pack.script == "taml")
+    let files = try FileManager.default.contentsOfDirectory(atPath: pack.folder.path).sorted()
+    #expect(files == ["lang.json", "manifest.json", "x.fst"])
+    // An older engine refuses it, by its engine level first.
+    #expect(refusal { try f.installer.install(archive: f.archive(tamilZip(withRules: true))) } == .script("taml"))
+}
+
+@Test func whatTheEngineCannotUseIsRefusedWithItsReason() throws {
+    let f = try Fixture()
+    defer { f.cleanUp() }
+    let checked = PackInstaller(packsFolder: f.packs, support: engine4, engineCheck: { folder in
+        FileManager.default.fileExists(atPath: folder.appending(path: "lang.json").path)
+            ? "script rules: lang.json: no characters" : nil
+    })
+    #expect(refusal { try checked.install(archive: f.archive(tamilZip(withRules: true))) }
+        == .unusable("script rules: lang.json: no characters"))
+    #expect(f.listing().isEmpty)
+    try checked.install(archive: f.archive(packZip()))
+    #expect(f.listing() == ["xx.neopack"])
+}
+
+@Test func theIndexOffersAPackInAnyScriptOnlyToEngine4() {
+    let entry = PackIndex.Entry(id: "ta", name: "Tamil", version: "1", script: "taml", size: 1,
+                                sha256: String(repeating: "0", count: 64),
+                                url: URL(string: "https://x.test/ta-1.neopack")!, minEngine: 4)
+    #expect(entry.isReadable(by: engine4))
+    #expect(!entry.isReadable(by: support))
+}
+
 @Test func aPackNeedingANewerEngineIsRefused() throws {
     let f = try Fixture()
     defer { f.cleanUp() }

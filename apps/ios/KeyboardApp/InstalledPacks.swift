@@ -15,12 +15,19 @@ enum InstalledPacks {
     /// What the keyboard's engine reads: the same library is linked into the app.
     static var support: KeyboardCore.PackSupport {
         let engine = MLEngine.packSupport()
-        return KeyboardCore.PackSupport(format: Int(engine.format), engine: Int(engine.engine), scripts: Set(engine.scripts))
+        return KeyboardCore.PackSupport(format: Int(engine.format), engine: Int(engine.engine),
+                                        scripts: Set(engine.scripts), packScripts: engine.packScripts)
     }
 
-    /// The installer for the App Group's `Packs/`; nil without the App Group.
+    /// The installer for the App Group's `Packs/`; nil without the App Group. The engine opens
+    /// each pack before it is installed, so a pack it can't use (a bad `lang.json`) is refused
+    /// with its reason.
     static var installer: PackInstaller? {
-        PackLocations.installedPacks().map { PackInstaller(packsFolder: $0, support: support) }
+        PackLocations.installedPacks().map {
+            PackInstaller(packsFolder: $0, support: support, engineCheck: { folder in
+                (try? MLEngine.packProblem(packDir: folder.path)) ?? nil
+            })
+        }
     }
 
     /// The keyboard extension inside this app.

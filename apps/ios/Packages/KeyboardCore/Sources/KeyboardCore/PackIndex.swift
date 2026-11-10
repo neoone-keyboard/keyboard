@@ -49,7 +49,7 @@ public struct PackIndex: Sendable, Equatable {
 
         /// Whether this build's engine reads the pack.
         public func isReadable(by support: PackSupport) -> Bool {
-            minEngine <= support.engine && support.scripts.contains(script)
+            minEngine <= support.engine && support.reads(script: script)
         }
     }
 
