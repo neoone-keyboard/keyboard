@@ -18,8 +18,11 @@ pub const FORMAT: u32 = 1;
 /// This engine's pack level: a pack whose `minEngine` is higher needs a newer app.
 /// 1: phase 1 (Malayalam, its tables compiled in). 2: phase 2, which reads format 1 with the
 /// `romanisation`, `suffixes`, `chatForms` and `layout` roles, any number of packs, and the
-/// script plug-ins `mlym`, `deva` and `beng` (Hindi and Assamese need it).
-pub const PACK_ENGINE: u32 = 2;
+/// script plug-ins `mlym`, `deva` and `beng` (Hindi and Assamese need it). 3: an `lm` in a
+/// pack whose script isn't Malayalam's (Hindi's): the LM's native pieces are the pack's script
+/// (`Lm::set_native`). Engine 2 would load such an LM but see none of its native pieces, and
+/// rank the pack's words worse than with no LM.
+pub const PACK_ENGINE: u32 = 3;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -225,7 +228,7 @@ mod tests {
         let cases = [
             (FULL.replace("\"format\": 1", "\"format\": 2"), "Format"),
             (FULL.replace("\"mlym\"", "\"taml\""), "Script"),
-            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 3"), "Engine"),
+            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 4"), "Engine"),
         ];
         for (manifest, want) in cases {
             let dir = pack_dir(&manifest, &["ml.fst"]);
