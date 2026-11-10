@@ -39,6 +39,19 @@ pub enum CandidateKind {
 pub struct Candidate {
     pub text: String,
     pub kind: CandidateKind,
+    /// The id of the language it is a word of ("en", "ml"): English, a pack for its words in
+    /// either script, the layout's for the text as typed. Passed back to `note_choice` when
+    /// the user taps it.
+    pub language: String,
+}
+
+/// `c` for the keyboard, its language by id ("" for one no loaded pack has).
+fn candidate(inner: &mlengine_core::Engine, c: mlengine_core::Candidate) -> Candidate {
+    Candidate {
+        language: inner.lang_id(c.lang).map(|id| id.0).unwrap_or_default(),
+        text: c.text,
+        kind: c.kind.into(),
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -311,7 +324,7 @@ impl Engine {
                 candidates: s
                     .candidates
                     .into_iter()
-                    .map(|c| Candidate { text: c.text, kind: c.kind.into() })
+                    .map(|c| candidate(&inner, c))
                     .collect(),
                 vowel_signs: s.vowel_signs.into_iter().map(String::from).collect(),
             }
@@ -342,10 +355,11 @@ impl Engine {
                     })
                 })
                 .collect();
-            self.inner()
+            let inner = self.inner();
+            inner
                 .swipe(&path, &keys, &context_before, self.lm_after_space)
                 .into_iter()
-                .map(|c| Candidate { text: c.text, kind: c.kind.into() })
+                .map(|c| candidate(&inner, c))
                 .collect()
         })
     }
@@ -382,8 +396,18 @@ impl Engine {
     }
 
     /// The user tapped `chosen` for `typed` though the bar's middle was something else.
-    pub fn note_choice(&self, typed: String, chosen: String) -> Result<(), EngineError> {
-        guarded(|| self.inner().note_choice(&typed, &chosen))
+    /// `language`: the tapped candidate's (`Candidate::language`); nil reads it from the word's
+    /// script. A native word its pack's lexicon doesn't hold becomes one of the user's own
+    /// words of that language. Call it before `note_used` for the same tap, so that the tap
+    /// counts as the word's first use.
+    pub fn note_choice(
+        &self,
+        typed: String,
+        chosen: String,
+        language: Option<String>,
+    ) -> Result<(), EngineError> {
+        let language = language.map(mlengine_core::lang::LangId);
+        guarded(|| self.inner().note_choice(&typed, &chosen, language.as_ref()))
     }
 
     /// Forgets learned words and words removed from the bar.
@@ -749,7 +773,7 @@ mod tests {
         let engine = Engine::new(EngineConfig::default()).unwrap();
         let s = engine.suggest("hello wor".into(), InputLayout::Latin, true).unwrap();
         assert_eq!(s.typed, "wor");
-        assert_eq!(s.candidates, vec![Candidate { text: "wor".into(), kind: CandidateKind::Verbatim }]);
+        assert_eq!(s.candidates, vec![Candidate { text: "wor".into(), kind: CandidateKind::Verbatim, language: "en".into() }]);
         assert!(engine.loaded_sources().unwrap().is_empty());
     }
 
@@ -978,6 +1002,46 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 
+    /// A tap on the transliterator's free spelling, as the keyboard reports it: the choice with
+    /// the candidate's language, then the use. The word is the user's own from then on.
+    #[test]
+    fn a_picked_native_word_crosses_ffi_with_its_language_and_persists() {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let dir = std::env::temp_dir().join(format!("mlengine-ffi-own-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dirs: vec![format!("{root}/packs/hi.neopack")],
+            user_dir: Some(dir.to_string_lossy().into_owned()),
+            ..EngineConfig::default()
+        };
+        let bar = |engine: &Engine, context: &str| -> Vec<Candidate> {
+            engine.suggest(context.into(), InputLayout::Latin, true).unwrap().candidates
+        };
+        let texts = |engine: &Engine, context: &str| -> Vec<String> {
+            bar(engine, context).into_iter().map(|c| c.text).collect()
+        };
+        let engine = Engine::new(config.clone()).unwrap();
+        let offered = bar(&engine, "raubdar");
+        assert_eq!(offered[0].language, "en", "{offered:?}");
+        let free = offered[2].clone();
+        assert_eq!((free.text.as_str(), free.language.as_str()), ("रौबदार", "hi"), "{offered:?}");
+        assert_eq!(free.kind, CandidateKind::Manglish);
+        engine.note_choice("raubdar".into(), free.text.clone(), Some(free.language.clone())).unwrap();
+        engine.note_used("".into(), free.text.clone(), InputLayout::Latin).unwrap();
+        assert_eq!(engine.learned_words().unwrap(), [free.text.as_str()]);
+        drop(engine);
+        let engine = Engine::new(config).unwrap();
+        assert_eq!(texts(&engine, "raubdar")[0], free.text);
+        assert_eq!(texts(&engine, "raubdaar")[..2], ["raubdaar".to_string(), free.text.clone()]);
+        assert!(texts(&engine, "raub").contains(&free.text));
+        engine.forget_word(free.text.clone()).unwrap();
+        assert!(engine.learned_words().unwrap().is_empty());
+        assert!(!texts(&engine, "raub").contains(&free.text));
+        drop(engine);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
     #[test]
     fn phrases_and_choices_cross_ffi_and_persist() {
         let dir = std::env::temp_dir().join(format!("mlengine-ffi-phrase-test-{}", std::process::id()));
@@ -991,7 +1055,7 @@ mod tests {
         engine.learn("Anu".into()).unwrap();
         engine.note_used("".into(), "Thom".into(), InputLayout::Latin).unwrap();
         engine.note_used("Thom ".into(), "Anu".into(), InputLayout::Latin).unwrap();
-        engine.note_choice("thmo".into(), "Thom".into()).unwrap();
+        engine.note_choice("thmo".into(), "Thom".into(), None).unwrap();
         drop(engine);
         let engine = Engine::new(config).unwrap();
         assert_eq!(texts(&engine, "Thom "), ["Anu"]);

@@ -936,7 +936,7 @@ fn latency_with_a_full_store() {
                 engine.note_used("I said ", w, Layout::Latin);
                 engine.note_used(&format!("I said {w} "), "the", Layout::Latin);
             }
-            engine.note_choice(&w[..w.len().min(3)], w);
+            engine.note_choice(&w[..w.len().min(3)], w, None);
         }
     };
     let inputs = latency_inputs();

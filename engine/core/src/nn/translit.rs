@@ -2,8 +2,9 @@
 //! The script is the pack's: its output tokens are a `vocab::Target`.
 //!
 //! The constrained beam keeps a hypothesis only while its text is a prefix of some word of the
-//! pack's lexicon (`Lexicon::has_prefix`) or of a suffix split of the typed word, and finishes
-//! one only on a whole word or split. Splits come in from the caller as finished native-script
+//! pack's lexicon (`Lexicon::has_prefix`), of a suffix split of the typed word or of one of the
+//! user's own words of the pack (`Search::own`), and finishes one only on a whole word, split
+//! or own word. Splits come in from the caller as finished native-script
 //! words (`suffix::splits` reads the typed Latin, never the beam's text, so they are the same
 //! at every step): "could become a split form" is then a byte-prefix test against a handful of
 //! strings, with no suffix tables walked per step.
@@ -21,6 +22,7 @@ use std::time::{Duration, Instant};
 use super::vocab::{self, BOS, EOS, PAD, Target};
 use super::{DecoderState, ModelFile, NnError, Transformer};
 use crate::lexicon::Lexicon;
+use crate::own;
 
 /// Longest typed word transliterated, in letters.
 pub const MAX_LETTERS: usize = 24;
@@ -126,7 +128,11 @@ impl Translit {
             trace.expired = true;
             return (Vec::new(), trace);
         }
-        let allowed = Allowed { lexicon, splits };
+        let allowed = Allowed {
+            lexicon,
+            splits,
+            own: search.own,
+        };
         let encoded = self.model.encode(&src);
         trace.encode = t0.elapsed();
         let mut decoder = self.model.decoder(&encoded);
@@ -282,6 +288,9 @@ pub struct Search<'a> {
     pub free: bool,
     /// None: search to the end.
     pub deadline: Option<Deadline<'a>>,
+    /// The user's own words of the pack (`own::OwnWords::words`), sorted by bytes: the
+    /// constrained beam may spell them as it may the lexicon's.
+    pub own: &'a [String],
 }
 
 impl Default for Search<'_> {
@@ -290,6 +299,7 @@ impl Default for Search<'_> {
             width: 0,
             free: true,
             deadline: None,
+            own: &[],
         }
     }
 }
@@ -324,21 +334,26 @@ pub struct BeamTrace {
     pub total: Duration,
 }
 
-/// What the constrained beam may spell: lexicon words and the typed word's splits.
+/// What the constrained beam may spell: lexicon words, the typed word's splits and the
+/// user's own words (sorted by bytes).
 struct Allowed<'a> {
     lexicon: &'a Lexicon,
     splits: &'a [String],
+    own: &'a [String],
 }
 
 impl Allowed<'_> {
     fn accepts(&self, text: &str) -> bool {
         !text.is_empty()
             && (self.lexicon.get(text.as_bytes()).is_some()
-                || self.splits.iter().any(|s| s == text))
+                || self.splits.iter().any(|s| s == text)
+                || own::contains(self.own, text))
     }
 
     fn is_prefix(&self, text: &str) -> bool {
-        self.lexicon.has_prefix(text.as_bytes()) || self.splits.iter().any(|s| s.starts_with(text))
+        self.lexicon.has_prefix(text.as_bytes())
+            || self.splits.iter().any(|s| s.starts_with(text))
+            || own::has_prefix(self.own, text)
     }
 }
 
@@ -605,6 +620,39 @@ mod tests {
             .collect();
         assert_eq!(known, ["ഛഛഘ"], "{got:?}");
         check_scores(&t, "ab", &got);
+    }
+
+    #[test]
+    fn own_words_count_as_lexicon_words() {
+        let t = tiny();
+        // The lexicon alone, as in `branches_off_the_lexicon_are_pruned_except_in_the_free_beam`.
+        let lex = lexicon(&["ഛഛ൮"]);
+        let mut own = vec!["ഛഛഘ".to_string(), "ഛഛഛഘ".to_string(), "അമ്മ".to_string()];
+        own.sort();
+        let search = Search {
+            width: 4,
+            own: &own,
+            ..Search::default()
+        };
+        let (got, _) = t.search("ab", &lex, &[], &search);
+        let mut known: Vec<&str> = got
+            .iter()
+            .filter(|c| c.in_lexicon)
+            .map(|c| c.text.as_str())
+            .collect();
+        known.sort();
+        assert_eq!(known, ["ഛഛഘ", "ഛഛഛഘ", "ഛഛ൮"], "{got:?}");
+        assert!(
+            got.iter().filter(|c| !c.in_lexicon).all(|c| !own.contains(&c.text)),
+            "the free spelling is none of them: {got:?}"
+        );
+        check_scores(&t, "ab", &got);
+        // None of the user's words: the search is the one without them.
+        let none = Search {
+            width: 4,
+            ..Search::default()
+        };
+        assert_eq!(t.search("ab", &lex, &[], &none).0, t.candidates("ab", &lex, 4));
     }
 
     #[test]

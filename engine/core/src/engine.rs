@@ -3,7 +3,7 @@
 //! only disables that source. Every walk over a lexicon is bounded.
 
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use crate::chat_forms::ChatForms;
@@ -13,6 +13,7 @@ use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Target, Translit};
+use crate::own::OwnWords;
 use crate::pack_layout::PackLayout;
 use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
@@ -396,6 +397,17 @@ pub struct Engine {
     pack_problems: Vec<String>,
     /// How many candidates a suggest returns (`set_max_suggestions`).
     shown: usize,
+    /// The user's own words of each pack (`own_words`).
+    own: Mutex<OwnIndex>,
+}
+
+/// Each pack's own words (`own::OwnWords`), by its place in `Sources::packs`, as built from
+/// the store when its picked words last changed (`UserStore::picked_generation`). Empty, and
+/// never built, while the store holds no picked word.
+#[derive(Debug, Default)]
+struct OwnIndex {
+    generation: u64,
+    packs: Arc<Vec<OwnWords>>,
 }
 
 /// A pack's `Lang`: its place in `Sources::packs`, after English's.
@@ -431,7 +443,46 @@ impl Engine {
             swipe_weights: swipe::Weights::default(),
             pack_problems: Vec::new(),
             shown: DEFAULT_SUGGESTIONS,
+            own: Mutex::new(OwnIndex::default()),
         }
+    }
+
+    /// Each pack's own words, by its place in `Sources::packs`: the native words the user
+    /// picked from the bar as that pack's (`note_choice`) that its lexicon doesn't hold. Empty
+    /// for a pack without romanised typing, and an empty list while nothing was ever picked.
+    /// Rebuilt from the store when its picked words changed since the last call.
+    fn own_words(&self) -> Arc<Vec<OwnWords>> {
+        let generation = self.user().picked_generation();
+        let mut own = self.own.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if own.generation != generation {
+            let user = self.user();
+            let packs = self
+                .sources
+                .packs
+                .iter()
+                .map(|pack| match (&pack.romanisation, &pack.romanised) {
+                    (Some(r), Some(_)) => OwnWords::build(
+                        r,
+                        user.picked()
+                            .filter(|p| *p.lang == pack.id)
+                            .filter(|p| pack.lexicon.get(p.word.as_bytes()).is_none())
+                            .map(|p| (p.word, p.typed)),
+                    ),
+                    _ => OwnWords::default(),
+                })
+                .collect();
+            *own = OwnIndex {
+                generation: user.picked_generation(),
+                packs: Arc::new(packs),
+            };
+        }
+        Arc::clone(&own.packs)
+    }
+
+    /// `pack`'s own words in `own` (`own_words`), if it has any.
+    fn own_of<'a>(&self, own: &'a [OwnWords], pack: &PackSources) -> Option<&'a OwnWords> {
+        let place = self.sources.packs.iter().position(|p| std::ptr::eq(p, pack))?;
+        own.get(place).filter(|words| !words.is_empty())
     }
 
     /// Until the keyboard chooses (`set_active`): English and the first loaded pack. More
@@ -674,12 +725,58 @@ impl Engine {
     /// The user tapped `chosen` for the Latin letters `typed`, though the bar's default (its
     /// middle) was something else: `chosen` is offered first for those letters from now on
     /// (`suggest_latin`), until another is chosen or the word is removed or forgotten.
-    pub fn note_choice(&self, typed: &str, chosen: &str) {
+    ///
+    /// A native-script word that its pack's lexicon doesn't hold (the transliterator's free
+    /// spelling, a suffix split) becomes one of the user's own words of that pack
+    /// (`note_picked`). `lang`: the language the bar offered `chosen` as a word of
+    /// (`Candidate::lang`, by `lang_id`); None reads it from the word's script. Call this
+    /// before `note_used` for the same tap, so the tap's use is counted.
+    pub fn note_choice(&self, typed: &str, chosen: &str, lang: Option<&LangId>) {
         let (typed, chosen) = (normalize(typed), normalize(chosen));
         if text::script(&typed) != Script::Latin || typed.len() < 2 || !phrase_word(&chosen) {
             return;
         }
+        self.note_picked(&typed, &chosen, lang);
         self.user().note_choice(&typed, &chosen);
+    }
+
+    /// `chosen`, tapped in the bar for the Latin letters `typed`, is saved as one of the user's
+    /// own words (`UserStore::pick`) if it is a native-script word that its pack could hold
+    /// (`manglish::key`) and doesn't. Its pack is the loaded pack `lang` names, if that pack
+    /// writes the word's script (two packs may share one), else the active pack of the script;
+    /// only a pack with romanised typing has own words. The letters are kept with it unless
+    /// they are only its beginning (a completion tapped after `raub`): they index the word
+    /// (`own::OwnWords`), and a beginning is no spelling of it.
+    fn note_picked(&self, typed: &str, chosen: &str, lang: Option<&LangId>) {
+        let Script::Native(code) = text::script(chosen) else {
+            return;
+        };
+        let named = lang.and_then(|id| {
+            let pack = self.sources.packs.iter().find(|p| p.id == *id)?;
+            (pack.rules.code() == code).then_some(pack)
+        });
+        let Some(pack) = named.or_else(|| self.pack_in_script(code).map(|(_, p)| p)) else {
+            return;
+        };
+        let (Some(r), Some(_)) = (&pack.romanisation, &pack.romanised) else {
+            return;
+        };
+        if pack.lexicon.get(chosen.as_bytes()).is_some() || manglish::key(r, chosen).is_none() {
+            return;
+        }
+        let begins = |skeleton: &str, whole: &str| {
+            whole.len() > skeleton.len() && whole.starts_with(skeleton)
+        };
+        let skeleton = r.skeleton(typed);
+        let own = self.own_words();
+        let partial = begins(&skeleton, &r.word_skeleton(chosen))
+            || self.own_of(&own, pack).is_some_and(|own| {
+                own.lookup(r, typed, &|_| 0)
+                    .iter()
+                    .any(|m| m.word == chosen && m.missing > 0)
+            });
+        self.user()
+            .pick(&pack.id, chosen, Some(typed).filter(|_| !partial));
     }
 
     fn is_known_or_learned(&self, word: &str) -> bool {
@@ -1961,6 +2058,7 @@ impl Engine {
     ) -> ManglishCandidates {
         let mut packs: Vec<(Lang, &PackSources)> = self.packs_active().collect();
         packs.sort_by(|a, b| priors.get(b.0).total_cmp(&priors.get(a.0)));
+        let own = self.own_words();
         let mut all: Option<ManglishCandidates> = None;
         for (lang, pack) in packs {
             let bias = priors.get(lang);
@@ -1968,6 +2066,7 @@ impl Engine {
             let found = self.romanised(
                 lang,
                 pack,
+                self.own_of(&own, pack),
                 typed_n,
                 bias,
                 another_favoured,
@@ -1986,12 +2085,16 @@ impl Engine {
     /// `english_word`: the typed word is in the English lexicon, so it isn't
     /// split into stem and suffix. `another_favoured`: another pack is favoured
     /// (`Engine::favoured`), as in `add_model`.
-    /// `deadline`: as in `suggest_until`.
+    /// `deadline`: as in `suggest_until`. `own`: the user's own words of the pack
+    /// (`own_of`), found and scored as its lexicon's words are, each standing in for a word of
+    /// `rank::OWN_WORD_LOG_PROB`; one takes the middle only once it has been used
+    /// `rank::OWN_WORD_REPLACES_AFTER` times.
     #[allow(clippy::too_many_arguments)]
     fn romanised(
         &self,
         lang: Lang,
         pack: &PackSources,
+        own: Option<&OwnWords>,
         typed_n: &str,
         bias: f32,
         another_favoured: bool,
@@ -2028,6 +2131,27 @@ impl Engine {
                 rank::MIN_REPLACE,
             );
         }
+        // The user's own words the letters fit: the middle only for one used before.
+        let uses = |word: &str| self.user().uses(word);
+        let own = own.map(|words| Own { words, uses: &uses });
+        if let Some(own) = &own {
+            for m in own.words.lookup(r, typed_n, own.uses) {
+                let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
+                let floor = if own.replaces(&m.word) {
+                    rank::MIN_REPLACE
+                } else {
+                    f32::INFINITY
+                };
+                found.push(
+                    m.word,
+                    unfitted,
+                    fit_bonus(m.missing),
+                    m.missing,
+                    m.spelled,
+                    floor,
+                );
+            }
+        }
         Self::add_chat_form(pack, typed_n, bias, &mut found);
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
         let splits = match &pack.suffixes {
@@ -2051,6 +2175,7 @@ impl Engine {
             let want_free = found.exact.is_empty() && (found.side.is_empty() || !malayalam);
             Self::add_model(
                 pack,
+                own.as_ref(),
                 typed_n,
                 &splits,
                 bias,
@@ -2304,10 +2429,14 @@ impl Engine {
     /// `rank::FAVOURED_MARGIN`. `caps_trailing`: a reading far behind the model's best lexicon
     /// reading is scored just under it (`rank::MANGLISH_MODEL_TRAILS`; not for Malayalam, whose
     /// ranking is held as recorded). `free`: run the free beam too. `deadline`: as in
-    /// `suggest_until`.
+    /// `suggest_until`. `own`: the user's own words of the pack, which the model may read as
+    /// it reads the lexicon's, each scored as a word of `rank::OWN_WORD_LOG_PROB`; one not yet
+    /// used `rank::OWN_WORD_REPLACES_AFTER` times is offered beside the typed word, however
+    /// sure the model is.
     #[allow(clippy::too_many_arguments)]
     fn add_model(
         pack: &PackSources,
+        own: Option<&Own<'_>>,
         typed_n: &str,
         splits: &[ScoredSplit],
         bias: f32,
@@ -2341,6 +2470,7 @@ impl Engine {
             },
             free,
             deadline,
+            own: own.map_or(&[], |own| own.words.words()),
         };
         let mut free = None;
         // The best lexicon reading offered (the results come best first): its model score and
@@ -2362,11 +2492,19 @@ impl Engine {
             if t.score < rank::MANGLISH_MODEL_FLOOR {
                 continue;
             }
+            // One of the user's own words that may not take the middle yet.
+            let mut held = false;
             let prior = match ml.get(t.text.as_bytes()) {
                 Some(count) => ml.log_prob(count),
                 None => match splits.iter().find(|s| s.word == t.text) {
                     Some(split) => split.log_prob,
-                    None => continue,
+                    None => match own.filter(|own| own.words.contains(&t.text)) {
+                        Some(own) => {
+                            held = !own.replaces(&t.text);
+                            rank::OWN_WORD_LOG_PROB
+                        }
+                        None => continue,
+                    },
                 },
             };
             let (spelled, distance) = manglish::fit(r, typed_n, &t.text, false);
@@ -2395,6 +2533,7 @@ impl Engine {
             } else {
                 rank::MIN_REPLACE
             };
+            let floor = if held { f32::INFINITY } else { floor };
             found.push(
                 t.text,
                 unfitted,
@@ -2855,6 +2994,21 @@ struct ScoredSplit {
     /// As in `manglish::fit`.
     distance: usize,
     spelled: bool,
+}
+
+/// A pack's own words (`Engine::own_of`) with the user's uses of them, for one suggest.
+struct Own<'a> {
+    words: &'a OwnWords,
+    /// How many times a word was used (`UserStore::uses`).
+    uses: &'a dyn Fn(&str) -> u32,
+}
+
+impl Own<'_> {
+    /// Whether `word` has been used often enough to take the middle
+    /// (`rank::OWN_WORD_REPLACES_AFTER`).
+    fn replaces(&self, word: &str) -> bool {
+        (self.uses)(word) >= rank::OWN_WORD_REPLACES_AFTER
+    }
 }
 
 /// The transliterator's spelling off the lexicon (`Engine::add_model`).
@@ -4476,7 +4630,7 @@ mod tests {
         let engine = manglish_engine();
         let middle = |context: &str| bar(&engine, context)[0].clone();
         assert_eq!(middle("pani"), "പണി");
-        engine.note_choice("pani", "pain");
+        engine.note_choice("pani", "pain", None);
         assert_eq!(middle("pani"), "pain");
         assert_eq!(middle("Pani"), "Pain", "the typed form ignores case");
         assert_eq!(
@@ -4485,19 +4639,19 @@ mod tests {
             "the typed word stays beside it"
         );
         // A word in the lexicon stays as typed; the choice takes the first side slot.
-        engine.note_choice("help", "പണി");
+        engine.note_choice("help", "പണി", None);
         assert_eq!(bar(&engine, "help")[..2], ["help", "പണി"]);
         // The latest choice wins; removing the chosen word drops it.
-        engine.note_choice("pani", "കിളി");
+        engine.note_choice("pani", "കിളി", None);
         assert_eq!(middle("pani"), "കിളി");
-        engine.note_choice("pani", "pain");
+        engine.note_choice("pani", "pain", None);
         engine.remove_word("pain");
         assert_eq!(middle("pani"), "പണി");
         assert!(engine.user().choice("pani").is_none());
         // Malayalam typed forms, one letter and addresses are not choices.
-        engine.note_choice("എ", "എന്റെ");
-        engine.note_choice("p", "പണി");
-        engine.note_choice("pa", "a@b.com");
+        engine.note_choice("എ", "എന്റെ", None);
+        engine.note_choice("p", "പണി", None);
+        engine.note_choice("pa", "a@b.com", None);
         let user = engine.user();
         assert!(user.choice("എ").is_none() && user.choice("p").is_none());
         assert!(user.choice("pa").is_none());
@@ -4506,7 +4660,7 @@ mod tests {
     #[test]
     fn a_choice_does_not_replace_without_autocorrect_or_a_learned_word() {
         let engine = manglish_engine();
-        engine.note_choice("pani", "പണി");
+        engine.note_choice("pani", "പണി", None);
         let s = engine.suggest("pani", Layout::Latin, false);
         assert_eq!(texts(&s)[..2], ["pani", "പണി"]);
         engine.learn("pani");
@@ -4542,7 +4696,7 @@ mod tests {
         {
             let engine = Engine::new(hello_sources(), UserStore::open(dir.path()));
             commit(&engine, "hello how are you", Layout::Latin);
-            engine.note_choice("hpw", "how");
+            engine.note_choice("hpw", "how", None);
         }
         let engine = Engine::new(hello_sources(), UserStore::open(dir.path()));
         assert_eq!(bar(&engine, "hello ")[0], "how");
