@@ -951,6 +951,81 @@ fn latency_with_a_full_store() {
     time_suggests("full store, with the LM", &engine, &inputs);
 }
 
+/// The latency gate with 2,000 of the user's own Malayalam words in the store (`own::OwnWords`;
+/// the store holds `user::CAPACITY` words at most): the index is read for every Latin word,
+/// and the transliterator's beam is held to the lexicon and to them.
+#[test]
+#[ignore = "timing: run with `make bench` (release build)"]
+fn latency_with_own_words() {
+    let inputs = latency_inputs();
+    let engine = model_engine().expect("the latency gate needs the bundled transliterator");
+    pick_own_words(&engine, &pack_dir(), 2_000);
+    time_suggests("2,000 own words, without the LM", &engine, &inputs);
+    let Some(engine) = lm_engine() else {
+        println!("no lm.mlkbnn: the LM latency is skipped");
+        return;
+    };
+    pick_own_words(&engine, &pack_dir(), 2_000);
+    time_suggests("2,000 own words, with the LM", &engine, &inputs);
+    time_suggests("2,000 own words, with the LM, a long message", &engine, &message_inputs());
+}
+
+/// Picks `n` native words the pack in `dir` doesn't hold as the user's own
+/// (`Engine::note_choice`, as a tap in the bar does): its most frequent words with their first
+/// letter added at the end, each for its romanisation, so that the letters of the latency
+/// inputs find many of them, whole and begun. Every third is used twice more, which lets it
+/// take the middle (`rank::OWN_WORD_REPLACES_AFTER`). Prints how long it takes to forget one
+/// (the engine's index of them is rebuilt from the store, as it is when the engine opens), and
+/// a suggest after a pick (the word is put into the index) and after neither.
+fn pick_own_words(engine: &Engine, dir: &std::path::Path, n: usize) {
+    use mlengine_core::romanisation::Romanisation;
+    let pack = Pack::open(dir).expect("the pack");
+    let lang = mlengine_core::lang::LangId(pack.manifest.id.clone());
+    let r = Romanisation::load(&pack.file("romanisation").unwrap()).unwrap();
+    let lexicon = mlengine_core::lexicon::Lexicon::open(&pack.file("lexicon").unwrap()).unwrap();
+    let mut words: Vec<(u64, String)> = Vec::new();
+    lexicon.words(|key, count| words.push((count, String::from_utf8_lossy(key).into_owned())));
+    words.sort_by(|a, b| b.cmp(a));
+    let before = engine.learned_words().len();
+    let mut picked = 0;
+    let mut last = String::new();
+    for (_, word) in &words {
+        if picked == n {
+            break;
+        }
+        let own = format!("{word}{}", word.chars().next().unwrap());
+        if lexicon.get(own.as_bytes()).is_some() {
+            continue;
+        }
+        last = own.clone();
+        engine.note_choice(&r.romanize(&own), &own, Some(&lang));
+        engine.note_used("", &own, Layout::Latin);
+        if picked % 3 == 0 {
+            engine.note_used("", &own, Layout::Latin);
+            engine.note_used("", &own, Layout::Latin);
+        }
+        picked = engine.learned_words().len() - before;
+    }
+    assert_eq!(picked, n, "own words picked");
+    let suggest = || {
+        let start = Instant::now();
+        let _ = engine.suggest("I said the", Layout::Latin, true);
+        start.elapsed()
+    };
+    let _ = suggest();
+    let start = Instant::now();
+    engine.forget_word(&last);
+    let rebuilt = start.elapsed();
+    engine.note_choice(&r.romanize(&last), &last, Some(&lang));
+    engine.note_used("", &last, Layout::Latin);
+    let after_pick = suggest();
+    println!(
+        "{n} own words: forgetting one {rebuilt:?} (the index is rebuilt), a suggest after a pick \
+         {after_pick:?}, after neither {:?}",
+        suggest()
+    );
+}
+
 /// The English and Manglish words of `latency_inputs`.
 const LATENCY_WORDS: [&str; 27] = [
     "the",
