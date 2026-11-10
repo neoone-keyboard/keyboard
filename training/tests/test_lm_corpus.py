@@ -259,3 +259,14 @@ def test_dakshina_sentences_of_either_language():
     assert sources.dakshina_files() == sources.DAKSHINA_FILES
     assert sources.dakshina_files("hi") == [f.replace("/ml/", "/hi/").replace("ml.roman", "hi.roman")
                                              for f in sources.DAKSHINA_FILES]
+
+
+def test_hinglish_ends_sentences_with_a_full_stop_not_a_danda(tmp_path):
+    src = tmp_path / "hi-clean.txt"
+    src.write_text("मैं घर गया। वह आया॥\n", encoding="utf-8")
+    corpus._init_worker({}, "hi")
+    corpus.synthesise(("romanised", str(src), str(tmp_path / "r.txt"), 1, 0, 1))
+    corpus.synthesise(("mixed", str(src), str(tmp_path / "m.txt"), 1, 0, 1))
+    roman = (tmp_path / "r.txt").read_text(encoding="utf-8")
+    assert roman.isascii(), roman
+    assert roman.count(".") in (0, 2)  # 0 when the chat transform dropped punctuation

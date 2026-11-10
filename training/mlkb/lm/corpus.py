@@ -506,6 +506,7 @@ class _Writer:
             self.clean.close()
 
 
+_DANDAS = str.maketrans({"।": ".", "॥": "."})
 _LOANWORDS: dict[str, str] = {}
 _LANG: lm_lang.LmLang = lm_lang.ML
 _SPELL: Speller = _malayalam_spellings
@@ -537,6 +538,8 @@ def synthesise(job: tuple) -> tuple[str, dict]:
                 continue
             if kind == "romanised":
                 text = romanise_sentence(para, rng, _LOANWORDS, MANGLISH_P_LOAN, native, _SPELL)
+                # In Latin letters a sentence ends with a full stop, never a danda (Hindi).
+                text = text.translate(_DANDAS)
             else:
                 text = " ".join(
                     mix_sentence(s, rng, _LOANWORDS, rng.uniform(*MIXED_FRAC), MIXED_P_LOAN, native, _SPELL)
