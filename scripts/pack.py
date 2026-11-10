@@ -5,6 +5,14 @@
     scripts/pack.py packs/ml.neopack --check      fail if any checksum is missing or stale
     scripts/pack.py packs/ml.neopack --zip OUT    write OUT (a .neopack zip of the folder)
 
+Script rules (the `lang` role, engine 4). The engine has coded rules for mlym, deva and beng
+(`CODED`). A pack in any other script carries its script's definition as `lang.json`, which is
+`data/langs/<id>/lang.json`, the file its lexicons were built with. `--write` copies that file
+in, adds the role and raises `minEngine` to 4. `--check` fails when a pack in another script
+lacks the file or `minEngine` 4, when the file doesn't define the manifest's script, or when it
+differs from `data/langs/<id>/lang.json`. A pack in a coded script may carry the file too and
+keep a lower `minEngine` (older engines ignore the role).
+
 Standard library only.
 """
 
@@ -14,6 +22,63 @@ import json
 import sys
 import zipfile
 from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+# Scripts with coded rules in the engine (engine/core/src/script, `script::supported`).
+CODED = {"mlym", "deva", "beng"}
+# The engine level that reads the `lang` role (engine/core/src/pack.rs PACK_ENGINE).
+LANG_ENGINE = 4
+
+
+def lang_source(manifest: dict) -> Path:
+    return ROOT / "data" / "langs" / manifest["id"] / "lang.json"
+
+
+def add_lang(pack: Path, manifest: dict) -> None:
+    """For a pack in a script without coded rules: lang.json from data/langs, the role, and
+    minEngine 4. Nothing for a coded script, unless the manifest already names the file."""
+    source = lang_source(manifest)
+    wanted = manifest["script"] not in CODED or "lang" in manifest["files"]
+    if not wanted:
+        return
+    name = manifest["files"].setdefault("lang", "lang.json")
+    if source.is_file():
+        (pack / name).write_bytes(source.read_bytes())
+    if manifest["script"] not in CODED and manifest.get("minEngine", 0) < LANG_ENGINE:
+        print(f"  minEngine {manifest.get('minEngine')} -> {LANG_ENGINE}: script {manifest['script']} "
+              f"has its rules in lang.json")
+        manifest["minEngine"] = LANG_ENGINE
+
+
+def lang_problems(pack: Path, manifest: dict) -> list[str]:
+    """Why the pack's script rules wouldn't load, in words; empty when they would."""
+    script = manifest["script"]
+    name = manifest["files"].get("lang")
+    if name is None:
+        if script in CODED:
+            return []
+        return [f"script {script} has no coded rules: the pack needs its lang.json "
+                f"(the lang role); run --write with {lang_source(manifest)}"]
+    problems = []
+    if script not in CODED and manifest.get("minEngine", 0) < LANG_ENGINE:
+        problems.append(f"minEngine must be at least {LANG_ENGINE} for script {script}, whose rules are in {name}")
+    path = pack / name
+    if not path.is_file():
+        return problems + [f"{name} (the lang role) is not in the pack"]
+    try:
+        lang = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
+        return problems + [f"{name}: not JSON: {e}"]
+    if lang.get("script") != script:
+        problems.append(f"{name} defines script {lang.get('script')!r}, the manifest says {script}")
+    if not lang.get("block") and not lang.get("letters"):
+        problems.append(f"{name} has no characters: give block or letters")
+    source = lang_source(manifest)
+    if source.is_file() and source.read_bytes() != path.read_bytes():
+        problems.append(f"{name} differs from {source.relative_to(ROOT)}, which the lexicons were built "
+                        f"with; run --write")
+    return problems
 
 
 def sha256(path: Path) -> str:
@@ -63,6 +128,8 @@ def main() -> int:
 
     manifest_path = args.pack / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if args.write:
+        add_lang(args.pack, manifest)
     current = listed(args.pack, manifest)
 
     if args.write:
@@ -83,7 +150,10 @@ def main() -> int:
             print(f"{manifest_path}: checksums stale for {', '.join(stale)}; "
                   f"run scripts/pack.py {args.pack} --write", file=sys.stderr)
             return 1
-        return 0
+        problems = lang_problems(args.pack, manifest)
+        for problem in problems:
+            print(f"{manifest_path}: {problem}", file=sys.stderr)
+        return 1 if problems else 0
 
     if manifest.get("sha256") != current:
         print(f"{manifest_path}: checksums stale; run --write first", file=sys.stderr)

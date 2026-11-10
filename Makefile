@@ -71,7 +71,7 @@ test-engine:
 	./scripts/shipped-crates.sh --check
 
 test-data:
-	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
+	for pack in packs/*.neopack engine/core/tests/fixtures/gu.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
 	python3 -I scripts/publish-packs.py --check
 	python3 -I -m unittest discover -s scripts/tests
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
