@@ -36,3 +36,18 @@ public struct KeysShown: Hashable, Sendable {
         self.page = page
     }
 }
+
+/// What VoiceOver says for a key (`InputController.spokenKey`): its label, and a state such
+/// as shift's "on" as the value, which VoiceOver reads after it.
+public struct SpokenKey: Equatable, Sendable {
+    public var label: String
+    public var value: String?
+
+    public init(_ label: String, value: String? = nil) {
+        self.label = label
+        self.value = value
+    }
+
+    /// Label and value as one phrase: "shift, on".
+    public var text: String { value.map { "\(label), \($0)" } ?? label }
+}
