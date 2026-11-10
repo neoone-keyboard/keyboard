@@ -124,7 +124,7 @@ targets:
           NSExtensionAttributes:
             IsASCIICapable: true
             PrefersRightToLeft: false
-            PrimaryLanguage: ml
+            PrimaryLanguage: mul
             RequestsOpenAccess: false
     settings:
       base:
