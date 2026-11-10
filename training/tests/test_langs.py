@@ -172,3 +172,75 @@ def test_native_vocabularies():
     assert not fits("hol", "হ'ল")  # not Malayalam
     # The Malayalam ids are unchanged.
     assert encode_ml("എ") == [1, 3 + 0x0D0E - 0x0D00, 2]
+
+
+# ---- calibration pairs when Aksharantar's valid split has no manual rows (Marathi) ----
+
+
+def _hp(native: str, source: str = "AK-Freq", latin: str = "x") -> human.HumanPair:
+    return human.HumanPair(latin, native, source)
+
+
+def test_calibration_uses_the_valid_splits_manual_rows():
+    valid = [_hp("a1", "AK-Uni"), _hp("a2", "IndicCorp")]
+    rows, where = human.calibration_split(valid, [_hp("t1")], set(), "xyz")
+    assert [h.native for h in rows] == ["a1"]
+    assert "xyz_valid.json" in where
+
+
+def test_calibration_falls_back_to_a_held_out_slice_of_train():
+    train = [_hp(f"w{i}") for i in range(4000)] + [_hp("mined", "IndicCorp")]
+    test_words = {f"w{i}" for i in range(0, 4000, 2)}
+    rows, where = human.calibration_split([_hp("v", "IndicCorp")], train, test_words, "xyz")
+    words = {h.native for h in rows}
+    assert "xyz_train.json" in where and "xyz_valid.json has none" in where
+    assert not words & test_words, "never a test word"
+    assert "mined" not in words, "manual rows only"
+    # A slice, not all of train: the rest stays for training. About a quarter of the 2,000 left.
+    assert 300 < len(rows) < 700
+    # Deterministic, and chosen by word, so a word's rows go together.
+    again, _ = human.calibration_split([], list(reversed(train)), test_words, "xyz")
+    assert {h.native for h in again} == words
+
+
+def test_no_calibration_pairs_is_an_error():
+    with pytest.raises(SystemExit, match="no calibration pairs"):
+        human.calibration_split([_hp("v", "IndicCorp")], [_hp("m", "Samanantar")], set(), "xyz")
+
+
+def _fake_aksharantar(monkeypatch, rows: dict[str, list]) -> None:
+    monkeypatch.setattr(human, "aksharantar", lambda lang, split="train", stats=None: rows.get(split, []))
+
+
+def test_calibrate_stops_on_zero_pairs(monkeypatch):
+    from mlkb.langs import calibrate
+
+    _fake_aksharantar(monkeypatch, {"train": [_hp("অসম", "IndicCorp")]})
+    with pytest.raises(SystemExit, match="no calibration pairs"):
+        calibrate.main(["--lang", "as"])
+
+
+def test_calibrate_report_names_what_to_tune_on(monkeypatch, capsys):
+    from mlkb.langs import calibrate
+
+    train = [_hp("অসম", latin="oxom"), _hp("মই", latin="moi")] * 20
+    _fake_aksharantar(monkeypatch, {"train": train, "test": [_hp("তুমি", latin="tumi")]})
+    monkeypatch.setattr(human, "in_calibration_slice", lambda word, share=human.CALIBRATION_SHARE: True)
+    calibrate.main(["--lang", "as", "--iterations", "1"])
+    out = capsys.readouterr().out
+    assert "asm_train.json" in out, "says which split it calibrated on"
+    assert "tune on these" in out and "never tune on these" in out
+
+
+def test_pairs_stops_on_zero_calibration_pairs(monkeypatch, tmp_path):
+    from mlkb.langs import pairs
+
+    _fake_aksharantar(monkeypatch, {"train": [_hp("অসম", "IndicCorp")]})
+    with pytest.raises(SystemExit, match="no calibration pairs"):
+        pairs.main(["--lang", "as", "--out", str(tmp_path)])
+
+
+def test_a_missing_aksharantar_file_names_the_step(monkeypatch, tmp_path):
+    monkeypatch.setattr(human, "RAW", tmp_path)
+    with pytest.raises(SystemExit, match="build-as-text.sh"):
+        human.aksharantar("as", "valid")

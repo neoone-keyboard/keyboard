@@ -24,7 +24,10 @@ The report, on the calibration pairs and on the held-out test pairs:
 - prefix: the typed skeleton is a prefix of the word's key, so the lookup finds it as a completion.
 
 Pairs: Aksharantar's manual rows (AK-Uni, AK-Freq: typed by people) in `<lang>_valid.json`
-calibrate; the manual rows of `<lang>_test.json` (AK-Freq, AK-NEI, AK-NEF) are the test.
+calibrate, or, when that split has none, a held-out slice of `<lang>_train.json`'s manual rows
+(`mlkb.langs.human.calibration`); the manual rows of `<lang>_test.json` (AK-Freq, AK-NEI, AK-NEF)
+are the test. Tune the hand tables on the calibration numbers only. The test numbers are for the
+pull request; tuning on them makes them meaningless. No calibration pairs at all is an error.
 """
 
 import argparse
@@ -159,22 +162,27 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
     hand = args.tables or LANGS / args.lang / "romanisation.hand.json"
     tables = Tables.load(hand)
-    calib = [(h.native, h.latin) for h in human.aksharantar(args.lang, "valid") if h.source.startswith("AK-")]
-    test = [h for h in human.aksharantar(args.lang, "test") if h.source.startswith("AK-")]
+    test = human.manual(human.aksharantar(args.lang, "test"))
+    rows, where = human.calibration(args.lang, {h.native for h in test})
+    calib = [(h.native, h.latin) for h in rows]
     by_source: dict[str, list[tuple[str, str]]] = defaultdict(list)
     for h in test:
         by_source[h.source].append((h.native, h.latin))
     all_test = [pair for v in by_source.values() for pair in v]
 
+    print(f"calibration pairs: {where}. Change the hand tables to improve these numbers.")
+    print("test pairs: the held-out manual rows of the test split. Report them; never tune on them.")
     _print("calibration (before)", report(tables, calib))
-    _print("test (before)", report(tables, all_test))
     for i in range(args.iterations):
         tables, failed = fit(tables, calib)
         print(f"iteration {i + 1}: {failed:,} of {len(calib):,} calibration pairs did not align")
     _print("calibration (after)", report(tables, calib))
+    print("^ tune on these")
+    _print("test (before)", report(Tables.load(hand), all_test))
     _print("test (after)", report(tables, all_test))
     for source, pairs in sorted(by_source.items()):
         _print(f"  test {source}", report(tables, pairs))
+    print("^ held out: for the pull request's description; never tune on these")
     if args.write:
         path = hand.with_name("romanisation-weights.json")
         tables.data["about"] = tables.data["about"].replace("hand-set", "fitted")
