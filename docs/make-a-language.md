@@ -18,11 +18,12 @@ with a proposed fix.
 
 Check three things first.
 
-1. **The script has a plug-in in the engine.** How a script behaves (its normal form, where a
-   vowel sign attaches, what ends a sentence) is Rust code in `engine/core/src/script/`. Today
-   there are three: `mlym` (Malayalam), `deva` (Devanagari) and `beng` (Bengali-Assamese). The
-   app refuses a pack in any other script with "This pack needs a newer NeoOne Keyboard". A
-   new script means writing a plug-in (gaps G1, G2).
+1. **The script is described in `lang.json`.** How a script behaves (which characters are
+   letters, its normal form, where a vowel sign attaches, what ends a sentence) is data: the
+   `lang.json` of step 2, which the pack carries (the `lang` role) and the engine reads, so any
+   script works without code. The engine also has coded rules for `mlym` (Malayalam), `deva`
+   (Devanagari) and `beng` (Bengali-Assamese), used by packs without the file. Malayalam's
+   are kept in code because data can't say them (chillus, suffix joins).
 2. **The script is Brahmic and fits one 128-code-point Unicode block.** The romanisation
    format (consonants with an inherent vowel, vowel signs, a virama), the transliterator's
    vocabulary and the romanised lexicon's encoding all assume this (gap G3).
@@ -30,10 +31,10 @@ Check three things first.
    [Aksharantar](https://huggingface.co/datasets/ai4bharat/Aksharantar), which covers 21
    languages. A language without Aksharantar data needs code changes (gap G6).
 
-Some examples: Marathi, Nepali or Sanskrit (Devanagari) need only data. Bengali also uses
-`beng`, but the plug-in folds the Bengali letter র into the Assamese ৰ, so a Bengali pack
-needs a code change first (gap G2). Tamil, Telugu, Gujarati and Kannada each need a new
-plug-in.
+Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
+Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json` and need an engine 4 app
+(`minEngine` 4). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
+its র. `engine/core/tests/fixtures/gu.neopack` is a small Gujarati pack built this way.
 
 ## What a pack is
 
@@ -60,6 +61,7 @@ packs/as.neopack/
 | `translit` | `translit.mlkbnn` | The transliterator (about 4.5M parameters, 4.7 MB int8). Spells words the lexicon has never seen. | No |
 | `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam has one. | No |
 | `layout` | `layout.json` | The native-script keyboard pages. Without it the language is typed in Latin only and the language key skips it. | No |
+| `lang` | `lang.json` | The script's definition: `data/langs/xx/lang.json`, the file the lexicons were built with (step 2). `pack.py --write` copies it in. Engine 4. | **Yes** for a script other than `mlym`, `deva` and `beng`; else optional. |
 | `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only scripts whose plug-in joins suffixes use it (Malayalam today). | No |
 | `chatForms` | `chat-forms.tsv` | Hand-written chat spellings no rule reaches: `latin<TAB>native` per line. | No |
 
@@ -201,27 +203,34 @@ dropped by the filter". The manual rows matter in step 4: the tables are calibra
 
 ### 2. Describe the language: `data/langs/xx/lang.json`
 
-This file tells the lexicon builder what a word is. Copy `data/langs/as/lang.json`:
+This file tells the lexicon builder what a word is, and, shipped in the pack, tells the
+engine the same: one definition for both. The engine's parser is
+`engine/core/src/script/data.rs`. Copy `data/langs/as/lang.json`:
 
 | Field | Meaning |
 |---|---|
-| `id`, `name`, `script` | The pack id, English name, and ISO 15924 script code (`deva`, `beng`, `mlym`). |
+| `id`, `name`, `script` | The pack id, English name, and ISO 15924 script code in lower case (`gujr`, `taml`; a private-use code such as `qaaa` for an invented script). |
 | `block` | The script's Unicode block, first and last code point in hex. |
+| `letters` | More ranges of the script's characters, `[["first", "last"], …]`, for a script not in one block. `block`, `letters` or both. |
 | `notWord` | Ranges in the block that are not letters (digits, currency signs). |
-| `firstLetter` | Ranges a word may start with (vowels and consonants, not signs). |
-| `virama` | The virama's code point. |
-| `signs`, `bases` | Vowel signs and the letters they may follow. A word with a sign after anything else is treated as mis-encoded and dropped. |
+| `firstLetter` | Ranges a word may start with (vowels and consonants, not signs). Optional: any letter that isn't a sign. |
+| `virama` | The virama's code point. Optional. |
+| `signs`, `bases` | Vowel signs and the letters they may follow. A word with a sign after anything else is treated as mis-encoded and dropped. The keyboard shows the vowel-sign strip after a `bases` letter. Optional. |
 | `apostrophe` | `true` if an apostrophe can stand inside a word (Assamese হ'ল). |
 | `replace` | Text replacements applied before and after Unicode NFC, to fix old or wrong encodings. |
 | `phraseBreaks` | Characters that end a sentence (the danda). Next-word pairs never cross one. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
 
-The engine's script plug-in has its own normal form in Rust. Your `replace` list must produce
-the same text the plug-in produces, or typed words won't match stored ones. For `deva` the
-plug-in applies NFC and drops every ZWJ and ZWNJ, so a Devanagari `lang.json` must drop them
-too, with the first two `replace` entries below. For `beng` it applies Assamese's fixes,
-which are wrong for Bengali. There is no test for a new pack yet (gap G9).
+The engine normalises typed text with this file's `replace` list, the same way the builder
+did, so typed words meet stored ones. Only `script`, and `block` or `letters`, are required by
+the engine; the other script fields are optional, and the builder's (`maxChars`, `maxWords`,
+`minCount`, `aksharantar`, `notes`) are ignored by it.
+
+The engine's normal form always includes NFC and drops every ZWJ and ZWNJ (only the Malayalam
+virama keeps one), so a Devanagari `lang.json` should drop them too, with the first two
+`replace` entries below, so the builder's words carry none. There is no test for a new pack
+yet (gap G9).
 
 A Devanagari example (Marathi). Copy this rather than the Assamese file for any `deva`
 language:
@@ -248,7 +257,7 @@ language:
 ```
 
 - `"‍"` is ZWJ and `"‌"` ZWNJ. Marathi's eyelash ra (र + virama + ZWJ) becomes a
-  plain र्, as the plug-in makes it.
+  plain र्, as the engine's normal form makes it.
 - The other `replace` entries mend independent vowels typed as अ or ए plus a sign.
 - `signs` lists what must follow a consonant (vowel signs, nukta forms, the virama).
   Anusvara ं, candrabindu ँ and visarga ः are left out on purpose: they can follow a vowel
@@ -393,8 +402,12 @@ writes its checksums, and stops at the start if it is missing. Copy
 
 - `version` is a date, `YYYY.MM.DD`, compared part by part. Raise it on every change you
   publish. The app won't install an older version over a newer one.
-- `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, and 3 for a pack in a script
-  other than Malayalam that has an `lm`.
+- `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, 3 for a pack in a script
+  other than Malayalam that has an `lm`, and 4 for a pack in any other script, which carries
+  `lang.json` (the `lang` role). Leave both to `pack.py --write` (step 10): for a script other
+  than `mlym`, `deva` and `beng` it copies `data/langs/xx/lang.json` into the pack, adds
+  `"lang": "lang.json"` to `files` and raises `minEngine` to 4, and `--check` fails until it
+  has.
 - `romanised.name` is what the typed-in-Latin form is called (Manglish, Hinglish).
 - `sha256` starts empty; the build fills it in.
 - `files` lists every file the finished pack will have, including ones not built yet
@@ -478,7 +491,7 @@ without `translit.mlkbnn` if you take `translit` out of the manifest's `files` f
 (the script stops on a listed file that is missing). Put it back before step 9.
 
 Hindi is built a different way: `data/lang/hi.conf` plus `lexbuild --lang`, using the engine's
-own plug-in instead of `lang.json`, and it needs the full English text. Use the Assamese path
+own coded `deva` rules instead of `lang.json`, and it needs the full English text. Use the Assamese path
 for a new language.
 
 ### 8. Next-word data
@@ -538,7 +551,9 @@ python3 -I scripts/pack.py packs/xx.neopack --check   # fails if any checksum is
 ```
 
 Run `--write` after every change to a file in the pack. A stale checksum makes the app refuse
-the pack as damaged.
+the pack as damaged. `--write` also copies `data/langs/xx/lang.json` in for a script other than
+`mlym`, `deva` and `beng` (see the manifest notes in step 5), and `--check` fails when the
+pack's copy differs from it.
 
 ### 11. Try it on your computer
 
@@ -562,7 +577,7 @@ opt = lambda role: str(pack / f[role]) if role in f else None
 e = mlengine.Engine(english=str(root / "apps/ios/KeyboardExtension/Lexicon/en.fst"),
     malayalam=opt("lexicon"), manglish=opt("romanisedLexicon"), romanisation=opt("romanisation"),
     layout=opt("layout"), next_words=opt("nextWords"), translit=opt("translit"),
-    pack=m["id"], script=m["script"])
+    lang=opt("lang"), pack=m["id"], script=m["script"])
 for typed in sys.argv[2:]:
     print(typed, "->", [t for t, _, _ in e.suggest(typed, "latin", True)])
 ```
@@ -636,8 +651,8 @@ If the import fails, the app shows one sentence:
 | "This file is damaged or isn't a language pack." | Not a zip, or a zip64, encrypted, or larger than 1 GiB unpacked. |
 | "This file isn't a NeoOne Keyboard language pack." | No `manifest.json` in the zip. |
 | "This pack is damaged. Download it again." | Invalid manifest JSON, a checksum that differs (run `pack.py --write`), or a checksum for a file that isn't in the zip. |
-| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, the `script` has no plug-in in this app version, or `minEngine` is above the app's engine (3 today). |
-| "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, or a file in the zip with no checksum. |
+| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (4 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
+| "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, a file in the zip with no checksum, a script other than `mlym`, `deva` and `beng` without `lang.json`, or a `lang.json` the engine refuses (it names another script, has no characters, or overlaps another script's). |
 | "You already have a newer version of this language." | The installed pack has a higher `version`. Raise yours. |
 
 The installer doesn't check `name`, `nativeName` or `layout.json`. A manifest without
