@@ -2,6 +2,7 @@
 
     uv run python -m mlkb.langs.calibrate --lang as            # report only
     uv run python -m mlkb.langs.calibrate --lang as --write    # write data/langs/as/romanisation-weights.json
+    uv run python -m mlkb.langs.calibrate --lang as --misses   # and list the calibration pairs that fail
 
 The hand-set tables are `data/langs/<lang>/romanisation.hand.json`; the fitted ones are
 `romanisation-weights.json` next to it. `mlkb.langs.format1` exports their canonical spellings
@@ -28,12 +29,19 @@ calibrate, or, when that split has none, a held-out slice of `<lang>_train.json`
 (`mlkb.langs.human.calibration`); the manual rows of `<lang>_test.json` (AK-Freq, AK-NEI, AK-NEF)
 are the test. Tune the hand tables on the calibration numbers only. The test numbers are for the
 pull request; tuning on them makes them meaningless. No calibration pairs at all is an error.
+
+`--misses [N]` lists, after the report, the calibration pairs the fitted tables fail on (all of
+them, or the first N): first the ones the tables can't spell at all ("does not align"), then the
+ones whose typed skeleton isn't the word's key, so the lookup would miss them. Each row has the
+word, what was typed, the canonical spelling, the word's key and the typed skeleton. Read them to
+see which spelling or fold to add to the hand tables. Test pairs are never listed.
 """
 
 import argparse
 import json
 import math
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 
 from mlkb.langs import human
@@ -43,6 +51,8 @@ PRIOR_WEIGHT = 20.0
 ALIGN_FLOOR = 0.02
 FIT_MIN = 0.01
 ITERATIONS = 3
+# Under this many calibration pairs the report says how coarse its numbers are.
+FEW_PAIRS = 500
 
 
 def align(slots: tuple[Slot, ...], latin: str, floor: float = ALIGN_FLOOR) -> list[int] | None:
@@ -146,6 +156,45 @@ def report(tables: Tables, pairs: list[tuple[str, str]]) -> dict[str, float]:
     }
 
 
+@dataclass(frozen=True)
+class Miss:
+    """A pair the tables fail on: the lookup wouldn't find the word (`key != typed_key`), or the
+    tables can't spell what was typed at all (`aligns` false)."""
+
+    native: str
+    latin: str
+    canonical: str
+    key: str
+    typed_key: str
+    aligns: bool
+
+
+def misses(tables: Tables, pairs: list[tuple[str, str]]) -> list[Miss]:
+    """The pairs that don't align or whose typed skeleton isn't the word's key; the unaligned
+    first, each group in the order given."""
+    out = []
+    for native, latin in pairs:
+        key, typed = tables.key(native), tables.skeleton(latin)
+        aligns = align(tables.slots(native), latin) is not None
+        if not aligns or typed != key:
+            out.append(Miss(native, latin, tables.canonical(native), key, typed, aligns))
+    return sorted(out, key=lambda m: m.aligns)
+
+
+def _print_misses(found: list[Miss], total: int, limit: int) -> None:
+    unaligned = sum(not m.aligns for m in found)
+    print(
+        f"misses: {len(found):,} of {total:,} calibration pairs ({unaligned:,} the tables can't spell, "
+        f"{len(found) - unaligned:,} with another skeleton)"
+    )
+    print("  word\ttyped\tcanonical\tkey\ttyped skeleton\twhy")
+    for m in found[:limit] if limit else found:
+        why = "skeleton differs" if m.aligns else "does not align" + ("" if m.typed_key != m.key else " (key matches)")
+        print(f"  {m.native}\t{m.latin}\t{m.canonical}\t{m.key}\t{m.typed_key}\t{why}")
+    if limit and len(found) > limit:
+        print(f"  … {len(found) - limit:,} more (--misses 0 lists all)")
+
+
 def _print(label: str, r: dict) -> None:
     print(
         f"{label:28} {r['pairs']:6,} pairs  canonical {r['canonical']:.1%}  producible {r['producible']:.1%}  "
@@ -159,6 +208,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--tables", type=Path, help="hand-set tables (default data/langs/<lang>/romanisation.hand.json)")
     p.add_argument("--write", action="store_true", help="write the fitted weights back")
     p.add_argument("--iterations", type=int, default=ITERATIONS)
+    p.add_argument(
+        "--misses", type=int, nargs="?", const=0, default=None, metavar="N",
+        help="list the calibration pairs the fitted tables fail on (the first N; all without N)",
+    )
     args = p.parse_args(argv)
     hand = args.tables or LANGS / args.lang / "romanisation.hand.json"
     tables = Tables.load(hand)
@@ -172,12 +225,20 @@ def main(argv: list[str] | None = None) -> None:
 
     print(f"calibration pairs: {where}. Change the hand tables to improve these numbers.")
     print("test pairs: the held-out manual rows of the test split. Report them; never tune on them.")
+    if len(calib) < FEW_PAIRS:
+        print(
+            f"only {len(calib):,} calibration pairs: one pair is {100 / len(calib):.1f} points, so a change of a "
+            f"pair or two is noise. A letter typed fewer than {PRIOR_WEIGHT:.0f} times keeps mostly its hand-set "
+            "weights, so put the commonest spelling first by hand, and fix kinds of miss (--misses), not single pairs."
+        )
     _print("calibration (before)", report(tables, calib))
     for i in range(args.iterations):
         tables, failed = fit(tables, calib)
         print(f"iteration {i + 1}: {failed:,} of {len(calib):,} calibration pairs did not align")
     _print("calibration (after)", report(tables, calib))
     print("^ tune on these")
+    if args.misses is not None:
+        _print_misses(misses(tables, calib), len(calib), args.misses)
     _print("test (before)", report(Tables.load(hand), all_test))
     _print("test (after)", report(tables, all_test))
     for source, pairs in sorted(by_source.items()):
