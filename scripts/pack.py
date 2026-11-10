@@ -5,19 +5,24 @@
     scripts/pack.py packs/ml.neopack --check      fail if any checksum is missing or stale
     scripts/pack.py packs/ml.neopack --zip OUT    write OUT (a .neopack zip of the folder)
 
-Script rules (the `lang` role, engine 4). The engine has coded rules for mlym, deva and beng
-(`CODED`). A pack in any other script carries its script's definition as `lang.json`, which is
-`data/langs/<id>/lang.json`, the file its lexicons were built with. `--write` copies that file
-in, adds the role and raises `minEngine` to 4. `--check` fails when a pack in another script
-lacks the file or `minEngine` 4, when the file doesn't define the manifest's script, or when it
-differs from `data/langs/<id>/lang.json`. A pack in a coded script may carry the file too and
-keep a lower `minEngine` (older engines ignore the role).
+Script rules (the `lang` role, engine 4). Every script's rules are data: a pack carries its
+script's definition as `lang.json`, which is `data/langs/<id>/lang.json`, the file its lexicons
+were built with. `--write` copies that file in and adds the role, for every pack that has one.
+`--check` fails when the pack lacks the file though `data/langs/<id>/lang.json` exists, when the
+file doesn't define the manifest's script, or when it differs from `data/langs/<id>/lang.json`.
+
+What the file does to `minEngine`. The engine holds its own copy of the rules for mlym, deva
+and beng (`EMBEDDED`: Malayalam's, Hindi's and Assamese's files), and engines before 5 had
+those three scripts' rules in code, so a pack in one of them keeps its `minEngine`: an older
+engine ignores the role and reads the pack as before. A pack in any other script needs the
+file and `minEngine` 4, or 5 when its file uses a field engine 4 doesn't read (`FIELDS_5`).
+`--write` raises it; `--check` fails when it is too low.
 
 The layout (the `layout` role). `--check` also reads `layout.json` as the app does and fails on
 what the app would refuse (not format 1, no pages, an empty key, a strip entry that isn't one
 character), which otherwise shows only as a language that never appears on the phone; and on a
 key, long-press option or strip sign that isn't in the pack's script (its block, from
-`lang.json` or the coded scripts' blocks; ZWJ, ZWNJ and punctuation are fine), on a long-press
+`lang.json` or `EMBEDDED_BLOCKS`; ZWJ, ZWNJ and punctuation are fine), on a long-press
 entry for a key no page has, and on a missing `spaceBar`, `languageKey` or page label. `--write`
 prints the same problems without failing.
 
@@ -34,70 +39,106 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-# Scripts with coded rules in the engine (engine/core/src/script, `script::supported`).
-CODED = {"mlym", "deva", "beng"}
+# Scripts the engine has its own copy of the rules for (engine/core/src/script/mod.rs
+# `EMBEDDED`, `script::supported`): a pack in one may lack the `lang` file.
+EMBEDDED = {"mlym", "deva", "beng"}
 # The engine level that reads the `lang` role (engine/core/src/pack.rs PACK_ENGINE).
 LANG_ENGINE = 4
+# lang.json fields read from engine 5 on (engine/core/src/script/data.rs). Malayalam's file
+# uses them, and engines before 5 have what they say in code, so mlym is not held to 5.
+FIELDS_5 = {"notLetter", "looseSigns", "finalPairs", "suffixJoins"}
+FIELDS_ENGINE = 5
 
 
 def lang_source(manifest: dict) -> Path:
     return ROOT / "data" / "langs" / manifest["id"] / "lang.json"
 
 
+def needed_engine(script: str, lang: dict | None) -> int:
+    """The lowest `minEngine` the pack's script rules allow: 0 for a script older engines have
+    in code, else the level that reads the `lang` role and the fields `lang` uses."""
+    if script in EMBEDDED and (script == "mlym" or not FIELDS_5 & set(lang or {})):
+        return 0
+    return FIELDS_ENGINE if FIELDS_5 & set(lang or {}) else LANG_ENGINE
+
+
+def read_lang(path: Path) -> dict | None:
+    try:
+        lang = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError):
+        return None
+    return lang if isinstance(lang, dict) else None
+
+
 def add_lang(pack: Path, manifest: dict) -> None:
-    """For a pack in a script without coded rules: lang.json from data/langs, the role, and
-    minEngine 4. Nothing for a coded script, unless the manifest already names the file."""
+    """lang.json from data/langs, the role, and the minEngine its script needs. Nothing for a
+    pack in an embedded script that has no data/langs file, unless the manifest names one."""
     source = lang_source(manifest)
-    wanted = manifest["script"] not in CODED or "lang" in manifest["files"]
+    script = manifest["script"]
+    wanted = source.is_file() or script not in EMBEDDED or "lang" in manifest["files"]
     if not wanted:
         return
     name = manifest["files"].setdefault("lang", "lang.json")
     if source.is_file():
         (pack / name).write_bytes(source.read_bytes())
-    if manifest["script"] not in CODED and manifest.get("minEngine", 0) < LANG_ENGINE:
-        print(f"  minEngine {manifest.get('minEngine')} -> {LANG_ENGINE}: script {manifest['script']} "
+    needed = needed_engine(script, read_lang(pack / name))
+    if manifest.get("minEngine", 0) < needed:
+        print(f"  minEngine {manifest.get('minEngine')} -> {needed}: script {script} "
               f"has its rules in lang.json")
-        manifest["minEngine"] = LANG_ENGINE
+        manifest["minEngine"] = needed
 
 
 def lang_problems(pack: Path, manifest: dict) -> list[str]:
     """Why the pack's script rules wouldn't load, in words; empty when they would."""
     script = manifest["script"]
     name = manifest["files"].get("lang")
+    source = lang_source(manifest)
     if name is None:
-        if script in CODED:
+        if source.is_file():
+            return [f"the pack doesn't carry {source.relative_to(ROOT)} (the lang role); run --write"]
+        if script in EMBEDDED:
             return []
-        return [f"script {script} has no coded rules: the pack needs its lang.json "
-                f"(the lang role); run --write with {lang_source(manifest)}"]
-    problems = []
-    if script not in CODED and manifest.get("minEngine", 0) < LANG_ENGINE:
-        problems.append(f"minEngine must be at least {LANG_ENGINE} for script {script}, whose rules are in {name}")
+        return [f"the engine has no rules for script {script}: the pack needs its lang.json "
+                f"(the lang role); run --write with {source}"]
     path = pack / name
     if not path.is_file():
+        problems = []
+        if manifest.get("minEngine", 0) < needed_engine(script, None):
+            problems.append(f"minEngine must be at least {LANG_ENGINE} for script {script}, "
+                            f"whose rules are in {name}")
         return problems + [f"{name} (the lang role) is not in the pack"]
     try:
         lang = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, UnicodeDecodeError) as e:
-        return problems + [f"{name}: not JSON: {e}"]
+        return [f"{name}: not JSON: {e}"]
+    if not isinstance(lang, dict):
+        return [f"{name}: not a JSON object"]
+    problems = []
+    needed = needed_engine(script, lang)
+    if manifest.get("minEngine", 0) < needed:
+        uses = sorted(FIELDS_5 & set(lang))
+        why = f" and uses {', '.join(uses)}" if needed == FIELDS_ENGINE else ""
+        problems.append(f"minEngine must be at least {needed} for script {script}, "
+                        f"whose rules are in {name}{why}")
     if lang.get("script") != script:
         problems.append(f"{name} defines script {lang.get('script')!r}, the manifest says {script}")
     if not lang.get("block") and not lang.get("letters"):
         problems.append(f"{name} has no characters: give block or letters")
-    source = lang_source(manifest)
     if source.is_file() and source.read_bytes() != path.read_bytes():
         problems.append(f"{name} differs from {source.relative_to(ROOT)}, which the lexicons were built "
                         f"with; run --write")
     return problems
 
 
-# The coded scripts' blocks (engine/core/src/script: mlym.rs, deva.rs, beng.rs).
-CODED_BLOCKS = {"mlym": (0x0D00, 0x0D7F), "deva": (0x0900, 0x097F), "beng": (0x0980, 0x09FF)}
+# The embedded scripts' blocks (`block` of data/langs/ml, hi and as/lang.json), for a pack in
+# one of them that has no lang.json anywhere.
+EMBEDDED_BLOCKS = {"mlym": (0x0D00, 0x0D7F), "deva": (0x0900, 0x097F), "beng": (0x0980, 0x09FF)}
 JOINERS = "\u200c\u200d"
 
 
 def script_ranges(pack: Path, manifest: dict) -> list[tuple[int, int]]:
     """The code point ranges of the pack's script: `block` and `letters` of its lang.json (the
-    pack's copy, else data/langs/<id>/lang.json), else the coded script's block. Empty when
+    pack's copy, else data/langs/<id>/lang.json), else the embedded script's block. Empty when
     nothing says."""
     name = manifest["files"].get("lang")
     for path in ([pack / name] if name else []) + [lang_source(manifest)]:
@@ -111,7 +152,7 @@ def script_ranges(pack: Path, manifest: dict) -> list[tuple[int, int]]:
             continue  # lang_problems reports a bad file
         if ranges:
             return ranges
-    block = CODED_BLOCKS.get(manifest["script"])
+    block = EMBEDDED_BLOCKS.get(manifest["script"])
     return [block] if block else []
 
 

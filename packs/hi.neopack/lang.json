@@ -1,0 +1,24 @@
+{
+  "id": "hi",
+  "name": "Hindi",
+  "script": "deva",
+  "block": ["0900", "097F"],
+  "notWord": [["0964", "0970"]],
+  "virama": "094D",
+  "bases": [
+    ["0915", "0939"],
+    ["093C", "093C"],
+    ["0958", "095F"],
+    ["0978", "097F"]
+  ],
+  "apostrophe": false,
+  "phraseBreaks": ["।", "॥"],
+  "notes": {
+    "about": "Devanagari as the engine has always read it for Hindi. These rules were code (engine/core/src/script/deva.rs) until they became this file; the engine also carries a copy for a deva pack that has no lang file. hi.fst is built by `lexbuild --lang` from data/lang/hi.conf with these same rules, not by lexbuild-native, so the builder's keys (firstLetter, signs, maxWords, minCount) are not here.",
+    "block": "Devanagari, U+0900-U+097F. A word is a run of its letters and signs, virama and nukta included.",
+    "notWord": "The danda and double danda, the digits ०-९ and the abbreviation sign ॰ (U+0964-U+0970) are not letters.",
+    "bases": "A vowel sign can follow a consonant क-ह, a precomposed nukta letter (U+0958-U+095F: NFC decomposes them, but text may still hold one), the extra consonants at the end of the block, and a nukta after any of those.",
+    "replace": "None. The normal form is the engine's own: NFC (ज़ U+095B becomes ज + nukta, while ऩ ऱ ऴ stay single code points), ’ to ', and every ZWJ and ZWNJ dropped.",
+    "phraseBreaks": "The danda । and double danda ॥ end a phrase; next-word pairs never span one."
+  }
+}
