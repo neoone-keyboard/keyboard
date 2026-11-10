@@ -7,12 +7,14 @@ openly licensed text, then import on their phone or contribute back.
 
 This guide walks through building a pack with the tools in this repository as they work
 today. It uses the Assamese pack (`packs/as.neopack`) as the worked example, because it is
-the most recent and was built almost entirely from data. Hindi and Malayalam appear where
-they differ.
+the first that was built almost entirely from data. Tamil (`packs/ta.neopack`,
+`data/langs/ta/`) is the example of a script the engine has no coded rules for; it was built
+by following this guide. Hindi and Malayalam appear where they differ.
 
-Some steps still need a code edit or only work for certain kinds of language. The guide says
-so where it happens, and [make-a-language-gaps.md](make-a-language-gaps.md) lists each one
-with a proposed fix.
+No step needs an edit to the engine, the app or the training code. A pack is data, plus one
+short shell script that fetches its text. Some steps only work for certain kinds of language.
+The guide says so where it happens, and [make-a-language-gaps.md](make-a-language-gaps.md)
+lists each one with a proposed fix.
 
 ## Before you start: can your language be a pack today?
 
@@ -34,7 +36,8 @@ Check three things first.
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
 Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json` and need an engine 4 app
 (`minEngine` 4). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
-its র. `engine/core/tests/fixtures/gu.neopack` is a small Gujarati pack built this way.
+its র. `packs/ta.neopack` is a Tamil pack built this way, and
+`engine/core/tests/fixtures/gu.neopack` a test-sized Gujarati one.
 
 ## What a pack is
 
@@ -151,9 +154,17 @@ what they list into `data/raw/<source-id>/` and checks each file's digest. Copy
 the credits page reads `attribution`. Wikimedia publishes a sha1 for every dump file in
 `<wiki>-<date>-sha1sums.txt` in the same folder.
 
-For Aksharantar, copy `data/manifests/aksharantar-asm.json` and change the language code
-(`asm.zip` becomes, say, `mar.zip`). Aksharantar publishes no checksums, so compute the zip's
-sha256 yourself:
+For Aksharantar, copy `data/manifests/aksharantar-asm.json`. Three things change:
+
+- the language code: `id`, `name`, and `asm.zip` in `url` and `path` (to, say, `mar.zip`);
+- the prose in `verdict_reason`, `used_for`, `notes` and `status`, which describes the Assamese
+  files. Rewrite it for yours once you have counted the rows (below). People read these fields
+  and the licence audit relies on them; no tool does;
+- `extracted`, the sha256 of each unzipped file. It is a record for people, and nothing checks
+  it. Fill it in with `shasum -a 256 data/raw/aksharantar-xxx/extracted/*.json` after
+  unzipping, or leave the field out.
+
+Aksharantar publishes no checksums, so compute the zip's sha256 yourself:
 
 ```sh
 curl -L -o /tmp/mar.zip https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/mar.zip
@@ -205,7 +216,14 @@ dropped by the filter". The manual rows matter in step 4: the tables are calibra
 
 This file tells the lexicon builder what a word is, and, shipped in the pack, tells the
 engine the same: one definition for both. The engine's parser is
-`engine/core/src/script/data.rs`. Copy `data/langs/as/lang.json`:
+`engine/core/src/script/data.rs`. Copy the file nearest your script:
+
+- `data/langs/as/lang.json` for a language in the Bengali-Assamese script;
+- the Devanagari example below for a `deva` language;
+- for any other script, `data/langs/ta/lang.json` (Tamil, a full pack) or
+  `engine/core/tests/fixtures/gu.neopack/lang.json` (Gujarati, the smallest file that works).
+  Both are scripts the engine has no code for, so the file is all the engine knows. Change the
+  ranges to your block's, using its [Unicode chart](https://www.unicode.org/charts/).
 
 | Field | Meaning |
 |---|---|
@@ -213,12 +231,12 @@ engine the same: one definition for both. The engine's parser is
 | `block` | The script's Unicode block, first and last code point in hex. |
 | `letters` | More ranges of the script's characters, `[["first", "last"], …]`, for a script not in one block. `block`, `letters` or both. |
 | `notWord` | Ranges in the block that are not letters (digits, currency signs). |
-| `firstLetter` | Ranges a word may start with (vowels and consonants, not signs). Optional: any letter that isn't a sign. |
+| `firstLetter` | Ranges a word may start with: independent vowels, consonants, and any other letter that starts a written word, even if only in loanwords (Tamil lists aytham ஃ for ஃபேஸ்புக்). Never signs. A token that starts with anything else is dropped. Optional: any letter that isn't a sign. |
 | `virama` | The virama's code point. Optional. |
 | `signs`, `bases` | Vowel signs and the letters they may follow. A word with a sign after anything else is treated as mis-encoded and dropped. The keyboard shows the vowel-sign strip after a `bases` letter. Optional. |
 | `apostrophe` | `true` if an apostrophe can stand inside a word (Assamese হ'ল). |
 | `replace` | Text replacements applied before and after Unicode NFC, to fix old or wrong encodings. |
-| `phraseBreaks` | Characters that end a sentence (the danda). Next-word pairs never cross one. |
+| `phraseBreaks` | The script's own sentence-ending characters (the danda). Next-word pairs never cross one. Latin punctuation (`. , ; : ? !` and brackets) always ends a phrase, so a script that uses only that (Tamil) can leave the list out or empty. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
 
@@ -269,12 +287,24 @@ language:
   language uses against the [Unicode chart](https://www.unicode.org/charts/PDF/U0900.pdf).
 - A `notes` object (as in the Assamese file) is for people; the tools ignore it.
 
+**Finding mis-encodings.** `replace` mends text that was typed or encoded wrongly, but you can't
+list what you haven't seen. The lexicon build (step 7) shows you: `lexicon-stats.txt` lists the
+20 most frequent tokens that had a letter of your script and were still dropped as not words.
+A real word near the top of that list is usually one mistake repeated across the text. Tamil's
+ா + pulli typed for ர் (செய்தாா் for செய்தார்) is one such: a vowel sign can't carry a pulli, so
+every such word was dropped until `["ா்", "ர்"]` went into `replace`. Add the pair and build
+again. Tokens that really aren't words can stay dropped. Tamil's list today is of that kind:
+`ம் 37744, ல் 37205, … 2011ஆம் 11692, … ே 8591` are lone letters with a pulli, years glued to a
+suffix, and vowel signs cut loose in scanned books.
+
 ### 3. Get the text
 
 Write `data/build-xx-text.sh`. Copy `data/build-as-text.sh` and change the source ids, the
 dump file names and the Wikisource page namespace. It must leave plain text, one paragraph
 per line, in `data/raw/text/xx.txt` and unzip Aksharantar into
-`data/raw/aksharantar-<code>/extracted/`. Make it executable (`chmod +x`).
+`data/raw/aksharantar-<code>/extracted/`. Make it executable (`chmod +x`). Keep its
+`reset_sources`, `count_source` and `report_sources` lines (from `data/text-sources.sh`), with
+your language id and source ids: they record how many words each source gave.
 
 Wikisource keeps its proofread text in the Page namespace, not the main one, so the script
 passes `--extra-namespaces` to the extractor: a comma-separated list of namespace keys or
@@ -293,8 +323,31 @@ by hand:
 ./data/build-xx-text.sh
 ```
 
+The script ends with the words each source gave:
+
+```
+ta text by source: tawiki 35696375 words (28%), tawikisource 91188734 words (72%), tawikiquote 274299 words (0%)
+warning: tawikisource is 72% of the words, so its style will lead the lexicon and the next-word pairs. …
+```
+
+The lexicon ranks words by how often the text has them, and next-word pairs come from the same
+text. When one source is most of it (the script warns above 60%), the pack sounds like that
+source. Tamil Wikisource is mostly older literature and scanned books, so literary forms
+(`என்னும்`, `அவன்`) rank above everyday ones. If the big source is not how people write today,
+keep only part of it: thin its extract before it is added to the text, so it is no more than
+about half. In the text script, after that source is extracted and before the `cat`:
+
+```sh
+awk 'NR % 3 == 1' "$TEXT/xxws.txt.tmp" > "$TEXT/xxws.thin.tmp" && mv "$TEXT/xxws.thin.tmp" "$TEXT/xxws.txt.tmp"
+```
+
+That keeps every third paragraph. Delete `data/raw/text/xx.txt` to extract again, and say what
+you kept in the source's manifest (`used_for`). If the big source is ordinary modern prose,
+leave it whole: more text is better.
+
 The lexicon build in step 7 runs this script again, so it must be safe to re-run. The
-Assamese one skips work that is already done. This script is per language today (gap G4).
+Assamese one skips work that is already done: a second run only checks the downloads'
+checksums and prints the counts again. This script is per language today (gap G4).
 
 ### 4. Write the romanisation tables
 
@@ -341,12 +394,79 @@ would find the word (`skeleton`, `prefix`).
 
 - **Tune on the calibration numbers only.** Change the hand tables and run it again until the
   `calibration (after)` numbers stop improving.
+- **See which pairs fail.** `--misses` lists the calibration pairs the fitted tables fail on
+  (`--misses 30` for the first 30): first the ones the tables can't spell at all, then the
+  ones whose typed skeleton isn't the word's key, so the lookup would miss them.
+
+  ```
+  misses: 10 of 200 calibration pairs (4 the tables can't spell, 6 with another skeleton)
+    word	typed	canonical	key	typed skeleton	why
+    ஏழரை	yaezharai	ezharai	elarai	ielarai	does not align
+    இடமே	edame	idame	itame	etame	skeleton differs
+  ```
+
+  Each row shows what a person typed, what the tables spell, and the two keys that should
+  have been equal. Look for a kind of miss, then add the spelling or the fold that mends all
+  of that kind: Tamil's first run showed ய் typed `i` (`seithi`), which one fold (y to i)
+  fixed. Test pairs are never listed.
 - **The test numbers are held out.** They are for your pull request's description. Changing
   the tables to raise them tunes on the test set, and then they no longer say how well the
   tables do on words nobody tuned for.
 
 Without Aksharantar data, copy the hand file to `romanisation-weights.json` and skip the
 fitting (gap G6).
+
+**Few manual rows.** Assamese calibrates on 1,794 pairs. Tamil has 776 manual rows in `train`
+and none in `valid`, so it calibrates on a quarter of them: 200 pairs. Under 500 pairs the
+report says so, and three things follow:
+
+- One pair is a large step (0.5 points of 200), so don't chase a change of a pair or two. Fix
+  kinds of miss.
+- The fit can't correct what it rarely sees. A letter typed fewer than about 20 times in the
+  calibration pairs keeps mostly its hand-set weights, so the order you write is the order
+  that ships. Put the commonest spelling first yourself, from what you know of how people type.
+- Training (step 9) picks its best checkpoint by scoring on the same pairs, so that score
+  moves by a few points from one evaluation to the next, and the step it stops at is partly
+  chance. Judge the model by the held-out numbers of step 11, which use thousands of rows.
+
+You can't add your own typed pairs yet: the tools read human pairs only from Aksharantar
+(gap G6).
+
+**One letter, several sounds.** Some scripts write several sounds with one letter. Tamil has
+one letter for k, g and h (க), one for t and d (ட), one for th and dh (த), one for p and b
+(ப), and one for s, ch and j (ச). People type the sound they hear. The tables have no "at the
+start of a word", "between vowels" or "after a nasal" context (`inCluster` and `afterVirama`
+depend on the letter's place in a cluster, not on its neighbours), so do this instead, as
+`data/langs/ta/romanisation.hand.json` does:
+
+- list every spelling on the letter: `"க": [["k", 0.65], ["g", 0.3], ["h", 0.05]]`;
+- fold each group to one symbol in `skeleton`, so `magan` and `makan` share a key: g to k,
+  d to t, b to p and j to s in `letters`, and `["th", "t"]`, `["dh", "t"]`, `["ch", "s"]` in
+  `replace`;
+- where a neighbour fixes the sound, put the pair in `clusters`: a nasal and its stop (ங்க
+  `ng`, ஞ்ச `nj`, ண்ட `nd`, ந்த `nth`, ம்ப `mb`) and clusters said as one sound (ற்ற `tr`,
+  ன்ற `ndr`).
+
+Every fold puts more words under one key. Words that share a key are told apart only by
+their frequency and by how closely the typed letters match each one's canonical spelling, so a
+fold costs a little ranking for every word it merges. Add one when `--misses` shows a kind of
+spelling that never reaches the key: Tamil folds o to u because people type `oo` for both ஊ
+and ஓ. Leave it out when it would mend a pair or two: folding e to i would have caught 3 of
+Tamil's 200 pairs and merged every e and i word. After step 7, check with step 11's script
+that common words still come first.
+
+**Doubled letters.** A consonant doubled across a virama (க்க) is one slot. By default it is
+spelled with the letter's first Latin letter doubled (க `k` gives `kk`, but த `th` gives
+`tth`), or, `geminateSingle` of the time, like the single letter. When people type it another
+way (`thth` for த்த), add the doubled letter to `clusters` with its spellings: a `clusters`
+entry replaces the default.
+
+**Keys of more than one code point.** A key in `consonants` may be several code points, for a
+sound the script writes that way: Assamese's letter + nukta (য়). The longest key that matches
+is used. One limit: `finals` are matched before consonants, so a key whose first code point
+is also in `finals` is never reached. Tamil lists ஃப (`f`) and ஃஜ (`z`) in `consonants`
+and ஃ in `finals`, so ஃப is read as ஃ, then ப (`p`). Typed `f` still finds those words
+only because Tamil's skeleton folds f to p (gap G35).
 
 **What the fitting changes.** The fit reorders each option list by how often people typed it,
 so the canonical spelling (the first option) becomes the most typed one. For Marathi it
@@ -404,10 +524,13 @@ writes its checksums, and stops at the start if it is missing. Copy
   publish. The app won't install an older version over a newer one.
 - `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, 3 for a pack in a script
   other than Malayalam that has an `lm`, and 4 for a pack in any other script, which carries
-  `lang.json` (the `lang` role). Leave both to `pack.py --write` (step 10): for a script other
+  `lang.json` (the `lang` role). Write 2 and leave the rest to `pack.py --write`, which the
+  lexicon build runs at the end of step 7 (and you run again in step 10): for a script other
   than `mlym`, `deva` and `beng` it copies `data/langs/xx/lang.json` into the pack, adds
-  `"lang": "lang.json"` to `files` and raises `minEngine` to 4, and `--check` fails until it
-  has.
+  `"lang": "lang.json"` to `files` and raises `minEngine` to 4, printing `minEngine 2 -> 4:
+  script taml has its rules in lang.json`. `--check` fails until it has. So for such a script
+  the template's `"script": "deva"` becomes your code and its `"minEngine": 2` is corrected
+  for you.
 - `romanised.name` is what the typed-in-Latin form is called (Manglish, Hinglish).
 - `sha256` starts empty; the build fills it in.
 - `files` lists every file the finished pack will have, including ones not built yet
@@ -459,6 +582,25 @@ Copy `packs/as.neopack/layout.json`:
   entry must be one character. Leave it empty for no strip.
 - The app refuses a layout with another `format`, no pages, or an empty key.
 
+`pack.py --check` (step 10, and `make test-pack`) reads the layout and fails on what the app
+would refuse, on a strip entry that isn't one character, on a key, long-press option or strip
+sign that isn't in your script (punctuation is fine), and on a long-press entry for a key no
+page has. It can't tell you whether the layout is good to type on. Ask someone who types the
+language.
+
+**A small alphabet.** The pages exist because most Indic scripts have more letters than 30
+keys. Tamil has 18 consonants and 5 Grantha letters, so `letters` holds them all with room to
+spare. Then:
+
+- keep the three pages and their order anyway, so the bottom row matches other languages;
+- give `more` what is typed least: the script's own digits, rare signs, conjuncts that are
+  one key (க்ஷ, ஸ்ரீ);
+- choose each `label` to say what the page holds. "The first two letters" is only a
+  convention: Tamil's `more` page starts with digits, so that rule gives `௧௨`, which is a
+  fair label for a page of digits and signs;
+- use the spare keys on `letters` for what people reach for most (the pulli, aytham), not for
+  a second copy of the vowels.
+
 ### 7. Build the lexicons
 
 ```sh
@@ -479,9 +621,22 @@ Before any of that it checks for what earlier steps make, and stops with a list 
 missing: `data/build-xx-text.sh` (step 3), `data/langs/xx/romanisation-weights.json`
 (step 4) and `packs/xx.neopack/manifest.json` (step 5).
 
-Read `data/langs/xx/lexicon-stats.txt` afterwards. The top 20 words should be the language's
-common short words. If they are not, fix `lang.json`. Marathi's started `आहे आणि व या हे ते
-एक हा नाही`.
+Read `data/langs/xx/lexicon-stats.txt` afterwards:
+
+- `xx top 20` should be the language's common short words. If they are not, fix `lang.json`.
+  Marathi's started `आहे आणि व या हे ते एक हा नाही`.
+- `xx dropped top 20` lists the most frequent tokens that had a letter of the script and were
+  dropped as not words, each with its count. Look for real words in it: see "Finding
+  mis-encodings" in step 2.
+- `xx text by source` repeats step 3's words per source, for whoever reviews the pack.
+
+The romanised-keys step prints a line such as `299,999 keys for 300,000 words`, and under it
+the words that got no key. Such a word's skeleton is empty: the tables have no spelling for
+its letters, or every letter folds away. Latin typing can't reach it; the native keyboard
+can. One or two rare words are fine. Many means a letter is missing from the tables.
+
+For a script other than `mlym`, `deva` and `beng`, the build's last step (`pack.py --write`)
+also copies `lang.json` into the pack and sets `minEngine` to 4 (see step 5).
 
 Every build exports `romanisation.json` again from the tables, so fix its notes in the hand
 file (step 4), not in the exported file.
@@ -525,13 +680,29 @@ This:
    The pairs are data: the first five rows of `data/eval/xx/translit-human.tsv`, or, if you
    would rather choose them, `"reference": [["latin", "native"], …]` in
    `data/langs/xx/lang.json` (Assamese does). No code edit is needed;
-4. prints held-out accuracy (`python -m mlkb.langs.eval_translit`), the model alone, top-1 and
-   top-3. Assamese scored 57.7% / 72.4% over all test rows and 73.7% / 85.7% on common words;
+4. prints held-out accuracy (`python -m mlkb.langs.eval_translit`), the model alone: one line
+   for all rows and one per section of the held-out set (`AK-Freq` common words, `AK-NEI`
+   Indian names, `AK-NEF` foreign names), each with top-1 and top-3, and the same again with
+   the lexicon's words moved first. Tamil's lines:
+
+   ```
+   all       4,648 pairs (49.8% of targets in the lexicon)  model alone: top-1 56.0%  top-3 71.2%  lexicon-first: top-1 57.8%  top-3 72.6%
+   AK-Freq   2,603 pairs (56.7% of targets in the lexicon)  model alone: top-1 78.9%  top-3 89.5%  lexicon-first: top-1 78.1%  top-3 89.9%
+   AK-NEF      829 pairs (38.5% of targets in the lexicon)  model alone: top-1 26.7%  top-3 45.4%  lexicon-first: top-1 29.9%  top-3 49.2%
+   AK-NEI    1,216 pairs (42.7% of targets in the lexicon)  model alone: top-1 27.0%  top-3 49.6%  lexicon-first: top-1 33.3%  top-3 51.5%
+   ```
+
+   Assamese scored 57.7% / 72.4% over all rows. Names score far below common words in every
+   language so far: annotators typed them in their source spelling (`harbhajan`), which the
+   script may not be able to carry;
 5. copies the model into the pack and updates the checksums.
 
 Training runs up to 100,000 steps and stops early when validation stops improving: about an
-hour for Assamese on an M5 Max, longer on a slower Mac or with another job on the GPU (see
-Prerequisites). For a first try, train a short run:
+hour for Assamese and for Tamil on an M5 Max, longer on a slower Mac or with another job on
+the GPU (see Prerequisites). Each evaluation prints its score and either `(best, saved)` or
+`(no gain 2/5; best 0.8507)`: evaluations since the best one, how many end the run, and the
+best score so far. A score can be above the one before it and still be "no gain", because it
+is compared with the best. For a first try, train a short run:
 
 ```sh
 make pack-models PACK_LANG=xx TRANSLIT_STEPS=6000
@@ -547,7 +718,7 @@ the full run.
 
 ```sh
 python3 -I scripts/pack.py packs/xx.neopack --write   # fill in sha256 for every listed file
-python3 -I scripts/pack.py packs/xx.neopack --check   # fails if any checksum is stale
+python3 -I scripts/pack.py packs/xx.neopack --check   # fails on a stale checksum, bad script rules or a bad layout
 ```
 
 Run `--write` after every change to a file in the pack. A stale checksum makes the app refuse
@@ -604,15 +775,55 @@ plausible spelling.
 The script stops if the manifest lists a file the folder doesn't have, because the engine
 would load the pack without it and say nothing.
 
-For numbers, rerun the transliterator's held-out accuracy:
+**Numbers.** Measure the pack as the keyboard uses it. This types every Latin word of your
+held-out set (`data/eval/xx/translit-human.tsv`) into the engine, first with the lexicons only
+and then with the transliterator, and takes about 20 seconds:
 
 ```sh
 cd training
+uv run python -m mlkb.eval.pack --lang xx
+```
+
+Tamil's output:
+
+```
+ta.neopack 2026.11.10: 4,648 held-out pairs of translit-human.tsv, typed into the engine
+lexicons only: sources ['english', 'ta:lexicon', 'ta:romanised', 'ta:next_words']
+lexicons only            all       4,648 pairs  top-1 33.1%  in bar 34.5%  first slot 8.7%  none 55.2%
+lexicons only            AK-Freq   2,603 pairs  top-1 50.8%  in bar 52.5%  first slot 13.7%  none 40.8%
+lexicons only            AK-NEF      829 pairs  top-1 1.6%  in bar 1.6%  first slot 0.2%  none 92.9%
+lexicons only            AK-NEI    1,216 pairs  top-1 16.6%  in bar 18.5%  first slot 3.7%  none 60.6%
+with the transliterator: sources ['english', 'ta:lexicon', 'ta:romanised', 'ta:next_words', 'ta:translit']
+with the transliterator  all       4,648 pairs  top-1 44.0%  in bar 48.6%  first slot 23.4%  none 18.5%
+with the transliterator  AK-Freq   2,603 pairs  top-1 64.4%  in bar 70.8%  first slot 37.3%  none 1.4%
+with the transliterator  AK-NEF      829 pairs  top-1 10.5%  in bar 10.6%  first slot 0.5%  none 62.6%
+with the transliterator  AK-NEI    1,216 pairs  top-1 23.4%  in bar 27.1%  first slot 9.2%  none 25.0%
+```
+
+- `top-1`: the first native-script suggestion is the word. The other slots of the bar hold
+  the typed text and English words, so this is the pack's best guess whatever English does.
+- `in bar`: the word is one of the three suggestions.
+- `first slot`: the word is the first suggestion, the one space commits.
+- `none`: the bar offered nothing in your script.
+
+Check that the `sources` line of the second run names `xx:translit`: a model that doesn't fit
+the pack is left out silently, and the two runs then print the same numbers. The transliterator
+should raise every row. For scale, Assamese scores 34.1% / 36.3% (top-1 / in bar) with the
+lexicons only and 51.5% / 56.5% with the transliterator. `--pack` and `--set` run a pack folder
+or a set elsewhere, `--json OUT` writes the numbers, and it works for any pack (`--lang hi`).
+
+The transliterator alone, without the engine's lexicon search and ranking, is step 9's eval:
+
+```sh
 uv run --group train python -m mlkb.langs.eval_translit --lang xx --model ../packs/xx.neopack/translit.mlkbnn
 ```
 
+The two measure different things, and the engine's top-1 can be the lower one (Tamil: 44.0%
+in the engine, 56.0% for the model alone). That gap is in the engine, not in your pack; it is
+being looked at separately. Report both.
+
 The full evaluation (`python -m mlkb.eval`: transliteration, next words, English no-harm, with
-baselines) has entries for Malayalam and Hindi only (gap G11).
+baselines and gates) has entries for Malayalam and Hindi only (gap G11).
 
 ### 12. Optional: a neural language model
 
@@ -680,15 +891,31 @@ Open a pull request with:
 - `data/eval/xx/translit-human.tsv`;
 - `packs/xx.neopack/` with every file and up-to-date checksums;
 - in the description: the calibrate report (where its calibration pairs came from, and the
-  held-out test numbers you didn't tune on), the transliterator's held-out accuracy and how
-  many steps it trained, a few typed examples and their suggestions (one out of the lexicon),
+  held-out test numbers you didn't tune on), the output of `python -m mlkb.eval.pack --lang xx`
+  (step 11), the transliterator's held-out accuracy and how many steps it trained, a few typed
+  examples and their suggestions (one out of the lexicon), the words per source from step 3,
   and who checked the layout and the spellings (ideally a native speaker).
 
 Leave out `training/build/` and `data/raw/`. They are large and anyone can rebuild them.
 
-`make test-data` checks every pack's checksums, then checks that the published site lists
-every pack in `packs/`. That second check fails until a maintainer runs `make site-packs`,
-which publishes the language. Leave it to them.
+Before you open it, run every check of your pack:
+
+```sh
+make test-pack PACK_LANG=xx
+```
+
+It checks the pack's checksums, script rules and layout (`pack.py --check`), that the engine
+opens the pack and loads every file the manifest lists, that every lexicon word is in your
+script's normal form, and that every romanised key is the one your tables give
+(`engine/core/tests/pack_check.rs`); then the checks that cover all packs. It ends with
+`test-pack: packs/xx.neopack passes`. Also run `make test-engine` and `make golden-check`,
+which must print `golden: identical` and `golden ml-only: identical`: a new pack changes
+nothing for the others.
+
+Two checks fail for a pack that isn't published yet, and both are for a maintainer to clear
+with `make site-packs`, which publishes the language: the last step of `make test-data`
+(`publish-packs.py --check`: "out of date: packs/index.json"), which runs after every other
+check there, and `PackIndexTests` in `make test-swift`. Leave them.
 
 ## Host your own packs
 
