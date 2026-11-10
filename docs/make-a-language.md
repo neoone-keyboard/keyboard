@@ -492,6 +492,17 @@ published before the field, with Malayalam's three habits above. Measure a chang
 and the first slot from 24.8% to 25.0%; dropping the field's vowel folds cost Hindi a point of
 first slot.
 
+**Swiping romanised words.** A swipe over the Latin keys is matched against the skeletons of
+your romanised lexicon, and the rules for that come from your skeleton, with nothing to write:
+a skeleton letter may be drawn through every letter the skeleton folds into it (Tamil's `k`
+through `g` and `q`, its `s` through `c` and `j`; Hindi's `t` only through `t`), the finger
+may pass through `h` after a letter that a pattern ending in `h` folds to (`th` to `t`), and it
+may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
+`dropFinalVowel`). If the derived lists are wrong for your language, a `swipe` section in
+`romanisation.json` overrides the last two: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
+(Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
+step 7 and run `scripts/pack.py --write` again.
+
 **Doubled letters.** A consonant doubled across a virama (க்க) is one slot. By default it is
 spelled with the letter's first Latin letter doubled (க `k` gives `kk`, but த `th` gives
 `tth`), or, `geminateSingle` of the time, like the single letter. When people type it another

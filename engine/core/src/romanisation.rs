@@ -32,6 +32,17 @@ struct Raw {
     skeleton: RawSkeleton,
     #[serde(default)]
     loose_spelling: Option<RawLoose>,
+    #[serde(default)]
+    swipe: Option<RawSwipe>,
+}
+
+/// `swipe`: each part optional, derived from the skeleton when absent.
+#[derive(Deserialize)]
+struct RawSwipe {
+    #[serde(default)]
+    aspirated: Option<String>,
+    #[serde(default)]
+    trail: Option<String>,
 }
 
 /// `looseSpelling`: every part optional.
@@ -188,10 +199,48 @@ impl Loose {
 
 const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
 
+/// The swipe rules of a skeleton. A skeleton letter is drawn through its own key and through
+/// every letter the skeleton folds into it: a `singles` letter that becomes it, and the first
+/// letter of a `pairs` pattern that does (`gh` → `k`: the finger starts on `g`). Unless the
+/// file's `swipe` section says otherwise, the letters an `h` may follow are those a pattern
+/// ending in `h` becomes (`th` → `t`), and the letters drawn after the skeleton's end are the
+/// ones it drops there (`dropTrailing.letters` and `dropFinalVowel.vowels`).
+fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swipe::SkeletonRules, String> {
+    let mut also: Vec<(u8, u8)> = Vec::new();
+    for (typed, symbol) in LETTERS.iter().zip(&skeleton.singles) {
+        if let Some([letter]) = symbol.as_deref() {
+            also.push((*letter, *typed));
+        }
+    }
+    let mut aspirated: Vec<u8> = Vec::new();
+    for (pattern, symbol) in &skeleton.pairs {
+        if let [letter] = symbol[..] {
+            also.push((letter, pattern[0]));
+        }
+        if let (Some(b'h'), Some(&last)) = (pattern.last(), symbol.last())
+            && pattern.len() > 1
+            && last != b'h'
+        {
+            aspirated.push(last);
+        }
+    }
+    let mut trail = skeleton.trailing.clone();
+    trail.extend(&skeleton.final_vowels);
+    let (said_aspirated, said_trail) = raw.map_or((None, None), |r| (r.aspirated, r.trail));
+    if let Some(said) = said_aspirated {
+        aspirated = ascii_letters(&said, "swipe aspirated")?;
+    }
+    if let Some(said) = said_trail {
+        trail = ascii_letters(&said, "swipe trail")?;
+    }
+    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail))
+}
+
 /// A loaded `romanisation.json`.
 #[derive(Debug)]
 pub struct Romanisation {
     loose: Loose,
+    swipe: crate::swipe::SkeletonRules,
     script: String,
     virama: Vec<char>,
     inherent: String,
@@ -267,8 +316,10 @@ impl Romanisation {
             Some(raw) => Loose::from_raw(raw)?,
             None => Loose::before_the_field(),
         };
+        let swipe = swipe_rules(&skeleton, raw.swipe)?;
         Ok(Self {
             loose,
+            swipe,
             script: raw.script,
             virama: nfc(&raw.virama).chars().collect(),
             inherent: raw.inherent,
@@ -418,6 +469,11 @@ impl Romanisation {
             out.pop();
         }
         String::from_utf8(out).unwrap_or_default()
+    }
+
+    /// What the skeleton means for a swipe over the Latin keys (`swipe::decode`).
+    pub fn swipe_rules(&self) -> &crate::swipe::SkeletonRules {
+        &self.swipe
     }
 
     /// Lower-case letters with the spellings the pack's `looseSpelling` calls the same made

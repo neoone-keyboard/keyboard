@@ -1111,7 +1111,7 @@ impl Engine {
         };
         let mut out: Vec<Candidate> = Vec::new();
         if let Some(en) = self.english() {
-            for f in swipe::decode(en, &map, &path, false) {
+            for f in swipe::decode(en, &map, &path, None) {
                 let Ok(text) = String::from_utf8(f.key) else {
                     continue;
                 };
@@ -1127,20 +1127,23 @@ impl Engine {
                 });
             }
         }
-        for (lang, mg, base) in self.packs_active().filter_map(|(lang, p)| {
+        // A pack's skeletons are drawn through the keys its own tables fold into each letter.
+        let plain = swipe::SkeletonRules::default();
+        for (lang, mg, base, rules) in self.packs_active().filter_map(|(lang, p)| {
+            let rules = p.romanisation.as_ref().map_or(&plain, |r| r.swipe_rules());
             p.romanised
                 .as_ref()
-                .map(|mg| (lang, mg, *p.rules.block().start()))
+                .map(|mg| (lang, mg, *p.rules.block().start(), rules))
         }) {
             let bias = priors.get(lang);
-            for f in swipe::decode(mg, &map, &path, true)
+            for f in swipe::decode(mg, &map, &path, Some(rules))
                 .into_iter()
                 .take(swipe::SKELETONS)
             {
                 let Ok(skeleton) = std::str::from_utf8(&f.key) else {
                     continue;
                 };
-                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key));
+                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key, rules));
                 for (text, count) in manglish::same_skeleton(mg, skeleton, base)
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)
