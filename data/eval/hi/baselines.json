@@ -1,0 +1,39 @@
+{
+  "chat_golden": null,
+  "human": {
+    "top1": 0.301,
+    "top3": 0.6505,
+    "n": 2000
+  },
+  "english_wrong_rate": 0.0016,
+  "english_wrong": 3,
+  "english_typos": {
+    "top1": 0.875,
+    "top3": 0.9716,
+    "n": 176
+  },
+  "english_typos_context": {
+    "top1": 0.904,
+    "top3": 0.976,
+    "n": 125
+  },
+  "next_en": {
+    "top1": 0.1231,
+    "top3": 0.2348,
+    "ks": 0.2721,
+    "n": 1576
+  },
+  "next_hi": {
+    "top1": 0.186,
+    "top3": 0.295,
+    "ks": 0.3838,
+    "n": 8279
+  },
+  "next_hinglish": {
+    "top1": 0.2084,
+    "top3": 0.3261,
+    "ks": 0.2945,
+    "n": 10051
+  },
+  "engine": "m3b"
+}

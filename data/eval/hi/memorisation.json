@@ -1,0 +1,117 @@
+{
+  "model": "lm-hi.mlkbnn",
+  "model_sha256": "7b3e8327b8c0e8c6393cc99906227c55cecf182e1cbf2234b9ac16b5eefb0da4",
+  "prompts": 2000,
+  "prompts_per_source": {
+    "en-wiki": 500,
+    "en-simple": 500,
+    "hiwiki": 500,
+    "hiwikisource": 500
+  },
+  "generations": 6000,
+  "prompt_tokens": 32,
+  "generated_tokens": 64,
+  "runs": [
+    {
+      "temperature": 0.0,
+      "seed": 0
+    },
+    {
+      "temperature": 0.7,
+      "seed": 1
+    },
+    {
+      "temperature": 0.7,
+      "seed": 2
+    }
+  ],
+  "window": 16,
+  "indexed_windows": 1071390910,
+  "limit": 50,
+  "continuation": {
+    "max": 8,
+    "p99": 3.0,
+    "histogram": {
+      "0-9": 6000,
+      "10-19": 0,
+      "20-29": 0,
+      "30-39": 0,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "corpus": {
+    "max": 34,
+    "p99": 18.0,
+    "histogram": {
+      "0-9": 5823,
+      "10-19": 146,
+      "20-29": 29,
+      "30-39": 2,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "loop_distinct": 4,
+  "corpus_not_loops": {
+    "max": 34,
+    "p99": 18.0,
+    "histogram": {
+      "0-9": 5823,
+      "10-19": 146,
+      "20-29": 29,
+      "30-39": 2,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "worst_by_source": {
+    "en-wiki": 26,
+    "en-simple": 34,
+    "hiwiki": 30,
+    "hiwikisource": 24
+  },
+  "runs_over_half_the_limit": 4,
+  "loops_over_half_the_limit": 0,
+  "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from English and Hindi Wikipedia and Hindi Wikisource (Wikipedia and Wikisource contributors).",
+  "longest": [
+    {
+      "run": 34,
+      "distinct_tokens_in_run": 8,
+      "loop": false,
+      "source": "en-simple",
+      "temperature": 0.0,
+      "prompt": "electricity board has lost 25.5 billion rupees in 2011, and run up debts of 121 billion rup",
+      "generated": "ees. 2011, 2012, 2013, 2014, 2016, 2016, 2016, 2016, 2017, 2017,"
+    },
+    {
+      "run": 30,
+      "distinct_tokens_in_run": 7,
+      "loop": false,
+      "source": "hiwiki",
+      "temperature": 0.7,
+      "prompt": "\u0939\u0948\u0964 \u0915\u094d\u0935\u0948\u091f\u0947\u0902\u0921\u0940\u090f\u0938\u0938\u0940\u0908, \u0906\u0927\u093f\u0915\u093e\u0930\u093f\u0915 \u0915\u0949\u0932\u0947\u091c\u093f\u090f\u091f \u0915\u094d\u0935\u093f\u091c\u093c \u0915\u094d\u0932\u092c, \u0907\u0902\u091f\u0930-\u0915\u0949\u0932\u0947\u091c \u0915\u094d\u0935\u093f\u091c\u093c \u0915\u0947 \u0938\u094d\u0915\u094b\u0930 \u0915\u093e \u0906\u092f\u094b\u091c\u0928 \u0915\u0930\u0924\u093e",
+      "generated": "\u0939\u0948\u0964 covering 22400 \u0938\u0947 \u0905\u0927\u093f\u0915 \u0938\u0926\u0938\u094d\u092f \u0939\u0948\u0902, \u0914\u0930 2927, 2011, 2012, 2013, 2017, 2024, 2020, 2021,"
+    },
+    {
+      "run": 29,
+      "distinct_tokens_in_run": 7,
+      "loop": false,
+      "source": "hiwiki",
+      "temperature": 0.0,
+      "prompt": "\u092e\u0947\u0902 \u0936\u093f\u0915\u094d\u0937\u093e \u0917\u094d\u0930\u0939\u0923 \u0915\u0930 \u0930\u0939\u0947 \u0939\u0948\u0902\u0964 \u092f\u0947 \u092f\u0942\u0928\u093f\u0938\u0928 \u0917\u094d\u0930\u0941\u092a \u0915\u0940 \u0938\u092c\u0938\u0947 \u092c\u0921\u093c\u0940 \u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e \u0925\u0940\u0964 \u0917\u094d\u0930\u0941\u092a \u0915\u0940 \u0905\u0928\u094d\u092f \u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e\u092f\u0947\u0902 \u0939\u0948\u0902 \u0906\u0908 \u090f\u092e \u090f\u0938, \u0926\u0947\u0939\u0930\u093e\u0926\u0942\u0928",
+      "generated": ", 2011, 2012, 2013, 2014, 2014, 2016, 2016, 2016, 2016, 2017, 20"
+    },
+    {
+      "run": 26,
+      "distinct_tokens_in_run": 8,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "even though fascism \"maintained the existing regime of property and social hierarchy\", it cannot be considered \"simply a more",
+      "generated": "difficult means\". 1968, 1979, 1977, 1981, 1988, 1983, 1993, 1996, 1999, 2001,"
+    }
+  ],
+  "longest_loops": [],
+  "pass": true
+}

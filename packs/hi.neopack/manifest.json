@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "hi",
-  "version": "2026.11.06",
+  "version": "2026.11.10",
   "name": "Hindi",
   "nativeName": "हिन्दी",
   "script": "deva",
   "romanised": {
     "name": "Hinglish"
   },
-  "minEngine": 2,
+  "minEngine": 3,
   "englishFingerprint": "9a50d0c85c79a0df",
   "files": {
     "lexicon": "hi.fst",
@@ -16,12 +16,14 @@
     "nextWords": "next.fst",
     "romanisation": "romanisation.json",
     "translit": "translit.mlkbnn",
+    "lm": "lm.mlkbnn",
     "layout": "layout.json"
   },
   "sha256": {
     "hi.fst": "1fa9ba05a26839017e585fc919e1c61c5a9de2acbca775ed6c6659a31b0b4326",
     "hinglish.fst": "076dbc09ba71858f536189c0824357d7dbdd5e5779d5a43e3654da6a2186dea9",
     "layout.json": "61d03b93eb91ff250fa3f2f1f82710044ded0d3e1f5e12a09a8721a4ab7c359d",
+    "lm.mlkbnn": "7b3e8327b8c0e8c6393cc99906227c55cecf182e1cbf2234b9ac16b5eefb0da4",
     "next.fst": "85e761bd0eef7bc142ad7f1e76233d2d911b4a91000a0628d0b7d127bc94ee2f",
     "romanisation.json": "356c2a2878b4558b544d97318184c672883f63121609bfea409d9c83a26b6ece",
     "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
@@ -51,6 +53,27 @@
       "name": "English Wikipedia",
       "licence": "CC BY-SA 4.0",
       "url": "https://en.wikipedia.org/"
+    },
+    {
+      "name": "Simple English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://simple.wikipedia.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Text of Simple English Wikipedia articles by Wikipedia contributors, used to train the language model. https://simple.wikipedia.org/"
+    },
+    {
+      "name": "English Wikinews",
+      "licence": "CC BY 2.5 and CC BY 4.0",
+      "url": "https://en.wikinews.org/",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "attribution": "News articles from English Wikinews, by Wikinews contributors. This work may be attributed to 'Wikinews'. Used to train the language model. https://en.wikinews.org/"
+    },
+    {
+      "name": "Project Gutenberg",
+      "licence": "Public domain",
+      "url": "https://www.gutenberg.org/",
+      "licenceUrl": "https://www.gutenberg.org/",
+      "attribution": "Public-domain texts from Project Gutenberg, used to train the language model. https://www.gutenberg.org/"
     }
   ]
 }
