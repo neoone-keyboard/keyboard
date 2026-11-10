@@ -1,15 +1,15 @@
 {
   "chat_golden": null,
   "human": {
-    "top1": 0.1225,
-    "top3": 0.568,
+    "top1": 0.301,
+    "top3": 0.6505,
     "n": 2000
   },
   "english_wrong_rate": 0.0016,
   "english_wrong": 3,
   "english_typos": {
-    "top1": 0.892,
-    "top3": 0.9659,
+    "top1": 0.875,
+    "top3": 0.9716,
     "n": 176
   },
   "english_typos_context": {
@@ -20,7 +20,7 @@
   "next_en": {
     "top1": 0.0838,
     "top3": 0.1561,
-    "ks": 0.1964,
+    "ks": 0.1956,
     "n": 1576
   },
   "next_hi": {
@@ -32,7 +32,7 @@
   "next_hinglish": {
     "top1": 0.1495,
     "top3": 0.2596,
-    "ks": 0.2466,
+    "ks": 0.2451,
     "n": 10051
   },
   "engine": "m3a"
