@@ -8,8 +8,9 @@ use std::path::PathBuf;
 use mlengine_core::lexicon::Lexicon;
 use mlengine_core::lm_context::LmWeights;
 use mlengine_core::nn::tokenizer::{BOS, flag};
+use mlengine_core::nn::translit::Search;
 use mlengine_core::nn::{Cache, LmScratch};
-use mlengine_core::{Engine as Core, Kind, Layout, PackPaths, Paths, rank};
+use mlengine_core::{Engine as Core, Kind, Layout, PackPaths, Paths, Sources, manglish, rank, script};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -22,6 +23,9 @@ use pyo3::prelude::*;
 struct Engine {
     core: Core,
     pack: String,
+    /// The same files opened again, for the stage-by-stage methods (`lookup`, `model`, ...):
+    /// the engine keeps its own private.
+    parts: Sources,
 }
 
 #[pymethods]
@@ -57,15 +61,77 @@ impl Engine {
             lm,
             ..PackPaths::new(pack, script)
         };
+        let paths = Paths {
+            english,
+            english_next: None,
+            packs: vec![paths],
+            user_dir: None,
+        };
         Engine {
-            core: Core::open(&Paths {
-                english,
-                english_next: None,
-                packs: vec![paths],
-                user_dir: None,
-            }),
+            core: Core::open(&paths),
             pack: pack.to_string(),
+            parts: Sources::open(&paths),
         }
+    }
+
+    /// The pack's words the skeleton lookup finds for a typed Latin word, as the engine's
+    /// romanised search sees them: (word, log probability, skeleton letters missing, edit
+    /// distance, spelled). For `mlkb.langs.eval_pack`.
+    fn lookup(&self, typed: &str) -> Vec<(String, f32, usize, usize, bool)> {
+        let Some((r, lex)) = self.parts.packs.first().and_then(|p| {
+            Some((p.romanisation.as_ref()?, p.romanised.as_ref()?))
+        }) else {
+            return Vec::new();
+        };
+        manglish::lookup(r, lex, typed)
+            .into_iter()
+            .map(|m| (m.word, m.log_prob, m.missing, m.distance, m.spelled))
+            .collect()
+    }
+
+    /// The transliterator's spellings of `latin` (lower-case letters) as the engine searches
+    /// them: up to `width` held to the pack's lexicon, and the free beam's one when `free`;
+    /// (text, score per token, in the lexicon), best first.
+    fn model(&self, latin: &str, width: usize, free: bool) -> Vec<(String, f32, bool)> {
+        let Some((model, pack)) = self
+            .parts
+            .packs
+            .first()
+            .and_then(|p| Some((p.translit.as_ref()?, p)))
+        else {
+            return Vec::new();
+        };
+        let search = Search {
+            width,
+            free,
+            deadline: None,
+        };
+        model
+            .search(latin, &pack.lexicon, &[], &search)
+            .0
+            .into_iter()
+            .map(|t| (t.text, t.score, t.in_lexicon))
+            .collect()
+    }
+
+    /// The log probability of `word` in the pack's lexicon, if it is there.
+    fn lexicon_log_prob(&self, word: &str) -> Option<f32> {
+        let lex = &self.parts.packs.first()?.lexicon;
+        lex.get(word.as_bytes()).map(|count| lex.log_prob(count))
+    }
+
+    /// Whether `word`, as spelled, is in the English lexicon (for a lower-case word, the
+    /// engine then never asks the transliterator about it).
+    fn is_english(&self, word: &str) -> bool {
+        self.parts
+            .english
+            .as_ref()
+            .is_some_and(|lex| lex.get(word.as_bytes()).is_some())
+    }
+
+    /// The engine's normal form of a word (`script::normalize_word`).
+    fn normalize(&self, word: &str) -> String {
+        script::normalize_word(word)
     }
 
     /// Suggestions for the text before the cursor, in bar order (the middle
