@@ -84,6 +84,20 @@ private func entry(_ id: String, _ version: String, fingerprint: String? = base,
     #expect(offers.map(\.offered.version) == ["3"])
 }
 
+/// The site keeps Hindi 2026.11.06 (engine 2) in the index beside 2026.11.10 (engine 3), in
+/// that order or the other: an engine 3 app with 2026.11.06 is offered 2026.11.10, an engine 2
+/// app is offered nothing.
+@Test func anEntryKeptForOlderEnginesIsNotAnUpdateButTheNewestIs() {
+    let have = [installed("hi", "2026.11.06")]
+    let kept = [entry("hi", "2026.11.10", minEngine: 3), entry("hi", "2026.11.06", minEngine: 2)]
+    for available in [kept, kept.reversed()] {
+        let three = PackSupport(format: 1, engine: 3, scripts: ["deva"])
+        let offers = PackUpdates.offers(installed: have, available: available, englishFingerprint: base, support: three)
+        #expect(offers == [PackOffer(id: "hi", installedVersion: "2026.11.06", offered: kept[0], reason: .newerVersion)])
+        #expect(PackUpdates.offers(installed: have, available: available, englishFingerprint: base, support: support).isEmpty)
+    }
+}
+
 @Test func aPackNotInstalledIsNotAnUpdate() {
     #expect(PackUpdates.offers(installed: [], available: [entry("hi", "1")], englishFingerprint: base, support: support).isEmpty)
 }

@@ -158,17 +158,12 @@ final class LanguagesModel {
         reload()
     }
 
-    /// The index's packs this build reads that the user doesn't have, best version per id.
+    /// The index's packs this build reads that the user doesn't have, the newest version it
+    /// reads per id (the index may also list older versions kept for older engines).
     var downloadable: [PackIndex.Entry] {
         guard case .loaded(let index) = index else { return [] }
         let have = Set(rows.map(\.id))
-        let support = InstalledPacks.support
-        var best: [String: PackIndex.Entry] = [:]
-        for entry in index.packs where !have.contains(entry.id) && entry.isReadable(by: support) {
-            if let other = best[entry.id], !(PackVersion(other.version) < PackVersion(entry.version)) { continue }
-            best[entry.id] = entry
-        }
-        return best.values.sorted { $0.name < $1.name }
+        return index.newest(readableBy: InstalledPacks.support).filter { !have.contains($0.id) }
     }
 
     func offer(for id: String) -> PackOffer? { offers.first { $0.id == id } }
