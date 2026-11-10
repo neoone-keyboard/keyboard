@@ -461,6 +461,37 @@ and ஓ. Leave it out when it would mend a pair or two: folding e to i would hav
 Tamil's 200 pairs and merged every e and i word. After step 7, check with step 11's script
 that common words still come first.
 
+**Spellings that spell the same word: `looseSpelling`.** The skeleton only finds candidates.
+To rank them, the engine asks whether the typed letters spell a word out: are they its
+canonical spelling, up to the differences your language's typists don't hear? A word spelled
+out beats one the letters only resemble, and may replace an English word. Those differences
+are the hand file's `looseSpelling` (the export copies it into `romanisation.json`):
+
+```json
+"looseSpelling": {
+  "singles": {"d": "t"},
+  "pairs": [["ee", "i"], ["oo", "u"]],
+  "collapse": "aiu"
+}
+```
+
+- `singles`: a letter read as another. Malayalam has `d` as `t` (ട is typed either way:
+  `veedu` for വീട്, canonical `veetu`). Tamil has `d`, `g`, `b`, `j` as `t`, `k`, `p`, `s`, one
+  letter each in its script. Hindi and Assamese have none: द and त are different letters, so
+  `dal` must not count as spelling ताल.
+- `pairs`: two letters in a row read as one letter (`ee` as `i`, `oo` as `u`).
+- `collapse`: letters that count once however often they repeat (`aa` as `a`). Leave
+  consonants out when a doubled consonant is another word (Malayalam `veedu` / `vittu`).
+
+Every part is optional; `{}` means only the same letters spell the word. Keep it narrower than
+the skeleton: a fold here stops the typed letters from telling two words apart. Without the
+field in the hand file the export writes `{}`. `scripts/pack.py --check` fails on a
+`romanisation.json` that lacks it, because the engine reads such a file as it read the packs
+published before the field, with Malayalam's three habits above. Measure a change with step
+11's `mlkb.eval.pack`: Tamil's voiced letters moved its held-out top-1 from 47.8% to 47.9%
+and the first slot from 24.8% to 25.0%; dropping the field's vowel folds cost Hindi a point of
+first slot.
+
 **Doubled letters.** A consonant doubled across a virama (க்க) is one slot. By default it is
 spelled with the letter's first Latin letter doubled (க `k` gives `kk`, but த `th` gives
 `tth`), or, `geminateSingle` of the time, like the single letter. When people type it another

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ta",
-  "version": "2026.11.10",
+  "version": "2026.11.12",
   "name": "Tamil",
   "nativeName": "தமிழ்",
   "script": "taml",
@@ -22,7 +22,7 @@
     "lang.json": "921de21419e75521bd4a3432f41b24958fd24633c2db0593c2ab8c6d83c7e2a8",
     "layout.json": "c630694441dc112d55d5b3010f9827cf4e0323db7f5ce5f580c2a634da7ff7e7",
     "next.fst": "e7b834bbc3fbb57a07190cc92a0b5b0af989b504401ba33e7b00bbfe342c1ee0",
-    "romanisation.json": "3647b0520c7b5fb9e4282d37767285847f76e799c2d106322f56ff3692a2b44a",
+    "romanisation.json": "f7a75a7fc61c281fef3dafae4fd31f02140abc896244ff5f933a202b0ed91af3",
     "romanised.fst": "266a6b080f4ff1c7d872c1b643d208166238ff288382e098318db398fe677e7f",
     "ta.fst": "8dd124f282787d395412066aa25a0e376aed7c798d6f6c94836d9aa717a1e62d",
     "translit.mlkbnn": "76e5fee4b71668dd2f3e8ae810d146c38f1e24bb7056a05dc54c446aba1305a6"

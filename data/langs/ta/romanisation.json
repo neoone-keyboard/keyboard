@@ -110,5 +110,15 @@
       "minLength": 3
     }
   },
+  "looseSpelling": {
+    "singles": {
+      "d": "t",
+      "g": "k",
+      "b": "p",
+      "j": "s"
+    },
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
   "notes": "voicing: Tamil has one letter for each stop, voiced or not: க is k in கண், g in தங்கம், often h or g between vowels (மகன் magan). People type what they hear, so every stop has both spellings (க k/g, ச s/ch/j, ட t/d, த th/dh/t/d, ப p/b), and the skeleton folds each pair to one symbol (g to k, d to t, dh and th to t, b to p, j and ch to s). The format has no 'between vowels' context, so the weights are an average over positions; the pairs after a nasal and the doubled stops, where the sound is fixed, are listed in clusters (ங்க ng, ஞ்ச nj, ண்ட nd, ந்த nth/ndh, ம்ப mb; க்க kk, ச்ச ch, ட்ட tt, த்த thth, ப்ப pp). pulli: The pulli (்) is the virama. Tamil writes almost no conjuncts, so a 'cluster' here is only consonants with pullis between them, and a pulli at the end of a word means no vowel. The inherent vowel is always a and is never dropped in speech, so there is no schwaDeleted list. ra: ற்ற is tr (காற்று kaatru) and ன்ற is ndr (என்று endru); alone ற is r like ர. The skeleton folds tr to t and ndr/ntr to nr so kaatru/kaathu and endru/enru meet more often. grantha: ஜ ஶ ஷ ஸ ஹ are ordinary consonants here; க்ஷ is ksh; ஸ்ரீ is ஸ + ர + ீ (sri). ஃப is f and ஃஜ is z: aytham plus a stop is how Tamil writes those sounds in loans, so they are keys of two code points. vowels: Long vowels are typed doubled about half the time (aa, ee, oo) and ஏ ஓ mostly as plain e o; oo is both ஊ and ஓ, so the skeleton folds o to u as well as oo to u. ை at the end of a word is often typed a or e in chat (illa for இல்லை). nasals: ந ன ண are all n; ல ள are l; ழ is zh, often l; ர ற are r. ya: ய் after a vowel is typed y or i (செய்தி seythi / seithi, பையன் paiyan / payyan), so the skeleton folds y to i."
 }

@@ -202,6 +202,10 @@ def export(t: Tables) -> dict:
     inherent = t.table("inherent")
     sk = t.data["skeleton"]
     pairs = sorted(sk["replace"], key=lambda p: -len(p[0]))
+    # Which typed spellings spell a word out (the engine's `Romanisation::relaxed`). Always
+    # written: a file without it is read as the packs published before the field were, with
+    # Malayalam's habits. A hand file that says nothing gets none.
+    loose = {k: v for k, v in hand.get("looseSpelling", {}).items() if k in ("singles", "pairs", "collapse")}
     return {
         "format": 1,
         "script": t.data["script"],
@@ -220,6 +224,7 @@ def export(t: Tables) -> dict:
             "collapseDoubles": True,
             "dropFinalVowel": {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3},
         },
+        "looseSpelling": loose,
         "notes": _notes(hand),
     }
 

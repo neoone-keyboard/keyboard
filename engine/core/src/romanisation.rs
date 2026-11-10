@@ -30,6 +30,19 @@ struct Raw {
     finals: HashMap<String, String>,
     clusters: HashMap<String, String>,
     skeleton: RawSkeleton,
+    #[serde(default)]
+    loose_spelling: Option<RawLoose>,
+}
+
+/// `looseSpelling`: every part optional.
+#[derive(Deserialize)]
+struct RawLoose {
+    #[serde(default)]
+    singles: HashMap<char, char>,
+    #[serde(default)]
+    pairs: Vec<(String, char)>,
+    #[serde(default)]
+    collapse: String,
 }
 
 #[derive(Deserialize)]
@@ -109,9 +122,76 @@ struct Skeleton {
     final_min: usize,
 }
 
+/// `looseSpelling`: the Latin spellings that count as one when the engine asks whether the
+/// typed letters spell a word out (`Romanisation::relaxed`). Narrower than the skeleton, which
+/// only finds candidates: two words that differ here are told apart by what was typed.
+#[derive(Debug, PartialEq)]
+struct Loose {
+    /// A letter read as another (Malayalam `d` as `t`: ട is typed either way).
+    singles: [u8; 26],
+    /// Two letters in a row read as one (`ee` as `i`): first, second, result.
+    pairs: Vec<(u8, u8, u8)>,
+    /// Letters whose repeats count once (`aa` as `a`).
+    collapse: Vec<u8>,
+}
+
+impl Loose {
+    fn new(singles: &[(u8, u8)], pairs: &[(u8, u8, u8)], collapse: &[u8]) -> Self {
+        let mut map = LETTERS;
+        for &(from, to) in singles {
+            map[usize::from(from - b'a')] = to;
+        }
+        Self {
+            singles: map,
+            pairs: pairs.to_vec(),
+            collapse: collapse.to_vec(),
+        }
+    }
+
+    /// What a `romanisation.json` without `looseSpelling` gets: the packs published before the
+    /// field were all read with Malayalam's habits (vowel length, and t for d), and still are.
+    fn before_the_field() -> Self {
+        Self::new(&[(b'd', b't')], &[(b'e', b'e', b'i'), (b'o', b'o', b'u')], b"aiu")
+    }
+
+    fn from_raw(raw: RawLoose) -> Result<Self, String> {
+        let letter = |c: char, what: &str| {
+            if c.is_ascii_lowercase() {
+                Ok(c as u8)
+            } else {
+                Err(format!("looseSpelling {what} {c:?}: lower-case a–z"))
+            }
+        };
+        let singles = raw
+            .singles
+            .into_iter()
+            .map(|(from, to)| Ok((letter(from, "singles key")?, letter(to, "singles value")?)))
+            .collect::<Result<Vec<_>, String>>()?;
+        let pairs = raw
+            .pairs
+            .into_iter()
+            .map(|(pat, to)| {
+                let pat = ascii_letters(&pat, "looseSpelling pair")?;
+                match pat[..] {
+                    [a, b] => Ok((a, b, letter(to, "pairs value")?)),
+                    _ => Err("a looseSpelling pair is two letters and the one they are read as".to_string()),
+                }
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        Ok(Self::new(
+            &singles,
+            &pairs,
+            &ascii_letters(&raw.collapse, "looseSpelling collapse")?,
+        ))
+    }
+}
+
+const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
+
 /// A loaded `romanisation.json`.
 #[derive(Debug)]
 pub struct Romanisation {
+    loose: Loose,
     script: String,
     virama: Vec<char>,
     inherent: String,
@@ -183,7 +263,12 @@ impl Romanisation {
             final_after_consonant: s.drop_final_vowel.after_consonant,
             final_min: s.drop_final_vowel.min_length,
         };
+        let loose = match raw.loose_spelling {
+            Some(raw) => Loose::from_raw(raw)?,
+            None => Loose::before_the_field(),
+        };
         Ok(Self {
+            loose,
             script: raw.script,
             virama: nfc(&raw.virama).chars().collect(),
             inherent: raw.inherent,
@@ -335,6 +420,35 @@ impl Romanisation {
         String::from_utf8(out).unwrap_or_default()
     }
 
+    /// Lower-case letters with the spellings the pack's `looseSpelling` calls the same made
+    /// one: `singles` map a letter, `pairs` read two letters in a row as one, `collapse` letters
+    /// count once however often they repeat. Two spellings equal here spell the same word out
+    /// (`manglish::fit_latin`). Malayalam: d is t, ee is i, oo is u, and aa, ii, uu are a, i, u;
+    /// doubled consonants are kept (`veedu` is വീട്, veetu, not വിട്ടു, vittu).
+    pub fn relaxed(&self, latin: &[u8]) -> Vec<u8> {
+        let rules = &self.loose;
+        let mut out: Vec<u8> = Vec::with_capacity(latin.len());
+        for &b in latin {
+            let b = b.to_ascii_lowercase();
+            if !b.is_ascii_lowercase() {
+                continue;
+            }
+            let b = rules.singles[usize::from(b - b'a')];
+            let last = out.last().copied();
+            if let Some(&(_, _, to)) = rules
+                .pairs
+                .iter()
+                .find(|&&(first, second, _)| last == Some(first) && b == second)
+            {
+                out.pop();
+                out.push(to);
+            } else if !(last == Some(b) && rules.collapse.contains(&b)) {
+                out.push(b);
+            }
+        }
+        out
+    }
+
     /// `skeleton(romanize(word))`: what the romanised lexicon is keyed by.
     pub fn word_skeleton(&self, word: &str) -> String {
         self.skeleton(&self.romanize(word))
@@ -355,6 +469,20 @@ pub(crate) fn load_ml() -> Romanisation {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json"),
     )
     .unwrap()
+}
+
+/// Malayalam's tables with `looseSpelling` set to `json`, or without the field for None.
+#[cfg(test)]
+pub(crate) fn with_loose_spelling(json: Option<&str>) -> Romanisation {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json");
+    let mut file: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let fields = file.as_object_mut().unwrap();
+    match json {
+        Some(json) => fields.insert("looseSpelling".into(), serde_json::from_str(json).unwrap()),
+        None => fields.remove("looseSpelling"),
+    };
+    Romanisation::parse(&file.to_string()).unwrap()
 }
 
 #[cfg(test)]

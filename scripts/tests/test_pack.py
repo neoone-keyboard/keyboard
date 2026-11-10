@@ -24,6 +24,36 @@ def manifest(script="gujr", min_engine=4, lang=True):
     return m
 
 
+class RomanisationRole(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.manifest = {"id": "zz-test", "script": "gujr", "files": {"romanisation": "romanisation.json"}}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def problems(self, tables):
+        (self.dir / "romanisation.json").write_text(json.dumps(tables), encoding="utf-8")
+        return pack.romanisation_problems(self.dir, self.manifest)
+
+    def test_the_tables_say_which_spellings_are_the_same(self):
+        self.assertIn("no looseSpelling", self.problems({"format": 1})[0])
+        self.assertEqual(self.problems({"format": 1, "looseSpelling": {}}), [])
+        self.assertEqual(self.problems({"format": 1, "looseSpelling": {"collapse": "a"}}), [])
+
+    def test_no_romanisation_is_not_a_problem(self):
+        self.assertEqual(pack.romanisation_problems(self.dir, {"files": {}}), [])
+        self.assertEqual(pack.romanisation_problems(self.dir, self.manifest), [])  # listed, not written yet
+
+    def test_every_committed_pack_says(self):
+        packs = sorted((pack.ROOT / "packs").glob("*.neopack"))
+        self.assertTrue(packs)
+        for folder in packs:
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(pack.romanisation_problems(folder, manifest), [], folder.name)
+
+
 class LangRole(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

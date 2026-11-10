@@ -18,6 +18,11 @@ engine ignores the role and reads the pack as before. A pack in any other script
 file and `minEngine` 4, or 5 when its file uses a field engine 4 doesn't read (`FIELDS_5`).
 `--write` raises it; `--check` fails when it is too low.
 
+The romanisation tables (the `romanisation` role). `--check` fails when the file has no
+`looseSpelling` (which typed spellings spell a word out; `{}` for none): a file without it is
+read as the packs published before the field were, with Malayalam's habits (d for t, ee for i,
+oo for u), which is right only for those packs.
+
 The layout (the `layout` role). `--check` also reads `layout.json` as the app does and fails on
 what the app would refuse (not format 1, no pages, an empty key, a strip entry that isn't one
 character), which otherwise shows only as a language that never appears on the phone; and on a
@@ -127,6 +132,24 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     if source.is_file() and source.read_bytes() != path.read_bytes():
         problems.append(f"{name} differs from {source.relative_to(ROOT)}, which the lexicons were built "
                         f"with; run --write")
+    return problems
+
+
+def romanisation_problems(pack: Path, manifest: dict) -> list[str]:
+    """What the pack's romanisation.json leaves to the engine's old defaults, in words."""
+    name = manifest["files"].get("romanisation")
+    if name is None or not (pack / name).is_file():
+        return []
+    try:
+        tables = json.loads((pack / name).read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
+        return [f"{name}: not JSON: {e}"]
+    if not isinstance(tables, dict):
+        return [f"{name}: not a JSON object"]
+    problems = []
+    if not isinstance(tables.get("looseSpelling"), dict):
+        problems.append(f"{name} has no looseSpelling: say which typed spellings spell a word out "
+                        f"({{}} for none), or the pack is read with Malayalam's (d for t, ee for i, oo for u)")
     return problems
 
 
@@ -312,7 +335,8 @@ def main() -> int:
             print(f"{manifest_path}: checksums stale for {', '.join(stale)}; "
                   f"run scripts/pack.py {args.pack} --write", file=sys.stderr)
             return 1
-        problems = lang_problems(args.pack, manifest) + layout_problems(args.pack, manifest)
+        problems = (lang_problems(args.pack, manifest) + romanisation_problems(args.pack, manifest)
+                    + layout_problems(args.pack, manifest))
         for problem in problems:
             print(f"{manifest_path}: {problem}", file=sys.stderr)
         return 1 if problems else 0

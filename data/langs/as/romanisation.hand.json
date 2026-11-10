@@ -131,6 +131,11 @@
     "dropFinal": "a"
   },
   "inClusterLetters": "শষস",
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length only: Assamese keeps d and t apart (দ, ত), and typed o and a for the inherent vowel are already one skeleton key.",
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
   "notes": {
     "inherent": "The inherent vowel is typed 'o' (কৰিব korib, অসম oxom); at the end of a word it is dropped (মানুহ manuh, ভাল bhal), as atWordEnd says. Two things the format can't say: after a final cluster it is usually kept (পুত্ৰ putro, মন্ত্ৰ montro), and in the middle of a word it is dropped between a vowel + lone consonant and a lone consonant + vowel, scanning right to left (ৰাজনীতি rajniti, চৰকাৰ sorkar, উন্নয়নমূলক unnoyonmulok). On Aksharantar's manual pairs that medial vowel is still typed about 60% of the time, so the walk keeps it; the transliterator learns both.",
     "clusters": "A sibilant (শ ষ স) is 'x' alone but 's' in a cluster (স্ত st, শ্ৰ sr), and the -ya / -wa signs after a consonant are 'y' / 'w' (ধন্য dhony, স্ব sw), not the letters' own 'j' / 'b'. The format has no per-context spellings, so every such two-letter cluster is listed in clusters. A rule in the plug-in (a consonant's spelling after a virama, and in a cluster) would replace about 250 entries.",

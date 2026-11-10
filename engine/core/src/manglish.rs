@@ -83,8 +83,9 @@ pub struct Match {
     /// Edit distance between the typed letters and the word's romanisation
     /// (to its closest prefix, when the word is longer).
     pub distance: usize,
-    /// The typed letters spell the whole word, up to vowel length and t/d
-    /// (`nale` for നാളെ, romanised `naale`). `distance` is then 0.
+    /// The typed letters spell the whole word, up to what the pack's `looseSpelling` calls
+    /// the same (Malayalam: vowel length and t/d, `nale` for നാളെ, romanised `naale`).
+    /// `distance` is then 0.
     pub spelled: bool,
 }
 
@@ -160,18 +161,19 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(Stri
 /// it out (`Match::spelled`), and otherwise the edit distance to its
 /// romanisation (`Match::distance`), to its closest prefix when `prefix` is set.
 pub fn fit(r: &Romanisation, typed: &str, word: &str, prefix: bool) -> (bool, usize) {
-    fit_latin(typed, &r.romanize(word), prefix)
+    fit_latin(r, typed, &r.romanize(word), prefix)
 }
 
 /// `fit` against Latin letters that stand for a word: `roman`, its romanisation, or the
-/// letters the user picked it for (`own::OwnWords`).
-pub fn fit_latin(typed: &str, roman: &str, prefix: bool) -> (bool, usize) {
+/// letters the user picked it for (`own::OwnWords`). Which spellings count as the same is the
+/// pack's (`Romanisation::relaxed`, its `looseSpelling`).
+pub fn fit_latin(r: &Romanisation, typed: &str, roman: &str, prefix: bool) -> (bool, usize) {
     let typed_lower: Vec<u8> = typed
         .bytes()
         .filter(u8::is_ascii_alphabetic)
         .map(|b| b.to_ascii_lowercase())
         .collect();
-    if !prefix && relaxed(&typed_lower) == relaxed(roman.as_bytes()) {
+    if !prefix && r.relaxed(&typed_lower) == r.relaxed(roman.as_bytes()) {
         (true, 0)
     } else {
         (
@@ -179,36 +181,6 @@ pub fn fit_latin(typed: &str, roman: &str, prefix: bool) -> (bool, usize) {
             prefix_distance(&typed_lower, roman.as_bytes(), prefix),
         )
     }
-}
-
-/// Lowercase letters with vowel length and t/d collapsed (aa → a,
-/// ee/ii → i, oo/uu → u, d → t): what people type inconsistently. Doubled
-/// consonants are kept: `veedu` is വീട് (veetu), not വിട്ടു (vittu).
-fn relaxed(latin: &[u8]) -> Vec<u8> {
-    let mut out: Vec<u8> = Vec::with_capacity(latin.len());
-    for &b in latin {
-        // t and d: people type ട as either (veedu for വീട്, romanised veetu).
-        let b = match b.to_ascii_lowercase() {
-            b'd' => b't',
-            b => b,
-        };
-        if !b.is_ascii_alphabetic() {
-            continue;
-        }
-        match (out.last().copied(), b) {
-            (Some(b'e'), b'e') => {
-                out.pop();
-                out.push(b'i');
-            }
-            (Some(b'o'), b'o') => {
-                out.pop();
-                out.push(b'u');
-            }
-            (Some(last), b) if last == b && matches!(b, b'a' | b'i' | b'u') => {}
-            _ => out.push(b),
-        }
-    }
-    out
 }
 
 /// Levenshtein distance from `typed` to `target`, or to the closest prefix of
@@ -328,10 +300,37 @@ mod tests {
         assert!(naale.spelled && naale.distance == 0, "{naale:?}");
         let naalu = found.iter().find(|m| m.word == "നാല്").unwrap();
         assert!(!naalu.spelled && naalu.distance > 0, "{naalu:?}");
+        let relaxed = |latin: &[u8]| ml().relaxed(latin);
         assert_eq!(relaxed(b"njaan"), relaxed(b"njan"));
         assert_eq!(relaxed(b"veedu"), relaxed(b"vidu"));
         assert_ne!(relaxed(b"te"), relaxed(b"teh"));
         assert_ne!(relaxed(b"veedu"), relaxed(b"vittu"));
+    }
+
+    #[test]
+    fn which_spellings_are_the_same_is_the_packs() {
+        use crate::romanisation::with_loose_spelling;
+        // Malayalam types ട as t or d; a pack that keeps them apart says so.
+        assert_eq!(fit_latin(ml(), "veedu", "veetu", false), (true, 0));
+        let strict = with_loose_spelling(Some("{}"));
+        assert_eq!(fit_latin(&strict, "veedu", "veetu", false), (false, 1));
+        assert_eq!(fit_latin(&strict, "veetu", "veetu", false), (true, 0));
+        let vowels = with_loose_spelling(Some(r#"{"pairs": [["ee", "i"]], "collapse": "a"}"#));
+        assert_eq!(fit_latin(&vowels, "vitu", "veetu", false), (true, 0));
+        assert_eq!(fit_latin(&vowels, "naale", "nale", false), (true, 0));
+        assert!(!fit_latin(&vowels, "veedu", "veetu", false).0, "d is not t here");
+        assert!(!fit_latin(&vowels, "pu", "poo", false).0, "oo is not u here");
+        // A file from before the field is read as it always was.
+        let old = with_loose_spelling(None);
+        for (typed, roman) in [
+            ("veedu", "veetu"),
+            ("nale", "naale"),
+            ("pu", "poo"),
+            ("vittu", "veedu"),
+            ("iee", "ii"),
+        ] {
+            assert_eq!(fit_latin(&old, typed, roman, false), fit_latin(ml(), typed, roman, false));
+        }
     }
 
     #[test]

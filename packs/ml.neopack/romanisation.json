@@ -39,5 +39,6 @@
     "collapseDoubles": true,
     "dropFinalVowel": { "vowels": "ue", "afterConsonant": true, "minLength": 3 }
   },
+  "looseSpelling": {"singles": {"d": "t"}, "pairs": [["ee", "i"], ["oo", "u"]], "collapse": "aiu"},
   "notes": "Malayalam to Manglish. Reproduces the engine's original romanize.rs exactly (checked over every word of ml.fst). gh folds to k, not g: people write ഖ as gh as often as kh (sugham, mugham), and ഖ is far commoner than ഘ. A final -a is never dropped: it tells words apart (എന്താ / എന്ത്, അമ്മ / അമ്മു)."
 }

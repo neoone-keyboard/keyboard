@@ -42,6 +42,7 @@
     "dropBetweenConsonants": "a",
     "dropFinalVowel": { "vowels": "", "afterConsonant": true, "minLength": 3 }
   },
+  "looseSpelling": {"pairs": [["ee", "i"], ["oo", "u"]], "collapse": "aiu"},
   "swipe": {
     "aspirated": "ktpbcjsdgz",
     "trail": "h"
