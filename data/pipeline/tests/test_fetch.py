@@ -1,8 +1,10 @@
 import hashlib
+import json
+from pathlib import Path
 
 import pytest
 
-from fetch import digest, expected, verified
+from fetch import digest, expected, main, only_ids, verified
 
 
 def test_digest_and_verify(tmp_path):
@@ -15,10 +17,25 @@ def test_digest_and_verify(tmp_path):
     assert not verified(tmp_path / "missing", {"url": "u", "sha256": sha})
 
 
-def test_sha1_is_accepted_and_one_checksum_is_required():
-    assert expected({"url": "u", "sha1": "ABC"}) == ("sha1", "abc")
-    with pytest.raises(ValueError):
-        expected({"url": "u"})
+def test_sha1_is_accepted_and_a_missing_or_placeholder_checksum_is_none():
+    assert expected({"url": "u", "sha1": "A" * 40}) == ("sha1", "a" * 40)
+    assert expected({"url": "u"}) is None
+    assert expected({"url": "u", "sha256": "<compute after downloading>"}) is None
+    assert expected({"url": "u", "sha256": "abc"}) is None  # not 64 hex digits
+    assert not verified(Path("/nonexistent"), {"url": "u"})
+
+
+def test_only_takes_comma_lists_and_repeats():
+    assert only_ids(["a,b", "c", " d , "]) == {"a", "b", "c", "d"}
+    assert only_ids(None) is None
+
+
+def test_an_unknown_only_id_is_an_error(tmp_path, capsys):
+    manifests = tmp_path / "manifests"
+    manifests.mkdir()
+    (manifests / "src.json").write_text(json.dumps({"id": "src", "files": []}))
+    with pytest.raises(SystemExit, match="no manifest with id: nope"):
+        main(["--manifests", str(manifests), "--raw", str(tmp_path / "raw"), "--only", "src,nope"])
 
 
 # ---- downloads, against a local HTTP server ----
@@ -115,9 +132,35 @@ def test_restarts_when_the_server_ignores_range(tmp_path, server):
 def test_checksum_mismatch_deletes_the_download_and_stops(tmp_path, server):
     base, h = server
     h.routes["/dumps/f.bin"] = {"body": BODY}
-    with pytest.raises(SystemExit, match="checksum mismatch"):
+    with pytest.raises(SystemExit, match="checksum mismatch") as e:
         fetch(manifest(base, sha="0" * 64), tmp_path, backoff=0)
+    assert SHA in str(e.value), "says what the download's sha256 is"
     assert not list((tmp_path / "src").glob("f.bin*"))
+
+
+def test_a_missing_checksum_keeps_the_download_and_says_what_to_put(tmp_path, server):
+    base, h = server
+    h.routes["/dumps/f.bin"] = {"body": BODY}
+    with pytest.raises(SystemExit) as e:
+        fetch(manifest(base, sha="<sha256 of the zip>"), tmp_path, backoff=0)
+    assert f'"sha256": "{SHA}"' in str(e.value)
+    assert (tmp_path / "src" / "f.bin.part").read_bytes() == BODY
+    # With the checksum filled in, the kept download is used.
+    [path] = fetch(manifest(base), tmp_path, backoff=0)
+    assert path.read_bytes() == BODY
+
+
+def test_one_failing_manifest_does_not_stop_the_others(tmp_path, server):
+    base, h = server
+    h.routes["/dumps/f.bin"] = {"body": BODY}
+    manifests = tmp_path / "manifests"
+    manifests.mkdir()
+    bad = manifest(base, sha="0" * 64) | {"id": "a-bad"}
+    (manifests / "a-bad.json").write_text(json.dumps(bad))
+    (manifests / "b-good.json").write_text(json.dumps(manifest(base) | {"id": "b-good"}))
+    with pytest.raises(SystemExit, match="a-bad"):
+        main(["--manifests", str(manifests), "--raw", str(tmp_path / "raw")])
+    assert (tmp_path / "raw" / "b-good" / "f.bin").read_bytes() == BODY
 
 
 def test_http_errors_give_a_clean_message_and_are_not_retried(tmp_path, server):
