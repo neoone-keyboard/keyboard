@@ -2041,18 +2041,21 @@ impl Engine {
         }
         // The model's spellings, held to the lexicon and the splits. Not for a word that is
         // English: it would never be replaced, and the model is the costliest step. Its free
-        // spelling is only a fallback for when nothing else is found (below), and nothing is
-        // ever taken out of `found`: with a candidate already, the free beam isn't run.
+        // spelling is a fallback for when nothing else is found (below), and nothing is ever
+        // taken out of `found`: for Malayalam, with a candidate already, the free beam isn't
+        // run. For the other packs it runs beside rare whole forms too, as Malayalam's suffix
+        // splits are read beside them (`rank::MANGLISH_MODEL_FREE_BESIDE`).
         let free = if english_word {
             None
         } else {
-            let want_free = found.exact.is_empty() && found.side.is_empty();
+            let want_free = found.exact.is_empty() && (found.side.is_empty() || !malayalam);
             Self::add_model(
                 pack,
                 typed_n,
                 &splits,
                 bias,
                 another_favoured,
+                !malayalam,
                 want_free,
                 deadline,
                 &mut found,
@@ -2061,6 +2064,24 @@ impl Engine {
         // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
         // is a variant of it: offer the common one beside it.
         Self::add_standard_neighbour(pack, &mut found);
+        // A word the lexicon doesn't have, beside rare words the letters loosely fit: the
+        // model's free spelling when it prefers it to every lexicon reading, just under the
+        // best of them.
+        if let Some(free) = free.as_ref().filter(|f| !malayalam && f.leads)
+            && found.exact.is_empty()
+            && !found.side.iter().any(|c| c.text == free.text)
+        {
+            let best = found.side.iter().map(|c| c.score).fold(f32::NEG_INFINITY, f32::max);
+            if best.is_finite() {
+                found.side.push(Candidate {
+                    text: free.text.clone(),
+                    kind: Kind::Romanised,
+                    score: best - rank::MANGLISH_MODEL_FREE_BESIDE,
+                    lang,
+                });
+            }
+        }
+        let free = free.map(|f| f.text);
         // Names and rare words: the model's own spelling (or, without the model, the
         // rule-based one), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
@@ -2267,7 +2288,8 @@ impl Engine {
     }
 
     /// The transliterator's spellings of `typed_n` that are lexicon words or `splits`, added
-    /// as whole words; returns its free spelling (off the lexicon), if any. A lexicon word
+    /// as whole words; returns its free spelling (off the lexicon), if any, and whether the
+    /// model scores it at least as well as every lexicon reading. A lexicon word
     /// scores its log probability, a split its stem's (as in `add_splits`), plus
     /// `MANGLISH_MODEL_WEIGHT` × the model's per-token score, in place of the skeleton
     /// lookup's romanisation-distance penalty, except where English is likely
@@ -2279,7 +2301,9 @@ impl Engine {
     /// frequencies don't compare across packs, and a frequent word of a small pack read
     /// confidently (Assamese আছে for `acha`, −5.4 against the Malayalam user's അച്ഛൻ at
     /// −10.6; −8.3 even with the distance penalty kept) beat the favoured pack's by more than
-    /// `rank::FAVOURED_MARGIN`. `free`: run the free beam too. `deadline`: as in
+    /// `rank::FAVOURED_MARGIN`. `caps_trailing`: a reading far behind the model's best lexicon
+    /// reading is scored just under it (`rank::MANGLISH_MODEL_TRAILS`; not for Malayalam, whose
+    /// ranking is held as recorded). `free`: run the free beam too. `deadline`: as in
     /// `suggest_until`.
     #[allow(clippy::too_many_arguments)]
     fn add_model(
@@ -2288,10 +2312,11 @@ impl Engine {
         splits: &[ScoredSplit],
         bias: f32,
         another_favoured: bool,
+        caps_trailing: bool,
         free: bool,
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
-    ) -> Option<String> {
+    ) -> Option<FreeSpelling> {
         let (Some(model), ml, Some(r)) = (
             pack.translit.as_ref(),
             &pack.lexicon,
@@ -2304,16 +2329,36 @@ impl Engine {
         let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
             || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
         let search = Search {
-            width: if another_favoured { 0 } else { MODEL_WIDTH },
+            // Beside rare whole forms the free beam takes one of the lexicon beam's rows, so
+            // the search costs what it did (Hindi's suggest p99 was 2.56 ms, 2.82 ms with a
+            // fifth row, 2.55 ms so); the held-out sets moved by 0.1 points at most.
+            width: if another_favoured {
+                0
+            } else if free && !found.side.is_empty() {
+                MODEL_WIDTH - 1
+            } else {
+                MODEL_WIDTH
+            },
             free,
             deadline,
         };
         let mut free = None;
+        // The best lexicon reading offered (the results come best first): its model score and
+        // its score here. Then how many readings trail it.
+        let mut best: Option<(f32, f32)> = None;
+        let mut trailing = 0;
+        // A lexicon reading has come by.
+        let mut read = false;
         for t in model.search(&latin, ml, &split_words, &search).0 {
             if !t.in_lexicon {
-                free = Some(t.text);
+                // Best first: a lexicon reading seen before it scored higher.
+                free = Some(FreeSpelling {
+                    text: t.text,
+                    leads: !read,
+                });
                 continue;
             }
+            read = true;
             if t.score < rank::MANGLISH_MODEL_FLOOR {
                 continue;
             }
@@ -2331,6 +2376,19 @@ impl Engine {
                 0.0
             };
             let unfitted = prior - distance_penalty + rank::MANGLISH_MODEL_WEIGHT * t.score + bias;
+            let unfitted = match best {
+                Some((score, lead))
+                    if caps_trailing && t.score < score - rank::MANGLISH_MODEL_TRAILS =>
+                {
+                    trailing += 1;
+                    unfitted.min(lead - rank::MANGLISH_MODEL_TRAILS_STEP * trailing as f32)
+                }
+                Some(_) => unfitted,
+                None => {
+                    best = Some((t.score, unfitted));
+                    unfitted
+                }
+            };
             // A confident model reading is evidence the rare word is meant, not a guess.
             let floor = if !keeps_distance && t.score >= rank::MANGLISH_MODEL_CONFIDENT {
                 rank::MIN_REPLACE - rank::MANGLISH_MODEL_CONFIDENT_RELIEF
@@ -2797,6 +2855,13 @@ struct ScoredSplit {
     /// As in `manglish::fit`.
     distance: usize,
     spelled: bool,
+}
+
+/// The transliterator's spelling off the lexicon (`Engine::add_model`).
+struct FreeSpelling {
+    text: String,
+    /// The model scores it at least as well as every lexicon reading it returned.
+    leads: bool,
 }
 
 /// Romanised candidates for one typed word, by the role each may play.

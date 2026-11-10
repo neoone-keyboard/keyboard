@@ -796,10 +796,10 @@ lexicons only            AK-Freq   2,603 pairs  top-1 50.8%  in bar 52.5%  first
 lexicons only            AK-NEF      829 pairs  top-1 1.6%  in bar 1.6%  first slot 0.2%  none 92.9%
 lexicons only            AK-NEI    1,216 pairs  top-1 16.6%  in bar 18.5%  first slot 3.7%  none 60.6%
 with the transliterator: sources ['english', 'ta:lexicon', 'ta:romanised', 'ta:next_words', 'ta:translit']
-with the transliterator  all       4,648 pairs  top-1 44.0%  in bar 48.6%  first slot 23.4%  none 18.5%
-with the transliterator  AK-Freq   2,603 pairs  top-1 64.4%  in bar 70.8%  first slot 37.3%  none 1.4%
-with the transliterator  AK-NEF      829 pairs  top-1 10.5%  in bar 10.6%  first slot 0.5%  none 62.6%
-with the transliterator  AK-NEI    1,216 pairs  top-1 23.4%  in bar 27.1%  first slot 9.2%  none 25.0%
+with the transliterator  all       4,648 pairs  top-1 47.8%  in bar 54.4%  first slot 24.8%  none 19.0%
+with the transliterator  AK-Freq   2,603 pairs  top-1 70.4%  in bar 80.2%  first slot 39.7%  none 1.4%
+with the transliterator  AK-NEF      829 pairs  top-1 10.5%  in bar 11.1%  first slot 0.5%  none 64.0%
+with the transliterator  AK-NEI    1,216 pairs  top-1 24.7%  in bar 28.6%  first slot 9.5%  none 25.8%
 ```
 
 - `top-1`: the first native-script suggestion is the word. The other slots of the bar hold
@@ -811,7 +811,7 @@ with the transliterator  AK-NEI    1,216 pairs  top-1 23.4%  in bar 27.1%  first
 Check that the `sources` line of the second run names `xx:translit`: a model that doesn't fit
 the pack is left out silently, and the two runs then print the same numbers. The transliterator
 should raise every row. For scale, Assamese scores 34.1% / 36.3% (top-1 / in bar) with the
-lexicons only and 51.5% / 56.5% with the transliterator. `--pack` and `--set` run a pack folder
+lexicons only and 54.5% / 60.4% with the transliterator. `--pack` and `--set` run a pack folder
 or a set elsewhere, `--json OUT` writes the numbers, and it works for any pack (`--lang hi`).
 
 The transliterator alone, without the engine's lexicon search and ranking, is step 9's eval:
@@ -820,9 +820,13 @@ The transliterator alone, without the engine's lexicon search and ranking, is st
 uv run --group train python -m mlkb.langs.eval_translit --lang xx --model ../packs/xx.neopack/translit.mlkbnn
 ```
 
-The two measure different things, and the engine's top-1 can be the lower one (Tamil: 44.0%
-in the engine, 56.0% for the model alone). That gap is in the engine, not in your pack; it is
-being looked at separately. Report both.
+The two measure different things, and the engine's top-1 can be the lower one (Tamil: 47.8%
+in the engine, 56.0% for the model alone). The engine offers a lexicon word before a spelling
+the lexicon doesn't have, shares the bar with English, and doesn't ask the transliterator
+about a word that is English: the more of your held-out words your lexicon holds, the smaller
+the gap (Hindi, 96.7% of them: 58.0% in the engine, 55.5% alone). `--stages` says where each
+word is lost, with the model alone beside the engine (it needs torch, so
+`uv run --group train python -m mlkb.eval.pack --lang xx --stages`). Report both.
 
 The full evaluation (`python -m mlkb.eval`: transliteration, next words, English no-harm, with
 baselines and gates) has entries for Malayalam and Hindi only (gap G11).
