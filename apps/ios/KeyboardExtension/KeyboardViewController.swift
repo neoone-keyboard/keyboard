@@ -34,6 +34,8 @@ final class KeyboardViewController: UIInputViewController {
     private let stack = UIStackView()
     private var heightConstraint: NSLayoutConstraint?
     private var yourWordsHeight: NSLayoutConstraint?
+    /// The suggestion bar's: shorter in landscape (`KeyboardHeight`).
+    private var barHeight: NSLayoutConstraint?
     private var yourWordsOpen: Bool { !yourWordsView.isHidden }
     private var settings = KeyboardSettings()
     /// The suggestion count last given to the provider (`applySuggestionCount`).
@@ -268,6 +270,7 @@ final class KeyboardViewController: UIInputViewController {
         searchHeight.priority = .required - 1
         let barHeight = topBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
         barHeight.priority = .required - 1
+        self.barHeight = barHeight
         NSLayoutConstraint.activate([wordsHeight, searchHeight, barHeight])
         attachViews()
 
@@ -408,7 +411,21 @@ final class KeyboardViewController: UIInputViewController {
             input.showsNextKeyboard = needsInputModeSwitchKey
             reloadKeys()
         }
+        // Catches a rotation or a resize the calls below missed, so the height never sticks.
+        updateHeight()
         super.viewWillLayoutSubviews()
+    }
+
+    /// Rotation hands over the new width before the screen's bounds turn: the height is set
+    /// for it now and animates with the rotation, so the keyboard doesn't jump after.
+    override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        updateHeight(forKeyboardWidth: size.width)
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            self?.view.layoutIfNeeded()
+        }, completion: { [weak self] _ in
+            self?.updateHeight()
+        })
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
@@ -757,7 +774,9 @@ final class KeyboardViewController: UIInputViewController {
 
     // MARK: Your words
 
-    private static let topBarHeight: CGFloat = 40
+    /// "Your words" and the emoji search keep the portrait bar's height in landscape: their
+    /// header and search box need it.
+    private static let topBarHeight = KeyboardHeight.portraitBar
 
     /// How much taller the keyboard grows for "Your words" (it takes the top bar's place and
     /// this): a short list, so the keys stay showing to type its search. Less in landscape.
@@ -838,10 +857,32 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    private func updateHeight() {
+    /// The screen in points, as it is now turned. Before the keyboard is in a window, the
+    /// last one seen in this process (or a portrait guess): a layout pass corrects it once
+    /// the window is there, before the keyboard shows.
+    private var screenSize: CGSize {
+        if let screen = view.window?.windowScene?.screen.bounds.size { Self.lastScreen = screen }
+        return Self.lastScreen
+    }
+    private static var lastScreen = CGSize(width: 393, height: 852)
+
+    /// Sets the keyboard's height (`KeyboardHeight`): shorter in landscape. `width` is the
+    /// keyboard's width once a rotation ends, or its width now; the screen's orientation
+    /// follows from it. The panels are pinned inside the keys' area and scroll, so they
+    /// follow the keys down.
+    private func updateHeight(forKeyboardWidth width: CGFloat? = nil) {
+        let keyboardWidth = width ?? view.bounds.width
+        let screen = keyboardWidth > 0
+            ? KeyboardHeight.screen(forKeyboardWidth: keyboardWidth, screen: screenSize) : screenSize
+        let height = KeyboardHeight.resolve(numberRow: settings.numberRow, screen: screen)
         let extra = yourWordsOpen ? yourWordsExtraHeight : emojiSearchOpen ? EmojiSearchView.extraHeight : 0
-        yourWordsHeight?.constant = Self.topBarHeight + extra
-        heightConstraint?.constant = (settings.numberRow ? 320 : 270) + extra
+        // Constants are set only when they change: this runs on every layout pass.
+        func set(_ constraint: NSLayoutConstraint?, _ value: CGFloat) {
+            if let constraint, constraint.constant != value { constraint.constant = value }
+        }
+        set(self.barHeight, height.bar)
+        set(yourWordsHeight, Self.topBarHeight + extra)
+        set(heightConstraint, height.total + extra)
     }
 
     // MARK: Appearance

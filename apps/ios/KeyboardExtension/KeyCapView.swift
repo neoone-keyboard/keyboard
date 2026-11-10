@@ -13,6 +13,11 @@ final class KeyCapView: UIView {
     private let icon = UIImageView()
     private var theme: KeyboardTheme?
     private var isSpecial = false
+    /// The label's size on a full-height key; landscape's short keys shrink it to fit.
+    private var fontSize: CGFloat = 24
+    private var fittedFontSize: CGFloat {
+        bounds.height > 0 ? min(fontSize, (bounds.height * 0.8).rounded(.down)) : fontSize
+    }
     /// VoiceOver typed the key (in touch typing, the finger lifted on it; or a double-tap).
     var onActivate: (@MainActor () -> Void)?
 
@@ -42,7 +47,8 @@ final class KeyCapView: UIView {
 
     func configure(title text: String, hint hintText: String?, special: Bool, symbol: String? = nil, theme: KeyboardTheme) {
         title.text = symbol == nil ? text : nil
-        title.font = special ? .systemFont(ofSize: 16) : .systemFont(ofSize: 24)
+        fontSize = special ? 16 : 24
+        title.font = .systemFont(ofSize: fittedFontSize)
         icon.image = symbol.flatMap { UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18)) }
         hint.text = hintText
         isSpecial = special
@@ -68,6 +74,7 @@ final class KeyCapView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         title.frame = bounds.insetBy(dx: 3, dy: 2)
+        if title.font.pointSize != fittedFontSize { title.font = .systemFont(ofSize: fittedFontSize) }
         hint.frame = CGRect(x: 2, y: 2, width: bounds.width - 6, height: 12)
         icon.frame = bounds
     }
