@@ -695,7 +695,9 @@ This:
    Assamese scored 57.7% / 72.4% over all rows. Names score far below common words in every
    language so far: annotators typed them in their source spelling (`harbhajan`), which the
    script may not be able to carry;
-5. copies the model into the pack and updates the checksums.
+5. copies the model into the pack and updates the checksums;
+6. types the same held-out words into the engine, with the lexicons only and with the model
+   (`python -m mlkb.eval.pack`; step 11 explains its output).
 
 Training runs up to 100,000 steps and stops early when validation stops improving: about an
 hour for Assamese and for Tamil on an M5 Max, longer on a slower Mac or with another job on

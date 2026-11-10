@@ -174,7 +174,8 @@ lexicons:
 # pack-lexicons builds the lexicons (`lexicons` first if en.fst changed); pack-models the
 # transliterator: training pairs, training (about 1.5 hours; skipped when
 # training/build/$(PACK_LANG)/translit.pt exists), int8 export, held-out accuracy on
-# data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. The pack's LM, where
+# data/eval/$(PACK_LANG)/translit-human.tsv, the copy into the pack, and the same held-out words
+# typed into the engine with and without the model (mlkb.eval.pack). The pack's LM, where
 # training/mlkb/lm/lang.py has one (hi), is `make lm-data lm LM_LANG=hi`.
 #   make pack-lexicons pack-models PACK_LANG=as
 # TRANSLIT_STEPS=6000 trains a short run (the schedule's length; warmup and evaluation scale with
@@ -208,6 +209,7 @@ else
 endif
 	cp training/$(PACK_BUILD)/translit.mlkbnn $(PACK_DIR)/translit.mlkbnn
 	python3 -I scripts/pack.py $(PACK_DIR) --write
+	cd training && uv run --quiet python -m mlkb.eval.pack --lang $(PACK_LANG)
 
 # Rebuilds the committed emoji files (the panel and the suggestions) from Unicode's
 # emoji-test.txt and the CLDR annotations in data/manifests (downloads about 1.5 MB).
