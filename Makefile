@@ -155,7 +155,13 @@ lexicons:
 # data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. The pack's LM, where
 # training/mlkb/lm/lang.py has one (hi), is `make lm-data lm LM_LANG=hi`.
 #   make pack-lexicons pack-models PACK_LANG=as
+# TRANSLIT_STEPS=6000 trains a short run (the schedule's length; warmup and evaluation scale with
+# it), for a first try; TRANSLIT_ARGS passes anything else to mlkb.translit.train.
+#   make pack-models PACK_LANG=mr TRANSLIT_STEPS=6000
 PACK_LANG ?= hi
+TRANSLIT_STEPS ?=
+TRANSLIT_ARGS ?=
+TRANSLIT_STEP_ARGS := $(if $(TRANSLIT_STEPS),--steps $(TRANSLIT_STEPS) --warmup $(shell expr $(TRANSLIT_STEPS) / 12) --eval-every $(shell expr $(TRANSLIT_STEPS) / 6))
 PACK_DIR := packs/$(PACK_LANG).neopack
 PACK_BUILD := build/$(PACK_LANG)
 PACK_KIND := $(if $(wildcard training/mlkb/langs/$(PACK_LANG).json),data,langs)
@@ -166,7 +172,7 @@ pack-models:
 	@if [ ! -f training/$(PACK_BUILD)/translit.pt ]; then \
 	  cd training && uv run --group train python -m mlkb.$(PACK_KIND).pairs --lang $(PACK_LANG) --out $(PACK_BUILD)/pairs && \
 	  uv run --group train python -m mlkb.translit.train --lang $(PACK_LANG) --pairs $(PACK_BUILD)/pairs \
-	    --out $(PACK_BUILD)/translit.pt; \
+	    --out $(PACK_BUILD)/translit.pt $(TRANSLIT_STEP_ARGS) $(TRANSLIT_ARGS); \
 	fi
 	cd training && uv run --group train python -m mlkb.translit.export --lang $(PACK_LANG) \
 	  --checkpoint $(PACK_BUILD)/translit.pt --out $(PACK_BUILD)/translit.mlkbnn \

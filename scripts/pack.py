@@ -69,6 +69,11 @@ def main() -> int:
         manifest["sha256"] = current
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"{manifest_path}: {len(current)} checksums")
+        absent = sorted(set(manifest["files"].values()) - set(current))
+        if absent:
+            # Fine while a pack is being built (the transliterator comes last); a published pack
+            # with an absent file loses that feature without a message.
+            print(f"  listed but not in the folder yet: {', '.join(absent)}", file=sys.stderr)
         return 0
 
     if args.check:

@@ -6,12 +6,14 @@ language's weighted tables (`romanisation.Tables`) to that format.
 
 The export takes each table's canonical (first, most typed) spelling. What the format has no
 field for is folded into `clusters` where it can be:
-- a sibilant in a cluster is "s" (স্ত "st", স্ব "sw"), though a lone one is "x": every two-letter
-  cluster with শ, ষ or স first or second gets its own entry;
+- a letter listed in the hand file's `inClusterLetters` takes its `inCluster` spelling in a
+  cluster: Assamese lists its sibilants, which are "s" there (স্ত "st", স্ব "sw") though a lone one
+  is "x", so every two-letter cluster with শ, ষ or স first or second gets its own entry;
 - the -ya and -wa signs (C + virama + য / ব / ৱ) are "y" and "w", not the letters' own "j" and
   "b": every such cluster gets an entry.
 The rest (medial schwa deletion, the "o" kept after a final cluster, the apostrophe as a vowel)
-is described under `notes`, for the transliterator model or a later format.
+is for the language's `notes`, which the export copies from the hand file (a string, or a dict of
+topic to text); a language without them gets "".
 
 The romanised lookup (`romanised_keys`) keys every word by `Format1.key`, so the build matches
 what the engine computes at run time.
@@ -155,14 +157,20 @@ def _skeleton(f: Format1, latin: str) -> str:
     return f._skeleton(latin)
 
 
-NOTES = {
-    "inherent": "The inherent vowel is typed 'o' (কৰিব korib, অসম oxom); at the end of a word it is dropped (মানুহ manuh, ভাল bhal), as atWordEnd says. Two things the format can't say: after a final cluster it is usually kept (পুত্ৰ putro, মন্ত্ৰ montro), and in the middle of a word it is dropped between a vowel + lone consonant and a lone consonant + vowel, scanning right to left (ৰাজনীতি rajniti, চৰকাৰ sorkar, উন্নয়নমূলক unnoyonmulok). On Aksharantar's manual pairs that medial vowel is still typed about 60% of the time, so the walk keeps it; the transliterator learns both.",
-    "clusters": "A sibilant (শ ষ স) is 'x' alone but 's' in a cluster (স্ত st, শ্ৰ sr), and the -ya / -wa signs after a consonant are 'y' / 'w' (ধন্য dhony, স্ব sw), not the letters' own 'j' / 'b'. The format has no per-context spellings, so every such two-letter cluster is listed in clusters. A rule in the plug-in (a consonant's spelling after a virama, and in a cluster) would replace about 250 entries.",
-    "apostrophe": "Assamese marks the vowel o with an apostrophe after a consonant (হ'ল hol, ক'ত kot). The walk skips it, so the consonant before it gets the inherent 'o', which is what it means; the lexicon keeps the apostrophe in the word (packed as 0x27).",
-    "letters": "ৰ (U+09F0) is r and ৱ (U+09F1) is w; the Bengali র never reaches the walk (lang.json folds it to ৰ). য় ড় ঢ় are base + nukta after NFC (U+09DF etc. are composition exclusions), so their keys are two code points. ৎ, ং, ঁ and ঃ are finals.",
-    "skeleton": "x, c (চ is s), sh and ch fold to s; z to j; v and w to b (ৱ is typed w or b, ভ bh or v); f to p; o to a, so the inherent vowel typed o or a gives one key (অসম oxom / asom); y to i (আশ্ৰয় ashroy / ashroi). A final a after a consonant is dropped, which covers the final inherent vowel typed or not (ভাল bhal / bhalo).",
-    "dropFinalVowel": "minLength is read as in romanize.rs: the length before the vowel is dropped (ente -> ent with 3). The spec's wording says the result's length; one of the two should change.",
-}
+def _hand(t: Tables) -> dict:
+    """The hand-written tables next to `t`'s file (`romanisation.hand.json`), else `t`'s own data.
+    The fields the fitting never changes (`notes`, `inClusterLetters`) are read from it, so an edit
+    there reaches the export without calibrating again."""
+    if t.path is not None:
+        hand = t.path.with_name("romanisation.hand.json")
+        if hand.exists():
+            return json.loads(hand.read_text(encoding="utf-8"))
+    return t.data
+
+
+def _notes(hand: dict) -> str:
+    notes = hand.get("notes", "")
+    return notes if isinstance(notes, str) else " ".join(f"{k}: {v}" for k, v in notes.items())
 
 
 def export(t: Tables) -> dict:
@@ -174,7 +182,10 @@ def export(t: Tables) -> dict:
     virama = t.virama
     consonants = canon["consonants"]
     clusters = dict(canon["clusters"])
-    sibilants = [c for c in "শষস" if c in in_cluster]
+    hand = _hand(t)
+    # Letters whose `inCluster` spelling holds in every two-letter cluster they are in (Assamese's
+    # sibilants শ ষ স: x alone, s in a cluster).
+    sibilants = [c for c in hand.get("inClusterLetters", "") if c in in_cluster]
     for first, first_latin in consonants.items():
         for second, second_latin in consonants.items():
             key = first + virama + second
@@ -209,7 +220,7 @@ def export(t: Tables) -> dict:
             "collapseDoubles": True,
             "dropFinalVowel": {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3},
         },
-        "notes": " ".join(f"{k}: {v}" for k, v in NOTES.items()),
+        "notes": _notes(hand),
     }
 
 

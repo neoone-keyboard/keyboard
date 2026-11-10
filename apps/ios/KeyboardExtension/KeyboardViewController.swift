@@ -12,6 +12,8 @@ final class KeyboardViewController: UIInputViewController {
     private static let footprintSampleInterval: Double = 5
     /// How the last delivered fetch ended, for explaining an empty bar.
     private var lastOutcome: (outcome: SuggestionCoordinator.Outcome, elapsed: Duration)?
+    /// How every fetch in this process ended, for the diagnostics report's header.
+    private static var outcomeTally = SuggestionOutcomeTally()
     /// The empty-bar reason last logged, so a repeated render isn't logged twice.
     private var loggedEmptyBar: String?
     private var gate = PredictionGate(budget: .keyboardExtension)
@@ -60,7 +62,7 @@ final class KeyboardViewController: UIInputViewController {
         guard let self else { return }
         awaitingResult = false
         latest = result
-        if !result.isFor(word: Self.straight(input.currentWord)), lastOutcome?.outcome == .result {
+        if !result.isFor(word: Self.straight(input.currentWord)), lastOutcome.map({ Self.isResult($0.outcome) }) == true {
             // Lengths only: no typed text in the diagnostics.
             log.info("Stale result: for a \(result.typed.count)-char word but the word is \(input.currentWord.count) chars; \(result.candidates.count) candidates dropped")
         }
@@ -139,12 +141,14 @@ final class KeyboardViewController: UIInputViewController {
         suggestions.onOutcome = { [weak self] outcome, elapsed in
             guard let self else { return }
             lastOutcome = (outcome, elapsed)
+            Self.outcomeTally.record(outcome, after: elapsed)
             switch outcome {
             case .timedOut:
                 log.warning("Suggest timed out after \(Diagnostics.milliseconds(elapsed)); word \(input.currentWord.count) chars")
             case .failed:
                 log.warning("Suggest failed after \(Diagnostics.milliseconds(elapsed)); word \(input.currentWord.count) chars")
-            case .result, .cancelled:
+            case .result, .late, .cancelled:
+                // Late ones are counted in the report's header, not logged one by one.
                 break
             }
         }
@@ -927,7 +931,7 @@ final class KeyboardViewController: UIInputViewController {
         let reason: String
         if !suggestions.isEnabled {
             reason = gate.isOn ? "prediction off (resuming)" : "prediction off (memory gate)"
-        } else if let lastOutcome, lastOutcome.outcome != .result {
+        } else if let lastOutcome, !Self.isResult(lastOutcome.outcome) {
             // Before the next check: a timeout's `.empty` also "matches" an empty word.
             reason = "\(lastOutcome.outcome.rawValue) after \(Diagnostics.milliseconds(lastOutcome.elapsed))"
         } else if current != nil {
@@ -958,13 +962,18 @@ final class KeyboardViewController: UIInputViewController {
         Task { [weak self, provider] in
             let status = await provider.status()
             guard let self else { return }
-            let header = "\(build); \(system); footprint \(Diagnostics.megabytes(footprint)) (peak \(peak)); gate \(gateState); prediction \(prediction); \(status)"
+            let header = "\(build); \(system); footprint \(Diagnostics.megabytes(footprint)) (peak \(peak)); gate \(gateState); prediction \(prediction); \(status); \(Self.outcomeTally.summary)"
             textDocumentProxy.insertText(Diagnostics.report(header: header))
         }
     }
 
     private static func straight(_ text: String) -> String {
         text.replacingOccurrences(of: "\u{2019}", with: "'")
+    }
+
+    /// The engine's own result, shown on time or late (not a timeout's or failure's empty one).
+    private static func isResult(_ outcome: SuggestionCoordinator.Outcome) -> Bool {
+        outcome == .result || outcome == .late
     }
 
     // MARK: Prediction and memory

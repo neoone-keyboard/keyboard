@@ -11,6 +11,7 @@ whose source is Dakshina or Existing are dropped, mined IndicCorp rows below the
 cut too.
 """
 
+import hashlib
 import json
 import unicodedata
 from collections import Counter
@@ -145,6 +146,11 @@ def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None
     stats = stats if stats is not None else Counter()
     out = []
     path = aksharantar_dir(lang) / f"{lang.data['aksharantar']}_{split}.json"
+    if not path.exists():
+        raise SystemExit(
+            f"{path} is missing. Unzip Aksharantar first: run ./data/build-{lang_id}-text.sh "
+            "(docs/make-a-language.md step 3)."
+        )
     for row in aksharantar_rows(path):
         source = row.get("source") or "missing"
         if source not in AKSHARANTAR_KEEP:
@@ -161,3 +167,51 @@ def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None
         stats[f"kept {source}"] += 1
         out.append(HumanPair(pair[0], pair[1], source))
     return out
+
+
+# Calibration pairs: what `calibrate` fits the romanisation weights to and `pairs` writes as
+# `valid-human.tsv`. Aksharantar's manual rows (typed by people, sources `AK-*`) of the valid
+# split, when it has any. Some languages' valid splits have none (Marathi's manual rows are all
+# in `mar_train.json`); then a slice of the train split's manual rows is held out instead, chosen
+# by a hash of the native word (so it is the same in both tools and every run), never a test word.
+CALIBRATION_SHARE = 0.25
+
+
+def manual(rows: list[HumanPair]) -> list[HumanPair]:
+    return [h for h in rows if h.source.startswith("AK-")]
+
+
+def in_calibration_slice(word: str, share: float = CALIBRATION_SHARE) -> bool:
+    h = hashlib.sha256(word.encode("utf-8")).digest()
+    return int.from_bytes(h[:4], "big") / 2**32 < share
+
+
+def calibration_split(
+    valid: list[HumanPair], train: list[HumanPair], test_words: set[str], code: str
+) -> tuple[list[HumanPair], str]:
+    """The calibration pairs and a phrase saying where they came from. Stops when there are none."""
+    rows = manual(valid)
+    if rows:
+        return rows, f"the manual rows of {code}_valid.json"
+    rows = [h for h in manual(train) if h.native not in test_words and in_calibration_slice(h.native)]
+    if not rows:
+        raise SystemExit(
+            f"no calibration pairs: Aksharantar's {code}_valid.json and {code}_train.json have no manual (AK-) "
+            "rows left after the licence filter. Check data/raw/aksharantar-*/extracted/. A language without "
+            "human pairs can't be calibrated: copy romanisation.hand.json to romanisation-weights.json "
+            "(docs/make-a-language.md step 4)."
+        )
+    return rows, (
+        f"a held-out {CALIBRATION_SHARE:.0%} (by word) of the manual rows of {code}_train.json, "
+        f"because {code}_valid.json has none"
+    )
+
+
+def calibration(
+    lang_id: str, test_words: set[str], train: list[HumanPair] | None = None
+) -> tuple[list[HumanPair], str]:
+    """`calibration_split` for a language's Aksharantar files (`train` if already read)."""
+    valid = aksharantar(lang_id, "valid")
+    if not manual(valid) and train is None:
+        train = aksharantar(lang_id, "train")
+    return calibration_split(valid, train or [], test_words, load(lang_id).data["aksharantar"])

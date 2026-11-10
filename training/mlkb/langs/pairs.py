@@ -11,8 +11,9 @@ the hand-set ones (`romanisation.hand.json`), whose weights allow more chat shor
 Human rows make up `--human-share` of `train.tsv`: Aksharantar `<code>_train.json`, filtered
 (`mlkb.langs.human.aksharantar`).
 
-1% of the lexicon words (not rows) go to `valid.tsv`. `valid-human.tsv` is Aksharantar's manual
-valid rows (AK-Uni, AK-Freq). The manual test rows are the held-out eval set, written to
+1% of the lexicon words (not rows) go to `valid.tsv`. `valid-human.tsv` is the calibration pairs
+(`mlkb.langs.human.calibration`): Aksharantar's manual valid rows (AK-Uni, AK-Freq), or a held-out
+slice of the train split's manual rows when the valid split has none (Marathi). The manual test rows are the held-out eval set, written to
 `data/eval/<lang>/translit-human.tsv`; neither they nor the valid-human words are in `train.tsv`.
 """
 
@@ -109,8 +110,10 @@ def main(argv: list[str] | None = None) -> None:
     tables = Tables.load(args.lang)
     hand = Tables.load(LANGS / args.lang / "romanisation.hand.json")
     stats: Counter = Counter()
-    test = [h for h in human.aksharantar(args.lang, "test", stats) if h.source.startswith("AK-")]
-    valid_human = [h for h in human.aksharantar(args.lang, "valid") if h.source.startswith("AK-")]
+    test = human.manual(human.aksharantar(args.lang, "test", stats))
+    train_rows = human.aksharantar(args.lang, "train", stats)
+    valid_human, where = human.calibration(args.lang, {h.native for h in test}, train=train_rows)
+    print(f"valid-human: {where}")
     excluded = {h.native for h in test} | {h.native for h in valid_human}
 
     words = mlengine.malayalam_words(str(lexicon), args.words)  # any lexicon: UTF-8 keys by count
@@ -120,7 +123,7 @@ def main(argv: list[str] | None = None) -> None:
         words, synthetic_rows, args.valid_frac, excluded, args.seed, tables, alt=hand, alt_share=args.chat_share
     )
     valid_words = {w for _, w in valid}
-    mined = [(h.latin, h.native) for h in human.aksharantar(args.lang, "train", stats)]
+    mined = [(h.latin, h.native) for h in train_rows]
     mined = [(latin, w) for latin, w in mined if w not in excluded and w not in valid_words]
     n_human = round(len(train) * args.human_share / (1 - args.human_share))
     rng = random.Random(args.seed + 1)

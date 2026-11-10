@@ -27,16 +27,21 @@ def digest(path: Path, algorithm: str) -> str:
     return h.hexdigest()
 
 
-def expected(entry: dict) -> tuple[str, str]:
-    for algorithm in ("sha256", "sha1"):
-        if entry.get(algorithm):
-            return algorithm, entry[algorithm].lower()
-    raise ValueError(f"{entry['url']}: manifest gives no sha256 or sha1")
+HEX_LENGTH = {"sha256": 64, "sha1": 40}
+
+
+def expected(entry: dict) -> tuple[str, str] | None:
+    """The entry's (algorithm, hex digest), or None when it has none or only a placeholder."""
+    for algorithm, length in HEX_LENGTH.items():
+        value = str(entry.get(algorithm) or "").lower()
+        if len(value) == length and all(c in "0123456789abcdef" for c in value):
+            return algorithm, value
+    return None
 
 
 def verified(path: Path, entry: dict) -> bool:
-    algorithm, want = expected(entry)
-    return path.exists() and digest(path, algorithm) == want
+    want = expected(entry)
+    return want is not None and path.exists() and digest(path, want[0]) == want[1]
 
 
 class DownloadError(Exception):
@@ -105,26 +110,59 @@ def fetch(
                     failures.append(f"{url}: {e}")
             else:
                 raise SystemExit(f"could not download {path.name}:\n  " + "\n  ".join(failures))
+            got = digest(partial, "sha256")
+            want = expected(entry)
+            if want is None:
+                # A new manifest: keep the download, so the next run uses it, and say what to write.
+                raise SystemExit(
+                    f"{manifest['id']}: {entry['path']} has no sha256 in its manifest. The download is\n"
+                    f"  {partial}\n"
+                    f'Check it is the file you meant, then put "sha256": "{got}" in its "files" entry and run again.'
+                )
             if not verified(partial, entry):
                 partial.unlink(missing_ok=True)
-                raise SystemExit(f"checksum mismatch for {path.name}: the source changed; update the manifest")
+                raise SystemExit(
+                    f"checksum mismatch for {path.name}: the manifest's {want[0]} is {want[1]}, the download's "
+                    f"sha256 is {got}. The source changed (update the manifest), or the manifest's checksum is wrong."
+                )
             partial.replace(path)
         paths.append(path)
     return paths
+
+
+def only_ids(values: list[str] | None) -> set[str] | None:
+    """`--only a,b --only c` as {a, b, c}; None (fetch everything) when not given."""
+    if values is None:
+        return None
+    return {part.strip() for value in values for part in value.split(",") if part.strip()}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifests", type=Path, required=True)
     parser.add_argument("--raw", type=Path, required=True)
-    parser.add_argument("--only", action="append", help="manifest ids to fetch (default: all)")
+    parser.add_argument(
+        "--only", action="append", help="manifest ids to fetch, comma-separated or repeated (default: all)"
+    )
     args = parser.parse_args(argv)
-    for path in sorted(args.manifests.glob("*.json")):
-        manifest = json.loads(path.read_text(encoding="utf-8"))
-        if args.only and manifest["id"] not in args.only:
+    only = only_ids(args.only)
+    manifests = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(args.manifests.glob("*.json"))]
+    if only is not None:
+        unknown = sorted(only - {m["id"] for m in manifests})
+        if unknown:
+            raise SystemExit(f'no manifest with id: {", ".join(unknown)} (an id is the "id" in {args.manifests}/*.json)')
+    failed = []
+    for manifest in manifests:
+        if only is not None and manifest["id"] not in only:
             continue
-        for fetched in fetch(manifest, args.raw):
-            print(f"ok {fetched}", file=sys.stderr)
+        try:
+            for fetched in fetch(manifest, args.raw):
+                print(f"ok {fetched}", file=sys.stderr)
+        except SystemExit as e:  # one bad source doesn't stop the rest
+            print(e.code, file=sys.stderr)
+            failed.append(manifest["id"])
+    if failed:
+        raise SystemExit(f"failed: {', '.join(failed)}")
     return 0
 
 

@@ -86,6 +86,21 @@ build_lang_config() {
   local english_next="${ENGLISH_NEXT:-$ROOT/packs/ml.neopack/next.fst}"
   local lexbuild="$ROOT/engine/target/release/lexbuild-native"
 
+  # What the build needs from earlier steps of docs/make-a-language.md, checked before the
+  # minutes of work that would otherwise end in a traceback.
+  local missing=()
+  [ -x "$ROOT/data/build-$LANG_ID-text.sh" ] ||
+    missing+=("data/build-$LANG_ID-text.sh, executable (step 3, Get the text)")
+  [ -f "$config/romanisation-weights.json" ] ||
+    missing+=("data/langs/$LANG_ID/romanisation-weights.json (step 4: calibrate --write, or a copy of romanisation.hand.json)")
+  [ -f "$PACK/manifest.json" ] ||
+    missing+=("packs/$LANG_ID.neopack/manifest.json (step 5, The manifest)")
+  if [ ${#missing[@]} -gt 0 ]; then
+    echo "build-pack-lexicons.sh $LANG_ID: missing" >&2
+    printf '  %s\n' "${missing[@]}" >&2
+    exit 1
+  fi
+
   "$ROOT/data/build-$LANG_ID-text.sh"
 
   (cd "$ROOT/engine" && cargo build --release -p lexbuild)
