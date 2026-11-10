@@ -15,11 +15,21 @@ sets scored like chat_golden (`CONTEXT_SETS`): English typos in context and lang
 records and exits 0. `--gate m3b` also checks the M3b ship gates (`ship_gate`) against
 `data/eval/baselines-m3a.json`. `--weights` sets `LmWeights` fields (`en=0.5,clip=4`) in place
 of rank.rs's, to check a sweep point on the gate files; it can't be recorded.
+
+`--lang hi` runs the Hindi pack (packs/hi.neopack) with English instead, on Hindi's sets
+(`LANGS`): English no-harm (wrong replacements, typos, typos in context), the Hindi
+transliteration set `data/eval/hi/translit-human.tsv`, and next words in English, Hindi script
+(`hi/next-hi.heldout.txt`, from `mlkb.lm.corpus --lang hi`) and Hinglish
+(`hi/next-hinglish.tsv`, from `mlkb.eval.next_sets --lang hi`). Its baselines are
+`data/eval/hi/baselines.json`; `--record-nolm` records the run without an LM to
+`hi/baselines-nolm.json`, and `--gate lm` checks the LM's ship gates against that record (as
+`--gate m3b` does against M3a's for Malayalam).
 """
 
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import mlengine
@@ -52,8 +62,58 @@ CONTEXT_SETS = {  # scored like chat_golden: name: (gate file, tune file)
 ACCURACY_SETS = ("chat_golden", "human", "english_typos", *CONTEXT_SETS)
 
 
-def load_engine(translit_model: str | None, lm_model: str | None = None):
+@dataclass(frozen=True)
+class EvalLang:
+    """What `main` runs for one pack: its next-word and context sets, its transliteration set
+    (`human`), whether it has a chat set, and where its baselines are."""
+
+    id: str
+    pack: Path
+    script: str
+    next_sets: dict
+    context_sets: dict
+    human: Path
+    chat_golden: bool
+    baselines: Path
+    gate_baselines: Path  # what `--gate` compares against
+    gate_label: str
+
+
+LANGS = {
+    "ml": EvalLang("ml", PACK, "mlym", NEXT_SETS, CONTEXT_SETS, EVAL / "translit-human.tsv", True, BASELINES,
+                   BASELINES_M3A, "M3a"),
+    "hi": EvalLang(
+        "hi", ROOT / "packs/hi.neopack", "deva",
+        {
+            "next_en": (("english-sentences.txt",), "next-en.tune.txt", "latin"),
+            "next_hi": (("hi/next-hi.heldout.txt",), "hi/next-hi.tune.txt", "native"),
+            "next_hinglish": (("hi/next-hinglish.tsv",), "hi/next-hinglish.tune.tsv", "latin"),
+        },
+        {"english_typos_context": CONTEXT_SETS["english_typos_context"]},
+        EVAL / "hi/translit-human.tsv", False, EVAL / "hi/baselines.json", EVAL / "hi/baselines-nolm.json",
+        "baseline",
+    ),
+}
+
+
+def load_engine(translit_model: str | None, lm_model: str | None = None, lang: str = "ml"):
     """The engine on the committed bundle, plus the transliterator and the LM when given."""
+    if lang != "ml":
+        pack = LANGS[lang].pack
+        manifest = json.loads((pack / "manifest.json").read_text(encoding="utf-8"))
+        files = manifest["files"]
+        return mlengine.Engine(
+            english=str(LEX / "en.fst"),
+            malayalam=str(pack / files["lexicon"]),
+            manglish=str(pack / files["romanisedLexicon"]),
+            romanisation=str(pack / files["romanisation"]),
+            layout=str(pack / files["layout"]),
+            next_words=str(pack / files["nextWords"]),
+            translit=translit_model,
+            lm=lm_model,
+            pack=lang,
+            script=manifest["script"],
+        )
     return mlengine.Engine(
         english=str(LEX / "en.fst"),
         malayalam=str(PACK / "ml.fst"),
@@ -68,11 +128,11 @@ def load_engine(translit_model: str | None, lm_model: str | None = None):
     )
 
 
-def regressions(current: dict, baseline: dict) -> list[str]:
+def regressions(current: dict, baseline: dict, next_sets: dict = NEXT_SETS) -> list[str]:
     """Every metric in `current` that is worse than `baseline` by more than its tolerance."""
     found = []
     gated = [(name, ("top1", "top3")) for name in ACCURACY_SETS]
-    gated += [(name, ("top1", "top3", "ks")) for name in NEXT_SETS]
+    gated += [(name, ("top1", "top3", "ks")) for name in next_sets]
     for set_name, metrics in gated:
         now, base = current.get(set_name), baseline.get(set_name)
         if not now or not base:
@@ -86,30 +146,32 @@ def regressions(current: dict, baseline: dict) -> list[str]:
     return found
 
 
-def ship_gate(current: dict, m3a: dict) -> list[str]:
-    """The M3b ship gates (design §9) that `current` fails against the M3a baseline: next-word
-    top-3 and KS above M3a's on every next-word set present, no more English wrong replacements,
-    and typos in context and language choice top-1 above M3a's."""
+def ship_gate(current: dict, m3a: dict, lang: EvalLang = LANGS["ml"]) -> list[str]:
+    """The M3b ship gates (design §9) that `current` fails against the M3a baseline (or another
+    pack's run without an LM): next-word top-3 and KS above the baseline's on every next-word set
+    present, no more English wrong replacements, and the context sets' top-1 (typos in context,
+    language choice) above the baseline's."""
     found = []
+    label = lang.gate_label
     if current["english_wrong"] > m3a["english_wrong"]:
-        found.append(f"english_wrong: {current['english_wrong']} > M3a {m3a['english_wrong']}")
-    gated = [(name, ("top3", "ks")) for name in NEXT_SETS]
-    gated += [(name, ("top1",)) for name in CONTEXT_SETS]
+        found.append(f"english_wrong: {current['english_wrong']} > {label} {m3a['english_wrong']}")
+    gated = [(name, ("top3", "ks")) for name in lang.next_sets]
+    gated += [(name, ("top1",)) for name in lang.context_sets]
     for set_name, metrics in gated:
         now, base = current.get(set_name), m3a.get(set_name)
         if not now or not base:
             continue
         for metric in metrics:
             if now[metric] <= base[metric]:
-                found.append(f"{set_name} {metric}: {now[metric]:.4f} not above M3a {base[metric]:.4f}")
+                found.append(f"{set_name} {metric}: {now[metric]:.4f} not above {label} {base[metric]:.4f}")
     return found
 
 
-def run_translit(engine, name: str, path: Path) -> dict:
+def run_translit(engine, name: str, path: Path, quiet: bool = False) -> dict:
     """Scores one transliteration set, prints it with its misses, and returns its metrics."""
     s = translit.score(engine, translit.load(path))
     print(f"{name}: top1 {s.top1:.4f}  top3 {s.top3:.4f}  n {s.n}")
-    for row in s.misses:
+    for row in [] if quiet else s.misses:
         bar = [text for text, _, _ in engine.suggest(translit.query(row), "latin", True)][:3]
         print(f"  miss  {translit.query(row)!r:32} want {row.malayalam:14} got {bar}")
     return {"top1": round(s.top1, 4), "top3": round(s.top3, 4), "n": s.n}
@@ -157,63 +219,78 @@ def run_english(engine, path: Path) -> tuple[float, int]:
 def main(argv: list[str] | None = None) -> int:
     """Entry point; returns the process exit code."""
     parser = argparse.ArgumentParser(prog="python -m mlkb.eval", description=__doc__.splitlines()[0])
-    parser.add_argument("--record", action="store_true", help="write data/eval/baselines.json")
+    parser.add_argument("--lang", default="ml", choices=sorted(LANGS), help="the pack to run (with English)")
+    parser.add_argument("--record", action="store_true", help="write data/eval/baselines.json (the pack's)")
+    parser.add_argument("--record-nolm", action="store_true",
+                        help="write the pack's baselines-nolm.json, the run without an LM that --gate lm reads")
+    parser.add_argument("--quiet", action="store_true", help="leave out the transliteration misses")
     parser.add_argument("--translit", metavar="PATH", help="transliterator model file")
     parser.add_argument("--lm", metavar="PATH", help="language model file")
     parser.add_argument("--tune", action="store_true", help="run the .tune files; never record or gate")
-    parser.add_argument("--gate", choices=["m3b"], help="also check the ship gates against baselines-m3a.json")
+    parser.add_argument("--gate", choices=["m3b", "lm"],
+                        help="also check the ship gates: against baselines-m3a.json (m3b, Malayalam) or the "
+                             "pack's baselines-nolm.json (lm)")
     parser.add_argument("--weights", default="", metavar="F=V,…",
                         help="override LmWeights fields (rank.rs defaults otherwise); never with --record")
     args = parser.parse_args(argv)
-    if args.weights and args.record:
+    if args.weights and (args.record or args.record_nolm):
         parser.error("--record takes the rank.rs weights")
+    if args.record_nolm and args.lm:
+        parser.error("--record-nolm records the run without an LM")
+    lang = LANGS[args.lang]
 
-    engine = load_engine(args.translit, args.lm)
+    engine = load_engine(args.translit, args.lm, args.lang)
     if args.weights:
         engine.set_lm_weights(**{k: float(v) for k, v in (kv.split("=") for kv in args.weights.split(","))})
     print(f"sources: {engine.loaded_sources()}")
-    if args.lm and "ml:lm" not in engine.loaded_sources():
+    if args.lm and f"{args.lang}:lm" not in engine.loaded_sources():
         print(f"lm: {args.lm} did not load (missing, or built against other lexicons)")
         return 1
     if args.tune:
-        for name, (_, tune, layout) in NEXT_SETS.items():
+        for name, (_, tune, layout) in lang.next_sets.items():
             run_next(engine, name, EVAL / tune, layout)
-        for name, (_, tune) in CONTEXT_SETS.items():
-            run_translit(engine, name, EVAL / tune)
+        for name, (_, tune) in lang.context_sets.items():
+            run_translit(engine, name, EVAL / tune, args.quiet)
         return 0
 
-    human = EVAL / "translit-human.tsv"
+    human = lang.human
     wrong_rate, wrong = run_english(engine, EVAL / "english-sentences.txt")
     current = {
-        "chat_golden": run_translit(engine, "chat_golden", EVAL / "chat-golden.tsv"),
-        "human": run_translit(engine, "human", human) if human.exists() else None,
+        "chat_golden": run_translit(engine, "chat_golden", EVAL / "chat-golden.tsv", args.quiet)
+        if lang.chat_golden else None,
+        "human": run_translit(engine, "human", human, args.quiet) if human.exists() else None,
         "english_wrong_rate": wrong_rate,
         "english_wrong": wrong,
-        "english_typos": run_translit(engine, "english_typos", EVAL / "english-typos.tsv"),
+        "english_typos": run_translit(engine, "english_typos", EVAL / "english-typos.tsv", args.quiet),
     }
-    for name, (gate, _) in CONTEXT_SETS.items():
-        current[name] = run_translit(engine, name, EVAL / gate) if (EVAL / gate).exists() else None
-    for name, (gates, _, layout) in NEXT_SETS.items():
+    for name, (gate, _) in lang.context_sets.items():
+        current[name] = run_translit(engine, name, EVAL / gate, args.quiet) if (EVAL / gate).exists() else None
+    for name, (gates, _, layout) in lang.next_sets.items():
         current[name] = run_next(engine, name, [EVAL / g for g in gates], layout)
     current["engine"] = "m3b" if args.lm else "m3a" if args.translit else "m2"
 
-    if args.record:
-        BASELINES.write_text(json.dumps(current, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(f"recorded {BASELINES.relative_to(ROOT)}")
+    if args.record or args.record_nolm:
+        path = lang.gate_baselines if args.record_nolm else lang.baselines
+        path.write_text(json.dumps(current, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"recorded {path.relative_to(ROOT)}")
         return 0
-    baseline = json.loads(BASELINES.read_text(encoding="utf-8"))
-    found = regressions(current, baseline)
-    for line in found:
-        print(f"REGRESSION {line}")
-    if not found:
-        print(f"no regressions against the {baseline['engine']} baseline")
+    found = []
+    if lang.baselines.exists():
+        baseline = json.loads(lang.baselines.read_text(encoding="utf-8"))
+        found = regressions(current, baseline, lang.next_sets)
+        for line in found:
+            print(f"REGRESSION {line}")
+        if not found:
+            print(f"no regressions against the {baseline['engine']} baseline")
+    else:
+        print(f"no baselines at {lang.baselines.relative_to(ROOT)} yet: nothing to compare")
     failed = []
-    if args.gate == "m3b":
-        failed = ship_gate(current, json.loads(BASELINES_M3A.read_text(encoding="utf-8")))
+    if args.gate:
+        failed = ship_gate(current, json.loads(lang.gate_baselines.read_text(encoding="utf-8")), lang)
         for line in failed:
             print(f"GATE {line}")
         if not failed:
-            print("M3b ship gates pass")
+            print("M3b ship gates pass" if args.gate == "m3b" else "LM ship gates pass")
     return 1 if found or failed else 0
 
 

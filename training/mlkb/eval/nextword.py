@@ -7,7 +7,7 @@ as the keyboard would have committed them.
 from dataclasses import dataclass
 from pathlib import Path
 
-PUNCT = ".,!?;:\"()…"
+PUNCT = ".,!?;:\"()…।॥"  # with the Devanagari dandas, Hindi's full stops
 
 
 @dataclass(frozen=True)

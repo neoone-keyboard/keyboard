@@ -89,3 +89,27 @@ def test_ship_gate_needs_gains_and_no_new_wrong_replacements():
     assert ship_gate(good, m3a) == []
     bad = {**good, "english_wrong": 4, "next_en": {"top3": 0.30, "ks": 0.15}}
     assert ship_gate(bad, m3a) == ["english_wrong: 4 > M3a 3", "next_en top3: 0.3000 not above M3a 0.3000"]
+
+
+def test_hindi_runs_its_own_sets_on_its_own_pack():
+    from mlkb.eval.__main__ import LANGS, load_engine
+
+    hi = LANGS["hi"]
+    assert set(hi.next_sets) == {"next_en", "next_hi", "next_hinglish"}
+    assert hi.next_sets["next_hi"][2] == "native"
+    assert set(hi.context_sets) == {"english_typos_context"}
+    engine = load_engine(None, None, "hi")
+    assert "hi:lexicon" in engine.loaded_sources() and "hi:romanised" in engine.loaded_sources()
+
+
+def test_the_lm_gate_wants_every_next_set_and_context_set_above_the_baseline():
+    from mlkb.eval.__main__ import LANGS, ship_gate
+
+    hi = LANGS["hi"]
+    row = {"top1": 0.5, "top3": 0.5, "ks": 0.5}
+    base = {"english_wrong": 3, **{n: row for n in hi.next_sets}, **{n: row for n in hi.context_sets}}
+    better = {"english_wrong": 3, **{n: {k: 0.6 for k in row} for n in [*hi.next_sets, *hi.context_sets]}}
+    assert ship_gate(better, base, hi) == []
+    worse = {**better, "next_hinglish": {"top1": 0.6, "top3": 0.5, "ks": 0.6}, "english_wrong": 4}
+    assert ship_gate(worse, base, hi) == ["english_wrong: 4 > baseline 3",
+                                          "next_hinglish top3: 0.5000 not above baseline 0.5000"]

@@ -49,3 +49,19 @@ def test_next_sets_align_and_split_disjointly():
     native = [f"ന{'ക' * i} ക" for i in range(40)]
     gate, tune = next_sets.manglish_rows(roman, native)
     assert len(gate) == len(tune) == 20 and not set(gate) & set(tune)
+
+
+def test_the_danda_is_punctuation():
+    from mlkb.eval.nextword import plain
+
+    assert plain("मैं घर गया।").words == ("मैं", "घर", "गया")
+
+
+def test_hinglish_rows_align_with_the_engines_normal_form():
+    import mlengine
+
+    from mlkb.eval import next_sets
+
+    got = next_sets.aligned_pair("ghar gaye.", "घर गए।", mlengine.lm_normalize)
+    assert got == ("ghar gaye", "घर गए")
+    assert next_sets.aligned_pair("michael kamen ne", "माइकल कामेन", mlengine.lm_normalize) is None

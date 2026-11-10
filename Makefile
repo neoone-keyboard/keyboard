@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data lm models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -259,6 +259,13 @@ bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
 	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
 	cd engine && $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
+
+# The same for the Hindi pack and its LM (engine/core/tests/pack_lm.rs: the bundled
+# packs/hi.neopack/lm.mlkbnn, else training/build/lm-hi.mlkbnn): suggest p99 under 8 ms without
+# and with the LM, the LM commit p99 under 1 ms and the context ring within 2% of fresh windows.
+bench-hi:
+	cd engine && $(CARGO) test --release -p mlengine-core --test pack_lm -- --include-ignored --nocapture
+	cd engine && MLENGINE_LM_LANG=hi $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore

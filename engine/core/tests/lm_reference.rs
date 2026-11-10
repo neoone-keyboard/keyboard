@@ -9,6 +9,8 @@
 //! Ignored (`make bench`), on `training/build/lm.mlkbnn` when it exists: `lm_latency` times a
 //! commit, one token and a fresh prefill; `ring_matches_fresh_windows` checks that a cache
 //! that drops its oldest words predicts as well as one computed afresh (design §9).
+//! `MLENGINE_LM_LANG=hi` runs them on Hindi's (`training/build/lm-hi.mlkbnn`, its held-out
+//! English and Hindi sentences in `training/build/lm-hi/`).
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -127,8 +129,26 @@ fn an_empty_cache_has_no_distribution_and_restarts_positions() {
     );
 }
 
+/// The language of the trained LM to test (`MLENGINE_LM_LANG`), Malayalam by default.
+fn lm_lang() -> String {
+    std::env::var("MLENGINE_LM_LANG").unwrap_or_else(|_| "ml".into())
+}
+
+/// `training/build/lm` for Malayalam, `training/build/lm-<lang>` for another language.
+fn build_stem() -> PathBuf {
+    let lang = lm_lang();
+    let stem = if lang == "ml" {
+        "lm".to_string()
+    } else {
+        format!("lm-{lang}")
+    };
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../training/build")
+        .join(stem)
+}
+
 fn trained() -> Option<Lm> {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/lm.mlkbnn");
+    let path = build_stem().with_extension("mlkbnn");
     if !path.exists() {
         println!("skipped: {} is missing", path.display());
         return None;
@@ -238,9 +258,12 @@ fn ring_and_fresh(lm: &Lm, lines: &[&str]) -> (f64, f64, usize) {
 #[ignore = "slow, needs the trained model: make bench"]
 fn ring_matches_fresh_windows() {
     let Some(lm) = trained() else { return };
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../training/build/lm");
-    for name in ["heldout-en.txt", "heldout-ml.txt"] {
-        let text = std::fs::read_to_string(dir.join(name)).unwrap();
+    let dir = build_stem();
+    for name in [
+        "heldout-en.txt".to_string(),
+        format!("heldout-{}.txt", lm_lang()),
+    ] {
+        let text = std::fs::read_to_string(dir.join(&name)).unwrap();
         let lines: Vec<&str> = text.lines().take(150).collect();
         let (ring, fresh, n) = ring_and_fresh(&lm, &lines);
         let gap = (ring - fresh) / fresh;

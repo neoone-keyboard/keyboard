@@ -14,9 +14,18 @@
   sentences stay unused.
 
 Malayalam is normalised as the engine does (`mlkb.data.human.normalize`).
+
+    uv run python -m mlkb.eval.next_sets --lang hi
+
+writes Hindi's Hinglish sets instead, `data/eval/hi/next-hinglish.tsv` (gate) and
+`next-hinglish.tune.tsv`, the same way from Dakshina's `hi/romanized/` dev sentences (Hindi
+normalised by the engine, `mlengine.lm_normalize`). Hindi's other next-word sets, held-out
+Hindi Wikipedia and Wikisource sentences, are written by `mlkb.lm.corpus --lang hi`.
 """
+import argparse
 import random
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from mlkb.data.human import normalize
@@ -51,17 +60,27 @@ def _words(line: str) -> list[str]:
     return line.translate(_SEPARATORS).split()
 
 
-def aligned_pair(roman: str, native: str) -> tuple[str, str] | None:
+HINGLISH_HEADER = """# Next-word eval set, Hinglish ({split} split): roman<TAB>native, word-aligned sentences.
+# From the Dakshina dataset v1.0 (Google Research, Roark et al., 2020), CC BY-SA 4.0:
+# hi/romanized/hi.romanized.rejoined.dev.{{roman,native}}.txt, shuffled with seed {seed} and split into
+# disjoint halves (gate from the first, tune from the second). Punctuation dropped, sentences with
+# digits skipped, only pairs with the same word count (2 to {max_words}) kept. The test sentences are not used.
+# Eval only: these sentences are removed from the LM training text. Built by training/mlkb/eval/next_sets.py --lang hi.
+"""
+
+
+def aligned_pair(roman: str, native: str, norm: Callable[[str], str] = normalize) -> tuple[str, str] | None:
     """The cleaned `(roman, native)` sentence pair, or None if it can't be word-aligned."""
     if any(c.isdigit() for c in roman + native):
         return None
-    r, n = _words(roman.lower()), _words(normalize(native))
+    r, n = _words(roman.lower()), _words(norm(native))
     if not 2 <= len(r) <= MAX_WORDS or len(r) != len(n):
         return None
     return " ".join(r), " ".join(n)
 
 
-def manglish_rows(roman: list[str], native: list[str], seed: int = SEED) -> tuple[list, list]:
+def manglish_rows(roman: list[str], native: list[str], seed: int = SEED,
+                  norm: Callable[[str], str] = normalize) -> tuple[list, list]:
     """Gate and tune rows from disjoint halves of the shuffled dev sentences."""
     order = list(range(len(roman)))
     random.Random(seed).shuffle(order)
@@ -72,13 +91,33 @@ def manglish_rows(roman: list[str], native: list[str], seed: int = SEED) -> tupl
         for i in part:
             if len(rows) == want:
                 break
-            if pair := aligned_pair(roman[i], native[i]):
+            if pair := aligned_pair(roman[i], native[i], norm):
                 rows.append(pair)
         out.append(rows)
     return out[0], out[1]
 
 
-def main() -> int:
+def hindi() -> int:
+    import mlengine
+
+    dakshina = RAW / "dakshina/dakshina_dataset_v1.0/hi/romanized"
+    roman = (dakshina / "hi.romanized.rejoined.dev.roman.txt").read_text(encoding="utf-8").splitlines()
+    native = (dakshina / "hi.romanized.rejoined.dev.native.txt").read_text(encoding="utf-8").splitlines()
+    gate, tune = manglish_rows(roman, native, norm=mlengine.lm_normalize)
+    (EVAL / "hi").mkdir(exist_ok=True)
+    for name, split, rows in (("next-hinglish.tsv", "gate", gate), ("next-hinglish.tune.tsv", "tune", tune)):
+        body = "".join(f"{r}\t{n}\n" for r, n in rows)
+        (EVAL / "hi" / name).write_text(HINGLISH_HEADER.format(split=split, seed=SEED, max_words=MAX_WORDS) + body,
+                                        encoding="utf-8")
+    print(f"next-hinglish gate {len(gate)}, tune {len(tune)}", file=sys.stderr)
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--lang", default="ml", choices=["ml", "hi"])
+    if parser.parse_args(argv).lang == "hi":
+        return hindi()
     smc = [normalize(l.strip()) for l in SMC.read_text(encoding="utf-8").splitlines() if l.strip()]
     (EVAL / "next-ml.txt").write_text(ML_HEADER + "\n".join(smc) + "\n", encoding="utf-8")
     roman = (DAKSHINA / "ml.romanized.rejoined.dev.roman.txt").read_text(encoding="utf-8").splitlines()
