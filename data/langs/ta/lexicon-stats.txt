@@ -1,7 +1,10 @@
 ta tokens: 117215332, distinct forms: 7125852
+ta dropped (a letter of the script, but not a word): 860710 tokens, 258610 forms
+ta dropped top 20: ம் 37744, ல் 37205, ன் 21581, ள் 15522, க் 14056, 2011ஆம் 11692, 2015ஆம் 11676, ர் 11151, ப் 9607, த் 8922, ே 8591, ெ 7596, ை 5793, ங் 5487, ந் 5180, ச் 4911, ா 4273, ஆல்ை 4029, ற் 3423, ட் 3364
 next.fst pairs: 148348 ta, 149977 English
 ta.fst: 300000 keys, 3580640 bytes
 next.fst: 298325 keys, 5389625 bytes
 ta top 20: ஒரு என்று மற்றும் என்ற இந்த இது என்பது அவர் வேண்டும் ஆம் கொண்டு உள்ள நான் அவன் பல இவர் என்னும் அந்த என் அல்லது
 romanised keys skipped: 0
 romanised.fst: 299999 keys, 6280057 bytes
+ta text by source: tawiki 35696375 words (28%), tawikisource 91188734 words (72%), tawikiquote 274299 words (0%)

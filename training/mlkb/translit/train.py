@@ -228,7 +228,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             log(
                 f"eval step {step:,}: valid top1 {acc:.4f}  valid-human top1 {acc_h:.4f}  score {score:.4f} "
-                f"{'(best, saved)' if improved else f'(no gain {bad}/{args.patience})'}  {time.monotonic() - ev:.0f}s"
+                f"{'(best, saved)' if improved else f'(no gain {bad}/{args.patience}; best {best:.4f})'}  "
+                f"{time.monotonic() - ev:.0f}s"
             )
             tick += time.monotonic() - ev
             if bad >= args.patience:
