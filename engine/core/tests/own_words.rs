@@ -151,6 +151,29 @@ fn it_survives_a_restart_with_its_language() {
     }
 }
 
+/// Each pick puts its word into the engine's index; a restart builds the index from the log.
+/// The two are the same index: every bar is the same.
+#[test]
+fn the_index_kept_up_by_picks_is_the_one_a_restart_builds() {
+    let dir = tempfile::tempdir().unwrap();
+    let live = engine("hi", true, Some(dir.path()));
+    let hi = hindi(&live);
+    assert!(!bar(&live, "kshitijavar").is_empty(), "the index is read before anything is picked");
+    tap(&live, "", "raubdar", OWN);
+    tap(&live, "", "kshitijavardhan", "क्षितिजवर्धन");
+    live.note_choice("roabdaar", OWN, hi.as_ref());
+    live.note_choice("jhumritalaiya", "झुमरीतलैया", hi.as_ref());
+    live.forget_word("क्षितिजवर्धन");
+    live.note_choice("kshitijvardhan", "क्षितिजवर्धन", hi.as_ref());
+    let restarted = engine("hi", true, Some(dir.path()));
+    for typed in ["raubdar", "raubdaar", "roabdar", "robdar", "kshitijavardhan", "kshitijvardhn", "jhumritalaiyaa"] {
+        for end in 2..=typed.len() {
+            assert_eq!(suggest(&live, &typed[..end]), suggest(&restarted, &typed[..end]), "{}", &typed[..end]);
+        }
+    }
+    assert!(bar(&live, "roabdar").contains(&OWN.to_string()), "found by the later letters too");
+}
+
 fn place(e: &Engine, context: &str, word: &str) -> usize {
     bar(e, context).iter().position(|w| w == word).unwrap_or(usize::MAX)
 }
@@ -418,4 +441,145 @@ fn a_word_added_on_the_phone_is_offered_as_the_same_word_built_into_the_pack() {
         }
     }
     assert!(found > 10, "{found} of {tried} typed forms find the pack's word");
+
+}
+
+/// The held-out transliteration pairs of a pack (`data/eval/<id>/translit-human.tsv`): the
+/// Latin spellings of each native word, in file order.
+fn held_out(id: &str) -> Vec<(String, Vec<String>)> {
+    let text = fs::read_to_string(root().join(format!("data/eval/{id}/translit-human.tsv"))).unwrap();
+    let mut words: Vec<(String, Vec<String>)> = Vec::new();
+    let mut place: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for line in text.lines().filter(|l| !l.starts_with('#')) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        let [_, latin, native] = fields[..] else {
+            continue;
+        };
+        if !latin.bytes().all(|b| b.is_ascii_lowercase()) || latin.len() < 4 {
+            continue;
+        }
+        let at = *place.entry(native.to_string()).or_insert_with(|| {
+            words.push((native.to_string(), Vec::new()));
+            words.len() - 1
+        });
+        words[at].1.push(latin.to_string());
+    }
+    words
+}
+
+/// The numbers behind `rank::OWN_WORD_LOG_PROB` and `rank::OWN_WORD_REPLACES_AFTER`, on each
+/// pack's held-out transliteration pairs. Not a check: it prints one line per pack for the
+/// constants as they are, and was run at each value in the table in `rank.rs`.
+///
+///     cargo test --release -p mlengine-core --test own_words own_word_scores -- --ignored --nocapture
+///
+/// Own words: the held-out words the lexicon doesn't hold that have two spellings or more,
+/// each picked for its first spelling. Reach: its other spellings, and the first 60% of the
+/// letters of the first, that show it in the three slots (before: with nothing picked). Harm:
+/// the held-out words the lexicon does hold, typed with the own words in the store, each used
+/// once and then each used three times: how many show the wanted word, and how many put an
+/// own word in the middle. English: the typo set's middle slot. Every engine has the same
+/// language habit (`rank::HABIT_WEIGHT`), which the uses would otherwise move.
+#[test]
+#[ignore = "a measurement for rank::OWN_WORD_LOG_PROB, not a check"]
+fn own_word_scores() {
+    let typos: Vec<(String, String)> = fs::read_to_string(root().join("data/eval/english-typos.tsv"))
+        .unwrap()
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| {
+            let fields: Vec<&str> = l.split('\t').collect();
+            Some((format!("{}{}", fields.first()?, fields.get(1)?), fields.get(2)?.to_string()))
+        })
+        .collect();
+    println!(
+        "OWN_WORD_LOG_PROB {} OWN_WORD_REPLACES_AFTER {}",
+        mlengine_core::rank::OWN_WORD_LOG_PROB,
+        mlengine_core::rank::OWN_WORD_REPLACES_AFTER
+    );
+    for id in ["hi", "as", "ta"] {
+        let lex = lexicon_of(id);
+        let lang = LangId(id.into());
+        let words = held_out(id);
+        let (known, unknown): (Vec<_>, Vec<_>) =
+            words.iter().partition(|(w, _)| lex.get(w.as_bytes()).is_some());
+        let own: Vec<&(String, Vec<String>)> =
+            unknown.iter().copied().filter(|(_, latin)| latin.len() >= 2).take(400).collect();
+        let known: Vec<&(String, Vec<String>)> = known.into_iter().take(1_000).collect();
+        let empty = engine(id, true, None);
+        let once = engine(id, true, None);
+        let thrice = engine(id, true, None);
+        // The same language habit in each, so that only the own words differ: a native word
+        // that is in no lexicon and is never picked, typed from the Latin layout.
+        let stranger = unknown.iter().find(|(_, latin)| latin.len() < 2).map(|(w, _)| w.as_str()).unwrap();
+        for e in [&empty, &once, &thrice] {
+            for _ in 0..200 {
+                e.note_used("", stranger, Layout::Latin);
+            }
+        }
+        for (word, latin) in &own {
+            for e in [&once, &thrice] {
+                e.note_choice(&latin[0], word, Some(&lang));
+                e.note_used("", word, Layout::Latin);
+            }
+            thrice.note_used("", word, Layout::Latin);
+            thrice.note_used("", word, Layout::Latin);
+        }
+        assert_eq!(once.learned_words().len(), own.len());
+        let is_own = |text: &str| own.iter().any(|(w, _)| w == text);
+        // Reach.
+        let shown = |e: &Engine, typed: &str, word: &str| bar(e, typed).iter().any(|w| w == word);
+        let (mut others, mut other_before, mut other_once, mut other_thrice) = (0, 0, 0, 0);
+        let (mut middle_once, mut middle_thrice) = (0, 0);
+        let (mut partials, mut partial_before, mut partial_once, mut partial_thrice) = (0, 0, 0, 0);
+        for (word, latin) in &own {
+            for typed in &latin[1..] {
+                others += 1;
+                other_before += usize::from(shown(&empty, typed, word));
+                other_once += usize::from(shown(&once, typed, word));
+                other_thrice += usize::from(shown(&thrice, typed, word));
+                middle_once += usize::from(bar(&once, typed)[0] == *word);
+                middle_thrice += usize::from(bar(&thrice, typed)[0] == *word);
+            }
+            let typed = &latin[0][..(latin[0].len() * 3).div_ceil(5)];
+            partials += 1;
+            partial_before += usize::from(shown(&empty, typed, word));
+            partial_once += usize::from(shown(&once, typed, word));
+            partial_thrice += usize::from(shown(&thrice, typed, word));
+        }
+        // Harm.
+        let mut rows = 0;
+        let mut shown_in = [0usize; 3];
+        let mut first_in = [0usize; 3];
+        let mut own_middle = [0usize; 3];
+        for (word, latin) in &known {
+            for typed in latin.iter() {
+                rows += 1;
+                for (i, e) in [&empty, &once, &thrice].into_iter().enumerate() {
+                    let bar = bar(e, typed);
+                    shown_in[i] += usize::from(bar.iter().any(|w| w == word));
+                    first_in[i] += usize::from(bar[0] == *word);
+                    own_middle[i] += usize::from(is_own(&bar[0]));
+                }
+            }
+        }
+        let mut english = [0usize; 3];
+        let mut english_own = [0usize; 3];
+        for (context, intended) in &typos {
+            for (i, e) in [&empty, &once, &thrice].into_iter().enumerate() {
+                let bar = bar(e, context);
+                english[i] += usize::from(bar.first() == Some(intended));
+                english_own[i] += usize::from(bar.first().is_some_and(|w| is_own(w)));
+            }
+        }
+        println!(
+            "{id}: {} own words | other spellings {others}: shown {other_before} -> {other_once} (used once) / \
+             {other_thrice} (thrice), in the middle {middle_once} / {middle_thrice} | first letters {partials}: shown \
+             {partial_before} -> {partial_once} / {partial_thrice} | lexicon words {rows} rows: shown {shown_in:?}, \
+             first {first_in:?}, an own word in the middle {own_middle:?} | English typos {}: middle right \
+             {english:?}, an own word {english_own:?}",
+            own.len(),
+            typos.len()
+        );
+    }
 }
