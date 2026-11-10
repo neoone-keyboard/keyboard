@@ -29,10 +29,26 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     /// hex digits of its little-endian bytes (`EnglishFingerprint`). Nil when the manifest has
     /// none (Malayalam's, built in the same run as `en.fst`).
     public let englishFingerprint: String?
+    /// The characters of the pack's script, as code point ranges: `block` and `letters` of its
+    /// `lang.json` (the engine's script rules read the same). For a pack without the file,
+    /// the script's own block when the engine has rules for it (`embeddedScriptRanges`), else
+    /// none.
+    public let scriptRanges: [ClosedRange<UInt32>]
+
+    /// The blocks of the scripts the engine has its own rules for (`script::supported`: packs
+    /// in them were published before packs carried `lang.json`), as `block` in
+    /// data/langs/ml, hi and as/lang.json.
+    public static let embeddedScriptRanges: [String: [ClosedRange<UInt32>]] = [
+        "mlym": [0x0D00...0x0D7F],
+        "deva": [0x0900...0x097F],
+        "beng": [0x0980...0x09FF],
+    ]
 
     public init(id: String, name: String, nativeName: String, script: String, romanisedName: String? = nil,
                 credits: [Credit] = [], layout: PackLayout?, folder: URL,
-                version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil) {
+                version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil,
+                scriptRanges: [ClosedRange<UInt32>]? = nil) {
+        self.scriptRanges = scriptRanges ?? Self.embeddedScriptRanges[script] ?? []
         self.id = id
         self.name = name
         self.nativeName = nativeName
@@ -44,6 +60,11 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         self.version = version
         self.minEngine = minEngine
         self.englishFingerprint = englishFingerprint
+    }
+
+    /// Whether `text` has a character of the pack's script.
+    public func writes(_ text: String) -> Bool {
+        text.unicodeScalars.contains { scalar in scriptRanges.contains { $0.contains(scalar.value) } }
     }
 
     /// One pack per language id.
@@ -60,15 +81,21 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         let manifest = try JSONDecoder().decode(Manifest.self, from: Data(contentsOf: folder.appending(path: "manifest.json")))
         guard manifest.format == 1 else { throw Refused(description: "pack format \(manifest.format), this keyboard reads 1") }
         // A file name, never a path out of the pack (as the engine's `Pack::file`).
-        let layout = manifest.files["layout"]
-            .flatMap { name in name.isEmpty || name.contains("/") || name.hasPrefix(".") ? nil : name }
-            .flatMap { try? PackLayout.load(folder.appending(path: $0)) }
+        let file = { (role: String) -> URL? in
+            manifest.files[role]
+                .flatMap { name in name.isEmpty || name.contains("/") || name.hasPrefix(".") ? nil : name }
+                .map { folder.appending(path: $0) }
+        }
+        let layout = file("layout").flatMap { try? PackLayout.load($0) }
+        let ranges = file("lang").flatMap { try? Data(contentsOf: $0) }
+            .flatMap { try? JSONDecoder().decode(Lang.self, from: $0) }?.ranges
         return PackDescriptor(
             id: manifest.id, name: manifest.name, nativeName: manifest.nativeName, script: manifest.script,
             romanisedName: manifest.romanised?.name,
             credits: manifest.credits?.map(\.credit) ?? [],
             layout: layout, folder: folder,
-            version: manifest.version, minEngine: manifest.minEngine, englishFingerprint: manifest.englishFingerprint
+            version: manifest.version, minEngine: manifest.minEngine, englishFingerprint: manifest.englishFingerprint,
+            scriptRanges: ranges
         )
     }
 
@@ -103,6 +130,24 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
             .filter { $0.pathExtension == "neopack" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
             .compactMap { try? load(folder: $0) }
+    }
+
+    /// The part of a pack's `lang.json` Swift reads: the script's characters.
+    private struct Lang: Decodable {
+        let block: [String]?
+        let letters: [[String]]?
+
+        /// `block`, then `letters`, as the engine's `ScriptDef` takes them; nil when a range
+        /// isn't two hex code points in order, or there is none.
+        var ranges: [ClosedRange<UInt32>]? {
+            var out: [ClosedRange<UInt32>] = []
+            for pair in (block.map { [$0] } ?? []) + (letters ?? []) {
+                guard pair.count == 2, let a = UInt32(pair[0], radix: 16), let b = UInt32(pair[1], radix: 16), a <= b
+                else { return nil }
+                out.append(a...b)
+            }
+            return out.isEmpty ? nil : out
+        }
     }
 
     private struct Manifest: Decodable {

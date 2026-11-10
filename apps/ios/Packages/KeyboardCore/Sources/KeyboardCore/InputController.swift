@@ -102,6 +102,10 @@ public final class InputController {
             }
         }
     }
+    /// The packs whose languages are on, whether or not they have a keyboard of their own
+    /// (`languages` lists only those that do). A word in one of their scripts, or in the script
+    /// of a pack among `languages`, is never replaced by autocorrect on the Latin keys.
+    public var activePacks: [PackDescriptor] = []
     public var numberRow = false
     public var showsNextKeyboard = true
 
@@ -605,14 +609,14 @@ public final class InputController {
     }
 
     /// The word at the end of `context` and the middle suggestion autocorrect puts in for
-    /// it, if any. English only: native Malayalam is never replaced.
+    /// it, if any. English only: a word in a pack's own script is never replaced.
     private func correction(endingAt context: String) -> (String, String)? {
         guard autocorrectEnabled, language == .english else { return nil }
         let word = String(self.word(endingAt: context))
         guard !word.isEmpty,
               Self.straight(suggestions.typed) == Self.straight(word),
               keptWord.map({ Self.straight($0) != Self.straight(word) }) ?? true,
-              !Self.containsMalayalam(word),
+              !containsNativeScript(word),
               address(endingAt: context) == nil,
               !Self.looksLikeCodeOrAddress(before: context.dropLast(word.count)),
               let middle = suggestions.middle,
@@ -657,8 +661,11 @@ public final class InputController {
         text.replacingOccurrences(of: "\u{2019}", with: "'")
     }
 
-    private static func containsMalayalam(_ text: String) -> Bool {
-        text.unicodeScalars.contains { (0x0D00...0x0D7F).contains($0.value) }
+    /// Whether `text` has a character of an active pack's script (`PackDescriptor.writes`).
+    private func containsNativeScript(_ text: String) -> Bool {
+        activePacks.contains { $0.writes(text) } || languages.contains { language in
+            if case .pack(let pack) = language { pack.writes(text) } else { false }
+        }
     }
 
     /// URLs, emails, handles, hashtags, paths and versions: the character just

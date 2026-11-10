@@ -398,6 +398,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func applyLanguages(_ languages: [Language]) {
+        input.activePacks = EngineSuggestionProvider.activePacks
         guard !languages.isEmpty, languages != input.languages else { return }
         let before = input.language.id
         input.languages = languages
