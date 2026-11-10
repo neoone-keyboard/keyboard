@@ -127,6 +127,25 @@ def test_format1_export_matches_the_weighted_canonical_spellings():
         assert f.romanize(word) == t.canonical(word), word
 
 
+def test_format1_notes_and_context_clusters_come_from_the_hand_file(tmp_path):
+    import json
+
+    weights = Tables.load("as")
+    as_export = export(weights)
+    assert "oxom" in as_export["notes"] and "শ্ৰ" in as_export["clusters"]
+    # Another language: its own hand file, no Assamese notes or sibilant clusters.
+    hand = json.loads((LANGS / "as" / "romanisation.hand.json").read_text(encoding="utf-8"))
+    hand["notes"] = {"inherent": "Kept at the end of a word."}
+    del hand["inClusterLetters"]
+    (tmp_path / "romanisation.hand.json").write_text(json.dumps(hand, ensure_ascii=False), encoding="utf-8")
+    other = export(Tables(weights.data, tmp_path / "romanisation-weights.json"))
+    assert other["notes"] == "inherent: Kept at the end of a word."
+    assert "শ্ৰ" not in other["clusters"]
+    del hand["notes"]
+    (tmp_path / "romanisation.hand.json").write_text(json.dumps(hand, ensure_ascii=False), encoding="utf-8")
+    assert export(Tables(weights.data, tmp_path / "romanisation-weights.json"))["notes"] == ""
+
+
 def test_skeleton_is_lowercase_letters():
     t = Tables.load("as")
     assert t.skeleton("Oxom!") == t.skeleton("oxom")

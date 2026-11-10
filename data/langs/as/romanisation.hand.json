@@ -129,5 +129,14 @@
     "letters": {"c": "s", "x": "s", "z": "j", "f": "p", "v": "b", "w": "b", "q": "k", "o": "a", "y": "i"},
     "vowels": "aeiou",
     "dropFinal": "a"
+  },
+  "inClusterLetters": "শষস",
+  "notes": {
+    "inherent": "The inherent vowel is typed 'o' (কৰিব korib, অসম oxom); at the end of a word it is dropped (মানুহ manuh, ভাল bhal), as atWordEnd says. Two things the format can't say: after a final cluster it is usually kept (পুত্ৰ putro, মন্ত্ৰ montro), and in the middle of a word it is dropped between a vowel + lone consonant and a lone consonant + vowel, scanning right to left (ৰাজনীতি rajniti, চৰকাৰ sorkar, উন্নয়নমূলক unnoyonmulok). On Aksharantar's manual pairs that medial vowel is still typed about 60% of the time, so the walk keeps it; the transliterator learns both.",
+    "clusters": "A sibilant (শ ষ স) is 'x' alone but 's' in a cluster (স্ত st, শ্ৰ sr), and the -ya / -wa signs after a consonant are 'y' / 'w' (ধন্য dhony, স্ব sw), not the letters' own 'j' / 'b'. The format has no per-context spellings, so every such two-letter cluster is listed in clusters. A rule in the plug-in (a consonant's spelling after a virama, and in a cluster) would replace about 250 entries.",
+    "apostrophe": "Assamese marks the vowel o with an apostrophe after a consonant (হ'ল hol, ক'ত kot). The walk skips it, so the consonant before it gets the inherent 'o', which is what it means; the lexicon keeps the apostrophe in the word (packed as 0x27).",
+    "letters": "ৰ (U+09F0) is r and ৱ (U+09F1) is w; the Bengali র never reaches the walk (lang.json folds it to ৰ). য় ড় ঢ় are base + nukta after NFC (U+09DF etc. are composition exclusions), so their keys are two code points. ৎ, ং, ঁ and ঃ are finals.",
+    "skeleton": "x, c (চ is s), sh and ch fold to s; z to j; v and w to b (ৱ is typed w or b, ভ bh or v); f to p; o to a, so the inherent vowel typed o or a gives one key (অসম oxom / asom); y to i (আশ্ৰয় ashroy / ashroi). A final a after a consonant is dropped, which covers the final inherent vowel typed or not (ভাল bhal / bhalo).",
+    "dropFinalVowel": "minLength is read as in romanize.rs: the length before the vowel is dropped (ente -> ent with 3). The spec's wording says the result's length; one of the two should change."
   }
 }
