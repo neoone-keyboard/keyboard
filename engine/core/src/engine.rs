@@ -2329,7 +2329,16 @@ impl Engine {
         let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
             || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
         let search = Search {
-            width: if another_favoured { 0 } else { MODEL_WIDTH },
+            // Beside rare whole forms the free beam takes one of the lexicon beam's rows, so
+            // the search costs what it did (Hindi's suggest p99 was 2.56 ms, 2.82 ms with a
+            // fifth row, 2.55 ms so); the held-out sets moved by 0.1 points at most.
+            width: if another_favoured {
+                0
+            } else if free && !found.side.is_empty() {
+                MODEL_WIDTH - 1
+            } else {
+                MODEL_WIDTH
+            },
             free,
             deadline,
         };
