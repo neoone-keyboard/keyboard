@@ -17,7 +17,8 @@
 #   lexbuild-native               romanised.fst
 #   then copies romanisation.json into the pack. The weights are fitted by hand-run
 #   `python -m mlkb.langs.calibrate --lang <lang> --write`. Stats go to
-#   data/langs/<lang>/lexicon-stats.txt.
+#   data/langs/<lang>/lexicon-stats.txt: the builder's counts, the most frequent tokens it
+#   dropped as not words, and the words each source gave (data/text-sources.sh).
 #
 #   data/build-pack-lexicons.sh hi
 #   data/build-pack-lexicons.sh as
@@ -116,6 +117,9 @@ build_lang_config() {
   cp "$BUNDLE/$LANG_ID.fst" "$BUNDLE/next.fst" "$BUNDLE/romanised.fst" "$PACK/"
   cp "$config/romanisation.json" "$PACK/"
   cp "$BUNDLE/stats.txt" "$config/lexicon-stats.txt"
+  # shellcheck source=data/text-sources.sh
+  . "$ROOT/data/text-sources.sh"
+  source_words "$LANG_ID" >> "$config/lexicon-stats.txt"
   python3 -I "$ROOT/scripts/pack.py" "$PACK" --write
   echo "Lexicons written to $PACK; stats in data/langs/$LANG_ID/lexicon-stats.txt"
 }

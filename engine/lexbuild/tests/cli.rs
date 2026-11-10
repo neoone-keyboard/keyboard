@@ -127,4 +127,11 @@ fn builds_a_pack_language_from_its_config() {
     let mut keys = 0;
     romanised.words(|_, _| keys += 1);
     assert_eq!(keys, 2);
+
+    // The stats say how many tokens of the script were dropped as not words.
+    let stats = std::fs::read_to_string(out.path().join("stats.txt")).unwrap();
+    assert!(
+        stats.contains("as dropped (a letter of the script, but not a word): "),
+        "{stats}"
+    );
 }

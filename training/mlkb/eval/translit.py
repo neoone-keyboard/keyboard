@@ -34,6 +34,24 @@ def load(path: Path) -> list[Row]:
     return rows
 
 
+SECTION = "# section:"
+
+
+def load_sections(path: Path) -> list[tuple[str, Row]]:
+    """`load`, with each row's section: the name on the last `# section: NAME` line before it
+    (`mlkb.langs.pairs` writes one per source), or "" when the file has none."""
+    rows = []
+    section = ""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith(SECTION):
+            section = line[len(SECTION):].strip()
+        if not line.strip() or line.startswith("#"):
+            continue
+        context, latin, malayalam = line.split("\t")
+        rows.append((section, Row(context, latin, malayalam)))
+    return rows
+
+
 def query(row: Row) -> str:
     """The text the engine sees when the user has just typed `row.latin`."""
     return f"{row.context} {row.latin}" if row.context else row.latin

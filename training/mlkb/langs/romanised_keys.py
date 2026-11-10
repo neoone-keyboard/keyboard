@@ -25,6 +25,7 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
     f = Format1.load(args.tables or args.lang)
     n = words = 0
+    keyless = []
     with args.out.open("w", encoding="utf-8") as out:
         for line in args.words.read_text(encoding="utf-8").splitlines():
             word, count = line.split("\t")
@@ -33,7 +34,16 @@ def main(argv: list[str] | None = None) -> None:
             if key:
                 out.write(f"{key}\t{word}\t{count}\n")
                 n += 1
+            else:
+                keyless.append(word)
     print(f"{args.out}: {n:,} keys for {words:,} words")
+    if keyless:
+        # Their skeleton is empty (every letter folds away, or the tables have no spelling for
+        # one), so Latin typing can't reach them; the native keyboard still can.
+        print(
+            f"  {len(keyless):,} word{'s' if len(keyless) > 1 else ''} with no key, so not reachable by Latin "
+            f"typing: {' '.join(keyless[:20])}{' …' if len(keyless) > 20 else ''}"
+        )
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -70,14 +70,34 @@ test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
 	./scripts/shipped-crates.sh --check
 
+# The data checks: every pack's checksums, script rules and layout (scripts/pack.py --check),
+# the scripts' own tests, each pack's lexicons against its tables and script
+# (engine/core/tests/pack_check.rs reads every manifest in packs/), the older per-pack tests, and
+# the data pipeline. Last, that the published site lists every pack in packs/: that one fails
+# for a pack nobody has published yet (`make site-packs` does), so it runs after the rest.
+# A contributor's target is test-pack, below.
+PACK_CHECKS := python3 -I -m unittest discover -s scripts/tests && \
+	(cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored) && \
+	(cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored) && \
+	(cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored) && \
+	uv run --quiet --project data/pipeline pytest -q data/pipeline
 test-data:
 	for pack in packs/*.neopack engine/core/tests/fixtures/gu.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
+	cd engine && NEOPACK= $(CARGO) test -q --release -p mlengine-core --test pack_check -- --ignored --nocapture
+	$(PACK_CHECKS)
 	python3 -I scripts/publish-packs.py --check
-	python3 -I -m unittest discover -s scripts/tests
-	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
-	cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored
-	cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored
-	uv run --quiet --project data/pipeline pytest -q data/pipeline
+
+# Every check of one pack, for whoever made it (docs/make-a-language.md, "Contribute your
+# pack"): its checksums, script rules and layout; that the engine opens it and loads every file
+# its manifest lists; its lexicon words in normal form and its romanised keys against its
+# tables (engine/core/tests/pack_check.rs, for the pack named); then the checks test-data runs
+# for every pack. It leaves out the site index, which only lists published packs.
+#   make test-pack PACK_LANG=ta
+test-pack:
+	python3 -I scripts/pack.py packs/$(PACK_LANG).neopack --check
+	cd engine && NEOPACK=$(PACK_LANG) $(CARGO) test -q --release -p mlengine-core --test pack_check -- --ignored --nocapture
+	$(PACK_CHECKS)
+	@echo "test-pack: packs/$(PACK_LANG).neopack passes"
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
 # transliterator model tests, which need torch from the `train` group.
@@ -154,7 +174,8 @@ lexicons:
 # pack-lexicons builds the lexicons (`lexicons` first if en.fst changed); pack-models the
 # transliterator: training pairs, training (about 1.5 hours; skipped when
 # training/build/$(PACK_LANG)/translit.pt exists), int8 export, held-out accuracy on
-# data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. The pack's LM, where
+# data/eval/$(PACK_LANG)/translit-human.tsv, the copy into the pack, and the same held-out words
+# typed into the engine with and without the model (mlkb.eval.pack). The pack's LM, where
 # training/mlkb/lm/lang.py has one (hi), is `make lm-data lm LM_LANG=hi`.
 #   make pack-lexicons pack-models PACK_LANG=as
 # TRANSLIT_STEPS=6000 trains a short run (the schedule's length; warmup and evaluation scale with
@@ -188,6 +209,7 @@ else
 endif
 	cp training/$(PACK_BUILD)/translit.mlkbnn $(PACK_DIR)/translit.mlkbnn
 	python3 -I scripts/pack.py $(PACK_DIR) --write
+	cd training && uv run --quiet python -m mlkb.eval.pack --lang $(PACK_LANG)
 
 # Rebuilds the committed emoji files (the panel and the suggestions) from Unicode's
 # emoji-test.txt and the CLDR annotations in data/manifests (downloads about 1.5 MB).

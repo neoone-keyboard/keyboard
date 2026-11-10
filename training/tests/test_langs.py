@@ -8,7 +8,7 @@ import pytest
 from mlkb import langs
 from mlkb.data import human as data_human
 from mlkb.langs import human
-from mlkb.langs.calibrate import align
+from mlkb.langs.calibrate import align, misses
 from mlkb.langs.format1 import Format1, export
 from mlkb.langs.romanisation import LANGS, Tables
 from mlkb.translit.vocab import BENGALI_ASSAMESE, MALAYALAM, decode_ml, encode_ml, fits, native
@@ -249,6 +249,7 @@ def test_calibrate_report_names_what_to_tune_on(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "asm_train.json" in out, "says which split it calibrated on"
     assert "tune on these" in out and "never tune on these" in out
+    assert "only 40 calibration pairs: one pair is 2.5 points" in out
 
 
 def test_pairs_stops_on_zero_calibration_pairs(monkeypatch, tmp_path):
@@ -263,3 +264,23 @@ def test_a_missing_aksharantar_file_names_the_step(monkeypatch, tmp_path):
     monkeypatch.setattr(human, "RAW", tmp_path)
     with pytest.raises(SystemExit, match="build-as-text.sh"):
         human.aksharantar("as", "valid")
+
+
+def test_misses_lists_what_the_tables_cannot_spell_or_find(tables):
+    native = "অসম"
+    good = tables.canonical(native)
+    found = misses(tables, [(native, good), (native, "qqq"), (native, good + "ir")])
+    assert [(m.latin, m.aligns) for m in found] == [("qqq", False), (good + "ir", False)]
+    assert all(m.native == native and m.canonical == good and m.key == tables.key(native) for m in found)
+    assert found[0].typed_key == tables.skeleton("qqq")
+
+
+def test_calibrate_misses_prints_the_failing_pairs(monkeypatch, capsys):
+    from mlkb.langs import calibrate
+
+    rows = [human.HumanPair("oxom", "অসম", "AK-Freq"), human.HumanPair("zzz", "অসম", "AK-Freq")]
+    monkeypatch.setattr(calibrate.human, "aksharantar", lambda lang, split, stats=None: rows)
+    calibrate.main(["--lang", "as", "--misses"])
+    out = capsys.readouterr().out
+    assert "misses: 1 of 2 calibration pairs" in out
+    assert "অসম\tzzz\t" in out and "does not align" in out

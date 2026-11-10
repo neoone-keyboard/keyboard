@@ -1,0 +1,228 @@
+{
+  "format": 1,
+  "script": "taml",
+  "language": "ta",
+  "about": "How Tamil is typed in Latin letters: native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar tam (training/mlkb/langs/calibrate.py). Each table maps a letter (or a cluster) to [spelling, weight] options, canonical first.",
+  "virama": "்",
+  "independentVowels": {
+    "அ": [["a", 1.0]],
+    "ஆ": [["aa", 0.818], ["a", 0.182]],
+    "இ": [["i", 0.819], ["e", 0.181]],
+    "ஈ": [["ee", 0.6], ["i", 0.3], ["ii", 0.1]],
+    "உ": [["u", 0.971], ["oo", 0.029]],
+    "ஊ": [["oo", 0.6], ["u", 0.25], ["uu", 0.15]],
+    "எ": [["e", 0.773], ["ye", 0.227]],
+    "ஏ": [["e", 0.654], ["ae", 0.172], ["ye", 0.086], ["ea", 0.044], ["ee", 0.044]],
+    "ஐ": [["ai", 0.87], ["i", 0.086], ["ei", 0.044]],
+    "ஒ": [["o", 1.0]],
+    "ஓ": [["o", 0.7], ["oo", 0.25], ["oa", 0.05]],
+    "ஔ": [["au", 0.6], ["ow", 0.3], ["ou", 0.1]]
+  },
+  "vowelSigns": {
+    "ா": [["aa", 0.82], ["a", 0.18]],
+    "ி": [["i", 0.999], ["e", 0.01]],
+    "ீ": [["ee", 0.818], ["i", 0.137], ["ii", 0.045]],
+    "ு": [["u", 0.999], ["oo", 0.01]],
+    "ூ": [["oo", 0.636], ["u", 0.295], ["uu", 0.068]],
+    "ெ": [["e", 1.0]],
+    "ே": [["e", 0.897], ["ea", 0.069], ["ae", 0.026], ["ee", 0.01]],
+    "ை": [["ai", 0.992], ["a", 0.01], ["ei", 0.01], ["e", 0.01]],
+    "ொ": [["o", 1.0]],
+    "ோ": [["o", 0.732], ["oo", 0.261], ["oa", 0.01]],
+    "ௌ": [["au", 0.6], ["ow", 0.3], ["ou", 0.1]],
+    "ௗ": [["au", 1.0]]
+  },
+  "consonants": {
+    "க": [["k", 0.569], ["g", 0.429], ["h", 0.01]],
+    "ங": [["ng", 0.9], ["n", 0.1]],
+    "ச": [["s", 0.876], ["ch", 0.12], ["c", 0.01]],
+    "ஞ": [["nj", 0.5], ["gn", 0.25], ["ny", 0.15], ["n", 0.1]],
+    "ட": [["d", 0.929], ["t", 0.071]],
+    "ண": [["n", 1.0]],
+    "த": [["th", 0.724], ["dh", 0.273], ["t", 0.01], ["d", 0.01]],
+    "ந": [["n", 1.0]],
+    "ன": [["n", 1.0]],
+    "ப": [["p", 0.832], ["b", 0.168]],
+    "ம": [["m", 1.0]],
+    "ய": [["y", 0.893], ["i", 0.107]],
+    "ர": [["r", 1.0]],
+    "ற": [["r", 1.0]],
+    "ல": [["l", 1.0]],
+    "ள": [["l", 1.0]],
+    "ழ": [["zh", 0.879], ["l", 0.101], ["z", 0.02]],
+    "வ": [["v", 0.997], ["w", 0.01]],
+    "ஜ": [["j", 1.0]],
+    "ஶ": [["sh", 0.8], ["s", 0.2]],
+    "ஷ": [["sh", 0.85], ["s", 0.15]],
+    "ஸ": [["s", 1.0]],
+    "ஹ": [["h", 1.0]],
+    "ஃப": [["f", 0.9], ["ph", 0.1]],
+    "ஃஜ": [["z", 1.0]]
+  },
+  "inCluster": {},
+  "afterVirama": {},
+  "clusters": {
+    "க்க": [["kk", 0.989], ["k", 0.011]],
+    "ங்க": [["ng", 0.489], ["ngg", 0.411], ["nk", 0.1]],
+    "ச்ச": [["chch", 0.474], ["ch", 0.301], ["cch", 0.15], ["ss", 0.075]],
+    "ஞ்ச": [["nj", 0.526], ["njj", 0.199], ["njch", 0.162], ["nch", 0.113]],
+    "ட்ட": [["tt", 0.979], ["t", 0.021]],
+    "ண்ட": [["nd", 0.943], ["nt", 0.058]],
+    "த்த": [["thth", 0.902], ["th", 0.075], ["tth", 0.016], ["tt", 0.01]],
+    "ந்த": [["nth", 0.64], ["ndh", 0.268], ["nd", 0.073], ["nt", 0.019]],
+    "ப்ப": [["pp", 0.985], ["p", 0.015]],
+    "ம்ப": [["mb", 0.826], ["mp", 0.174]],
+    "ற்ற": [["tr", 0.482], ["ttr", 0.298], ["rtr", 0.134], ["tt", 0.058], ["rr", 0.029]],
+    "ன்ற": [["ndr", 0.682], ["nr", 0.182], ["ntr", 0.136]],
+    "க்ஷ": [["ksh", 0.8], ["x", 0.1], ["ch", 0.1]],
+    "ட்ச": [["tch", 0.654], ["ts", 0.346]]
+  },
+  "geminateSingle": 0.022,
+  "finals": {
+    "ஃ": [["", 0.376], ["h", 0.35], ["k", 0.274]],
+    "ஂ": [["m", 1.0]]
+  },
+  "inherent": {
+    "medial": [["a", 1.0]],
+    "final": [["a", 0.996], ["", 0.01]],
+    "finalAfterCluster": [["a", 0.981], ["", 0.019]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "ndr",
+        "nr"
+      ],
+      [
+        "ntr",
+        "nr"
+      ],
+      [
+        "rtr",
+        "t"
+      ],
+      [
+        "tr",
+        "t"
+      ],
+      [
+        "ch",
+        "s"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "zh",
+        "l"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "t"
+      ],
+      [
+        "bh",
+        "p"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "k"
+      ],
+      [
+        "ng",
+        "nk"
+      ],
+      [
+        "nj",
+        "ns"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ae",
+        "e"
+      ],
+      [
+        "ea",
+        "e"
+      ],
+      [
+        "oa",
+        "u"
+      ],
+      [
+        "ow",
+        "au"
+      ],
+      [
+        "ou",
+        "au"
+      ]
+    ],
+    "letters": {
+      "g": "k",
+      "d": "t",
+      "b": "p",
+      "j": "s",
+      "c": "s",
+      "z": "l",
+      "w": "v",
+      "f": "p",
+      "q": "k",
+      "x": "ks",
+      "o": "u",
+      "y": "i"
+    },
+    "vowels": "aeiou",
+    "dropFinal": ""
+  },
+  "notes": {
+    "voicing": "Tamil has one letter for each stop, voiced or not: க is k in கண், g in தங்கம், often h or g between vowels (மகன் magan). People type what they hear, so every stop has both spellings (க k/g, ச s/ch/j, ட t/d, த th/dh/t/d, ப p/b), and the skeleton folds each pair to one symbol (g to k, d to t, dh and th to t, b to p, j and ch to s). The format has no 'between vowels' context, so the weights are an average over positions; the pairs after a nasal and the doubled stops, where the sound is fixed, are listed in clusters (ங்க ng, ஞ்ச nj, ண்ட nd, ந்த nth/ndh, ம்ப mb; க்க kk, ச்ச ch, ட்ட tt, த்த thth, ப்ப pp).",
+    "pulli": "The pulli (்) is the virama. Tamil writes almost no conjuncts, so a 'cluster' here is only consonants with pullis between them, and a pulli at the end of a word means no vowel. The inherent vowel is always a and is never dropped in speech, so there is no schwaDeleted list.",
+    "ra": "ற்ற is tr (காற்று kaatru) and ன்ற is ndr (என்று endru); alone ற is r like ர. The skeleton folds tr to t and ndr/ntr to nr so kaatru/kaathu and endru/enru meet more often.",
+    "grantha": "ஜ ஶ ஷ ஸ ஹ are ordinary consonants here; க்ஷ is ksh; ஸ்ரீ is ஸ + ர + ீ (sri). ஃப is f and ஃஜ is z: aytham plus a stop is how Tamil writes those sounds in loans, so they are keys of two code points.",
+    "vowels": "Long vowels are typed doubled about half the time (aa, ee, oo) and ஏ ஓ mostly as plain e o; oo is both ஊ and ஓ, so the skeleton folds o to u as well as oo to u. ை at the end of a word is often typed a or e in chat (illa for இல்லை).",
+    "nasals": "ந ன ண are all n; ல ள are l; ழ is zh, often l; ர ற are r.",
+    "ya": "ய் after a vowel is typed y or i (செய்தி seythi / seithi, பையன் paiyan / payyan), so the skeleton folds y to i."
+  }
+}
