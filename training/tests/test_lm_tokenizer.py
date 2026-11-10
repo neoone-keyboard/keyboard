@@ -23,3 +23,14 @@ def test_encode_file_writes_bos_then_tokens(tmp_path):
     ids = np.fromfile(dst, dtype="<u2").tolist()
     t = tiny()
     assert ids == [2, *t.encode("the"), 2, *t.encode("then the")]
+
+
+def test_the_vocabulary_sample_reads_the_languages_files():
+    from mlkb.lm import lang, tokenizer
+
+    ml, hi = tokenizer.targets(), tokenizer.targets(lang.load("hi"))
+    assert set(ml) - set(hi) == {"ml.txt", "manglish-0.txt"}
+    assert set(hi) - set(ml) == {"hi.txt", "hinglish-0.txt"}
+    assert sorted(ml.values()) == sorted(hi.values())
+    assert tokenizer.valid_files() == tokenizer.VALID_FILES
+    assert "valid-hinglish.txt" in tokenizer.valid_files(lang.load("hi"))

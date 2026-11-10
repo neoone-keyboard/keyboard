@@ -58,3 +58,31 @@ def test_masked_forward_with_a_causal_mask_is_the_model():
     causal = torch.ones(12, 12, dtype=torch.bool).tril()
     with torch.no_grad():
         assert torch.allclose(forward_masked(m, x[0], causal), m(x)[0], atol=1e-5)
+
+
+def test_p_en_counts_the_languages_romanised_shards(tmp_path):
+    from mlkb.lm import lang
+
+    np.array([2, 4, 4, 4, 5], "<u2").tofile(tmp_path / "en-wiki.bin")
+    np.array([2, 4, 5, 6, 6], "<u2").tofile(tmp_path / "hinglish-0.bin")
+    np.array([2, 5, 5, 5, 5], "<u2").tofile(tmp_path / "manglish-0.bin")  # another language's: never counted
+    latin = np.array([False] * 4 + [True, True, False, False])
+    p = p_en(tmp_path, 8, latin, lang.load("hi"))
+    assert np.isclose(p[4], 0.75 / (0.75 + 0.5)) and np.isclose(p[5], 0.25 / (0.25 + 0.5))
+
+
+def test_latin_pieces_leave_out_the_native_script():
+    from mlkb.lm import lang
+    from mlkb.lm.tables import latin_pieces
+
+    pieces = ["<pad>", "<unk>", "<s>", "</s>", "▁the", "▁हम", "▁हमa", "▁എa", "<0x41>", "."]
+    assert latin_pieces(pieces).tolist() == [False] * 4 + [True, False, True, False, False, False]
+    assert latin_pieces(pieces, lang.load("hi")).tolist() == [False] * 4 + [True, False, False, True, False, False]
+
+
+def test_reference_texts_are_the_languages():
+    from mlkb.lm import lang
+    from mlkb.lm.export import LONG_TEXT, REFERENCE_TEXTS
+
+    assert lang.load().reference_texts == REFERENCE_TEXTS and lang.load().long_text == LONG_TEXT
+    assert any("मैं" in t for t in lang.load("hi").reference_texts)

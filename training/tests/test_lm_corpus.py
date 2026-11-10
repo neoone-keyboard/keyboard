@@ -133,3 +133,129 @@ def test_the_vocabulary_covers_both_scripts():
     ml = sum(any("ഀ" <= c <= "ൿ" for c in p) for p in pieces)
     latin = sum(any(c.isascii() and c.isalpha() for c in p) for p in pieces)
     assert ml > 4000 and latin > 6000
+
+
+# --- Hindi (mlkb.lm.lang "hi") ------------------------------------------------------------
+
+from mlkb.lm import lang as lm_lang  # noqa: E402
+
+HI = lm_lang.load("hi")
+HI_LOAN = {"कंप्यूटर": "computer"}
+
+
+def test_malayalam_keeps_its_paths_and_buckets():
+    ml = lm_lang.load()
+    assert ml.id == "ml" and ml.build == "build/lm" and ml.checkpoint == "build/lm.pt"
+    assert ml.romanised_buckets() == ["manglish-0", "manglish-1", "manglish-2", "manglish-3"]
+    assert ml.mixed_buckets() == ["mixed-0", "mixed-1"]
+    assert ml.word.pattern == corpus._MALAYALAM.pattern
+    assert ml.eval_dir == corpus.EVAL
+
+
+def test_hindi_builds_apart_from_malayalam():
+    assert HI.build == "build/lm-hi" and HI.checkpoint == "build/lm-hi.pt"
+    assert HI.romanised_buckets() == ["hinglish-0", "hinglish-1"]
+    assert HI.tune_file.parent == HI.eval_dir == corpus.EVAL / "hi"
+
+
+def test_hindi_words_leave_the_danda_and_digits_out():
+    assert HI.word.findall("मैं घर गया। २०२६ में") == ["मैं", "घर", "गया", "में"]
+
+
+def test_hinglish_sentences_are_latin_keep_punctuation_and_use_loanwords():
+    spell = corpus.speller(HI)
+    out = romanise_sentence("मैं कंप्यूटर देख रहा हूँ।", random.Random(0), HI_LOAN, 1.0, word=HI.word, spell=spell)
+    words = out.split()
+    assert words[1] == "computer" and len(words) == 5
+    assert out.endswith("।") and out[:-1].isascii()
+
+
+def test_hindi_mixed_sentences_switch_some_words_only():
+    spell = corpus.speller(HI)
+    out = mix_sentence("मैं आज घर जाऊंगा", random.Random(1), HI_LOAN, 0.5, 0.0, word=HI.word, spell=spell).split()
+    assert 0 < sum(w.isascii() for w in out) < 4 and len(out) == 4
+
+
+def test_hindi_loanwords_skip_inflected_forms():
+    rows = [{"source": "IndicCorp", "english word": "computer", "native word": "कंप्यूटर", "score": 0.0},
+            {"source": "IndicCorp", "english word": "computers", "native word": "कंप्यूटरों", "score": 0.0}]
+    got = loanwords_from(rows, {"computer", "computers"}, {"कंप्यूटर", "कंप्यूटरों"}, endings=HI.loanword_endings)
+    assert got == {"कंप्यूटर": "computer"}
+
+
+def test_hindi_leak_keys_read_its_eval_sets_and_its_dakshina_sentences(tmp_path):
+    top, own_dir, dakshina = tmp_path / "eval", tmp_path / "eval/hi", tmp_path / "dakshina"
+    own_dir.mkdir(parents=True)
+    dakshina.mkdir()
+    (top / "english-sentences.txt").write_text("we went home today\n", encoding="utf-8")
+    (own_dir / "next-hinglish.tsv").write_text("main ghar gaya\tमैं घर गया\n", encoding="utf-8")
+    (own_dir / "next-hi.tune.txt").write_text("यह वाक्य अपना है\n", encoding="utf-8")
+    (dakshina / "hi.romanized.rejoined.dev.native.txt").write_text("वह कल आएगा\n", encoding="utf-8")
+    (dakshina / "ml.romanized.rejoined.dev.native.txt").write_text("അവൻ നാളെ വരും\n", encoding="utf-8")
+    keys = corpus.leak_keys(top, dakshina, own={own_dir / "next-hi.tune.txt"}, more=(own_dir,), dakshina_lang="hi")
+    for leak in ("we went home today", "मैं घर गया", "main ghar gaya", "वह कल आएगा।"):
+        assert is_leak(leak, keys), leak
+    assert not is_leak("यह वाक्य अपना है", keys)
+    assert not is_leak("അവൻ നാളെ വരും", keys)
+
+
+def test_malayalam_leak_keys_are_as_before(tmp_path):
+    top, dakshina = tmp_path / "eval", tmp_path / "dakshina"
+    top.mkdir()
+    dakshina.mkdir()
+    (top / "next-ml.tune.txt").write_text("ഇത് എന്റെ വീട് ആണ്\n", encoding="utf-8")
+    (top / "chat-golden.tsv").write_text("ente veedu\tente\tഎന്റെ\n", encoding="utf-8")
+    (dakshina / "ml.romanized.rejoined.dev.native.txt").write_text("അവൻ നാളെ വരും\n", encoding="utf-8")
+    keys = corpus.leak_keys(top, dakshina)
+    assert is_leak("അവൻ നാളെ വരും", keys) and is_leak("ente veedu ente", keys)
+    assert not is_leak("ഇത് എന്റെ വീട് ആണ്", keys)
+
+
+def test_a_pass_built_in_parts_holds_every_paragraph_once(tmp_path):
+    src = tmp_path / "hi-clean.txt"
+    paras = [f"मैं {i} बार घर गया" for i in range(40)] + ["only english here"]
+    src.write_text("\n".join(paras) + "\n", encoding="utf-8")
+    corpus._init_worker(HI_LOAN, "hi")
+    parts = [corpus.synthesise(("romanised", str(src), str(tmp_path / f"p{k}.txt"), 7, k, 3)) for k in range(3)]
+    lines = [line for k in range(3) for line in (tmp_path / f"p{k}.txt").read_text(encoding="utf-8").splitlines()]
+    assert len(lines) == 40 and all(line.isascii() for line in lines)
+    assert sum(stats["skipped_not_native"] for _, stats in parts) == 1
+
+
+def test_hindi_tune_sentences_may_end_with_a_danda():
+    p = corpus.tune_pattern(HI)
+    assert p.fullmatch("मैं आज घर जा रहा हूँ।")
+    assert not p.fullmatch("मैं 2026 में घर गया।")
+    assert corpus.tune_pattern(lm_lang.load()) is corpus._TUNE_ML
+
+
+def test_malayalam_synthetic_jobs_keep_their_files_and_seeds(tmp_path):
+    jobs = corpus.synthetic_jobs(lm_lang.load(), tmp_path / "work", tmp_path / "text", 3)
+    got = [(kind, Path(dst).name, seed, parts) for kind, _, dst, seed, _, parts in jobs]
+    assert got == [("romanised", "manglish-0.txt", 30, 1), ("romanised", "manglish-1.txt", 31, 1),
+                   ("romanised", "manglish-2.txt", 32, 1), ("romanised", "manglish-3.txt", 33, 1),
+                   ("mixed", "mixed-0.txt", 35, 1), ("mixed", "mixed-1.txt", 36, 1),
+                   ("romanised", "valid-manglish.txt", 38, 1), ("mixed", "valid-mixed.txt", 39, 1)]
+
+
+def test_hindi_parts_are_joined_into_one_file_per_pass(tmp_path):
+    src = tmp_path / "work" / "hi-clean.txt"
+    src.parent.mkdir()
+    src.write_text("\n".join(f"मैं {i} बार घर गया" for i in range(30)) + "\n", encoding="utf-8")
+    (tmp_path / "work" / "valid-hi-clean.txt").write_text("वह कल आएगा\n", encoding="utf-8")
+    (tmp_path / "text").mkdir()
+    jobs = corpus.synthetic_jobs(HI, tmp_path / "work", tmp_path / "text", 3)
+    corpus._init_worker(HI_LOAN, "hi")
+    summary = corpus.join_parts(jobs, [corpus.synthesise(j) for j in jobs])
+    assert sorted(p.name for p in (tmp_path / "text").iterdir()) == [
+        "hinglish-0.txt", "hinglish-1.txt", "mixed-0.txt", "valid-hinglish.txt", "valid-mixed.txt"]
+    assert summary["hinglish-0"]["paragraphs"] == 30 and summary["valid-hinglish"]["paragraphs"] == 1
+    assert len((tmp_path / "text" / "hinglish-1.txt").read_text(encoding="utf-8").splitlines()) == 30
+
+
+def test_dakshina_sentences_of_either_language():
+    from mlkb.lm import sources
+
+    assert sources.dakshina_files() == sources.DAKSHINA_FILES
+    assert sources.dakshina_files("hi") == [f.replace("/ml/", "/hi/").replace("ml.roman", "hi.roman")
+                                             for f in sources.DAKSHINA_FILES]

@@ -16,6 +16,10 @@ production tokeniser (`mlengine.Tokenizer`).
 
 `--reference` writes next-token log-probabilities from PyTorch on the dequantised weights, for
 the Rust forward pass to be tested against (`reference`).
+
+`--lang hi` (`mlkb.lm.lang`) exports Hindi's LM: its paths default to `build/lm-hi*`, the
+pack lexicon is `packs/hi.neopack/hi.fst` (in `lex.first_ml` and the fingerprint), `tok.p_en`
+weighs English against Hinglish, and the reference texts are Hindi's.
 """
 import argparse
 import json
@@ -28,6 +32,7 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 
+from mlkb.lm import lang as lm_lang
 from mlkb.lm.model import LM, Config, rope
 from mlkb.lm.shards import read_pieces
 from mlkb.lm.tables import fingerprint as lexicon_fingerprint
@@ -42,13 +47,8 @@ PACK = ROOT / "packs/ml.neopack"
 BOS = 2
 TABLES = ("tok.p_en", "lex.first_en", "lex.first_ml")
 # Texts for `--reference` on the real model; the fixture uses the same ones.
-REFERENCE_TEXTS = (
-    "are you free this evening",
-    "ഞാൻ നാളെ വീട്ടിൽ വരും",
-    "njan nale veettil varum, ok",
-)
-LONG_TEXT = ("the old house at the end of the road was empty for years, and then one summer a family "
-             "moved in. ഞങ്ങൾ അവിടെ പോയി, avar nalla aalukal aanu ennu thonni. we stayed for dinner.")
+REFERENCE_TEXTS = lm_lang.ML.reference_texts
+LONG_TEXT = lm_lang.ML.long_text
 LONG_TOKENS = 40
 EVICT = (20, 8, 4)  # feed 20 tokens, drop the oldest 8 rows, feed 4 more
 
@@ -122,10 +122,10 @@ def _log_probs(logits: Tensor) -> list[float]:
     return np.round(torch.log_softmax(logits.double(), -1).numpy(), 5).tolist()
 
 
-def reference_tokens(tokenizer) -> tuple[list[list[int]], list[int]]:
+def reference_tokens(tokenizer, lang: lm_lang.LmLang = lm_lang.ML) -> tuple[list[list[int]], list[int]]:
     """The reference cases (`BOS` + tokens of each text, the long one cut to `LONG_TOKENS`)."""
-    cases = [[BOS, *tokenizer.encode(text)] for text in REFERENCE_TEXTS]
-    long = [BOS, *tokenizer.encode(LONG_TEXT)][:LONG_TOKENS]
+    cases = [[BOS, *tokenizer.encode(text)] for text in lang.reference_texts]
+    long = [BOS, *tokenizer.encode(lang.long_text)][:LONG_TOKENS]
     if len(long) < LONG_TOKENS:
         raise ValueError(f"the long reference text is only {len(long)} tokens")
     return [*cases, long], long
@@ -178,25 +178,32 @@ def lexicon_tables(tokenizer, en_fst: Path, ml_fst: Path, vocab: int) -> dict[st
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--checkpoint", type=Path, default=Path("build/lm.pt"))
-    p.add_argument("--vocab", type=Path, default=Path("build/lm/pieces.tsv"))
-    p.add_argument("--shards", type=Path, default=Path("build/lm/shards"))
+    p.add_argument("--lang", default=lm_lang.DEFAULT, choices=sorted(lm_lang.LANGS))
+    p.add_argument("--checkpoint", type=Path, default=None, help="default: the language's checkpoint")
+    p.add_argument("--vocab", type=Path, default=None, help="default: <the language's build>/pieces.tsv")
+    p.add_argument("--shards", type=Path, default=None, help="default: <the language's build>/shards")
     p.add_argument("--lexicons", type=Path, default=LEXICONS, help="folder with en.fst")
-    p.add_argument("--pack", type=Path, default=PACK, help="the Malayalam pack folder, with ml.fst")
-    p.add_argument("--out", type=Path, default=Path("build/lm.mlkbnn"))
+    p.add_argument("--pack", type=Path, default=None, help="the pack folder, with its lexicon (ml.fst)")
+    p.add_argument("--out", type=Path, default=None, help="default: the checkpoint's path, .mlkbnn")
     p.add_argument("--reference", type=Path, help="also write PyTorch reference outputs (JSON)")
     args = p.parse_args(argv)
+    lang = lm_lang.load(args.lang)
+    args.checkpoint = args.checkpoint or Path(lang.checkpoint)
+    args.vocab = args.vocab or Path(lang.build) / "pieces.tsv"
+    args.shards = args.shards or Path(lang.build) / "shards"
+    args.pack = args.pack or lang.pack
+    args.out = args.out or Path(lang.checkpoint).with_suffix(".mlkbnn")
     model = load_checkpoint(args.checkpoint)
     pieces, scores = read_pieces(args.vocab)
     tokenizer = mlengine.Tokenizer(pieces, scores)
-    en_fst, ml_fst = args.lexicons / "en.fst", args.pack / "ml.fst"
+    en_fst, ml_fst = args.lexicons / "en.fst", args.pack / lang.lexicon
     tables = lexicon_tables(tokenizer, en_fst, ml_fst, len(pieces))
-    tables["tok.p_en"] = p_en(args.shards, len(pieces), latin_pieces(pieces))
+    tables["tok.p_en"] = p_en(args.shards, len(pieces), latin_pieces(pieces, lang), lang)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     export(model, pieces, scores, tables, lexicon_fingerprint(en_fst, ml_fst), args.out)
     print(f"wrote {args.out} ({args.out.stat().st_size:,} bytes)", file=sys.stderr)
     if args.reference:
-        cases, long = reference_tokens(tokenizer)
+        cases, long = reference_tokens(tokenizer, lang)
         args.reference.write_text(json.dumps(reference(dequantised_model(args.out)[0], cases, long),
                                              separators=(",", ":")) + "\n")
         print(f"wrote {args.reference}", file=sys.stderr)

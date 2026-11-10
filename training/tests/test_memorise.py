@@ -57,3 +57,11 @@ def test_a_copied_span_is_not_a_loop_but_a_looping_copy_is():
     zeros = [5] * 64
     (start, n), = corpus_runs(zeros, index)
     assert n == 64 and is_loop(zeros[start:start + n])
+
+
+def test_the_share_alike_text_is_the_languages():
+    from mlkb.lm import lang
+    from mlkb.lm.memorise import SHARE_ALIKE, share_alike
+
+    assert share_alike() == SHARE_ALIKE
+    assert share_alike(lang.load("hi")) == ("en-wiki", "en-simple", "hi", "hinglish-0", "hinglish-1", "mixed-0")

@@ -1,9 +1,10 @@
 """The LM vocabulary: a 16,384-piece SentencePiece unigram model over the corpus (design §3).
 
     uv run --group train python -m mlkb.lm.tokenizer --text build/lm/text --out build/lm
+    uv run --group train python -m mlkb.lm.tokenizer --lang hi --text build/lm-hi/text --out build/lm-hi
 
 Samples `SAMPLE_SENTENCES` sentences (40% English by bucket weight, 35% Malayalam script, 25%
-Latin Manglish), trains SentencePiece (a training-time tool only, never shipped), and writes
+Latin Manglish; for `--lang hi`, Hindi script and Hinglish), trains SentencePiece (a training-time tool only, never shipped), and writes
 `pieces.tsv` (`piece<TAB>score` in id order), which the Rust tokeniser and the export read.
 Then checks that the Rust tokeniser (`mlengine.Tokenizer`) encodes `CHECK_LINES` validation
 lines exactly as `sentencepiece` does; exits 1 if fewer than `MIN_AGREEMENT` agree.
@@ -17,6 +18,7 @@ from pathlib import Path
 import mlengine
 import sentencepiece as spm
 
+from mlkb.lm import lang as lm_lang
 from mlkb.lm.corpus import SEED, sentences
 
 VOCAB = 16384
@@ -30,10 +32,16 @@ VALID_FILES = ("valid-en-wiki.txt", "valid-en-simple.txt", "valid-en-news.txt", 
                "valid-ml.txt", "valid-manglish.txt", "valid-mixed.txt")
 
 
-def targets() -> dict[str, int]:
-    """Sentences wanted from each file."""
-    out = {"ml.txt": int(SAMPLE_SENTENCES * SHARES["ml.txt"]),
-           "manglish-0.txt": int(SAMPLE_SENTENCES * SHARES["manglish-0.txt"])}
+def valid_files(lang: lm_lang.LmLang = lm_lang.ML) -> tuple[str, ...]:
+    """`VALID_FILES` with the language's native and romanised buckets."""
+    names = {"valid-ml.txt": f"valid-{lang.native}.txt", "valid-manglish.txt": f"valid-{lang.romanised}.txt"}
+    return tuple(names.get(n, n) for n in VALID_FILES)
+
+
+def targets(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, int]:
+    """Sentences wanted from each file (`SHARES`, with the language's file names)."""
+    out = {f"{lang.native}.txt": int(SAMPLE_SENTENCES * SHARES["ml.txt"]),
+           f"{lang.romanised}-0.txt": int(SAMPLE_SENTENCES * SHARES["manglish-0.txt"])}
     total = sum(ENGLISH_WEIGHTS.values())
     for name, w in ENGLISH_WEIGHTS.items():
         out[name] = int(SAMPLE_SENTENCES * SHARES["english"] * w / total)
@@ -51,11 +59,11 @@ def _sentence_count(path: Path, probe: int = 5000) -> int:
     return int(lines * (sum(head) / max(len(head), 1)))
 
 
-def sample(text: Path, dst: Path, rng: random.Random) -> dict[str, int]:
+def sample(text: Path, dst: Path, rng: random.Random, lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, int]:
     """Writes the sentence sample to `dst`; returns sentences taken per file."""
     taken = {}
     with open(dst, "w", encoding="utf-8") as out:
-        for name, want in targets().items():
+        for name, want in targets(lang).items():
             path = text / name
             p = min(1.0, want / max(_sentence_count(path), 1))
             n = 0
@@ -90,12 +98,13 @@ def write_pieces(model: Path, dst: Path) -> tuple[list[str], list[float]]:
     return pieces, scores
 
 
-def agreement(model: Path, pieces: list[str], scores: list[float], text: Path, rng: random.Random) -> float:
+def agreement(model: Path, pieces: list[str], scores: list[float], text: Path, rng: random.Random,
+              lang: lm_lang.LmLang = lm_lang.ML) -> float:
     """Share of validation lines that the Rust tokeniser encodes exactly as sentencepiece does."""
     sp = spm.SentencePieceProcessor(model_file=str(model))
     ours = mlengine.Tokenizer(pieces, scores)
     lines = []
-    for name in VALID_FILES:
+    for name in valid_files(lang):
         with open(text / name, encoding="utf-8") as f:
             lines += [line.strip() for line in f if line.strip()]
     lines = rng.sample(lines, min(CHECK_LINES, len(lines)))
@@ -114,19 +123,23 @@ def agreement(model: Path, pieces: list[str], scores: list[float], text: Path, r
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--text", type=Path, default=Path("build/lm/text"))
-    parser.add_argument("--out", type=Path, default=Path("build/lm"))
+    parser.add_argument("--lang", default=lm_lang.DEFAULT, choices=sorted(lm_lang.LANGS))
+    parser.add_argument("--text", type=Path, default=None, help="default: <the language's build>/text")
+    parser.add_argument("--out", type=Path, default=None, help="default: the language's build directory")
     parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args(argv)
+    lang = lm_lang.load(args.lang)
+    args.out = args.out or Path(lang.build)
+    args.text = args.text or args.out / "text"
     rng = random.Random(args.seed)
     start = time.time()
     sample_path = args.out / "spm-sample.txt"
-    taken = sample(args.text, sample_path, rng)
+    taken = sample(args.text, sample_path, rng, lang)
     prefix = args.out / "spm"
     train(sample_path, prefix, sum(taken.values()))
     print(f"trained in {time.time() - start:.0f}s", file=sys.stderr)
     pieces, scores = write_pieces(prefix.with_suffix(".model"), args.out / "pieces.tsv")
-    share = agreement(prefix.with_suffix(".model"), pieces, scores, args.text, rng)
+    share = agreement(prefix.with_suffix(".model"), pieces, scores, args.text, rng, lang)
     print(f"{len(pieces)} pieces; Rust and sentencepiece agree on {share:.4%} of {CHECK_LINES:,} lines",
           file=sys.stderr)
     return 0 if share >= MIN_AGREEMENT else 1

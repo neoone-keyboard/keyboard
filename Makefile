@@ -8,7 +8,7 @@ XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target)
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-training test-swift lexicons emoji lm-data lm models bench eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -152,8 +152,9 @@ lexicons:
 # pack-lexicons builds the lexicons (`lexicons` first if en.fst changed); pack-models the
 # transliterator: training pairs, training (about 1.5 hours; skipped when
 # training/build/$(PACK_LANG)/translit.pt exists), int8 export, held-out accuracy on
-# data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. No LM yet: the LM
-# pipeline is Malayalam's only.  make pack-lexicons pack-models PACK_LANG=as
+# data/eval/$(PACK_LANG)/translit-human.tsv, and the copy into the pack. The pack's LM, where
+# training/mlkb/lm/lang.py has one (hi), is `make lm-data lm LM_LANG=hi`.
+#   make pack-lexicons pack-models PACK_LANG=as
 PACK_LANG ?= hi
 PACK_DIR := packs/$(PACK_LANG).neopack
 PACK_BUILD := build/$(PACK_LANG)
@@ -185,14 +186,42 @@ endif
 emoji:
 	./data/build-emoji.sh
 
-# The LM's training text, vocabulary and token shards in training/build/lm (design §5; needs
-# data/fetch.sh and the lexicon text in data/raw/text, about 2 hours).
+# Which language the LM pipeline pairs with English (training/mlkb/lm/lang.py): ml, the default,
+# builds in training/build/lm and build/lm.pt as it always has; hi in training/build/lm-hi and
+# build/lm-hi.pt. (Not LANG, which is the locale.)  make lm-data lm LM_LANG=hi
+LM_LANG ?= ml
+LM_BUILD := build/$(if $(filter ml,$(LM_LANG)),lm,lm-$(LM_LANG))
+LM_EVAL := data/eval$(if $(filter ml,$(LM_LANG)),,/$(LM_LANG))
+
+# The LM's training text, vocabulary and token shards in training/$(LM_BUILD) (design §5; needs
+# data/fetch.sh and the lexicon text in data/raw/text, about 2 hours: ml.txt from
+# data/build-lexicons.sh, hi.txt from data/build-pack-lexicons.sh hi). Also writes the native
+# next-word eval sets (next-ml.tune.txt and next-ml.heldout.txt; data/eval/hi/next-hi.*).
 lm-data:
-	cd training && uv run --group train python -m mlkb.lm.sources && \
-	  uv run --group train python -m mlkb.lm.corpus --out build/lm/text && \
-	  uv run --group train python -m mlkb.lm.tokenizer --text build/lm/text --out build/lm && \
-	  uv run --group train python -m mlkb.lm.shards --text build/lm/text --vocab build/lm/pieces.tsv \
-	    --out build/lm/shards
+	cd training && uv run --group train python -m mlkb.lm.sources --lang $(LM_LANG) && \
+	  uv run --group train python -m mlkb.lm.corpus --lang $(LM_LANG) --out $(LM_BUILD)/text && \
+	  uv run --group train python -m mlkb.lm.tokenizer --lang $(LM_LANG) --text $(LM_BUILD)/text --out $(LM_BUILD) && \
+	  uv run --group train python -m mlkb.lm.shards --text $(LM_BUILD)/text --vocab $(LM_BUILD)/pieces.tsv \
+	    --out $(LM_BUILD)/shards
+
+# A pack's LM other than Malayalam's (`make models` builds that one): training (`make lm-data
+# LM_LANG=hi` first; 4-5 hours, skipped when training/$(LM_BUILD).pt exists), export, the
+# memorisation check (design §10) into $(LM_EVAL)/memorisation.json, and the eval's LM ship gates
+# against the pack without an LM ($(LM_EVAL)/baselines-nolm.json, `python -m mlkb.eval --lang hi
+# --translit … --record-nolm`). Each must pass before the copy into packs/$(LM_LANG).neopack.
+lm:
+	@if [ "$(LM_LANG)" = ml ]; then echo "Malayalam's LM is built by make models"; exit 1; fi
+	@if [ ! -f training/$(LM_BUILD).pt ]; then \
+	  cd training && uv run --group train python -m mlkb.lm.train --lang $(LM_LANG); \
+	fi
+	cd training && uv run --group train python -m mlkb.lm.export --lang $(LM_LANG) \
+	  --reference $(LM_BUILD)-reference.json
+	cd training && uv run --group train python -m mlkb.lm.memorise --lang $(LM_LANG) \
+	  --out $(CURDIR)/$(LM_EVAL)/memorisation.json
+	cd training && uv run --quiet python -m mlkb.eval --lang $(LM_LANG) --quiet --gate lm \
+	  --translit $(CURDIR)/packs/$(LM_LANG).neopack/translit.mlkbnn --lm $(CURDIR)/training/$(LM_BUILD).mlkbnn
+	cp training/$(LM_BUILD).mlkbnn packs/$(LM_LANG).neopack/lm.mlkbnn
+	python3 -I scripts/pack.py packs/$(LM_LANG).neopack --write
 
 # Rebuilds the bundled models. The transliterator: training pairs (needs the Dakshina and
 # Aksharantar extracts in data/raw, see data/manifests), training (several hours; skipped when

@@ -2,6 +2,10 @@
 
     uv run --group train python -m mlkb.lm.train --shards build/lm/shards \\
         --vocab build/lm/pieces.tsv --out build/lm.pt
+    uv run --group train python -m mlkb.lm.train --lang hi    # build/lm-hi/shards -> build/lm-hi.pt
+
+`--lang` (`mlkb.lm.lang`) names the native and romanised buckets (`hi`, `hinglish` for Hindi);
+the weights are the same.
 
 Each batch is 256 windows of 49 tokens (48 inputs, 48 targets), drawn from the buckets by
 `BUCKETS` weight (design §5). A bucket with several pass files (`manglish-0..3`, `mixed-0,1`)
@@ -36,6 +40,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from mlkb.lm import lang as lm_lang
 from mlkb.lm.model import LM, Config
 
 BOS = 2
@@ -57,6 +62,20 @@ GROUPS = {
     "manglish": ("manglish",),
     "mixed": ("mixed",),
 }
+
+
+
+def buckets_for(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, float]:
+    """`BUCKETS` with the language's native and romanised bucket names, in the same order."""
+    names = {"ml": lang.native, "manglish": lang.romanised}
+    return {names.get(k, k): w for k, w in BUCKETS.items()}
+
+
+def groups_for(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, tuple[str, ...]]:
+    """`GROUPS` with the language's bucket names."""
+    names = {"ml": lang.native, "manglish": lang.romanised}
+    return {names.get(k, k): tuple(names.get(b, b) for b in v) for k, v in GROUPS.items()}
+
 
 _SEEK = 64  # tokens searched ahead of a random offset for a window start
 _SENTENCE_END = re.compile(r"[.?!।][\"'”’)\]]*$")
@@ -202,9 +221,9 @@ def validate(model: LM, valid: dict[str, tuple[np.ndarray, np.ndarray]], device,
     return out
 
 
-def score(losses: dict[str, float]) -> float:
-    """The mean over `GROUPS` of each group's mean bucket loss (lower is better)."""
-    return sum(sum(losses[b] for b in g) / len(g) for g in GROUPS.values()) / len(GROUPS)
+def score(losses: dict[str, float], groups: dict[str, tuple[str, ...]] = GROUPS) -> float:
+    """The mean over `groups` of each group's mean bucket loss (lower is better)."""
+    return sum(sum(losses[b] for b in g) / len(g) for g in groups.values()) / len(groups)
 
 
 def pick_device(name: str) -> torch.device:
@@ -215,9 +234,10 @@ def pick_device(name: str) -> torch.device:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--shards", type=Path, default=Path("build/lm/shards"))
-    p.add_argument("--vocab", type=Path, default=Path("build/lm/pieces.tsv"))
-    p.add_argument("--out", type=Path, default=Path("build/lm.pt"))
+    p.add_argument("--lang", default=lm_lang.DEFAULT, choices=sorted(lm_lang.LANGS))
+    p.add_argument("--shards", type=Path, default=None, help="default: <the language's build>/shards")
+    p.add_argument("--vocab", type=Path, default=None, help="default: <the language's build>/pieces.tsv")
+    p.add_argument("--out", type=Path, default=None, help="default: the language's checkpoint")
     p.add_argument("--log", type=Path, default=None, help="default: <out stem>.log next to --out")
     p.add_argument("--steps", type=int, default=120_000,
                    help="cosine schedule length and step cap; 120k steps see about 1.1B tokens (design §5)")
@@ -231,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--fresh", action="store_true", help="ignore an existing -last.pt checkpoint")
     args = p.parse_args(argv)
+    lang = lm_lang.load(args.lang)
+    args.shards = args.shards or Path(lang.build) / "shards"
+    args.vocab = args.vocab or Path(lang.build) / "pieces.tsv"
+    args.out = args.out or Path(lang.checkpoint)
+    weights_by_bucket, groups = buckets_for(lang), groups_for(lang)
 
     log_path = args.log or args.out.with_suffix(".log")
     log_file = log_path.open("a", encoding="utf-8")
@@ -247,15 +272,15 @@ def main(argv: list[str] | None = None) -> int:
     length = config.max_len
     word, end = piece_tables(args.vocab)
     buckets = {name: Bucket(bucket_files(args.shards, name), length, word, end, args.seed + 100 * i)
-               for i, name in enumerate(BUCKETS)}
+               for i, name in enumerate(weights_by_bucket)}
     for name, b in buckets.items():
-        log(f"bucket {name}: weight {BUCKETS[name]:.2f}, "
+        log(f"bucket {name}: weight {weights_by_bucket[name]:.2f}, "
             + ", ".join(f"{w.path.name} {len(w.ids):,} tokens" for w in b.windows))
     valid = {}
-    for i, name in enumerate(BUCKETS):
+    for i, name in enumerate(weights_by_bucket):
         v = Windows(args.shards / f"valid-{name}.bin", length, word, 10_000 + i, end)
         valid[name] = v.batch(args.valid_batches * args.batch)
-    weights = np.array(list(BUCKETS.values()))
+    weights = np.array(list(weights_by_bucket.values()))
     mix_rng = np.random.default_rng(args.seed + 1)
 
     model = LM(config).to(device)
@@ -285,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     run_start = time.monotonic() - elapsed
     while step < args.steps:
         counts = mix_rng.multinomial(args.batch, weights)
-        parts = [buckets[name].batch(int(c)) for name, c in zip(BUCKETS, counts, strict=True) if c]
+        parts = [buckets[name].batch(int(c)) for name, c in zip(weights_by_bucket, counts, strict=True) if c]
         xs = np.concatenate([q[0] for q in parts])
         ms = np.concatenate([q[1] for q in parts])
         x = torch.from_numpy(xs).to(device)
@@ -313,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         if step % args.eval_every == 0 or step == args.steps:
             ev = time.monotonic()
             losses = validate(model, valid, device, args.batch)
-            s = score(losses)
+            s = score(losses, groups)
             history.append({"step": step, "valid": losses, "score": s})
             improved = s < best
             if improved:

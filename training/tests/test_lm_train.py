@@ -36,3 +36,15 @@ def test_sentence_windows_start_after_a_sentence_end(tmp_path):
     for _ in range(50):
         x, _ = w.sample()
         assert x[0] in (2, 16, 22)
+
+
+def test_hindi_buckets_keep_the_weights_under_their_own_names():
+    from mlkb.lm import lang
+    from mlkb.lm.train import GROUPS, buckets_for, groups_for, score
+
+    hi = buckets_for(lang.load("hi"))
+    assert list(hi.values()) == list(BUCKETS.values())
+    assert {"hi", "hinglish"} <= set(hi) and not {"ml", "manglish"} & set(hi)
+    assert buckets_for() == BUCKETS and groups_for() == GROUPS
+    losses = {b: 1.0 for b in hi} | {"hi": 3.0}
+    assert score(losses, groups_for(lang.load("hi"))) == (1 + 3 + 1 + 1) / 4

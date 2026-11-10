@@ -5,12 +5,16 @@
 - `tok.p_en` (`p_en`): how English each Latin piece is, against Manglish.
 - `lex.fingerprint` (`fingerprint`): which `en.fst` and `ml.fst` the first-token tables were
   built from, so the engine can refuse a model that doesn't match its lexicons.
+
+The names are the file format's. For another pack's LM (`mlkb.lm.lang`), `lex.first_ml` is the
+pack's lexicon (`hi.fst`) and Manglish its romanised text (Hinglish).
 """
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
 import numpy as np
 
+from mlkb.lm import lang as lm_lang
 from mlkb.translit.export import fnv1a
 
 # Shard buckets on each side of `p_en`; validation shards (`valid-*`) are never counted.
@@ -39,12 +43,14 @@ def _token_counts(shards: Path, patterns: tuple[str, ...], vocab: int) -> np.nda
     return counts
 
 
-def p_en(shards: Path, vocab: int, latin: np.ndarray) -> np.ndarray:
+def p_en(shards: Path, vocab: int, latin: np.ndarray, lang: lm_lang.LmLang = lm_lang.ML) -> np.ndarray:
     """`[vocab]` f32: for each Latin piece (`latin[t]`), `f_en / (f_en + f_mg)`, where `f_en` is
     its count in the English shards over their Latin-token total and `f_mg` the same in the
-    Manglish and mixed shards. 0.5 for every other piece and for Latin pieces seen in neither."""
+    Manglish and mixed shards (the language's romanised ones). 0.5 for every other piece and for
+    Latin pieces seen in neither."""
+    romanised = MANGLISH_SHARDS if lang.id == "ml" else (f"{lang.romanised}-*.bin", "mixed-*.bin")
     en = _token_counts(Path(shards), ENGLISH_SHARDS, vocab)
-    mg = _token_counts(Path(shards), MANGLISH_SHARDS, vocab)
+    mg = _token_counts(Path(shards), romanised, vocab)
     return p_en_from_counts(en, mg, latin)
 
 
@@ -60,14 +66,15 @@ def p_en_from_counts(en: np.ndarray, mg: np.ndarray, latin: np.ndarray) -> np.nd
     return out.astype(np.float32)
 
 
-def latin_pieces(pieces: list[str]) -> np.ndarray:
+def latin_pieces(pieces: list[str], lang: lm_lang.LmLang = lm_lang.ML) -> np.ndarray:
     """Pieces the engine flags `LATIN` (`engine/core/src/nn/tokenizer.rs::flags_of`): not a
-    control or byte piece, no Malayalam character, at least one ASCII letter."""
+    control or byte piece, no character of the language's script block, at least one ASCII
+    letter."""
     out = np.zeros(len(pieces), bool)
     for i, p in enumerate(pieces):
         if i <= 3 or (p.startswith("<0x") and p.endswith(">") and len(p) == 6):
             continue
-        if any("ഀ" <= c <= "ൿ" for c in p):
+        if any(lang.in_block(c) for c in p):
             continue
         out[i] = any(c.isascii() and c.isalpha() for c in p)
     return out

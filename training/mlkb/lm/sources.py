@@ -13,6 +13,10 @@ trusted. Delete an output to rebuild it.
   three times.
 - Dakshina `ml/romanized/` rejoined dev and test sentences, extracted from the tar we already
   have; their SHA-256s go under `extracted` in data/manifests/dakshina.json.
+
+With `--lang hi` the Dakshina files are `hi/romanized/`'s. The native text itself
+(`data/raw/text/ml.txt`, `hi.txt`) comes from the lexicon builds (data/build-lexicons.sh,
+data/build-pack-lexicons.sh hi).
 """
 import argparse
 import csv
@@ -55,6 +59,12 @@ DAKSHINA_FILES = [
     for split in ("dev", "test")
     for form in ("native", "roman")
 ]
+
+
+def dakshina_files(lang: str = "ml") -> list[str]:
+    """The rejoined dev and test sentences of one Dakshina language, as paths in the tar."""
+    return [f"dakshina_dataset_v1.0/{lang}/romanized/{lang}.romanized.rejoined.{split}.{form}.txt"
+            for split in ("dev", "test") for form in ("native", "roman")]
 
 
 def _publish(tmp: Path, out: Path) -> None:
@@ -198,14 +208,15 @@ def build_gutenberg(out: Path, books_tsv: Path) -> None:
     _publish(tmp, out)
 
 
-def extract_dakshina() -> None:
+def extract_dakshina(lang: str = "ml") -> None:
     """The romanised dev and test sentences, with their SHA-256s recorded in the manifest."""
     dst = RAW / "dakshina"
-    if not all((dst / name).exists() for name in DAKSHINA_FILES):
-        subprocess.run(["tar", "-xf", str(DAKSHINA_TAR), "-C", str(dst), *DAKSHINA_FILES], check=True)
+    files = dakshina_files(lang)
+    if not all((dst / name).exists() for name in files):
+        subprocess.run(["tar", "-xf", str(DAKSHINA_TAR), "-C", str(dst), *files], check=True)
     manifest_path = MANIFESTS / "dakshina.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    for name in DAKSHINA_FILES:
+    for name in files:
         manifest["extracted"][name] = sha256(dst / name)
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -213,11 +224,12 @@ def extract_dakshina() -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--only", choices=["simplewiki", "wikinews", "gutenberg", "dakshina"], action="append")
+    parser.add_argument("--lang", default="ml", choices=["ml", "hi"], help="whose Dakshina sentences")
     args = parser.parse_args(argv)
     steps = args.only or ["simplewiki", "wikinews", "gutenberg", "dakshina"]
     TEXT.mkdir(parents=True, exist_ok=True)
     if "dakshina" in steps:
-        extract_dakshina()
+        extract_dakshina(args.lang)
     if "simplewiki" in steps:
         extract_wiki("simplewiki", TEXT / "simplewiki.txt")
     if "wikinews" in steps:

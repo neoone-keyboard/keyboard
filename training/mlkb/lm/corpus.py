@@ -1,6 +1,15 @@
 """The LM training text: one file per bucket and pass, one paragraph per line, `lm_normalize`d.
 
     uv run --group train python -m mlkb.lm.corpus --out build/lm/text [--seed 20261103]
+    uv run --group train python -m mlkb.lm.corpus --lang hi --out build/lm-hi/text
+
+`--lang` (`mlkb.lm.lang`, Malayalam by default) picks the native text and its romanised
+buckets. For Hindi the table below reads `hi.txt`, `hinglish-{0,1}` and `mixed-0` (Hindi
+Wikipedia, then Wikisource; `hi.json`'s spelling table, `mlkb.data.table_romanise`, in place of
+the Malayalam romaniser), each pass built in `synth_parts` parts in parallel, and the eval
+files are Hindi's in `data/eval/hi/` (`next-hi.tune.txt`, `next-hi.heldout.txt`). Hindi writes
+no English tune split: it reads Malayalam's `data/eval/next-en.tune.txt`, which its training
+text leaves out as an eval set.
 
 Reads data/raw/text/ (see `mlkb.lm.sources` and data/build-lexicons.sh) and writes:
 
@@ -44,8 +53,9 @@ from pathlib import Path
 
 import mlengine
 
-from mlkb.data import calibrate, human
+from mlkb.data import calibrate, human, table_romanise
 from mlkb.data.romanise import _slots, variants_of
+from mlkb.lm import lang as lm_lang
 
 REPO = Path(__file__).resolve().parents[3]
 RAW_TEXT = REPO / "data/raw/text"
@@ -190,16 +200,21 @@ def _eval_strings(path: Path) -> Iterator[str]:
             yield f"{cols[0]} {cols[2]}"
 
 
-def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED) -> set[int]:
+def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED, own: set[Path] | None = None,
+              more: Iterable[Path] = (), dakshina_lang: str = "ml") -> set[int]:
     """Keys of every string in every eval set (each column, each context with its word, each
-    sentence), and of every Dakshina romanised dev and test sentence, in both scripts, with and
-    without punctuation. The tune splits this module writes come from held-out text already."""
-    own = {"next-en.tune.txt", "next-ml.tune.txt", "next-ml.heldout.txt"}
+    sentence) in `eval_dir` and the `more` directories, and of every Dakshina romanised dev and
+    test sentence of `dakshina_lang`, in both scripts, with and without punctuation. The `own`
+    files (by default Malayalam's tune splits, which this module writes) come from held-out text
+    already."""
+    if own is None:
+        own = {eval_dir / name for name in ("next-en.tune.txt", "next-ml.tune.txt", "next-ml.heldout.txt")}
     strings: list[str] = []
-    for path in sorted(eval_dir.iterdir()):
-        if path.suffix in (".txt", ".tsv") and path.name not in own:
-            strings.extend(_eval_strings(path))
-    for path in sorted(dakshina.glob("ml.romanized.rejoined.*.txt")):
+    for directory in (eval_dir, *more):
+        for path in sorted(directory.iterdir()):
+            if path.suffix in (".txt", ".tsv") and path not in own:
+                strings.extend(_eval_strings(path))
+    for path in sorted(dakshina.glob(f"{dakshina_lang}.romanized.rejoined.*.txt")):
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 strings.append(line)
@@ -219,10 +234,11 @@ def loanwords_from(
     malayalam: set[str],
     borrowed: Iterable[str] = (),
     reverse: dict[str, list[str]] | None = None,
+    endings: tuple[str, ...] = LOANWORD_ENDINGS,
 ) -> dict[str, str]:
     """Malayalam spelling -> English word.
 
-    A Malayalam word (in `malayalam`, not inflected: `LOANWORD_ENDINGS`) is a loanword if a
+    A Malayalam word (in `malayalam`, not inflected: `endings`) is a loanword if a
     mined Aksharantar row (CC0) gives it an English word (in `english`) as its Latin side, or if
     it is in `borrowed` (SMC's list of English borrowings). Its English is the most frequent
     (`english` as word -> count; first seen on ties) of those Latin sides and of the English
@@ -241,10 +257,10 @@ def loanwords_from(
             continue
         latin = str(row["english word"]).strip().lower()
         native = human.normalize(str(row["native word"]).strip())
-        if latin in english and native in malayalam and not native.endswith(LOANWORD_ENDINGS):
+        if latin in english and native in malayalam and not native.endswith(endings):
             candidates.setdefault(native, []).append(latin)
     for native in borrowed:
-        if native in malayalam and not native.endswith(LOANWORD_ENDINGS):
+        if native in malayalam and not native.endswith(endings):
             candidates.setdefault(native, [])
     for native, words in (reverse or {}).items():
         if native in candidates:
@@ -256,13 +272,22 @@ def loanwords_from(
     return out
 
 
-def transliterated(words: Iterable[str]) -> dict[str, list[str]]:
-    """Malayalam word -> the English words whose first transliteration (the bundled M3a
-    transliterator and Malayalam lexicons, no English lexicon) it is."""
-    engine = mlengine.Engine(
-        malayalam=str(PACK / "ml.fst"), manglish=str(PACK / "manglish.fst"), romanisation=str(PACK / "romanisation.json"),
-        suffixes=str(PACK / "suffixes.tsv"), chat_forms=str(PACK / "chat-forms.tsv"), translit=str(TRANSLIT),
-    )
+def transliterated(words: Iterable[str], lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, list[str]]:
+    """Native word -> the English words whose first transliteration (the pack's transliterator
+    and lexicons, no English lexicon) it is."""
+    if lang.id == "ml":
+        engine = mlengine.Engine(
+            malayalam=str(PACK / "ml.fst"), manglish=str(PACK / "manglish.fst"),
+            romanisation=str(PACK / "romanisation.json"), suffixes=str(PACK / "suffixes.tsv"),
+            chat_forms=str(PACK / "chat-forms.tsv"), translit=str(TRANSLIT),
+        )
+    else:
+        pack = lang.pack
+        engine = mlengine.Engine(
+            malayalam=str(pack / lang.lexicon), manglish=str(pack / lang.romanised_lexicon),
+            romanisation=str(pack / "romanisation.json"), translit=str(pack / lang.translit),
+            pack=lang.id, script=json.loads((pack / "manifest.json").read_text(encoding="utf-8"))["script"],
+        )
     out: dict[str, list[str]] = {}
     for word in words:
         for text, kind, _ in engine.suggest(word, "latin", True):
@@ -272,18 +297,23 @@ def transliterated(words: Iterable[str]) -> dict[str, list[str]]:
     return out
 
 
-def load_loanwords() -> dict[str, str]:
-    """`loanwords_from` the Aksharantar train split, SMC's borrowed words and the bundled
-    lexicons and transliterator."""
+def load_loanwords(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, str]:
+    """`loanwords_from` the Aksharantar train split, SMC's borrowed words (Malayalam only) and
+    the pack's lexicons and transliterator."""
     en = mlengine.malayalam_words(str(LEXICON / "en.fst"), 10**8)
     total = sum(c for _, c in en)
     english: dict[str, int] = {}
     for w, c in en:
         if math.log(c / total) > LOANWORD_MIN_LOG_PROB:
             english[w.lower()] = english.get(w.lower(), 0) + c
+    plain = sorted((w for w in english if w.isascii() and w.isalpha() and len(w) > 2), key=lambda w: -english[w])
+    if lang.id != "ml":
+        native = {w for w, _ in mlengine.malayalam_words(str(lang.pack / lang.lexicon), 10**8)}
+        reverse = transliterated(plain[:TRANSLITERATED_WORDS], lang)
+        return loanwords_from(human.aksharantar_rows(lang.aksharantar_train), english, native, (), reverse,
+                              endings=lang.loanword_endings)
     malayalam = {w for w, _ in mlengine.malayalam_words(str(PACK / "ml.fst"), 10**8)}
     borrowed = [human.normalize(w.strip()) for w in SMC_BORROWED.read_text(encoding="utf-8").splitlines() if w.strip()]
-    plain = sorted((w for w in english if w.isascii() and w.isalpha() and len(w) > 2), key=lambda w: -english[w])
     reverse = transliterated(plain[:TRANSLITERATED_WORDS])
     return loanwords_from(human.aksharantar_rows(AKSHARANTAR_TRAIN), english, malayalam, borrowed, reverse)
 
@@ -298,12 +328,31 @@ def _word_slots(word: str):
     return _slots(word, _rules())
 
 
-def romanise_word(word: str, rng: random.Random, loanwords: dict[str, str], p_loan: float) -> str:
+Speller = Callable[[str, random.Random], list[str]]
+
+
+def _malayalam_spellings(word: str, rng: random.Random) -> list[str]:
+    return variants_of(_word_slots(word), rng, _rules())
+
+
+def speller(lang: lm_lang.LmLang) -> Speller:
+    """A word's spellings as people type them: the calibrated M3a romaniser for Malayalam, else
+    the language's spelling table (`mlkb.langs`, `table_romanise.variants`)."""
+    if lang.id == "ml":
+        return _malayalam_spellings
+    from mlkb import langs
+
+    table = table_romanise.Table.load(langs.load(lang.id).romanisation)
+    return lambda word, rng: table_romanise.variants(table, word, rng)
+
+
+def romanise_word(word: str, rng: random.Random, loanwords: dict[str, str], p_loan: float,
+                  spell: Speller = _malayalam_spellings) -> str:
     """The loanword's English with probability `p_loan`, else one of the word's spellings as
-    people type them (the calibrated M3a romaniser)."""
+    people type them (`spell`; the calibrated M3a romaniser by default)."""
     if word in loanwords and rng.random() < p_loan:
         return loanwords[word]
-    spellings = variants_of(_word_slots(word), rng, _rules())
+    spellings = spell(word, rng)
     return rng.choice(spellings) if spellings else ""
 
 
@@ -311,24 +360,27 @@ def _tidy(text: str) -> str:
     return _SPACES.sub(" ", text).strip()
 
 
-def romanise_sentence(sentence: str, rng: random.Random, loanwords: dict[str, str], p_loan: float) -> str:
-    """Every Malayalam word romanised (`romanise_word`); other tokens and punctuation kept."""
-    return _tidy(_MALAYALAM.sub(lambda m: romanise_word(m.group(), rng, loanwords, p_loan), sentence))
+def romanise_sentence(sentence: str, rng: random.Random, loanwords: dict[str, str], p_loan: float,
+                      word: re.Pattern = _MALAYALAM, spell: Speller = _malayalam_spellings) -> str:
+    """Every native word (`word`, Malayalam by default) romanised (`romanise_word`); other
+    tokens and punctuation kept."""
+    return _tidy(word.sub(lambda m: romanise_word(m.group(), rng, loanwords, p_loan, spell), sentence))
 
 
-def mix_sentence(sentence: str, rng: random.Random, loanwords: dict[str, str], frac: float, p_loan: float) -> str:
-    """A loanword becomes English with probability `p_loan`; any other Malayalam word is
+def mix_sentence(sentence: str, rng: random.Random, loanwords: dict[str, str], frac: float, p_loan: float,
+                 word: re.Pattern = _MALAYALAM, spell: Speller = _malayalam_spellings) -> str:
+    """A loanword becomes English with probability `p_loan`; any other native word is
     romanised with probability `frac`, else kept in script."""
 
     def one(m: re.Match) -> str:
-        word = m.group()
-        if word in loanwords and rng.random() < p_loan:
-            return loanwords[word]
+        w = m.group()
+        if w in loanwords and rng.random() < p_loan:
+            return loanwords[w]
         if rng.random() < frac:
-            return romanise_word(word, rng, {}, 0.0)
-        return word
+            return romanise_word(w, rng, {}, 0.0, spell)
+        return w
 
-    return _tidy(_MALAYALAM.sub(one, sentence))
+    return _tidy(word.sub(one, sentence))
 
 
 def _chat(text: str, rng: random.Random) -> str:
@@ -455,30 +507,40 @@ class _Writer:
 
 
 _LOANWORDS: dict[str, str] = {}
+_LANG: lm_lang.LmLang = lm_lang.ML
+_SPELL: Speller = _malayalam_spellings
 
 
-def _init_worker(loanwords: dict[str, str]) -> None:
-    global _LOANWORDS
+def _init_worker(loanwords: dict[str, str], lang_id: str = "ml") -> None:
+    global _LOANWORDS, _LANG, _SPELL
     _LOANWORDS = loanwords
+    _LANG = lm_lang.load(lang_id)
+    _SPELL = speller(_LANG)
 
 
-def synthesise(job: tuple[str, str, str, int]) -> tuple[str, dict]:
-    """One synthetic file from the clean Malayalam text: (kind, source, destination, seed)."""
-    kind, src, dst, seed = job
+def synthesise(job: tuple) -> tuple[str, dict]:
+    """One synthetic file from the clean native text: (kind, source, destination, seed), kind
+    `romanised` or `mixed`, in the worker's language (`_init_worker`). With `(…, part, parts)`
+    after them, only the paragraphs whose line number is `part` modulo `parts`."""
+    kind, src, dst, seed, part, parts = (*job, 0, 1) if len(job) == 4 else job
     rng = random.Random(seed)
     tmp = Path(dst + ".tmp")
-    stats = {"paragraphs": 0, "words": 0, "skipped_not_malayalam": 0}
+    native = _LANG.word
+    stats = {"paragraphs": 0, "words": 0, "skipped_not_native": 0}
     with open(tmp, "w", encoding="utf-8") as out:
-        for para in _lines(Path(src)):
-            words = para.split()
-            if sum(bool(_MALAYALAM.search(w)) for w in words) < SYNTHETIC_MIN_MALAYALAM * len(words):
-                stats["skipped_not_malayalam"] += 1
+        for k, para in enumerate(_lines(Path(src))):
+            if parts > 1 and k % parts != part:
                 continue
-            if kind == "manglish":
-                text = romanise_sentence(para, rng, _LOANWORDS, MANGLISH_P_LOAN)
+            words = para.split()
+            if sum(bool(native.search(w)) for w in words) < SYNTHETIC_MIN_MALAYALAM * len(words):
+                stats["skipped_not_native"] += 1
+                continue
+            if kind == "romanised":
+                text = romanise_sentence(para, rng, _LOANWORDS, MANGLISH_P_LOAN, native, _SPELL)
             else:
                 text = " ".join(
-                    mix_sentence(s, rng, _LOANWORDS, rng.uniform(*MIXED_FRAC), MIXED_P_LOAN) for s in sentences(para)
+                    mix_sentence(s, rng, _LOANWORDS, rng.uniform(*MIXED_FRAC), MIXED_P_LOAN, native, _SPELL)
+                    for s in sentences(para)
                 )
             text = _chat(text, rng)
             if text:
@@ -535,62 +597,138 @@ GATE_ML_HEADER = """# Next-word eval set, Malayalam (gate split, held-out half; 
 """
 
 
+
+
+TUNE_HI_HEADER = """# Next-word eval set, Hindi (tune split, for weight sweeps only): one sentence per line.
+# {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
+# Hindi Wikipedia and Hindi Wikisource (CC BY-SA 4.0, by their contributors,
+# https://hi.wikipedia.org/, https://hi.wikisource.org/). Built by training/mlkb/lm/corpus.py --lang hi.
+"""
+GATE_HI_HEADER = """# Next-word eval set, Hindi (gate split, held-out half): one sentence per line.
+# {n} sentences of 4-20 words sampled (seed {seed}) from held-out paragraphs, never trained on, of
+# Hindi Wikipedia and Hindi Wikisource (CC BY-SA 4.0, by their contributors,
+# https://hi.wikipedia.org/, https://hi.wikisource.org/), disjoint from the tune split, and none of
+# them a sentence of the training text. Built by training/mlkb/lm/corpus.py --lang hi.
+"""
+HEADERS = {"ml": (TUNE_ML_HEADER, GATE_ML_HEADER), "hi": (TUNE_HI_HEADER, GATE_HI_HEADER)}
+
+
+def tune_pattern(lang: lm_lang.LmLang) -> re.Pattern:
+    """A held-out sentence that can be a next-word eval sentence: native words and light
+    punctuation only (the danda for Hindi)."""
+    if lang.id == "ml":
+        return _TUNE_ML
+    chars = lang.word.pattern.strip("[]+")
+    return re.compile(f"[{chars}][{chars} ,.?!।-]*")
+
+
+def synthetic_jobs(lang: lm_lang.LmLang, work: Path, out: Path, seed: int) -> list[tuple]:
+    """`synthesise` jobs: (kind, source, destination, seed, part, parts). Malayalam's are one
+    job per file, with the seeds they always had."""
+    clean, valid = str(work / f"{lang.native}-clean.txt"), str(work / f"valid-{lang.native}-clean.txt")
+    files = [("romanised", clean, out / f"{name}.txt", seed * 10 + i) for i, name in enumerate(lang.romanised_buckets())]
+    files += [("mixed", clean, out / f"{name}.txt", seed * 10 + 5 + i) for i, name in enumerate(lang.mixed_buckets())]
+    files += [("romanised", valid, out / f"valid-{lang.romanised}.txt", seed * 10 + 8),
+              ("mixed", valid, out / "valid-mixed.txt", seed * 10 + 9)]
+    parts = lang.synth_parts
+    jobs = []
+    for kind, src, dst, s in files:
+        if parts == 1:
+            jobs.append((kind, src, str(dst), s, 0, 1))
+        else:
+            jobs += [(kind, src, f"{dst}.part{k}", s * 100 + k, k, parts) for k in range(parts)]
+    return jobs
+
+
+def join_parts(jobs: list[tuple], results: list[tuple[str, dict]]) -> dict[str, dict]:
+    """Concatenates the part files of each destination in part order; the summed stats by file."""
+    summary: dict[str, dict] = {}
+    by_dst: dict[str, list[str]] = {}
+    for job, (_, stats) in zip(jobs, results, strict=True):
+        dst = job[2]
+        if job[5] > 1:
+            whole = dst.rsplit(".part", 1)[0]
+            by_dst.setdefault(whole, []).append(dst)
+        else:
+            whole = dst
+        total = summary.setdefault(Path(whole).name.removesuffix(".txt"), {})
+        for k, v in stats.items():
+            total[k] = total.get(k, 0) + v
+    for whole, part_files in by_dst.items():
+        tmp = Path(whole + ".tmp")
+        with open(tmp, "wb") as out:
+            for part in part_files:
+                with open(part, "rb") as f:
+                    while chunk := f.read(1 << 24):
+                        out.write(chunk)
+                Path(part).unlink()
+        tmp.replace(whole)
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, default=Path("build/lm/text"))
+    parser.add_argument("--lang", default=lm_lang.DEFAULT, choices=sorted(lm_lang.LANGS))
+    parser.add_argument("--out", type=Path, default=None, help="default: <the language's build>/text")
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args(argv)
-    out: Path = args.out
+    lang = lm_lang.load(args.lang)
+    nat = lang.native
+    out: Path = args.out or Path(lang.build) / "text"
     work = out.parent / "work"
     out.mkdir(parents=True, exist_ok=True)
     work.mkdir(parents=True, exist_ok=True)
+    lang.eval_dir.mkdir(parents=True, exist_ok=True)
     start = time.time()
 
-    leaks = leak_keys()
+    if lang.id == "ml":
+        leaks = leak_keys()
+    else:
+        leaks = leak_keys(EVAL, lang.dakshina_romanized, own={lang.tune_file, lang.gate_file},
+                          more=(lang.eval_dir,), dakshina_lang=lang.dakshina)
     print(f"{len(leaks):,} leak keys", file=sys.stderr)
-    loanwords = load_loanwords()
+    loanwords = load_loanwords(lang)
     print(f"{len(loanwords):,} loanwords", file=sys.stderr)
     summary: dict[str, dict] = {}
     seen: set[int] = set()
     templates: dict[int, int] = {}
-    # memorise.py's record of where Wikisource begins in ml.txt: the paragraph count moves.
+    # memorise.py's record of where Wikisource begins in the native text: the paragraph count moves.
     (out / "sources.tsv").unlink(missing_ok=True)
 
-    # Malayalam first: the synthetic buckets are built from its clean text while English runs.
+    # The native text first: the synthetic buckets are built from its clean text while English runs.
     rng = random.Random(args.seed)
-    heldout_ml = Reservoir(HELDOUT_SENTENCES, rng)
-    tune_ml = Reservoir(TUNE_SENTENCES_ML, random.Random(args.seed + 1))
-    gate_ml = Reservoir(GATE_SENTENCES_ML, random.Random(args.seed + 3))
+    heldout_nat = Reservoir(HELDOUT_SENTENCES, rng)
+    tune_nat = Reservoir(TUNE_SENTENCES_ML, random.Random(args.seed + 1))
+    gate_nat = Reservoir(GATE_SENTENCES_ML, random.Random(args.seed + 3))
+    pattern = tune_pattern(lang)
+    tune_form = human.normalize if lang.id == "ml" else mlengine.lm_normalize
 
-    def on_valid_ml(raw: str, norm: str) -> None:
+    def on_valid_nat(raw: str, norm: str) -> None:
         for s in sentences(norm):
-            heldout_ml.add(s)
-        for s in _tune_candidates(human.normalize(raw), _TUNE_ML, leaks):
-            (tune_ml if is_tune_half(s) else gate_ml).add(s)
+            heldout_nat.add(s)
+        for s in _tune_candidates(tune_form(raw), pattern, leaks):
+            (tune_nat if is_tune_half(s) else gate_nat).add(s)
 
-    train, valid = _Writer(out / "ml.txt", work / "ml-clean.txt"), _Writer(out / "valid-ml.txt", work / "valid-ml-clean.txt")
-    summary["ml"] = clean_source("ml", RAW_TEXT / "ml.txt", None, seen, leaks, rng, train, valid, on_valid_ml,
-                                 templates)
+    train = _Writer(out / f"{nat}.txt", work / f"{nat}-clean.txt")
+    valid = _Writer(out / f"valid-{nat}.txt", work / f"valid-{nat}-clean.txt")
+    summary[nat] = clean_source(nat, RAW_TEXT / lang.raw_text, None, seen, leaks, rng, train, valid, on_valid_nat,
+                                templates)
     train.close()
     valid.close()
-    print(f"ml: {summary['ml']}  ({time.time() - start:.0f}s)", file=sys.stderr)
+    print(f"{nat}: {summary[nat]}  ({time.time() - start:.0f}s)", file=sys.stderr)
     # A held-out paragraph can share a sentence with a training one: those sentences go.
-    with open(work / "ml-clean.txt", encoding="utf-8") as f:
+    with open(work / f"{nat}-clean.txt", encoding="utf-8") as f:
         trained = sentence_keys(line.rstrip("\n") for line in f)
-    for r in (tune_ml, gate_ml):
+    for r in (tune_nat, gate_nat):
         before = len(r.items)
         r.items = not_in(r.items, trained)
-        summary.setdefault("next_ml_sets", {})[f"in_training_{'tune' if r is tune_ml else 'gate'}"] = before - len(r.items)
+        summary.setdefault(f"next_{nat}_sets", {})[f"in_training_{'tune' if r is tune_nat else 'gate'}"] = (
+            before - len(r.items))
     del trained
 
-    jobs = [("manglish", str(work / "ml-clean.txt"), str(out / f"manglish-{i}.txt"), args.seed * 10 + i)
-            for i in range(MANGLISH_PASSES)]
-    jobs += [("mixed", str(work / "ml-clean.txt"), str(out / f"mixed-{i}.txt"), args.seed * 10 + 5 + i)
-             for i in range(MIXED_PASSES)]
-    jobs += [("manglish", str(work / "valid-ml-clean.txt"), str(out / "valid-manglish.txt"), args.seed * 10 + 8),
-             ("mixed", str(work / "valid-ml-clean.txt"), str(out / "valid-mixed.txt"), args.seed * 10 + 9)]
-    with Pool(args.workers, initializer=_init_worker, initargs=(loanwords,)) as pool:
+    jobs = synthetic_jobs(lang, work, out, args.seed)
+    with Pool(args.workers, initializer=_init_worker, initargs=(loanwords, lang.id)) as pool:
         pending = pool.map_async(synthesise, jobs)
 
         heldout_en, tune_en = Reservoir(HELDOUT_SENTENCES, rng), Reservoir(TUNE_SENTENCES, random.Random(args.seed + 2))
@@ -610,18 +748,23 @@ def main(argv: list[str] | None = None) -> int:
             valid.close()
             print(f"{bucket}: {summary[bucket]}  ({time.time() - start:.0f}s)", file=sys.stderr)
 
-        for name, stats in pending.get():
-            summary[name.removesuffix(".txt")] = stats
-            print(f"{name}: {stats}", file=sys.stderr)
+        for name, stats in join_parts(jobs, pending.get()).items():
+            summary[name] = stats
+            print(f"{name}.txt: {stats}", file=sys.stderr)
 
     (out.parent / "heldout-en.txt").write_text("\n".join(heldout_en.items) + "\n", encoding="utf-8")
-    (out.parent / "heldout-ml.txt").write_text("\n".join(heldout_ml.items) + "\n", encoding="utf-8")
-    (EVAL / "next-en.tune.txt").write_text(
-        TUNE_EN_HEADER.format(n=len(tune_en.items), seed=args.seed + 2) + "\n".join(tune_en.items) + "\n", encoding="utf-8")
-    (EVAL / "next-ml.tune.txt").write_text(
-        TUNE_ML_HEADER.format(n=len(tune_ml.items), seed=args.seed + 1) + "\n".join(tune_ml.items) + "\n", encoding="utf-8")
-    (EVAL / "next-ml.heldout.txt").write_text(
-        GATE_ML_HEADER.format(n=len(gate_ml.items), seed=args.seed + 3) + "\n".join(gate_ml.items) + "\n", encoding="utf-8")
+    (out.parent / f"heldout-{nat}.txt").write_text("\n".join(heldout_nat.items) + "\n", encoding="utf-8")
+    if lang.id == "ml":
+        (EVAL / "next-en.tune.txt").write_text(
+            TUNE_EN_HEADER.format(n=len(tune_en.items), seed=args.seed + 2) + "\n".join(tune_en.items) + "\n",
+            encoding="utf-8")
+    tune_header, gate_header = HEADERS[lang.id]
+    lang.tune_file.write_text(
+        tune_header.format(n=len(tune_nat.items), seed=args.seed + 1) + "\n".join(tune_nat.items) + "\n",
+        encoding="utf-8")
+    lang.gate_file.write_text(
+        gate_header.format(n=len(gate_nat.items), seed=args.seed + 3) + "\n".join(gate_nat.items) + "\n",
+        encoding="utf-8")
     summary["loanwords"] = {"count": len(loanwords)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"done in {time.time() - start:.0f}s; summary in {out / 'summary.json'}", file=sys.stderr)

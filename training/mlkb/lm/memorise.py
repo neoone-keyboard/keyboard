@@ -25,6 +25,10 @@ Writes the max, p99 and a histogram of each, the prompt count and the model's SH
 whether every run, by both measures, stays under `LIMIT` tokens. Exits 1 on a fail. The longest runs and the longest loops are listed with their text (`--dump`
 saves every generation for a closer look).
 
+`--lang hi` (`mlkb.lm.lang`) checks Hindi's LM the same way: prompts from Hindi Wikipedia and
+Hindi Wikisource (`hi`), and the share-alike text is `en-wiki`, `en-simple`, `hi`, `hinglish-*`
+and `mixed-*`, from `build/lm-hi`.
+
 `sources.tsv` (`bucket<TAB>source<TAB>first paragraph`) is derived here when missing:
 `data/raw/text/ml.txt` is Malayalam Wikipedia followed by Wikisource (data/build-lexicons.sh),
 and `corpus.py` keeps its order, so Wikisource begins at the first `ml.txt` paragraph that is
@@ -40,6 +44,7 @@ from pathlib import Path
 import mlengine
 import numpy as np
 
+from mlkb.lm import lang as lm_lang
 from mlkb.lm.shards import read_pieces
 
 REPO = Path(__file__).resolve().parents[3]
@@ -54,6 +59,13 @@ PROMPTS = 500
 SEED = 20261104
 SHARE_ALIKE = ("en-wiki", "en-simple", "ml", "manglish-0", "manglish-1", "manglish-2", "manglish-3",
                "mixed-0", "mixed-1")
+
+
+def share_alike(lang: lm_lang.LmLang = lm_lang.ML) -> tuple[str, ...]:
+    """The share-alike training shards of the language's LM (`SHARE_ALIKE` for Malayalam)."""
+    return ("en-wiki", "en-simple", lang.native, *lang.romanised_buckets(), *lang.mixed_buckets())
+
+
 RUNS = ((0.0, 0), (0.7, 1), (0.7, 2))  # (temperature, seed)
 # A matched run with this many distinct tokens or fewer is a loop (`0000…`, `, , , ,`,
 # `to be 1000…`): listed apart in the output, for diagnosis only (design §10).
@@ -148,7 +160,7 @@ def paragraph_starts(tokens: np.ndarray) -> np.ndarray:
     return np.flatnonzero(tokens == BOS)
 
 
-def wikisource_start(ml_text: Path, dump: Path) -> int:
+def wikisource_start(ml_text: Path, dump: Path, namespaces: tuple[str, ...] = lm_lang.ML.wikisource_namespaces) -> int:
     """The index of the first paragraph of `ml_text` that is one of the first paragraphs of the
     Wikisource dump (see the module doc). The texts are compared without punctuation, which
     `corpus.py` drops from some paragraphs."""
@@ -159,7 +171,7 @@ def wikisource_start(ml_text: Path, dump: Path) -> int:
 
     wanted = set()
     with bz2.open(dump, "rb") as stream:
-        for text in extract_wiki.article_texts(stream, ["104", "Page", "താൾ"]):
+        for text in extract_wiki.article_texts(stream, list(namespaces)):
             for para in extract_wiki.paragraphs(text):
                 if len(para.split()) >= 10:
                     wanted.add(strip_punct(mlengine.lm_normalize(para)))
@@ -208,41 +220,52 @@ def entry(x) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m mlkb.lm.memorise", description=__doc__.splitlines()[0])
-    parser.add_argument("--model", type=Path, default=Path("build/lm.mlkbnn"))
-    parser.add_argument("--shards", type=Path, default=Path("build/lm/shards"))
-    parser.add_argument("--text", type=Path, default=Path("build/lm/text"))
-    parser.add_argument("--vocab", type=Path, default=Path("build/lm/pieces.tsv"))
-    parser.add_argument("--wikisource", type=Path, default=WIKISOURCE_DUMP, help="Wikisource dump")
+    parser.add_argument("--lang", default=lm_lang.DEFAULT, choices=sorted(lm_lang.LANGS))
+    parser.add_argument("--model", type=Path, default=None, help="default: the checkpoint's path, .mlkbnn")
+    parser.add_argument("--shards", type=Path, default=None, help="default: <the language's build>/shards")
+    parser.add_argument("--text", type=Path, default=None, help="default: <the language's build>/text")
+    parser.add_argument("--vocab", type=Path, default=None, help="default: <the language's build>/pieces.tsv")
+    parser.add_argument("--wikisource", type=Path, default=None, help="Wikisource dump")
     parser.add_argument("--prompts", type=int, default=PROMPTS, help="per source")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--dump", type=Path, help="also save every prompt and generation (.npz)")
     args = parser.parse_args(argv)
+    lang = lm_lang.load(args.lang)
+    build = Path(lang.build)
+    args.model = args.model or Path(lang.checkpoint).with_suffix(".mlkbnn")
+    args.shards = args.shards or build / "shards"
+    args.text = args.text or build / "text"
+    args.vocab = args.vocab or build / "pieces.tsv"
+    args.wikisource = args.wikisource or (WIKISOURCE_DUMP if lang.id == "ml" else lang.wikisource_dump)
+    nat = lang.native
+    wiki, wikisource = f"{nat}wiki", lang.wikisource
+    share = share_alike(lang)
 
     sources_path = args.text / "sources.tsv"
     if not sources_path.exists():
-        start = wikisource_start(args.text / "ml.txt", args.wikisource)
-        sources_path.write_text(f"ml\tmlwiki\t0\nml\tmlwikisource\t{start}\n", encoding="utf-8")
+        start = wikisource_start(args.text / f"{nat}.txt", args.wikisource, lang.wikisource_namespaces)
+        sources_path.write_text(f"{nat}\t{wiki}\t0\n{nat}\t{wikisource}\t{start}\n", encoding="utf-8")
         print(f"wrote {sources_path}: Wikisource from paragraph {start:,}", file=sys.stderr)
     sources = read_sources(sources_path)
 
     pieces, _ = read_pieces(args.vocab)
     word_start = np.array([p.startswith("▁") for p in pieces])
-    shards = {name: np.memmap(args.shards / f"{name}.bin", np.uint16, "r") for name in SHARE_ALIKE}
+    shards = {name: np.memmap(args.shards / f"{name}.bin", np.uint16, "r") for name in share}
     rng = np.random.default_rng(SEED)
     jobs = []  # (source, shard, position)
     for name in ("en-wiki", "en-simple"):
         for p in prompts(shards[name], 0, len(shards[name]), word_start, args.prompts, rng):
             jobs.append((name, name, p))
-    starts = paragraph_starts(shards["ml"])
-    split = dict(sources["ml"])
-    bounds = {"mlwiki": (0, int(starts[split["mlwikisource"]])),
-              "mlwikisource": (int(starts[split["mlwikisource"]]), len(shards["ml"]))}
+    starts = paragraph_starts(shards[nat])
+    split = dict(sources[nat])
+    bounds = {wiki: (0, int(starts[split[wikisource]])),
+              wikisource: (int(starts[split[wikisource]]), len(shards[nat]))}
     for source, (lo, hi) in bounds.items():
-        for p in prompts(shards["ml"], lo, hi, word_start, args.prompts, rng):
-            jobs.append((source, "ml", p))
+        for p in prompts(shards[nat], lo, hi, word_start, args.prompts, rng):
+            jobs.append((source, nat, p))
 
-    print(f"indexing {', '.join(SHARE_ALIKE)}", file=sys.stderr)
-    index = WindowIndex.build([shards[name] for name in SHARE_ALIKE])
+    print(f"indexing {', '.join(share)}", file=sys.stderr)
+    index = WindowIndex.build([shards[name] for name in share])
     print(f"{len(index):,} windows", file=sys.stderr)
 
     lm = mlengine.Lm(str(args.model))
@@ -299,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
         "runs_over_half_the_limit": sum(not x[2] for x in longest),
         "loops_over_half_the_limit": sum(x[2] for x in longest),
         "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from "
-                               "English and Malayalam Wikipedia and Malayalam Wikisource "
+                               f"English and {lang.name} Wikipedia and {lang.name} Wikisource "
                                "(Wikipedia and Wikisource contributors).",
         "longest": [entry(x) for x in longest if not x[2]][:10],
         "longest_loops": [entry(x) for x in longest if x[2]][:5],
