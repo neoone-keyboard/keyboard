@@ -19,3 +19,4 @@ pub use lm::{Cache, Lm, LmScratch, Tables};
 pub use tokenizer::{Tokenizer, lm_normalize};
 pub use transformer::{Decoder, DecoderState, Encoded, Transformer};
 pub use translit::{BeamTrace, Deadline, Search, Translit, Transliteration};
+pub use vocab::Target;

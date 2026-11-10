@@ -1,8 +1,9 @@
-//! Latin → Malayalam spellings from the transformer, by beam search held to the lexicon.
+//! Latin → native-script spellings from the transformer, by beam search held to the lexicon.
+//! The script is the pack's: its output tokens are a `vocab::Target`.
 //!
-//! The constrained beam keeps a hypothesis only while its Malayalam text is a prefix of some
-//! `ml.fst` word (`Lexicon::has_prefix`) or of a suffix split of the typed word, and finishes
-//! one only on a whole word or split. Splits come in from the caller as finished Malayalam
+//! The constrained beam keeps a hypothesis only while its text is a prefix of some word of the
+//! pack's lexicon (`Lexicon::has_prefix`) or of a suffix split of the typed word, and finishes
+//! one only on a whole word or split. Splits come in from the caller as finished native-script
 //! words (`suffix::splits` reads the typed Latin, never the beam's text, so they are the same
 //! at every step): "could become a split form" is then a byte-prefix test against a handful of
 //! strings, with no suffix tables walked per step.
@@ -17,7 +18,7 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use super::vocab::{self, BOS, EOS, PAD};
+use super::vocab::{self, BOS, EOS, PAD, Target};
 use super::{DecoderState, ModelFile, NnError, Transformer};
 use crate::lexicon::Lexicon;
 
@@ -46,27 +47,30 @@ pub struct Transliteration {
 #[derive(Debug)]
 pub struct Translit {
     model: Transformer,
+    /// The script the model spells in: its output tokens are this vocabulary's.
+    target: Target,
 }
 
 impl Translit {
-    /// Opens a `.mlkbnn` transliterator.
-    pub fn open(path: &Path) -> Result<Self, NnError> {
-        Self::new(Transformer::new(&ModelFile::open(path)?)?)
+    /// Opens a `.mlkbnn` transliterator trained to spell in `target` (a pack's is
+    /// `Target::for_script` of the pack's script).
+    pub fn open(path: &Path, target: Target) -> Result<Self, NnError> {
+        Self::new(Transformer::new(&ModelFile::open(path)?)?, target)
     }
 
-    /// Checks that `model` uses the vocabularies in `vocab`.
-    pub fn new(model: Transformer) -> Result<Self, NnError> {
+    /// Checks that `model` reads Latin and writes `target`'s tokens.
+    pub fn new(model: Transformer, target: Target) -> Result<Self, NnError> {
         let c = model.config();
-        if c.src_vocab != vocab::LATIN_SIZE || c.tgt_vocab != vocab::MALAYALAM_SIZE {
+        if c.src_vocab != vocab::LATIN_SIZE || c.tgt_vocab != target.size() {
             return Err(NnError::Shape(format!(
                 "vocabularies {} → {}, want {} → {}",
                 c.src_vocab,
                 c.tgt_vocab,
                 vocab::LATIN_SIZE,
-                vocab::MALAYALAM_SIZE
+                target.size()
             )));
         }
-        Ok(Self { model })
+        Ok(Self { model, target })
     }
 
     /// `candidates_with_splits` with no splits.
@@ -171,7 +175,7 @@ impl Translit {
             let tsearch = Instant::now();
 
             expansions.clear();
-            let rows = logits.chunks_exact(vocab::MALAYALAM_SIZE);
+            let rows = logits.chunks_exact(self.target.size());
             for (parent, (h, row)) in live.iter().zip(rows).enumerate() {
                 let lse = log_sum_exp(row);
                 for token in top_tokens(row) {
@@ -181,7 +185,7 @@ impl Translit {
                         } else {
                             buf.clear();
                             buf.push_str(&h.text);
-                            buf.extend(vocab::malayalam_char(token));
+                            buf.extend(self.target.char(token));
                             trace.prefix_checks += 1;
                             allowed.is_prefix(&buf)
                         };
@@ -250,7 +254,7 @@ impl Translit {
                 };
                 states.push(state.expect("a parent's state moves to its last child"));
                 let mut text = live[e.parent].text.clone();
-                text.extend(vocab::malayalam_char(e.token));
+                text.extend(self.target.char(e.token));
                 next.push(Hyp {
                     next: e.token,
                     text,
@@ -386,7 +390,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/tests/fixtures/translit-tiny.mlkbnn"
         );
-        Translit::open(Path::new(path)).unwrap()
+        Translit::open(Path::new(path), Target::MALAYALAM).unwrap()
     }
 
     fn lexicon(words: &[&str]) -> Lexicon {
@@ -403,7 +407,7 @@ mod tests {
         let mut total = 0.0;
         for next in text
             .chars()
-            .map(|c| vocab::malayalam_token(c).unwrap())
+            .map(|c| t.target.token(c).unwrap())
             .chain([EOS])
         {
             let logits = dec.step(&mut state, prev);

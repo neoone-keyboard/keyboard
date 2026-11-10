@@ -85,7 +85,7 @@ pub struct Config {
     pub max_len: usize,
     /// Source (Latin) vocabulary size.
     pub src_vocab: usize,
-    /// Target (Malayalam) vocabulary size.
+    /// Target (native-script) vocabulary size.
     pub tgt_vocab: usize,
 }
 

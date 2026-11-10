@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use mlengine_core::lexicon::Lexicon;
-use mlengine_core::nn::{Search, Translit};
+use mlengine_core::nn::{Search, Target, Translit};
 use mlengine_core::{Engine, Layout, PackPaths, Paths};
 
 fn root() -> PathBuf {
@@ -53,8 +53,11 @@ fn median(mut f: impl FnMut(), runs: usize) -> Duration {
 fn breakdown() {
     let with = open(true);
     let without = open(false);
-    let model =
-        Translit::open(&root().join("packs/ml.neopack/translit.mlkbnn")).unwrap();
+    let model = Translit::open(
+        &root().join("packs/ml.neopack/translit.mlkbnn"),
+        Target::MALAYALAM,
+    )
+    .unwrap();
     let ml = Lexicon::open(&root().join("packs/ml.neopack/ml.fst")).unwrap();
     let en = Lexicon::open(&root().join("apps/ios/KeyboardExtension/Lexicon/en.fst")).unwrap();
     for word in [

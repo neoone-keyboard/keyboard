@@ -12,7 +12,7 @@ use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
 use crate::manglish;
-use crate::nn::{Deadline, Lm, Search, Translit};
+use crate::nn::{Deadline, Lm, Search, Target, Translit};
 use crate::pack_layout::PackLayout;
 use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
@@ -312,7 +312,7 @@ impl Sources {
             translit: paths
                 .translit
                 .as_deref()
-                .and_then(|p| Translit::open(p).ok())
+                .and_then(|p| Translit::open(p, Target::for_script(rules)).ok())
                 .filter(|_| romanised),
             lexicon,
             lm,
@@ -1397,7 +1397,7 @@ impl Engine {
                 }
             }
 
-            let found = self.manglish(typed_n, priors, known_score.is_some(), deadline);
+            let found = self.manglish(typed_n, priors, favoured, known_score.is_some(), deadline);
             // Letters that spell a Malayalam word are not a mistyped English one: the
             // long-word search's extra reach (`rank::LONG_WORD`) is not used for them.
             let long = typed_n.len() >= rank::LONG_WORD && found.exact.is_empty();
@@ -1614,7 +1614,7 @@ impl Engine {
         let mut dominant = dominant.filter(|c| !self.is_removed(c));
 
         let mut manglish =
-            manglish.unwrap_or_else(|| self.manglish(typed_n, priors, false, deadline));
+            manglish.unwrap_or_else(|| self.manglish(typed_n, priors, favoured, false, deadline));
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
         // Floors were checked on scores without it; the final one below takes it back out.
@@ -1944,10 +1944,13 @@ impl Engine {
     /// Every active pack's candidates for a Latin word (`romanised`), together. The packs run
     /// likeliest first (highest prior; the active order between equals): they share the
     /// transliterator's `deadline`, and on a slow request the last ones get none of it.
+    /// `favoured`: as in `suggest_latin`; the other packs get no lexicon readings from the
+    /// model (`add_model`).
     fn manglish(
         &self,
         typed_n: &str,
         priors: &Priors,
+        favoured: Option<Lang>,
         english_word: bool,
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
@@ -1956,7 +1959,16 @@ impl Engine {
         let mut all: Option<ManglishCandidates> = None;
         for (lang, pack) in packs {
             let bias = priors.get(lang);
-            let found = self.romanised(lang, pack, typed_n, bias, english_word, deadline);
+            let another_favoured = favoured.is_some_and(|f| f != lang);
+            let found = self.romanised(
+                lang,
+                pack,
+                typed_n,
+                bias,
+                another_favoured,
+                english_word,
+                deadline,
+            );
             match &mut all {
                 Some(all) => all.absorb(found),
                 None => all = Some(found),
@@ -1967,14 +1979,17 @@ impl Engine {
 
     /// `pack`'s words for a Latin word, scored to compete with English.
     /// `english_word`: the typed word is in the English lexicon, so it isn't
-    /// split into stem and suffix.
+    /// split into stem and suffix. `another_favoured`: another pack is favoured
+    /// (`Engine::favoured`), as in `add_model`.
     /// `deadline`: as in `suggest_until`.
+    #[allow(clippy::too_many_arguments)]
     fn romanised(
         &self,
         lang: Lang,
         pack: &PackSources,
         typed_n: &str,
         bias: f32,
+        another_favoured: bool,
         english_word: bool,
         deadline: Option<Deadline<'_>>,
     ) -> ManglishCandidates {
@@ -2028,7 +2043,14 @@ impl Engine {
         } else {
             let want_free = found.exact.is_empty() && found.side.is_empty();
             Self::add_model(
-                pack, typed_n, &splits, bias, want_free, deadline, &mut found,
+                pack,
+                typed_n,
+                &splits,
+                bias,
+                another_favoured,
+                want_free,
+                deadline,
+                &mut found,
             )
         };
         // A rare spelling one vowel sign from a far commoner word (ആവിശ്യം, ആവശ്യം)
@@ -2246,13 +2268,21 @@ impl Engine {
     /// lookup's romanisation-distance penalty, except where English is likely
     /// (see `rank::MANGLISH_MODEL_WEIGHT`). One the skeleton lookup or a split found too
     /// appears twice, and the better score wins (`arrange`, and the max over `exact`).
-    /// Nothing without the model or the Malayalam lexicon it is held to. `free`: run the
-    /// free beam too. `deadline`: as in `suggest_until`.
+    /// Nothing without the model or the pack lexicon it is held to. `another_favoured`:
+    /// another pack is favoured (`Engine::favoured`, by the previous word or the habit), and
+    /// this pack gets no lexicon readings from the model, only the skeleton lookup's: lexicon
+    /// frequencies don't compare across packs, and a frequent word of a small pack read
+    /// confidently (Assamese আছে for `acha`, −5.4 against the Malayalam user's അച്ഛൻ at
+    /// −10.6; −8.3 even with the distance penalty kept) beat the favoured pack's by more than
+    /// `rank::FAVOURED_MARGIN`. `free`: run the free beam too. `deadline`: as in
+    /// `suggest_until`.
+    #[allow(clippy::too_many_arguments)]
     fn add_model(
         pack: &PackSources,
         typed_n: &str,
         splits: &[ScoredSplit],
         bias: f32,
+        another_favoured: bool,
         free: bool,
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
@@ -2269,7 +2299,7 @@ impl Engine {
         let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
             || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
         let search = Search {
-            width: MODEL_WIDTH,
+            width: if another_favoured { 0 } else { MODEL_WIDTH },
             free,
             deadline,
         };

@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::lang::{ActiveError, EN, LangId};
 use mlengine_core::lexicon::Lexicon;
-use mlengine_core::nn::{Deadline, Translit, Transliteration};
+use mlengine_core::nn::{Deadline, Target, Translit, Transliteration};
 use mlengine_core::pack::Pack;
 use mlengine_core::{Engine, Kind, Layout, Paths, Timing, rank, suffix};
 
@@ -1060,7 +1060,7 @@ fn report<'a>(label: &str, mut samples: Vec<(Duration, &'a str)>) -> (Duration, 
 }
 
 fn trained_translit() -> Option<Translit> {
-    model_path().map(|path| Translit::open(&path).unwrap())
+    model_path().map(|path| Translit::open(&path, Target::MALAYALAM).unwrap())
 }
 
 fn bundle_lexicon(name: &str) -> Lexicon {
