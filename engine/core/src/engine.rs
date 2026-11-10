@@ -2053,6 +2053,7 @@ impl Engine {
                 &splits,
                 bias,
                 another_favoured,
+                !malayalam,
                 want_free,
                 deadline,
                 &mut found,
@@ -2279,7 +2280,9 @@ impl Engine {
     /// frequencies don't compare across packs, and a frequent word of a small pack read
     /// confidently (Assamese আছে for `acha`, −5.4 against the Malayalam user's അച്ഛൻ at
     /// −10.6; −8.3 even with the distance penalty kept) beat the favoured pack's by more than
-    /// `rank::FAVOURED_MARGIN`. `free`: run the free beam too. `deadline`: as in
+    /// `rank::FAVOURED_MARGIN`. `caps_trailing`: a reading far behind the model's best lexicon
+    /// reading is scored just under it (`rank::MANGLISH_MODEL_TRAILS`; not for Malayalam, whose
+    /// ranking is held as recorded). `free`: run the free beam too. `deadline`: as in
     /// `suggest_until`.
     #[allow(clippy::too_many_arguments)]
     fn add_model(
@@ -2288,6 +2291,7 @@ impl Engine {
         splits: &[ScoredSplit],
         bias: f32,
         another_favoured: bool,
+        caps_trailing: bool,
         free: bool,
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
@@ -2309,6 +2313,10 @@ impl Engine {
             deadline,
         };
         let mut free = None;
+        // The best lexicon reading offered (the results come best first): its model score and
+        // its score here. Then how many readings trail it.
+        let mut best: Option<(f32, f32)> = None;
+        let mut trailing = 0;
         for t in model.search(&latin, ml, &split_words, &search).0 {
             if !t.in_lexicon {
                 free = Some(t.text);
@@ -2331,6 +2339,19 @@ impl Engine {
                 0.0
             };
             let unfitted = prior - distance_penalty + rank::MANGLISH_MODEL_WEIGHT * t.score + bias;
+            let unfitted = match best {
+                Some((score, lead))
+                    if caps_trailing && t.score < score - rank::MANGLISH_MODEL_TRAILS =>
+                {
+                    trailing += 1;
+                    unfitted.min(lead - rank::MANGLISH_MODEL_TRAILS_STEP * trailing as f32)
+                }
+                Some(_) => unfitted,
+                None => {
+                    best = Some((t.score, unfitted));
+                    unfitted
+                }
+            };
             // A confident model reading is evidence the rare word is meant, not a guess.
             let floor = if !keeps_distance && t.score >= rank::MANGLISH_MODEL_CONFIDENT {
                 rank::MIN_REPLACE - rank::MANGLISH_MODEL_CONFIDENT_RELIEF

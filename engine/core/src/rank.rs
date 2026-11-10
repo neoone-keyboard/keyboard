@@ -155,6 +155,25 @@ pub const MANGLISH_MODEL_WEIGHT: f32 = 0.25;
 /// tail is often junk (ജില്ല at −3.4 for `jishnu`). −0.5 cut good words
 /// (chat top-1 0.721); −1.25 and below let junk in (0.730).
 pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
+/// A lexicon reading this far per token behind the model's best lexicon reading trails it: it
+/// is offered, but scored no higher than just under that reading (`MANGLISH_MODEL_TRAILS_STEP`
+/// lower for each), however common its word. The constrained beam fills its width with what
+/// the lexicon lets it reach, and `MANGLISH_MODEL_WEIGHT` leaves the choice among its readings
+/// to frequency: a common word the letters only begin (पाठशाला, −0.91, for `pathshalayen`) or a
+/// commoner inflection (देनेवाले, −0.84, for `denewaali`) led the word the model read at −0.1.
+/// Readings closer than this are still ranked by frequency (गलगण्ड over गलगंड for `galgand`).
+///
+/// Measured on the held-out transliteration sets (`mlkb.langs.eval_pack`: the first native
+/// suggestion is the target), before → at 0.3: Tamil 44.0% → 47.8%, Assamese 51.5% → 54.5%,
+/// Hindi 56.2% → 57.9%; at 0.5: 47.4%, 54.1%, 57.3%; at 0.7: 46.4%, 52.9%, 57.0%. Dropping the
+/// trailing readings instead scored the same first suggestion and lost words from the longer
+/// bar. Capping what the skeleton lookup found of the same words as well moved nothing.
+///
+/// Not for Malayalam, whose ranking is held as recorded (`make golden-check`): there 0.3
+/// lifts translit-human top-1 0.5745 → 0.6205 and costs chat_golden two rows
+/// (0.8043 → 0.7981), a trade for its own sweep.
+pub const MANGLISH_MODEL_TRAILS: f32 = 0.3;
+pub const MANGLISH_MODEL_TRAILS_STEP: f32 = 0.01;
 /// A model spelling scoring at least this per token is a confident reading:
 /// it may take the middle with its unfitted score (log probability, bias,
 /// model term) up to `MANGLISH_MODEL_CONFIDENT_RELIEF` below `MIN_REPLACE`.

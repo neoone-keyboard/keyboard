@@ -143,3 +143,29 @@ fn the_model_finds_lexicon_words() {
         );
     }
 }
+
+/// A lexicon word the model reads far behind its best lexicon reading doesn't lead it, however
+/// common it is (`rank::MANGLISH_MODEL_TRAILS`): the constrained beam fills its width with
+/// what the lexicon lets it reach, a shorter word the letters begin (पाठशाला for
+/// `pathshalayen`) or a commoner inflection (देनेवाले for `denewaali`).
+#[test]
+fn a_reading_far_behind_the_models_best_does_not_lead_it() {
+    let hi = engine("hi", true);
+    for (typed, want) in [("denewaali", "देनेवाली"), ("pathshalayen", "पाठशालाएं")] {
+        let got = romanised(&hi, typed);
+        assert_eq!(got.first().map(String::as_str), Some(want), "{typed}: {got:?}");
+    }
+    let assamese = engine("as", true);
+    for (typed, want) in [("kokrajharat", "কোকৰাঝাৰত"), ("bangladexeer", "বাংলাদেশীৰ")] {
+        let got = romanised(&assamese, typed);
+        assert_eq!(got.first().map(String::as_str), Some(want), "{typed}: {got:?}");
+    }
+}
+
+/// Readings the model finds about as good are still ranked by how common the words are:
+/// गलगण्ड, 0.17 per token behind गलगंड for `galgand`, is the commoner spelling and leads.
+#[test]
+fn close_readings_are_ranked_by_frequency() {
+    let got = romanised(&engine("hi", true), "galgand");
+    assert_eq!(got.first().map(String::as_str), Some("गलगण्ड"), "{got:?}");
+}
