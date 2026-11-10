@@ -244,8 +244,8 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// (read at −0.8) and not প্ৰাপ্তিতকৈ (−0.08), and only প্ৰাপ্তিত was offered.
 ///
 /// Measured on the held-out sets (`mlkb.eval.pack --stages`), target in the three shown / in the
-/// 20: Tamil 49.7% → 54.4% / 56.8% → 62.8%, Assamese 57.3% → 60.5% / 64.7% → 68.9%, Hindi
-/// 65.7% → 65.5% / 82.3% → 82.7% (96.7% of its targets are lexicon words). First instead of
+/// 20: Tamil 49.7% → 54.4% / 56.8% → 62.8%, Assamese 57.3% → 60.4% / 64.7% → 68.8%, Hindi
+/// 65.7% → 65.6% / 82.3% → 82.5% (96.7% of its targets are lexicon words). First instead of
 /// second, from a lead of 0.3 per token: Tamil first native 47.8% → 51.4%, Assamese 54.5% →
 /// 56.9%, but Hindi 57.9% → 54.9%: which word leads depends on how much of the language the
 /// lexicon holds, so the lexicon word keeps the lead. Beside common whole forms as well:
