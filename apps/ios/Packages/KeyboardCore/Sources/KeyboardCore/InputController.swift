@@ -65,15 +65,19 @@ public struct WordUse: Equatable, Sendable {
     /// The typed letters, when the user tapped this correction or Malayalam word though the
     /// bar's middle offered something else: it is preferred for those letters next time.
     public var chosenFor: String?
+    /// With `chosenFor`, the language the tapped suggestion was offered as a word of
+    /// (`Suggestion.language`): a word the engine doesn't have is learned as one of that language.
+    public var chosenLanguage: String?
 
     /// Enough for the two words before.
     public static let contextLength = 64
 
-    public init(word: String, before: String, language: Language, chosenFor: String? = nil) {
+    public init(word: String, before: String, language: Language, chosenFor: String? = nil, chosenLanguage: String? = nil) {
         self.word = word
         self.before = before
         self.language = language
         self.chosenFor = chosenFor
+        self.chosenLanguage = chosenLanguage
     }
 }
 
@@ -354,7 +358,9 @@ public final class InputController {
             settleSwipe(swipe)
         }
         if slot.quoted { report(.learn(slot.suggestion.text)) }
-        insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted, chosenFor: choice(slot))
+        let chosenFor = choice(slot)
+        insert(suggestion: slot.suggestion.text, reportsCommit: !slot.quoted, chosenFor: chosenFor,
+               chosenLanguage: chosenFor == nil ? nil : slot.suggestion.language)
     }
 
     /// Replaces the word being typed with `text` and adds a space, as a tap on a suggestion does.
@@ -447,7 +453,7 @@ public final class InputController {
         return typed
     }
 
-    private func insert(suggestion text: String, reportsCommit: Bool, chosenFor: String?) {
+    private func insert(suggestion text: String, reportsCommit: Bool, chosenFor: String?, chosenLanguage: String? = nil) {
         lastReplacement = nil
         heldStop = nil
         suggestions = .empty
@@ -458,7 +464,7 @@ public final class InputController {
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
         if reportsCommit { report(.committed(text)) }
-        reportUse(text, before: String(context[..<word.startIndex]), chosenFor: chosenFor)
+        reportUse(text, before: String(context[..<word.startIndex]), chosenFor: chosenFor, chosenLanguage: chosenLanguage)
     }
 
     /// Turns shift on at the start of a sentence (or word) and off again when it
@@ -786,9 +792,10 @@ public final class InputController {
     /// and except an address: an email or URL is no part of a phrase. A number is reported,
     /// dotted too (`98.470.12345`), for the engine to learn phone numbers from. Unlike
     /// `.committed`, with autocorrect off too: the engine counts only words it knows or learned.
-    private func reportUse(_ word: String, before: String, chosenFor: String? = nil) {
+    private func reportUse(_ word: String, before: String, chosenFor: String? = nil, chosenLanguage: String? = nil) {
         guard !secureTextEntry, !word.isEmpty, Self.isNumber(word) || !Self.isAddress(Substring(word)) else { return }
-        let use = WordUse(word: word, before: String(before.suffix(WordUse.contextLength)), language: language, chosenFor: chosenFor)
+        let use = WordUse(word: word, before: String(before.suffix(WordUse.contextLength)), language: language,
+                          chosenFor: chosenFor, chosenLanguage: chosenLanguage)
         onWordUsed?(use)
     }
 

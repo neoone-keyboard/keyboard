@@ -165,6 +165,81 @@ fn time(label: &str, engine: &Engine, inputs: &[(String, Layout)], suggest: &dyn
     assert!(p99 < Duration::from_millis(8), "{label}: p99 {p99:?}");
 }
 
+/// The latency gate with 2,000 of the user's own Hindi words in the store (`own::OwnWords`).
+#[test]
+#[ignore = "timing: run with `make bench-hi` (release build)"]
+fn hindi_latency_with_own_words() {
+    let Some(lm) = lm_path() else { return };
+    let inputs = inputs();
+    let dir = root().join("packs/hi.neopack");
+    let without = engine(None);
+    pick_own_words(&without, &dir, 2_000);
+    time("Hindi pack, 2,000 own words, without the LM", &without, &inputs, &|c, l| {
+        let _ = without.suggest(c, l, true);
+    });
+    let with = engine(Some(lm));
+    pick_own_words(&with, &dir, 2_000);
+    time("Hindi pack, 2,000 own words, with the LM", &with, &inputs, &|c, l| {
+        let _ = with.suggest(c, l, true);
+    });
+}
+
+/// Picks `n` native words the pack in `dir` doesn't hold as the user's own
+/// (`Engine::note_choice`, as a tap in the bar does): its most frequent words with their first
+/// letter added at the end, each for its romanisation, so that the letters of the latency
+/// inputs find many of them, whole and begun. Every third is used twice more, which lets it
+/// take the middle (`rank::OWN_WORD_REPLACES_AFTER`). Prints how long it takes to forget one
+/// (the engine's index of them is rebuilt from the store, as it is when the engine opens), and
+/// a suggest after a pick (the word is put into the index) and after neither.
+fn pick_own_words(engine: &Engine, dir: &std::path::Path, n: usize) {
+    use mlengine_core::romanisation::Romanisation;
+    let pack = Pack::open(dir).expect("the pack");
+    let lang = mlengine_core::lang::LangId(pack.manifest.id.clone());
+    let r = Romanisation::load(&pack.file("romanisation").unwrap()).unwrap();
+    let lexicon = mlengine_core::lexicon::Lexicon::open(&pack.file("lexicon").unwrap()).unwrap();
+    let mut words: Vec<(u64, String)> = Vec::new();
+    lexicon.words(|key, count| words.push((count, String::from_utf8_lossy(key).into_owned())));
+    words.sort_by(|a, b| b.cmp(a));
+    let before = engine.learned_words().len();
+    let mut picked = 0;
+    let mut last = String::new();
+    for (_, word) in &words {
+        if picked == n {
+            break;
+        }
+        let own = format!("{word}{}", word.chars().next().unwrap());
+        if lexicon.get(own.as_bytes()).is_some() {
+            continue;
+        }
+        last = own.clone();
+        engine.note_choice(&r.romanize(&own), &own, Some(&lang));
+        engine.note_used("", &own, Layout::Latin);
+        if picked % 3 == 0 {
+            engine.note_used("", &own, Layout::Latin);
+            engine.note_used("", &own, Layout::Latin);
+        }
+        picked = engine.learned_words().len() - before;
+    }
+    assert_eq!(picked, n, "own words picked");
+    let suggest = || {
+        let start = Instant::now();
+        let _ = engine.suggest("I said the", Layout::Latin, true);
+        start.elapsed()
+    };
+    let _ = suggest();
+    let start = Instant::now();
+    engine.forget_word(&last);
+    let rebuilt = start.elapsed();
+    engine.note_choice(&r.romanize(&last), &last, Some(&lang));
+    engine.note_used("", &last, Layout::Latin);
+    let after_pick = suggest();
+    println!(
+        "{n} own words: forgetting one {rebuilt:?} (the index is rebuilt), a suggest after a pick \
+         {after_pick:?}, after neither {:?}",
+        suggest()
+    );
+}
+
 #[test]
 #[ignore = "timing: run with `make bench-hi` (release build)"]
 fn hindi_latency() {

@@ -231,7 +231,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
         return SuggestionResult(
             typed: result.typed,
-            candidates: result.candidates.map { Suggestion($0.text, kind: Self.kind($0.kind)) },
+            candidates: result.candidates.map { Suggestion($0.text, kind: Self.kind($0.kind), language: $0.language) },
             vowelSigns: result.vowelSigns
         )
     }
@@ -253,7 +253,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
         noteSwipe(candidates.isEmpty ? nil : elapsed)
         guard !candidates.isEmpty else { return nil }
-        return candidates.map { Suggestion($0.text, kind: Self.kind($0.kind)) }
+        return candidates.map { Suggestion($0.text, kind: Self.kind($0.kind), language: $0.language) }
     }
 
     func noteSwipeOutcome(_ outcome: SwipeOutcome) {
@@ -316,15 +316,17 @@ actor EngineSuggestionProvider: SuggestionProvider {
         }
     }
 
-    /// A word went into the text: its phrase, its use, the language habit, and a choice of
-    /// suggestion. Best effort, like `handle`.
+    /// A word went into the text: a choice of suggestion, then its phrase, its use and the
+    /// language habit. The choice first: a tapped native word the pack doesn't have becomes the
+    /// user's own word of the suggestion's language, and this use is then its first. Best
+    /// effort, like `handle`.
     func noteUse(_ use: WordUse) {
         ahead = nil
         guard let engine = try? loadedEngine() else { return }
-        try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: Self.inputLayout(use.language))
         if let typed = use.chosenFor {
-            try? engine.noteChoice(typed: typed, chosen: use.word)
+            try? engine.noteChoice(typed: typed, chosen: use.word, language: use.chosenLanguage)
         }
+        try? engine.noteUsed(contextBefore: use.before, word: use.word, layout: Self.inputLayout(use.language))
     }
 
     /// Must work even when the engine is shed or failed to open: an engine with

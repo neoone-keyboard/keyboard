@@ -160,12 +160,17 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(Stri
 /// it out (`Match::spelled`), and otherwise the edit distance to its
 /// romanisation (`Match::distance`), to its closest prefix when `prefix` is set.
 pub fn fit(r: &Romanisation, typed: &str, word: &str, prefix: bool) -> (bool, usize) {
+    fit_latin(typed, &r.romanize(word), prefix)
+}
+
+/// `fit` against Latin letters that stand for a word: `roman`, its romanisation, or the
+/// letters the user picked it for (`own::OwnWords`).
+pub fn fit_latin(typed: &str, roman: &str, prefix: bool) -> (bool, usize) {
     let typed_lower: Vec<u8> = typed
         .bytes()
         .filter(u8::is_ascii_alphabetic)
         .map(|b| b.to_ascii_lowercase())
         .collect();
-    let roman = r.romanize(word);
     if !prefix && relaxed(&typed_lower) == relaxed(roman.as_bytes()) {
         (true, 0)
     } else {

@@ -104,7 +104,7 @@ impl Engine {
         let search = Search {
             width,
             free,
-            deadline: None,
+            ..Search::default()
         };
         model
             .search(latin, &pack.lexicon, &[], &search)

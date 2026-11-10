@@ -255,6 +255,45 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// suffix splits reach its inflected words: there it costs translit-human in the bar
 /// 80.7% → 80.4%.
 pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
+/// The user's own words (`own::OwnWords`): native-script words tapped in the bar that the
+/// pack's lexicon doesn't hold (the transliterator's free spelling, mostly), which from then on
+/// are words of that pack. One has no corpus count, so it is scored as a lexicon word of this
+/// log probability, and otherwise exactly as one: found by skeleton, `MANGLISH_EXACT_BONUS` or
+/// `MANGLISH_MISSING_PER_CHAR`, `MANGLISH_DISTANCE` (to the nearest of its romanisation and the
+/// letters it was picked for), the pack's prior, and from the model's lexicon-held beam
+/// `MANGLISH_MODEL_WEIGHT`. Its uses count from the tap that picked it (`USE_WEIGHT`, and
+/// `USE_COMPLETION_WEIGHT` when the letters only begin it). −11 is a word met once in 60,000:
+/// ahead of the rare forms it is usually typed beside (रोबदार, −15.4, for `raubdar`) and of
+/// the model's guesses (`MANGLISH_MODEL_FREE`), behind every common word.
+///
+/// For the letters it was picked for it leads at once, as any choice does
+/// (`Engine::note_choice`). For other letters:
+///
+/// Measured on the held-out transliteration sets (`tests/own_words.rs::own_word_scores`):
+/// the words the lexicon doesn't hold that have two spellings, each picked for its first
+/// (Assamese 370, Tamil 161; Hindi has 7). In the three slots shown, used once, Assamese /
+/// Tamil: from another spelling 318 → 487 of 518 / 95 → 164 of 171; from the first 60% of the
+/// letters 0 → 272 of 370 / 0 → 134 of 161. With all of them in the store, the 1,759
+/// Assamese rows whose word the lexicon holds lead with that word 1,207 → 1,206 times (1,203
+/// with every own word used three times), Tamil's 1,433 rows 1,119 either way, and no English
+/// typo row changes. Across values, Assamese (first letters shown used once, lexicon rows led
+/// used once / three times): −9: 324, 1,200 / 1,197; −10: 301, 1,204 / 1,201; −11: 272,
+/// 1,206 / 1,203; −12: 235, 1,206 / 1,205; −13: 195, 1,206 / 1,206; −14: 162, and never the
+/// middle. Other spellings are found at every value (468–490 of 518); what the number buys is
+/// how early the first letters show the word, paid for in rows of the lexicon's words.
+pub const OWN_WORD_LOG_PROB: f32 = -11.0;
+/// An own word takes the middle (replaces what was typed, as a lexicon word may) only once it
+/// has been used this many times: the tap that picked it is the first, so never on its first
+/// use. Until then it is offered beside the typed word, however well the letters or the model
+/// fit it; one tap is a spelling the user wanted once, and a loose match of it should not
+/// rewrite what they type next. From the second use it must still clear what a lexicon word
+/// must (`MARGIN`, `MIN_REPLACE` without the fit bonus, the English checks): at −11 that is a
+/// distance of 1 at the start of a sentence and none after an English word. On the held-out
+/// sets, used three times, the own word then takes the middle for 479 of Assamese's 518 other
+/// spellings and 159 of Tamil's 171, and wrongly for 5 of the 1,759 rows that mean a lexicon
+/// word (1 used once: the row types the very letters another word was picked for). Letters
+/// that only begin it never become it: a completion never takes the middle.
+pub const OWN_WORD_REPLACES_AFTER: u32 = 2;
 /// A pack's prior from the previous word (`Engine::priors`): after the pack's own word, after
 /// English, at the start. English's prior is 0.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;

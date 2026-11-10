@@ -284,7 +284,9 @@ models:
 # int8 transformer's encode + 10 steps x beam 4 (a random full-size model and the
 # bundled one). The suggest gate runs the bundled transliterator, as the keyboard does. Then
 # the LM (training/build/lm.mlkbnn, skipped when missing): commit p99 must stay under 1 ms,
-# and the sliding context cache must predict within 2% of fresh windows.
+# and the sliding context cache must predict within 2% of fresh windows. The suggest gate also
+# runs with every table of the learned-word store full, and with 2,000 of the user's own words
+# (native words picked from the bar, `own::OwnWords`); bench-hi with 2,000 of them too.
 bench:
 	cd engine && $(CARGO) test --release -p mlengine-core --test bundle -- --include-ignored --nocapture latency
 	cd engine && $(CARGO) test --release -p mlengine-core --test nn_reference -- --include-ignored --nocapture nn_latency
