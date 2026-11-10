@@ -6,6 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
+use mlengine_core::lexicon::Lexicon;
 use mlengine_core::pack::Pack;
 use mlengine_core::script;
 use mlengine_core::{Engine, Kind, Layout, Paths};
@@ -168,4 +169,37 @@ fn a_reading_far_behind_the_models_best_does_not_lead_it() {
 fn close_readings_are_ranked_by_frequency() {
     let got = romanised(&engine("hi", true), "galgand");
     assert_eq!(got.first().map(String::as_str), Some("गलगण्ड"), "{got:?}");
+}
+
+/// A word the lexicon doesn't have gets the model's free spelling beside the rare lexicon
+/// words the letters loosely fit, when the model prefers it to every lexicon reading: second
+/// among the native words, never first. প্ৰাপ্তিতকৈ (`praptitkoi`) is not in the Assamese
+/// lexicon; প্ৰাপ্তিত is, and was the only word offered.
+#[test]
+fn the_free_spelling_is_offered_beside_rare_lexicon_words() {
+    let e = engine("as", true);
+    for (typed, lexicon_word, free) in [
+        ("praptitkoi", "প্ৰাপ্তিত", "প্ৰাপ্তিতকৈ"),
+        ("owosthitire", "অৱস্থিতিৰ", "অৱস্থিতিৰে"),
+    ] {
+        let got = romanised(&e, typed);
+        assert_eq!(got, [lexicon_word, free], "{typed}");
+    }
+}
+
+/// The free spelling stays out where the model prefers a lexicon word to it: every Assamese
+/// word offered for `biswabidyaloy` (বিশ্ববিদ্যালয়) is a lexicon word, with no near-duplicate
+/// spelled beside it.
+#[test]
+fn no_free_spelling_where_the_model_prefers_a_lexicon_word() {
+    let pack = Pack::open(&root().join("packs/as.neopack")).unwrap();
+    let lexicon = Lexicon::open(&pack.file("lexicon").unwrap()).unwrap();
+    let got = romanised(&engine("as", true), "biswabidyaloy");
+    assert!(!got.is_empty(), "biswabidyaloy: nothing offered");
+    for w in &got {
+        assert!(
+            lexicon.get(w.as_bytes()).is_some(),
+            "{w} is not a lexicon word: {got:?}"
+        );
+    }
 }

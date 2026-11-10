@@ -236,6 +236,25 @@ pub const MANGLISH_NEIGHBOUR_PENALTY: f32 = 1.0;
 /// It is often a near-duplicate of a lexicon word (കൊല്ലമൊ beside കൊല്ലമോ)
 /// and may outscore it, so it never competes for the middle.
 pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
+/// Where only rare whole forms were found (none common enough for the middle), the free
+/// spelling is offered beside them when the model scores it at least as well as every lexicon
+/// reading: this far under the best of them, so second among the pack's words and never
+/// first. A pack without suffix tables has no other reach past its lexicon, and half of
+/// Tamil's held-out words are past it: for `praptitkoi` the Assamese lexicon has প্ৰাপ্তিত
+/// (read at −0.8) and not প্ৰাপ্তিতকৈ (−0.08), and only প্ৰাপ্তিত was offered.
+///
+/// Measured on the held-out sets (`mlkb.langs.eval_pack`), target in the three shown / in the
+/// 20: Tamil 49.7% → 54.4% / 56.8% → 62.8%, Assamese 57.3% → 60.5% / 64.7% → 68.9%, Hindi
+/// 65.7% → 65.5% / 82.3% → 82.7% (96.7% of its targets are lexicon words). First instead of
+/// second, from a lead of 0.3 per token: Tamil first native 47.8% → 51.4%, Assamese 54.5% →
+/// 56.9%, but Hindi 57.9% → 54.9%: which word leads depends on how much of the language the
+/// lexicon holds, so the lexicon word keeps the lead. Beside common whole forms as well:
+/// Tamil in the bar 55.8%, Hindi 65.2%, and the free beam on every word.
+///
+/// Not for Malayalam, whose ranking is held as recorded (`make golden-check`) and whose
+/// suffix splits reach its inflected words: there it costs translit-human in the bar
+/// 80.7% → 80.4%.
+pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
 /// A pack's prior from the previous word (`Engine::priors`): after the pack's own word, after
 /// English, at the start. English's prior is 0.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
