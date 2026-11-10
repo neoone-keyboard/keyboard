@@ -19,6 +19,15 @@ issues) are in one place, site-src/site.json. From it and the pack folders in pa
   downloads from (KeyboardCore.PackIndex, format 1), whose entries point at the pack files.
 - apps/ios/PackIndex.xcconfig: ML_PACK_INDEX_URL, the app's Info.plist NeoPackIndexURL.
 
+Kept for older engines: when a pack's new version needs a higher minEngine, apps on the older
+engine can't read it and would stop being offered the language. site-src/kept-packs.json lists,
+by hand, the newest published file of such a pack that an older engine reads (its size, sha256
+and url, copied from the index that published it), and the index lists it too. Each kept entry
+must be older and need a lower engine than the pack in packs/, and be the newest entry of its id
+that its engine reads; one that no app would pick any more is refused, so delete it then. Its
+file stays in R2: --deploy checks it is still served and never uploads it. Within an id the
+index lists the newest version first; every app picks, per id, the newest entry it can read.
+
 Then it prints the `wrangler r2 object put` commands that upload the pack files. It runs them
 only with --deploy (`make site-deploy`), which uploads the files the site doesn't serve yet and
 then runs `wrangler deploy`. A file's name carries its version, so a published file never
@@ -29,10 +38,12 @@ Standard library only.
 """
 
 import argparse
+import functools
 import hashlib
 import html
 import importlib.util
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -52,6 +63,7 @@ WRANGLER_CONFIG = ROOT / "hosting" / "wrangler.jsonc"
 WRANGLER = ["npx", "-y", "wrangler@4"]
 R2_PREFIX = "packs/"  # hosting/worker.js serves R2 key packs/<file> at /packs/<file>
 INDEX_CACHE = "public, max-age=300"
+KEPT = SITE_SRC / "kept-packs.json"
 LEXICON = ROOT / "apps" / "ios" / "KeyboardExtension" / "Lexicon"
 DATA_MANIFESTS = ROOT / "data" / "manifests"
 
@@ -143,6 +155,73 @@ def build_packs(pack_module, out: Path, downloads: str) -> list[dict]:
     return releases
 
 
+def compare_versions(a: str, b: str) -> int:
+    """-1, 0 or 1, as KeyboardCore's PackVersion orders a manifest's `version`: part by part at
+    the dots, numerically where both parts are numbers, else as text; a missing part is "0"."""
+    x, y = a.split("."), b.split(".")
+    for i in range(max(len(x), len(y))):
+        p = x[i] if i < len(x) else "0"
+        q = y[i] if i < len(y) else "0"
+        if p.isdigit() and q.isdigit():
+            p, q = int(p), int(q)
+        if p != q:
+            return -1 if p < q else 1
+    return 0
+
+
+version_key = functools.cmp_to_key(compare_versions)
+
+KEPT_FIELDS = {"id": str, "name": str, "nativeName": str, "version": str, "script": str,
+               "minEngine": int, "size": int, "sha256": str, "url": str, "englishFingerprint": str}
+KEPT_REQUIRED = {"id", "name", "version", "script", "minEngine", "size", "sha256", "url"}
+
+
+def kept_entries(kept: dict, releases: list[dict], downloads: str) -> list[dict]:
+    """The index entries in site-src/kept-packs.json (`kept`), checked against the packs in
+    packs/ (`releases`): each for a pack id there, older and for a lower engine than that pack,
+    with a pack file name of its id and version at `downloads`, and still the newest entry of
+    its id that some engine reads. Raises SystemExit naming the entry otherwise."""
+    current = {r["entry"]["id"]: r["entry"] for r in releases}
+    out = []
+    for raw in kept.get("packs", []):
+        name = f"kept-packs.json: {raw.get('id')} {raw.get('version')}"
+        unknown = set(raw) - set(KEPT_FIELDS)
+        missing = KEPT_REQUIRED - set(raw)
+        if unknown or missing:
+            raise SystemExit(f"{name}: unknown fields {sorted(unknown)}, missing {sorted(missing)}")
+        for key, kind in KEPT_FIELDS.items():
+            if key in raw and (type(raw[key]) is not kind or (kind is int and raw[key] <= 0)):
+                raise SystemExit(f"{name}: {key} must be a{' positive' if kind is int else ''} {kind.__name__}")
+        pack = current.get(raw["id"])
+        if pack is None:
+            raise SystemExit(f"{name}: packs/ has no pack {raw['id']}; delete the entry")
+        if not (compare_versions(raw["version"], pack["version"]) < 0 and raw["minEngine"] < pack["minEngine"]):
+            raise SystemExit(f"{name}: must be older than {pack['version']} and need an engine below "
+                             f"{pack['minEngine']}, the version in packs/")
+        if raw["url"] != f"{downloads}{raw['id']}-{raw['version']}.neopack":
+            raise SystemExit(f"{name}: url must be {downloads}{raw['id']}-{raw['version']}.neopack")
+        if not re.fullmatch(r"[0-9a-f]{64}", raw["sha256"]):
+            raise SystemExit(f"{name}: sha256 must be 64 lowercase hex digits")
+        out.append(dict(raw))
+    every = [r["entry"] for r in releases] + out
+    for entry in out:
+        # An app on engine e picks the newest entry with minEngine <= e. This one is picked by
+        # some engine only if no other entry of its id is as new and needs no more than it does.
+        shadow = [o for o in every if o is not entry and o["id"] == entry["id"] and o["minEngine"] <= entry["minEngine"]
+                  and compare_versions(o["version"], entry["version"]) >= 0]
+        if shadow:
+            raise SystemExit(f"kept-packs.json: {entry['id']} {entry['version']}: no app picks it, "
+                             f"{shadow[0]['version']} (minEngine {shadow[0]['minEngine']}) is at least as new "
+                             "for the same engines; delete the entry")
+    return out
+
+
+def read_kept(releases: list[dict], downloads: str) -> list[dict]:
+    if not KEPT.is_file():
+        return []
+    return kept_entries(json.loads(KEPT.read_text(encoding="utf-8")), releases, downloads)
+
+
 def build_english(out: Path, downloads: str) -> dict:
     """english-base-<sha256 prefix>.zip: the keyboard's built-in English word lists, published
     for share-alike. The name changes with the bytes, as a pack's changes with its version."""
@@ -159,17 +238,24 @@ def build_english(out: Path, downloads: str) -> dict:
             "size": archive.stat().st_size}
 
 
-def index_json(releases: list[dict]) -> str:
-    packs = [r["entry"] for r in sorted(releases, key=lambda r: r["entry"]["id"])]
+def index_entries(releases: list[dict], kept: list[dict]) -> list[dict]:
+    """By id, and within an id the newest version first (the pack in packs/, then kept ones)."""
+    entries = [r["entry"] for r in releases] + kept
+    by_version = sorted(entries, key=lambda e: version_key(e["version"]), reverse=True)
+    return sorted(by_version, key=lambda e: e["id"])
+
+
+def index_json(releases: list[dict], kept: list[dict]) -> str:
+    packs = index_entries(releases, kept)
     return json.dumps({"format": INDEX_FORMAT, "packs": packs}, ensure_ascii=False, indent=2) + "\n"
 
 
-def republished(old_index: Path, releases: list[dict]) -> list[str]:
-    """Packs whose id and version are already published with other bytes."""
+def republished(old_index: Path, entries: list[dict]) -> list[str]:
+    """Index entries whose id and version are already published with other bytes."""
     if not old_index.is_file():
         return []
     old = {(p["id"], p["version"]): p["sha256"] for p in json.loads(old_index.read_text(encoding="utf-8"))["packs"]}
-    return [f"{e['id']} {e['version']}" for e in (r["entry"] for r in releases)
+    return [f"{e['id']} {e['version']}" for e in entries
             if old.get((e["id"], e["version"]), e["sha256"]) != e["sha256"]]
 
 
@@ -217,7 +303,7 @@ def credit_html(c: dict) -> str:
     return "\n".join(parts)
 
 
-def credits_page(releases: list[dict], english: dict) -> str:
+def credits_page(releases: list[dict], kept: list[dict], english: dict) -> str:
     e = html.escape
     out = ["<h1>Credits and licences</h1>",
            '<p class="lead">NeoOne Keyboard’s word lists and prediction models were built from, and '
@@ -231,9 +317,10 @@ def credits_page(releases: list[dict], english: dict) -> str:
            "The SMC word lists (CC BY-SA 3.0) are adapted under version 4.0, as their licence permits. "
            "The files are plain zips without DRM, published here:</p>",
            "<ul>"]
-    for r in sorted(releases, key=lambda r: r["entry"]["name"]):
-        ent = r["entry"]
-        out.append(f'<li><a href="{e(ent["url"])}">{e(ent["name"])} pack {e(ent["version"])}</a> '
+    older = [id(k) for k in kept]
+    for ent in sorted(index_entries(releases, kept), key=lambda x: x["name"]):  # stable: newest first
+        note = ", for older app versions" if id(ent) in older else ""
+        out.append(f'<li><a href="{e(ent["url"])}">{e(ent["name"])} pack {e(ent["version"])}</a>{note} '
                    f'<span class="muted">({ent["size"] / 1e6:.1f} MB, SHA-256 <code>{ent["sha256"][:16]}…</code>)</span></li>')
     out.append(f'<li><a href="{e(english["url"])}">English base word lists</a> '
                f'<span class="muted">({english["size"] / 1e6:.1f} MB)</span></li>')
@@ -277,17 +364,17 @@ def render(page: str, content: str, cfg: dict) -> str:
     return text
 
 
-def site_files(cfg: dict, releases: list[dict], english: dict) -> dict[str, bytes]:
+def site_files(cfg: dict, releases: list[dict], kept: list[dict], english: dict) -> dict[str, bytes]:
     """Every file of site/, by path."""
     files = {
         # Workers static assets' header rules; the pack files' headers are hosting/worker.js's.
         "_headers": f"/packs/index.json\n  Cache-Control: {INDEX_CACHE}\n".encode(),
         "style.css": (SITE_SRC / "style.css").read_bytes(),
-        "packs/index.json": index_json(releases).encode(),
+        "packs/index.json": index_json(releases, kept).encode(),
     }
     for page in PAGES:
         if page == "credits.html":
-            content = credits_page(releases, english)
+            content = credits_page(releases, kept, english)
         else:
             content = (SITE_SRC / page).read_text(encoding="utf-8")
         files[page] = render(page, content, cfg).encode()
@@ -339,7 +426,13 @@ def served_size(url: str) -> int | None:
         return None
 
 
-def deploy(cfg: dict, releases: list[dict], english: dict) -> int:
+def deploy(cfg: dict, releases: list[dict], kept: list[dict], english: dict) -> int:
+    for entry in kept:  # uploaded when they were the version in packs/; never uploaded here
+        size = served_size(entry["url"])
+        if size != entry["size"]:
+            print(f"{entry['url']} (kept for older engines) is served with {size} bytes, not {entry['size']}; "
+                  "upload it again or delete its entry from site-src/kept-packs.json", file=sys.stderr)
+            return 1
     for archive, url, command in uploads(cfg, releases, english):
         size = served_size(url)
         if size == archive.stat().st_size:
@@ -378,10 +471,11 @@ def main() -> int:
                 if old.is_file():
                     old.unlink()
         releases = build_packs(pack_module, out, cfg["downloads"])
+        kept = read_kept(releases, cfg["downloads"])
         english = build_english(out, cfg["downloads"])
-        files = site_files(cfg, releases, english)
+        files = site_files(cfg, releases, kept, english)
 
-        stale = republished(SITE / "packs" / "index.json", releases)
+        stale = republished(SITE / "packs" / "index.json", [r["entry"] for r in releases] + kept)
         if stale:
             print(f"already published with other bytes: {', '.join(stale)}; raise the pack's version "
                   "(packs/<id>.neopack/manifest.json, then scripts/pack.py --write)", file=sys.stderr)
@@ -393,7 +487,7 @@ def main() -> int:
                 print(f"out of date: {', '.join(wrong)}; run make site-packs", file=sys.stderr)
                 return 1
             if args.deploy:
-                return deploy(cfg, releases, english)
+                return deploy(cfg, releases, kept, english)
             print("site: up to date")
             return 0
 
@@ -409,6 +503,8 @@ def main() -> int:
     for r in releases:
         ent = r["entry"]
         print(f"{ent['id']} {ent['version']}: {ent['size']} bytes, sha256 {ent['sha256']}")
+    for ent in kept:
+        print(f"{ent['id']} {ent['version']}: kept for engine {ent['minEngine']}, served at {ent['url']}")
     print(f"english-base: {english['size']} bytes, sha256 {english['sha256']}")
     print(f"wrote site/ ({len(files)} files) and {XCCONFIG.relative_to(ROOT)}; index URL {cfg['index_url']}")
     print("\nmake site-deploy uploads the pack files the site doesn't serve yet and deploys the site. "

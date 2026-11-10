@@ -73,6 +73,7 @@ test-engine:
 test-data:
 	for pack in packs/*.neopack; do python3 -I scripts/pack.py $$pack --check || exit 1; done
 	python3 -I scripts/publish-packs.py --check
+	python3 -I -m unittest discover -s scripts/tests
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test romanisation_tables -- --ignored
 	cd engine && $(CARGO) test -q --release -p mlengine-core --test script_normal_form -- --ignored
 	cd engine && $(CARGO) test -q --release -p lexbuild --test english_next -- --ignored
@@ -126,7 +127,8 @@ pack:
 
 # The download site (site/, a Cloudflare Worker with static assets; hosting/wrangler.jsonc) and its
 # pack index, from site-src/ (site.json holds the domain, the R2 bucket and the download URL) and
-# packs/: zips every pack into build/site-packs/<id>-<version>.neopack, writes site/packs/index.json,
+# packs/: zips every pack into build/site-packs/<id>-<version>.neopack, writes site/packs/index.json
+# (with the older versions site-src/kept-packs.json keeps listed for apps on older engines),
 # the pages and apps/ios/PackIndex.xcconfig (the app's index URL), and prints the upload commands.
 # site-deploy uploads the pack files the site doesn't serve yet to R2 and runs wrangler deploy
 # (wrangler logged in to the account that holds the jishnu.me zone).
