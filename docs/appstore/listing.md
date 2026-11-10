@@ -15,18 +15,16 @@ NeoOne Keyboard
 Type it how it sounds
 ```
 
-## Promotional text (141 / 170)
+## Promotional text (156 / 170)
 
 ```
-Type Malayalam, Hindi or Assamese the way it sounds in English letters and pick the word in its own script. Offline, private, no Full Access.
+Type any language the way it sounds, in English letters, and get it in its own script. Download languages or add your own. Offline, private, no Full Access.
 ```
 
-## Description (1,989 / 4,000)
+## Description (2,026 / 4,000)
 
 ```
-NeoOne Keyboard lets you write a language the way you say it. Type it in English letters, as you would in a chat, and the suggestion bar offers the word in its own script: type "ente" and get എന്റെ, type "mera" and get मेरा.
-
-Malayalam, Hindi and Assamese are available today, alongside English, which is built in.
+NeoOne Keyboard lets you write any language the way you say it. Type it in English letters, as you would in a chat, and the suggestion bar offers the word in its own script: for example, type "mera" and get मेरा in Hindi, or "ente" and get എന്റെ in Malayalam.
 
 TYPING
 - Phonetic typing: type in English letters and pick the native-script word from the bar.
@@ -40,7 +38,7 @@ UP TO FOUR LANGUAGES AT ONCE
 Turn on up to four languages, English included. One language key switches between their layouts, and the suggestion bar works across all of them, so you can mix languages in the same message.
 
 LANGUAGES
-English is built in. Download Malayalam, Hindi and Assamese for free from the Languages screen in the app. Each is a few tens of megabytes. You can also import a language pack file from Files.
+English is built in. Download the languages you want, free, from the Languages screen in the app; languages so far include Hindi, Malayalam and Assamese, with more to come. Or build your own language pack and import it from Files. Each language works offline once it is on your phone.
 
 PRIVATE BY DESIGN
 - Everything runs on your iPhone, and the keyboard works offline.
