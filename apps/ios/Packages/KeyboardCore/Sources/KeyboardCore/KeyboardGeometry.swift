@@ -10,16 +10,18 @@ public struct KeyFrame: Equatable, Sendable {
 
 public enum KeyboardGeometry {
     /// Lays keys out row by row. A row narrower than `baseUnits` letter keys is
-    /// centred; a wider one is scaled down to fit.
+    /// centred; a wider one is scaled down to fit. Without a `rowGap`, the gap suits the
+    /// row's height (`rowGap(forRowHeight:)`).
     public static func frames(
         for layout: KeyboardLayout,
         in size: CGSize,
         keyGap: CGFloat = 6,
-        rowGap: CGFloat = 10,
+        rowGap: CGFloat? = nil,
         baseUnits: Double = 10
     ) -> [KeyFrame] {
         guard !layout.rows.isEmpty, size.width > 0, size.height > 0 else { return [] }
         let rowHeight = size.height / CGFloat(layout.rows.count)
+        let rowGap = rowGap ?? Self.rowGap(forRowHeight: rowHeight)
         let unit = size.width / CGFloat(baseUnits)
         var frames: [KeyFrame] = []
         for (rowIndex, row) in layout.rows.enumerated() {
@@ -35,6 +37,12 @@ public enum KeyboardGeometry {
             }
         }
         return frames
+    }
+
+    /// The space between two rows' caps: 10 pt, or 6 in landscape's short rows, so the caps
+    /// keep most of the row. The gap is still touch area (`KeyFrame.hitRect`).
+    public static func rowGap(forRowHeight rowHeight: CGFloat) -> CGFloat {
+        rowHeight < 44 ? 6 : 10
     }
 
     /// The key under `point`, or the nearest one when the point falls outside every key.
