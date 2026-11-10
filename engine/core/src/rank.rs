@@ -255,6 +255,11 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// suffix splits reach its inflected words: there it costs translit-human in the bar
 /// 80.7% → 80.4%.
 pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
+/// The log probability an own word stands in for (`own::OwnWords`: a native word picked from
+/// the bar that the pack's lexicon doesn't hold, so it has no count).
+pub const OWN_WORD_LOG_PROB: f32 = -11.0;
+/// An own word takes the middle only once it has been used this many times.
+pub const OWN_WORD_REPLACES_AFTER: u32 = 2;
 /// A pack's prior from the previous word (`Engine::priors`): after the pack's own word, after
 /// English, at the start. English's prior is 0.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;

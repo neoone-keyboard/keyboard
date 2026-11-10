@@ -11,6 +11,7 @@ pub mod malayalam;
 pub mod manglish;
 pub mod nn;
 pub mod normalize;
+pub mod own;
 pub mod pack;
 pub mod pack_layout;
 pub mod personal;
