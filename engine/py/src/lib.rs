@@ -27,7 +27,7 @@ struct Engine {
 #[pymethods]
 impl Engine {
     #[new]
-    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None, suffixes=None, chat_forms=None, layout=None, pack="ml", script="mlym"))]
+    #[pyo3(signature = (english=None, malayalam=None, manglish=None, next_words=None, translit=None, lm=None, romanisation=None, suffixes=None, chat_forms=None, layout=None, lang=None, pack="ml", script="mlym"))]
     #[allow(clippy::too_many_arguments)]
     fn new(
         english: Option<PathBuf>,
@@ -40,6 +40,7 @@ impl Engine {
         suffixes: Option<PathBuf>,
         chat_forms: Option<PathBuf>,
         layout: Option<PathBuf>,
+        lang: Option<PathBuf>,
         pack: &str,
         script: &str,
     ) -> Self {
@@ -50,6 +51,7 @@ impl Engine {
             suffixes,
             chat_forms,
             layout,
+            lang,
             next_words,
             translit,
             lm,

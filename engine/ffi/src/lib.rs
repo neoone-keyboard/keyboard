@@ -502,8 +502,11 @@ pub fn nn_kernel() -> String {
 pub struct PackSupport {
     pub format: u32,
     pub engine: u32,
-    /// ISO 15924 codes, lower case: "mlym", "deva", "beng".
+    /// ISO 15924 codes with coded rules, lower case: "mlym", "deva", "beng".
     pub scripts: Vec<String>,
+    /// A pack in any other script is read when it brings its script's rules (a `lang` file,
+    /// engine 4).
+    pub pack_scripts: bool,
 }
 
 #[uniffi::export]
@@ -515,7 +518,35 @@ pub fn pack_support() -> PackSupport {
             .into_iter()
             .map(String::from)
             .collect(),
+        pack_scripts: true,
     }
+}
+
+/// Opens the pack folder at `pack_dir` as the engine would (`Pack::open`: the manifest, the
+/// lexicon, the script's rules) and says why it can't be used, or nil. The app's installer
+/// asks before it puts a pack where the keyboard looks.
+#[uniffi::export]
+pub fn pack_problem(pack_dir: String) -> Result<Option<String>, EngineError> {
+    guarded(|| {
+        mlengine_core::pack::Pack::open(std::path::Path::new(&pack_dir))
+            .err()
+            .map(|e| e.to_string())
+    })
+}
+
+/// Makes the pack at `pack_dir`'s script rules the ones `native_mark_base` uses for its
+/// script, before the engine has opened (which does the same). Returns the script code, or nil
+/// when the pack can't be used.
+#[uniffi::export]
+pub fn use_pack_script(pack_dir: String) -> Result<Option<String>, EngineError> {
+    guarded(|| {
+        let pack = mlengine_core::pack::Pack::open(std::path::Path::new(&pack_dir)).ok()?;
+        let m = &pack.manifest;
+        let rules =
+            mlengine_core::script::for_pack(&m.id, &m.script, pack.file("lang").as_deref()).ok()?;
+        mlengine_core::script::install(rules).ok()?;
+        Some(rules.code().to_string())
+    })
 }
 
 /// The letter at the end of `context_before` that a vowel sign typed next would attach to, if
