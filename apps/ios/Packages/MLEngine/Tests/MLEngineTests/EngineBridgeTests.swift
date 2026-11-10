@@ -49,6 +49,32 @@ import MLEngine
     #expect(try !reloaded.suggest(contextBefore: "Thoma", layout: .latin, autocorrect: true).candidates.map(\.text).contains("Thomasina"))
 }
 
+/// A tapped native word the pack doesn't hold, reported as the keyboard does (the choice with
+/// the candidate's language, then the use), is the user's own word of that language from then on.
+@Test func aTappedWordThePackDoesNotHoldBecomesAWordOfItsLanguage() throws {
+    let dir = FileManager.default.temporaryDirectory.appending(path: "mlengine-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: dir) }
+    let hindi = packDir.deletingLastPathComponent().appending(path: "hi.neopack").path
+    let config = EngineConfig(english: lexiconDir.appending(path: "en.fst").path, userDir: dir.path, packDirs: [hindi])
+    let engine = try Engine(config: config)
+    let bar = { (engine: Engine, typed: String) in
+        try engine.suggest(contextBefore: typed, layout: .latin, autocorrect: true).candidates
+    }
+    let offered = try bar(engine, "raubdar")
+    #expect(offered.map(\.language) == ["en", "hi", "hi"])
+    let free = offered[2]
+    #expect(free.text == "रौबदार")
+    try engine.noteChoice(typed: "raubdar", chosen: free.text, language: free.language)
+    try engine.noteUsed(contextBefore: "", word: free.text, layout: .latin)
+    #expect(try engine.learnedWords() == [free.text])
+    let reloaded = try Engine(config: config)
+    #expect(try bar(reloaded, "raubdar").first?.text == free.text)
+    #expect(try bar(reloaded, "raubdaar").map(\.text).prefix(2) == ["raubdaar", free.text])
+    #expect(try bar(reloaded, "raub").map(\.text).contains(free.text))
+    try reloaded.forgetWord(word: free.text)
+    #expect(try !bar(reloaded, "raub").map(\.text).contains(free.text))
+}
+
 /// Spec §10 risk: Swift ↔ Rust call overhead. The whole keystroke budget is 15 ms;
 /// one FFI round-trip must be a tiny fraction of it.
 @Test func ffiRoundTripIsFast() throws {

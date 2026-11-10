@@ -764,4 +764,27 @@ struct InputControllerTests {
         let late = uses { input.commitSuggestion(SuggestionSlot(suggestion: Suggestion("ഇന്ന്", kind: .manglish), quoted: false)) }
         #expect(late.first?.chosenFor == nil)
     }
+
+    /// The engine learns a tapped word it doesn't have as a word of the language that offered it.
+    @Test func aChoiceCarriesTheLanguageTheSuggestionWasOfferedIn() {
+        let raubdar = SuggestionResult(typed: "raubdar", candidates: [
+            Suggestion("raubdar", kind: .verbatim, language: "en"),
+            Suggestion("रोबदार", kind: .manglish, language: "hi"),
+            Suggestion("रौबदार", kind: .manglish, language: "hi"),
+        ])
+        func tap(_ index: Int) -> WordUse? {
+            output.text = "so raubdar"
+            input.updateSuggestions(raubdar)
+            return uses { input.commitSuggestion(SuggestionSlot(suggestion: raubdar.candidates[index], quoted: false)) }.first
+        }
+        var chosen = use("रौबदार", after: "so ", chosenFor: "raubdar")
+        chosen.chosenLanguage = "hi"
+        #expect(tap(2) == chosen)
+        #expect(tap(0)?.chosenLanguage == nil, "the middle is no choice")
+        // A suggestion that names no language is still a choice: the engine reads the script.
+        output.text = "so raubdar"
+        input.updateSuggestions(raubdar)
+        let plain = uses { input.commitSuggestion(SuggestionSlot(suggestion: Suggestion("रौबदार", kind: .manglish), quoted: false)) }
+        #expect(plain.first == use("रौबदार", after: "so ", chosenFor: "raubdar"))
+    }
 }

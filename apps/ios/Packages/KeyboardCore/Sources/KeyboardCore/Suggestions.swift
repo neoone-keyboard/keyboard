@@ -15,10 +15,14 @@ public enum SuggestionKind: Sendable {
 public struct Suggestion: Equatable, Sendable {
     public var text: String
     public var kind: SuggestionKind
+    /// The id of the language the engine offered it as a word of ("en", "ml"); nil when it
+    /// didn't come from the engine.
+    public var language: String?
 
-    public init(_ text: String, kind: SuggestionKind) {
+    public init(_ text: String, kind: SuggestionKind, language: String? = nil) {
         self.text = text
         self.kind = kind
+        self.language = language
     }
 }
 
