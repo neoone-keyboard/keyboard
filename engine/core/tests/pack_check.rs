@@ -171,7 +171,7 @@ fn every_pack_passes_its_checks() {
         let pack = Pack::open(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
         let id = pack.manifest.id.clone();
         // The rules the engine uses for this pack, installed as opening it would.
-        let rules = script::for_pack(&id, &pack.manifest.script, pack.file("lang").as_deref())
+        let rules = script::for_pack(&pack.manifest.script, pack.file("lang").as_deref())
             .unwrap_or_else(|e| panic!("{id}: {e}"));
         script::install(rules).unwrap_or_else(|e| panic!("{id}: {e}"));
 

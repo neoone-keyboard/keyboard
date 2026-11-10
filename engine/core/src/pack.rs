@@ -18,14 +18,19 @@ pub const FORMAT: u32 = 1;
 /// This engine's pack level: a pack whose `minEngine` is higher needs a newer app.
 /// 1: phase 1 (Malayalam, its tables compiled in). 2: phase 2, which reads format 1 with the
 /// `romanisation`, `suffixes`, `chatForms` and `layout` roles, any number of packs, and the
-/// script plug-ins `mlym`, `deva` and `beng` (Hindi and Assamese need it). 3: an `lm` in a
+/// scripts `mlym`, `deva` and `beng` (Hindi and Assamese need it). 3: an `lm` in a
 /// pack whose script isn't Malayalam's (Hindi's): the LM's native pieces are the pack's script
 /// (`Lm::set_native`). Engine 2 would load such an LM but see none of its native pieces, and
 /// rank the pack's words worse than with no LM. 4: the `lang` role, a `lang.json` that defines
 /// the pack's script as data (`script::data`), so a pack may be in any script. Only a pack
-/// whose script has no coded plug-in (`script::supported`) needs 4: a pack in mlym, deva or beng
-/// may carry the file and keep a lower `minEngine`, as older engines ignore the role.
-pub const PACK_ENGINE: u32 = 4;
+/// whose script the engine has no copy of (`script::supported`) needs 4: a pack in mlym, deva
+/// or beng may carry the file and keep a lower `minEngine`, as older engines ignore the role
+/// and have those scripts' rules in code. 5: `lang.json`'s `notLetter`, `looseSigns`,
+/// `finalPairs` and `suffixJoins`, with which every script's rules are data (Malayalam's too:
+/// the engine's own copies of the mlym, deva and beng files replace the coded plug-ins). Only
+/// a pack in another script that uses one of those fields needs 5; Malayalam's pack doesn't,
+/// as engines before 5 have its rules in code and ignore the fields.
+pub const PACK_ENGINE: u32 = 5;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -127,11 +132,7 @@ impl Pack {
                 "the manifest names a lang file, {name:?}, that isn't in the pack"
             )));
         }
-        crate::script::for_pack(
-            &pack.manifest.id,
-            &pack.manifest.script,
-            pack.file("lang").as_deref(),
-        )
+        crate::script::for_pack(&pack.manifest.script, pack.file("lang").as_deref())
         .map_err(PackError::Script)?;
         if pack.file("lexicon").is_none() {
             return Err(PackError::NoLexicon);
@@ -240,7 +241,7 @@ mod tests {
         let cases = [
             (FULL.replace("\"format\": 1", "\"format\": 2"), "Format"),
             (FULL.replace("\"mlym\"", "\"taml\""), "Script"),
-            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 5"), "Engine"),
+            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 6"), "Engine"),
         ];
         for (manifest, want) in cases {
             let dir = pack_dir(&manifest, &["ml.fst"]);

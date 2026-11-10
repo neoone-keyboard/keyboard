@@ -66,7 +66,7 @@ fn the_pack_opens_with_its_own_script() {
     assert_eq!(pack.manifest.script, "gujr");
     assert_eq!(pack.manifest.min_engine, 4);
     assert!(pack.file("lang").is_some());
-    assert!(!script::supported().contains(&"gujr"), "no code for Gujarati");
+    assert!(!script::supported().contains(&"gujr"), "the engine has no copy of Gujarati's rules");
 
     let e = engine();
     let loaded = e.loaded_sources();

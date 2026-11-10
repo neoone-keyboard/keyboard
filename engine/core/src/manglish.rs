@@ -18,7 +18,7 @@ const ZWNJ: char = '\u{200C}';
 const ZWJ: char = '\u{200D}';
 
 /// The first code point of the script block `r`'s words are packed from (`pack`): its
-/// script plug-in's (U+0D00 for Malayalam, U+0900 for Devanagari).
+/// script's (U+0D00 for Malayalam, U+0900 for Devanagari).
 pub fn block_base(r: &Romanisation) -> char {
     crate::script::rules(r.script()).map_or('\u{0D00}', |rules| *rules.block().start())
 }

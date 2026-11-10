@@ -8,7 +8,8 @@ public struct PackSupport: Sendable, Equatable {
     public let format: Int
     /// The engine's `PACK_ENGINE`: the highest `minEngine` it reads.
     public let engine: Int
-    /// ISO 15924 codes with coded script rules ("mlym", "deva", "beng").
+    /// ISO 15924 codes the engine has its own copy of the rules for ("mlym", "deva", "beng"):
+    /// a pack in one of them may lack the `lang` file.
     public let scripts: Set<String>
     /// Whether the engine reads a pack in any other script that brings its script's rules (the
     /// `lang` role, a `lang.json`; engine 4).
@@ -55,7 +56,8 @@ public struct PackInstaller: Sendable {
         case id(String)
         /// A script this engine has no rules for.
         case script(String)
-        /// A script without coded rules, and the pack brings none (no `lang` file).
+        /// A script the engine has no copy of the rules for, and the pack brings none (no
+        /// `lang` file).
         case noScriptRules(String)
         /// The engine can't use the unpacked pack (`PackInstaller.engineCheck`): why, in its words.
         case unusable(String)

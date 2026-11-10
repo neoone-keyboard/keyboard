@@ -7,7 +7,6 @@ pub mod keys;
 pub mod lang;
 pub mod lexicon;
 pub mod lm_context;
-pub mod malayalam;
 pub mod manglish;
 pub mod nn;
 pub mod normalize;

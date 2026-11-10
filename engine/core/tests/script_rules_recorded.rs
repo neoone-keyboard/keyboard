@@ -1,10 +1,12 @@
 //! The script rules of Malayalam, Devanagari (Hindi) and Bengali-Assamese (Assamese), which
 //! were Rust code (`script/mlym.rs`, `deva.rs`, `beng.rs`, `malayalam.rs`, the joins in
-//! `suffix.rs`) and are now `data/langs/<id>/lang.json`, against what that code gave.
+//! `suffix.rs`) and are now `data/langs/<id>/lang.json`, against what that code gave. The
+//! packs on people's phones were built with those rules, and the engine reads a pack that has
+//! no `lang` file with its own copy of these files, so they must go on giving the same.
 //!
-//! `fixtures/script-rules/<code>.tsv` was recorded from the code before it was deleted
-//! (`RECORD_SCRIPT_RULES=1`, then compared with the data rules line for line). It holds, for
-//! one script:
+//! `fixtures/script-rules/<code>.tsv` was recorded from the code, in the commit before it
+//! was deleted, where the rules made from each `lang.json` were also compared with the code's
+//! line for line on every word below. It holds, for one script:
 //!
 //! - every character of the block, and a few outside it: whether it is a letter, a word
 //!   character and a phrase break, its normal form, and the vowel-sign base after it alone,
@@ -21,7 +23,13 @@
 //!   table.
 //!
 //! `every_lexicon_word_is_as_recorded` does the word lines for every word of the three
-//! lexicons and compares a hash of them with the one recorded the same way (`make test-data`).
+//! lexicons and eval sets, with every suffix, and compares a hash of them with the one
+//! recorded from the code (`make test-data`).
+//!
+//! A rule changed on purpose changes these records: `RECORD_SCRIPT_RULES=1 cargo test
+//! --release -p mlengine-core --test script_rules_recorded -- --ignored --nocapture record`
+//! rewrites the fixtures and prints the hashes for `CASES`. Read the diff: every changed line
+//! is a word that installed packs were built to spell the old way.
 
 use std::fmt::Write as _;
 use std::ops::RangeInclusive;
@@ -44,7 +52,8 @@ struct Case {
     consonant: char,
     /// Text people wrote, not yet normalised: the native words of these files are inputs.
     written: &'static [&'static str],
-    /// FNV-1a of every lexicon word's lines (`every_lexicon_word_is_as_recorded`).
+    /// FNV-1a of every lexicon word's lines (`every_lexicon_word_is_as_recorded`), as the
+    /// coded rules gave them.
     digest: u64,
 }
 
@@ -88,15 +97,14 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// The rules made from `data/langs/<id>/lang.json`.
+/// The rules made from `data/langs/<id>/lang.json`, which are also the engine's own copy for
+/// a pack without the file.
 fn data_rules(case: &Case) -> &'static dyn ScriptRules {
     let path = root().join(format!("data/langs/{}/lang.json", case.id));
-    DataScript::intern(ScriptDef::open(&path).unwrap())
-}
-
-/// The rules written as code.
-fn coded_rules(case: &Case) -> &'static dyn ScriptRules {
-    mlengine_core::script::for_pack(case.id, case.code, None).unwrap()
+    let rules = DataScript::intern(ScriptDef::open(&path).unwrap());
+    let own = mlengine_core::script::for_pack(case.code, None).unwrap();
+    assert!(std::ptr::addr_eq(own, rules), "{}: the engine's copy", case.code);
+    rules
 }
 
 /// Text for a fixture line: the joiners, which no editor shows, by name.
@@ -338,42 +346,7 @@ fn digest(case: &Case, rules: &dyn ScriptRules) -> (u64, usize) {
     (hash, n)
 }
 
-/// Before the code is deleted: the rules made from each `lang.json` give, line for line, what
-/// the coded plug-in gives, on the fixture's lines.
-#[test]
-fn data_rules_equal_the_coded_rules() {
-    for case in &CASES {
-        let (coded, data) = (coded_rules(case), data_rules(case));
-        assert!(!std::ptr::addr_eq(coded, data), "{}: two plug-ins", case.code);
-        let (want, got) = (fixture_lines(case, coded), fixture_lines(case, data));
-        assert_eq!(want.len(), got.len(), "{}", case.code);
-        for (w, g) in want.iter().zip(&got) {
-            assert_eq!(w, g, "{}: coded, then data", case.code);
-        }
-        eprintln!("{}: {} lines equal", case.code, want.len());
-    }
-}
-
-/// The same on every word of the three lexicons and eval sets, with every suffix.
-#[test]
-#[ignore]
-fn data_rules_equal_the_coded_rules_on_every_word() {
-    for case in &CASES {
-        let (coded, data) = (coded_rules(case), data_rules(case));
-        let mut want = Vec::new();
-        every_word_line(case, coded, |line| want.push(line.to_string()));
-        let mut i = 0;
-        let n = every_word_line(case, data, |line| {
-            assert_eq!(want[i], line, "{}: coded, then data", case.code);
-            i += 1;
-        });
-        assert_eq!(n, want.len());
-        let (hash, _) = digest(case, coded);
-        eprintln!("{}: {n} lines equal; coded digest {hash:#018x}", case.code);
-    }
-}
-
-/// Writes the fixtures from the coded rules: `RECORD_SCRIPT_RULES=1 cargo test … record`.
+/// Rewrites the fixtures from the rules as they are now, and prints the hashes.
 #[test]
 #[ignore]
 fn record() {
@@ -383,10 +356,10 @@ fn record() {
     for case in &CASES {
         let path = fixture_path(case);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        let mut text = fixture_lines(case, coded_rules(case)).join("\n");
+        let mut text = fixture_lines(case, data_rules(case)).join("\n");
         text.push('\n');
         std::fs::write(&path, text).unwrap();
-        let (hash, n) = digest(case, coded_rules(case));
+        let (hash, n) = digest(case, data_rules(case));
         eprintln!("{}: digest {hash:#018x} over {n} lines", case.code);
     }
 }
@@ -408,7 +381,8 @@ fn rules_are_as_recorded() {
     }
 }
 
-/// Every word of the three lexicons, hashed, against the hash recorded from the coded rules.
+/// Every word of the three lexicons, hashed, against the hash recorded from the coded rules
+/// before they were deleted.
 #[test]
 #[ignore]
 fn every_lexicon_word_is_as_recorded() {

@@ -526,7 +526,8 @@ pub fn nn_kernel() -> String {
 pub struct PackSupport {
     pub format: u32,
     pub engine: u32,
-    /// ISO 15924 codes with coded rules, lower case: "mlym", "deva", "beng".
+    /// ISO 15924 codes a pack may be in without a `lang` file (the engine has a copy of
+    /// their rules), lower case: "mlym", "deva", "beng".
     pub scripts: Vec<String>,
     /// A pack in any other script is read when it brings its script's rules (a `lang` file,
     /// engine 4).
@@ -566,8 +567,7 @@ pub fn use_pack_script(pack_dir: String) -> Result<Option<String>, EngineError> 
     guarded(|| {
         let pack = mlengine_core::pack::Pack::open(std::path::Path::new(&pack_dir)).ok()?;
         let m = &pack.manifest;
-        let rules =
-            mlengine_core::script::for_pack(&m.id, &m.script, pack.file("lang").as_deref()).ok()?;
+        let rules = mlengine_core::script::for_pack(&m.script, pack.file("lang").as_deref()).ok()?;
         mlengine_core::script::install(rules).ok()?;
         Some(rules.code().to_string())
     })

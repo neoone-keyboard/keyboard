@@ -220,7 +220,7 @@ pub struct PackPaths {
     /// `layout.json`.
     pub layout: Option<PathBuf>,
     /// `lang.json`: the pack's script defined by data (`script::data`). Without it, the
-    /// engine's coded plug-in for `script`.
+    /// engine's own copy of the rules for `script`.
     pub lang: Option<PathBuf>,
 }
 
@@ -286,7 +286,7 @@ impl Sources {
 
     /// The pack at `paths`; None when it names no lexicon, an error when it can't be used.
     fn open_pack(paths: &PackPaths, english: Option<&Lexicon>) -> Result<Option<PackSources>, String> {
-        let rules = script::for_pack(&paths.id.0, &paths.script, paths.lang.as_deref())?;
+        let rules = script::for_pack(&paths.script, paths.lang.as_deref())?;
         let Some(lexicon_path) = paths.lexicon.as_deref() else {
             return Ok(None);
         };
@@ -2136,7 +2136,8 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // The rule-based spelling is Malayalam's, until it moves into the plug-in (phase 2).
+        // The rule-based spelling (`translit::transliterate`) is Malayalam's, and so are three
+        // ranking choices below that keep its recorded results; none is pack data yet.
         let malayalam = pack.rules.code() == "mlym";
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {

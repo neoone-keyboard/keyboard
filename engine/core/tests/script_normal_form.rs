@@ -1,4 +1,4 @@
-//! Every word of the Hindi and Assamese lexicons is in its script plug-in's normal form and is
+//! Every word of the Hindi and Assamese lexicons is in its script's normal form and is
 //! a word of that script (`text::script`), so a typed word normalised at run time
 //! (`script::normalize_word`) meets the stored one. The lexicons were built by lexbuild with
 //! the same rules (`lexbuild --lang` for hi, `lexbuild-native` and `data/langs/as/lang.json`
@@ -20,7 +20,7 @@ fn check(id: &str, file: &str, code: &'static str) -> (usize, usize) {
     let lexicon = Lexicon::open(&dir.join(file)).unwrap();
     // The rules the engine uses for this pack, installed as opening it would.
     let pack = mlengine_core::pack::Pack::open(&dir).unwrap();
-    let rules = script::for_pack(id, code, pack.file("lang").as_deref()).unwrap();
+    let rules = script::for_pack(code, pack.file("lang").as_deref()).unwrap();
     script::install(rules).unwrap();
     let (mut n, mut apostrophes, mut bad) = (0, 0, Vec::new());
     lexicon.words(|key, _| {
