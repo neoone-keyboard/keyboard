@@ -610,8 +610,8 @@ the field `data/build-pack-lexicons.sh` runs `lexbuild-rekey` on the pack after 
 a language write the field in both `romanisation.hand.json` and `romanisation-weights.json`,
 beside `finals` (Marathi, Maithili and Bhojpuri have it).
 
-**Two more for a skeleton that drops a vowel between consonants** (Hindi's
-`dropBetweenConsonants: "a"`), both optional:
+**Three more for a skeleton that drops a vowel between consonants** (Hindi's
+`dropBetweenConsonants: "a"`), all optional:
 
 - `"alsoBetweenConsonants": "u"` in `skeleton`: a letter people write for the dropped vowel
   (`hum`, `humse`, `humara` for हम, हमसे, हमारा, which walk with `a`). Typed letters with it
@@ -622,6 +622,23 @@ beside `finals` (Marathi, Maithili and Bhojpuri have it).
   export copies it (Maithili and Bhojpuri have it: `hum` for हम, `humar` for हमार). Measure
   it: on held-out rows it moved a few first suggestions the wrong way in every language
   tried, most in Marathi, which was left without it.
+- `"alsoBesideConsonant": {"e": "h"}` in `skeleton`: a letter people write for the dropped
+  vowel only beside certain consonants. Hindi's short a before ह is said and written e
+  (`kehte`, `rehna`, `pehle` for कहते, रहना, पहले, which walk `kahte`, `rahna`, `pahle`), and
+  so is the one after that ह (`behen`, `sheher` for बहन, शहर). The key is the letter, the
+  value the consonants: between two consonants, the letter may stand for the dropped vowel
+  when the consonant after it is one of them, or the consonant before it is and the vowel
+  before that one is dropped as well (the second e of `behen`; not the e of `her`, whose h
+  begins the word). Typed letters are then also looked up with it dropped, as for
+  `alsoBetweenConsonants`: beside what they say as written, never in the middle, and behind
+  the words that really have the letter (`mehnat` is still मेहनत first). Unlike that field, a
+  swipe uses this one: the finger may go by way of the letter there, and a word found so
+  ranks a little behind one that has the letter. That has a cost: a frequent word can now
+  be drawn through a rarer one's keys (Hindi's `chehra` swiped gives कहा more often than
+  चेहरा, which it gave about a third of the time before). It doesn't change the lexicon. Words written this way all the time still belong
+  in `chat-forms.tsv`, which is what puts them in the middle (Hindi lists the forms of कहना
+  and रहना, `behen`, `shehar`, `pehle`). Measure it on your held-out rows, typed and swiped,
+  before keeping it.
 - `"alsoKept": true` in `skeleton.dropTrailing`: a word that ends consonant, dropped vowel,
   dropped trailing letter (जगह `jagah`: `jga`) gets a second key with the trailing letter
   kept (`jgh`), so a swipe that goes j, g, h without returning to `a` finds it. It adds keys:
@@ -637,7 +654,8 @@ may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
 final `a` and reads `o` as `a`, so a swipe may end on `o`). If your skeleton has
 `dropBetweenConsonants`, the finger may also go to one of those letters between any two
 consonants of a skeleton: Hindi's `karne` is the skeleton `krne`, and a swipe through
-k-a-r-n-e finds it. If the derived lists are wrong for your language, a `swipe` section in
+k-a-r-n-e finds it. With `alsoBesideConsonant` it may go to that letter in the places the
+field allows (k-e-h-t-e for `khte`, कहते). If the derived lists are wrong for your language, a `swipe` section in
 `romanisation.json` overrides the aspirated and trailing letters: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
 (Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
 step 7 and run `scripts/pack.py --write` again. A swipe also fits the letters of each row of

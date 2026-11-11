@@ -243,6 +243,10 @@ def export(t: Tables) -> dict:
     # typed letters the second way too. It changes no key, so this skeleton doesn't use it.
     if sk.get("alsoBetweenConsonants"):
         skeleton["alsoBetweenConsonants"] = sk["alsoBetweenConsonants"]
+    # The same beside certain consonants only (Hindi's e beside h: kehna for कहना); typed
+    # letters and swipes are read the second way. No key changes here either.
+    if sk.get("alsoBesideConsonant"):
+        skeleton["alsoBesideConsonant"] = dict(sk["alsoBesideConsonant"])
     skeleton["dropFinalVowel"] = {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3}
     return {
         "format": 1,

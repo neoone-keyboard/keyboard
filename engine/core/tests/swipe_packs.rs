@@ -156,6 +156,37 @@ fn a_hindi_swipe_through_a_words_second_skeleton_gives_the_hindi_word() {
     }
 }
 
+/// The short vowel before ह drawn as `e` (the pack's `alsoBesideConsonant`): the path may go
+/// by way of the e where the skeleton has dropped the vowel beside an h. In the first three,
+/// beside English; and a word with a real े is still found by its own letters.
+#[test]
+fn a_hindi_swipe_through_an_e_before_h_gives_the_hindi_word() {
+    let engine = engine("hi");
+    for (drawn, word) in [
+        ("lehar", "लहर"),
+        ("kehlata", "कहलाता"),
+        ("tehsil", "तहसील"),
+        ("behas", "बहस"),
+        // Rows of chat-forms.tsv, fitted as written too.
+        ("kehte", "कहते"),
+        ("behen", "बहन"),
+        ("shehar", "शहर"),
+        // A real े.
+        ("mehnat", "मेहनत"),
+        ("behtar", "बेहतर"),
+        ("mehman", "मेहमान"),
+    ] {
+        let found = swipe(&engine, drawn);
+        assert!(
+            found
+                .iter()
+                .take(3)
+                .any(|(text, kind, lang)| text == word && *kind == Kind::Romanised && lang == "hi"),
+            "hi {drawn}: no {word} in the first three of {found:?}"
+        );
+    }
+}
+
 /// A chat spelling of the pack's `chat-forms.tsv` is no skeleton of its word (`kyu` is not
 /// क्यों's `kyon`), so the swipe fits each row's own letters.
 #[test]
