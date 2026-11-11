@@ -186,7 +186,11 @@ def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None
 # split, when it has any. Some languages' valid splits have none (Marathi's manual rows are all
 # in `mar_train.json`); then a slice of the train split's manual rows is held out instead, chosen
 # by a hash of the native word (so it is the same in both tools and every run), never a test word.
+# A language with no manual rows in either (Telugu's are all in `tel_test.json`) calibrates on the
+# valid split's mined IndicCorp rows.
 CALIBRATION_SHARE = 0.25
+# The mined source that calibrates when a language has no manual rows outside its test split.
+MINED_CALIBRATION = "IndicCorp"
 
 
 def manual(rows: list[HumanPair]) -> list[HumanPair]:
@@ -206,16 +210,26 @@ def calibration_split(
     if rows:
         return rows, f"the manual rows of {code}_valid.json"
     rows = [h for h in manual(train) if h.native not in test_words and in_calibration_slice(h.native)]
+    if rows:
+        return rows, (
+            f"a held-out {CALIBRATION_SHARE:.0%} (by word) of the manual rows of {code}_train.json, "
+            f"because {code}_valid.json has none"
+        )
+    # No manual rows outside the test split (Telugu): the valid split's mined IndicCorp rows.
+    # They are spellings a mining model matched in text, not ones a person typed for the word, so
+    # they say less about habits; the other mined sources are mostly English spellings of names.
+    rows = [h for h in valid if h.source == MINED_CALIBRATION and h.native not in test_words]
     if not rows:
         raise SystemExit(
             f"no calibration pairs: Aksharantar's {code}_valid.json and {code}_train.json have no manual (AK-) "
-            "rows left after the licence filter. Check data/raw/aksharantar-*/extracted/. A language without "
-            "human pairs can't be calibrated: copy romanisation.hand.json to romanisation-weights.json "
-            "(docs/make-a-language.md step 4)."
+            f"rows left after the licence filter, and {code}_valid.json no mined {MINED_CALIBRATION} rows. Check "
+            "data/raw/aksharantar-*/extracted/. A language without human pairs can't be calibrated: copy "
+            "romanisation.hand.json to romanisation-weights.json (docs/make-a-language.md step 4)."
         )
     return rows, (
-        f"a held-out {CALIBRATION_SHARE:.0%} (by word) of the manual rows of {code}_train.json, "
-        f"because {code}_valid.json has none"
+        f"the mined {MINED_CALIBRATION} rows of {code}_valid.json, because neither {code}_valid.json nor "
+        f"{code}_train.json has manual rows. They were matched by a model, not typed by people: read the "
+        "numbers as rough"
     )
 
 

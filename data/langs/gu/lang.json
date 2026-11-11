@@ -1,0 +1,31 @@
+{
+  "id": "gu",
+  "name": "Gujarati",
+  "script": "gujr",
+  "block": ["0A80", "0AFF"],
+  "notWord": [["0AE6", "0AF1"]],
+  "firstLetter": [["0A85", "0A94"], ["0A95", "0AB9"], ["0AD0", "0AD0"], ["0AE0", "0AE1"], ["0AF9", "0AF9"]],
+  "virama": "0ACD",
+  "signs": [["0ABE", "0AC5"], ["0AC7", "0AC9"], ["0ACB", "0ACD"], ["0AE2", "0AE3"]],
+  "bases": [["0A95", "0AB9"], ["0ABC", "0ABC"], ["0AF9", "0AF9"]],
+  "apostrophe": false,
+  "replace": [
+    ["‍", ""], ["‌", ""],
+    ["ેા", "ો"], ["ૈા", "ૌ"], ["ૅા", "ૉ"], ["ાૅ", "ૉ"], ["ાે", "ો"], ["ાૈ", "ૌ"],
+    ["અા", "આ"], ["અૅ", "ઍ"], ["અે", "એ"], ["અૈ", "ઐ"], ["અૉ", "ઑ"], ["અો", "ઓ"], ["અૌ", "ઔ"],
+    ["આૅ", "ઑ"], ["આે", "ઓ"], ["આૈ", "ઔ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "guj",
+  "notes": {
+    "about": "Gujarati, in a script the engine has no rules of its own for: this file is all it knows. Sources: data/manifests/guwiki.json, guwikisource.json, guwikiquote.json, aksharantar-guj.json.",
+    "notWord": "The digits ૦-૯, the abbreviation sign ૰ and the rupee sign ૱.",
+    "firstLetter": "Independent vowels, consonants, ૐ, ૠ ૡ and ૹ. Never a sign, the anusvara, candrabindu or visarga.",
+    "signs": "Vowel signs and the virama must follow a consonant (or the nukta). ં ઁ ઃ are left out: they can follow an independent vowel (આં, અઃ).",
+    "replace": "ZWJ (U+200D) and ZWNJ (U+200C) are dropped; the engine's normal form drops them too, as there is no joiners field. The rest are the sequences the Unicode Standard's Gujarati section says not to use: an independent vowel typed as અ or આ plus a sign, and a two-part sign typed as its two halves, in either order (scanned books on Wikisource have તેા for તો 3,202 times); the sign rules come first, so અ + ે + ા also becomes ઓ.",
+    "phraseBreaks": "Gujarati ends sentences with Latin punctuation; the dandas are listed for verse."
+  }
+}

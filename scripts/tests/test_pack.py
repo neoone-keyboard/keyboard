@@ -121,6 +121,28 @@ class LangRole(unittest.TestCase):
         self.write_lang({**LANG, "script": "deva"})
         self.assertIn("differs from data/langs/zz-test/lang.json", pack.lang_problems(self.dir, m)[0])
 
+    def test_a_fixture_pack_with_a_real_languages_id_stands_alone(self):
+        # engine/core/tests/fixtures/gu.neopack has its own lang.json; data/langs/gu/lang.json
+        # is the Gujarati pack's and must not be compared with it or copied over it.
+        root = pack.ROOT
+        self.addCleanup(setattr, pack, "ROOT", root)
+        pack.ROOT = self.dir
+        source = pack.ROOT / "data/langs/zz-test/lang.json"
+        source.parent.mkdir(parents=True)
+        source.write_text(json.dumps({**LANG, "notes": "the real language's"}), encoding="utf-8")
+        real = pack.ROOT / "packs/zz-test.neopack"
+        fixture = pack.ROOT / "engine/core/tests/fixtures/zz-test.neopack"
+        for folder in (real, fixture):
+            folder.mkdir(parents=True)
+            (folder / "lang.json").write_text(json.dumps(LANG), encoding="utf-8")
+        m = manifest("gujr", 4)
+        self.assertFalse(pack.is_fixture(real))
+        self.assertIn("differs from data/langs/zz-test/lang.json", pack.lang_problems(real, m)[0])
+        self.assertTrue(pack.is_fixture(fixture))
+        self.assertEqual(pack.lang_problems(fixture, m), [])
+        pack.add_lang(fixture, m)
+        self.assertEqual(json.loads((fixture / "lang.json").read_text(encoding="utf-8")), LANG)
+
     def test_the_newer_fields_need_engine_5_except_for_malayalam(self):
         joins = {**LANG, "finalPairs": [["0ABE", "0ACD"]]}
         self.write_lang(joins)

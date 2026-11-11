@@ -298,7 +298,18 @@ class Tables:
 
     def _skeleton_uncached(self, latin: str) -> str:
         replace, letters, vowels, drop_final = self._skeleton
+        sk = self.data["skeleton"]
         s = "".join(c for c in latin.lower() if "a" <= c <= "z")
+        # The format's optional steps 2 and 5 (`dropTrailing`, `dropBetweenConsonants`), written
+        # in the hand file as the pack's file has them; `format1.export` copies them.
+        trail = sk.get("dropTrailing")
+        if (
+            trail
+            and len(s) >= max(trail.get("minLength", 3), 1)
+            and s[-1] in trail["letters"]
+            and (not trail.get("afterVowel", True) or (len(s) >= 2 and s[-2] in "aeiou"))
+        ):
+            s = s[:-1]
         out: list[str] = []
         i = 0
         while i < len(s):
@@ -312,16 +323,7 @@ class Tables:
             for sym in symbols:
                 if not out or out[-1] != sym:
                     out.append(sym)
-        # `dropBetweenConsonants` (optional; the format's step 5): every such letter with a
-        # consonant on both sides goes, all at once, so a medial inherent vowel typed or not
-        # gives one key (Marathi karanar / karnar).
-        between = self.data["skeleton"].get("dropBetweenConsonants", "")
-        if between and len(out) >= 3:
-            out = [
-                c for k, c in enumerate(out)
-                if not (c in between and 0 < k < len(out) - 1
-                        and out[k - 1] not in "aeiou" and out[k + 1] not in "aeiou")
-            ]
+        out = _drop_between_consonants(out, sk.get("dropBetweenConsonants", ""))
         if len(out) >= 2 and out[-1] in drop_final and out[-2] not in vowels:
             out.pop()
         return "".join(out)
@@ -329,6 +331,18 @@ class Tables:
     def key(self, word: str) -> str:
         """The romanised lookup key of a native word: the skeleton of its canonical romanisation."""
         return self.skeleton(self.canonical(word))
+
+
+def _drop_between_consonants(out: list[str], letters: str) -> list[str]:
+    """The format's skeleton step 5: every letter of `letters` with a consonant on both sides
+    goes, all at once (Hindi "a": samajhana, samjhna -> smjna). As `romanisation.rs` does it."""
+    if not letters or len(out) < 3:
+        return out
+    last = len(out) - 1
+    return [
+        c for k, c in enumerate(out)
+        if not (c in letters and 0 < k < last and out[k - 1] not in "aeiou" and out[k + 1] not in "aeiou")
+    ]
 
 
 @lru_cache(maxsize=500_000)
