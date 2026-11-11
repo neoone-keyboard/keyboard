@@ -44,6 +44,9 @@ class Romanisation:
         self.consonants = n(raw["consonants"])
         self.finals = n(raw["finals"])
         self.clusters = n(raw["clusters"])
+        # Signs of `finals` people leave unwritten at a word's end (Hindi's anusvara and
+        # chandrabindu: नहीं is nahin and nahi).
+        self.optional_finals = [_nfc(s) for s in raw.get("optionalFinals", [])]
         self.skel = raw["skeleton"]
         self.pairs = [(a, b) for a, b in self.skel["pairs"]]
 
@@ -94,12 +97,14 @@ class Romanisation:
             i += 1
         return "".join(out)
 
-    def skeleton(self, latin: str) -> str:
-        """The skeleton (format spec, "The skeleton")."""
+    def skeleton(self, latin: str, drop_trailing: bool = True) -> str:
+        """The skeleton (format spec, "The skeleton"); `drop_trailing` False leaves out its
+        dropTrailing step (for `keys`)."""
         s = "".join(c for c in latin.lower() if c.isascii() and c.isalpha())
         drop = self.skel["dropTrailing"]
         if (
-            len(s) >= drop["minLength"]
+            drop_trailing
+            and len(s) >= drop["minLength"]
             and s
             and s[-1] in drop["letters"]
             and (not drop["afterVowel"] or (len(s) >= 2 and s[-2] in VOWELS))
@@ -139,6 +144,34 @@ class Romanisation:
 
     def key(self, word: str) -> str:
         return self.skeleton(self.canonical(word))
+
+    def canonical_short(self, word: str) -> str | None:
+        """The walk without the word's last sign, when `optionalFinals` names it (नहीं: nahi);
+        None for any other word. As the engine's `Romanisation::romanize_short`."""
+        chars = "".join(c for c in _nfc(word) if c not in (ZWJ, ZWNJ))
+        sign = next((s for s in self.optional_finals if chars.endswith(s)), None)
+        latin = self.finals.get(sign) if sign else None
+        whole = self.canonical(word)
+        if not latin or not whole.endswith(latin):
+            return None
+        return whole[: -len(latin)] or None
+
+    def keys(self, word: str) -> list[str]:
+        """Every skeleton the romanised lexicon keys the word by: `key`, then that of its
+        shorter spelling when it has one and it is another (नहीं: nhin, nhi). Empty for a word
+        without a skeleton. As the engine's `Romanisation::word_skeletons`."""
+        whole = self.key(word)
+        if not whole:
+            return []
+        short = self.canonical_short(word)
+        other = self.skeleton(short) if short else ""
+        keys = [whole, other] if other and other != whole else [whole]
+        # dropTrailing.alsoKept: जगह (jagah) is jga, and jgh with its h kept.
+        if self.skel["dropTrailing"].get("alsoKept") and self.skel.get("dropBetweenConsonants"):
+            kept = self.skeleton(self.canonical(word), drop_trailing=False)
+            if kept != whole and 3 <= len(kept) <= len(whole):
+                keys.append(kept)
+        return keys
 
 
 def main(argv: list[str] | None = None) -> None:

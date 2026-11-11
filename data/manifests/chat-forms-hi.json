@@ -1,0 +1,12 @@
+{
+  "id": "chat-forms-hi",
+  "name": "Hindi chat spellings (hand-written)",
+  "licence": "Written for this project",
+  "verdict": "own work",
+  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; the app credits third-party sources only.",
+  "attribution": "A short table of irregular Hinglish chat spellings (kyu for क्यों, yeh for यह, hum for हम), written for this keyboard. No third-party data.",
+  "used_for": "The Hindi pack's chatForms file (packs/hi.neopack/chat-forms.tsv): a typed or swiped chat spelling offers its Hindi word (engine/core/src/chat_forms.rs).",
+  "local": "packs/hi.neopack/chat-forms.tsv",
+  "retrieved": "2026-11-11",
+  "files": []
+}

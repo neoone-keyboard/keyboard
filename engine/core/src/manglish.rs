@@ -68,11 +68,38 @@ pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
     Some(key)
 }
 
-/// `manglish.fst` entries for a Malayalam vocabulary.
+/// Every romanised-lexicon key of a native word: `key`'s first, then one for each other
+/// skeleton the tables give it (`Romanisation::word_skeletons`: नहीं under `nhin` and `nhi`).
+/// Empty if it has no skeleton or can't be packed.
+pub fn keys(r: &Romanisation, word: &str) -> Vec<Vec<u8>> {
+    let Some(packed) = block_base(r).and_then(|base| pack(word, base)) else {
+        return Vec::new();
+    };
+    r.word_skeletons(word)
+        .into_iter()
+        .map(|skeleton| {
+            let mut key = skeleton.into_bytes();
+            key.push(SEPARATOR);
+            key.extend(&packed);
+            key
+        })
+        .collect()
+}
+
+/// `manglish.fst` entries for a Malayalam vocabulary: each word under its first key.
 pub fn entries(r: &Romanisation, malayalam: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
     malayalam
         .iter()
         .filter_map(|(word, count)| Some((key(r, word)?, *count)))
+        .collect()
+}
+
+/// The entries of a vocabulary's words under their other keys (`keys` after the first), for
+/// `lexicon::build_with_aliases`: none for tables that give every word one skeleton.
+pub fn aliases(r: &Romanisation, vocab: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
+    vocab
+        .iter()
+        .flat_map(|(word, count)| keys(r, word).into_iter().skip(1).map(|key| (key, *count)))
         .collect()
 }
 
@@ -105,10 +132,23 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     // The second list can repeat words of the first; `seen` drops them.
     let mut keys = lexicon.top_completions(&exact_prefix, TOP_K);
     keys.extend(lexicon.top_completions(typed_skeleton.as_bytes(), TOP_K));
+    // The words of the typed letters' other reading (`Romanisation::skeleton_respelt`:
+    // `humse` read as `hamse`), whole words only, after the rest.
+    let respelt_from = keys.len();
+    let respelt = r.skeleton_respelt(typed).map(|skeleton| {
+        let mut prefix = skeleton.into_bytes();
+        prefix.push(SEPARATOR);
+        keys.extend(lexicon.top_completions(&prefix, TOP_K));
+        (prefix.len() - 1, r.respelt(typed))
+    });
 
     let mut shortlist: Vec<(f32, Match)> = Vec::with_capacity(keys.len());
     let mut seen = std::collections::HashSet::new();
-    for (key, count) in keys {
+    // A word stored under two skeletons (`keys`) is one match, by the nearer of them.
+    let mut place: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    // The matches of the other reading, by their place in `shortlist`.
+    let mut other_reading = std::collections::HashSet::new();
+    for (i, (key, count)) in keys.into_iter().enumerate() {
         if !seen.insert(key.clone()) {
             continue;
         }
@@ -118,8 +158,35 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
         let Some(word) = unpack(&key[sep + 1..], base) else {
             continue;
         };
-        let missing = sep.saturating_sub(typed_skeleton.len());
         let log_prob = lexicon.log_prob(count);
+        if i >= respelt_from {
+            // A word the letters reach as written keeps that match. The rest rank as a word
+            // one skeleton letter longer does.
+            if !place.contains_key(&word) {
+                place.insert(word.clone(), shortlist.len());
+                other_reading.insert(word.clone());
+                shortlist.push((
+                    log_prob - 1.0,
+                    Match {
+                        word,
+                        log_prob,
+                        missing: 0,
+                        distance: 0,
+                        spelled: false,
+                    },
+                ));
+            }
+            continue;
+        }
+        let missing = sep.saturating_sub(typed_skeleton.len());
+        if let Some(&at) = place.get(&word) {
+            let (order, m) = &mut shortlist[at];
+            if missing < m.missing {
+                (*order, m.missing) = (log_prob - missing as f32, missing);
+            }
+            continue;
+        }
+        place.insert(word.clone(), shortlist.len());
         // Exact skeletons first, then frequency.
         let order = log_prob - missing as f32;
         shortlist.push((
@@ -138,7 +205,14 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     shortlist
         .into_iter()
         .map(|(_, mut m)| {
-            (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0);
+            match &respelt {
+                // Never spelled out: one more than the distance of the letters as it reads
+                // them, for the letter that was read as another.
+                Some((_, written)) if other_reading.contains(&m.word) => {
+                    m.distance = 1 + fit(r, written, &m.word, false).1;
+                }
+                _ => (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0),
+            }
             m
         })
         .collect()
@@ -162,8 +236,18 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(Stri
 /// How closely the typed letters match a Malayalam word: whether they spell
 /// it out (`Match::spelled`), and otherwise the edit distance to its
 /// romanisation (`Match::distance`), to its closest prefix when `prefix` is set.
+///
+/// A word with a shorter spelling (`Romanisation::romanize_short`: नहीं is `nahin` and
+/// `nahi`) is fitted to both, and the closer counts.
 pub fn fit(r: &Romanisation, typed: &str, word: &str, prefix: bool) -> (bool, usize) {
-    fit_latin(r, typed, &r.romanize(word), prefix)
+    let (spelled, distance) = fit_latin(r, typed, &r.romanize(word), prefix);
+    match r.romanize_short(word) {
+        Some(short) if !spelled => {
+            let (short_spelled, short_distance) = fit_latin(r, typed, &short, prefix);
+            (short_spelled, distance.min(short_distance))
+        }
+        _ => (spelled, distance),
+    }
 }
 
 /// `fit` against Latin letters that stand for a word: `roman`, its romanisation, or the
@@ -301,6 +385,79 @@ mod tests {
             found.iter().any(|m| m.word == "എന്റെ" && m.missing == 0),
             "{found:?}"
         );
+    }
+
+    /// Hindi's tables call a final anusvara optional: नहीं is keyed by `nhin` and by `nhi`.
+    #[test]
+    fn a_word_under_two_skeletons_is_one_match_by_the_nearer() {
+        use crate::lexicon::build_with_aliases;
+        use crate::romanisation::hi;
+        let vocab: Vec<(String, u64)> = [("नहीं", 100), ("नही", 10), ("दिन", 50)]
+            .iter()
+            .map(|(w, c)| (w.to_string(), *c))
+            .collect();
+        assert_eq!(keys(hi(), "नहीं").len(), 2);
+        assert_eq!(keys(hi(), "नहीं")[0], key(hi(), "नहीं").unwrap());
+        assert_eq!(keys(hi(), "दिन"), [key(hi(), "दिन").unwrap()]);
+        assert!(keys(hi(), "abc").is_empty());
+        assert_eq!(entries(hi(), &vocab).len(), 3);
+        assert_eq!(aliases(hi(), &vocab), [(keys(hi(), "नहीं")[1].clone(), 100)]);
+        assert!(aliases(ml(), &[("എന്റെ".to_string(), 1)]).is_empty());
+        let lex = Lexicon::from_bytes(
+            build_with_aliases(entries(hi(), &vocab), aliases(hi(), &vocab)).unwrap(),
+        )
+        .unwrap();
+        let found = |typed: &str| -> Vec<(String, usize, bool)> {
+            lookup(hi(), &lex, typed)
+                .into_iter()
+                .map(|m| (m.word, m.missing, m.spelled))
+                .collect()
+        };
+        // Without the nasal: both words have the skeleton, and both are spelled out.
+        assert_eq!(found("nahi"), [("नहीं".to_string(), 0, true), ("नही".to_string(), 0, true)]);
+        // With it: only the word that has it.
+        assert_eq!(found("nahin"), [("नहीं".to_string(), 0, true)]);
+        // A beginning of both keys: the word once, by the key with fewer letters to go.
+        assert_eq!(found("nh"), [("नहीं".to_string(), 1, false), ("नही".to_string(), 1, false)]);
+        // The word's probability is its count over the words', each counted once.
+        assert_eq!(lex.total(), 160);
+        assert_eq!(fit(hi(), "nahi", "नहीं", false), (true, 0));
+        assert_eq!(fit(hi(), "nahin", "नहीं", false), (true, 0));
+        assert_eq!(fit(hi(), "naha", "नहीं", false), (false, 1));
+        assert_eq!(fit(hi(), "di", "दिन", false), (false, 1), "a final न is always written");
+    }
+
+    /// Hindi writes the short vowel its skeleton drops as `a` or, often, `u` (`hum`, `humse`):
+    /// the tables' `alsoBetweenConsonants`. A word with a real u still comes first for its
+    /// own letters.
+    #[test]
+    fn a_letter_written_for_the_dropped_vowel_finds_the_word_behind_exact_matches() {
+        use crate::romanisation::hi;
+        let vocab: Vec<(String, u64)> = [("हमसे", 100), ("कुछ", 100), ("कच", 400), ("हुमसे", 1)]
+            .iter()
+            .map(|(w, c)| (w.to_string(), *c))
+            .collect();
+        let lex = Lexicon::from_bytes(build(entries(hi(), &vocab)).unwrap()).unwrap();
+        let found = lookup(hi(), &lex, "humse");
+        let words: Vec<(&str, usize, bool, usize)> = found
+            .iter()
+            .map(|m| (m.word.as_str(), m.missing, m.spelled, m.distance))
+            .collect();
+        // The word spelled with u first, then the one whose dropped vowel the u stands for:
+        // `hamse` against `hamase` is one letter, and one more for the u.
+        assert_eq!(words, [("हुमसे", 0, true, 0), ("हमसे", 0, false, 2)]);
+        let found = lookup(hi(), &lex, "kuch");
+        assert_eq!(found[0].word, "कुछ");
+        assert!(found[0].spelled);
+        assert_eq!((found[1].word.as_str(), found[1].spelled), ("कच", false));
+        assert!(found[1].distance >= 1);
+        // Typed with the a, the word is found as it always was, and only it.
+        let found = lookup(hi(), &lex, "hamse");
+        assert_eq!(found.len(), 1);
+        assert_eq!((found[0].word.as_str(), found[0].distance), ("हमसे", 1));
+        // Malayalam's tables name no such letter: a u is a u.
+        let ml_lex = lexicon(&[("കമ്മി", 10)]);
+        assert!(lookup(ml(), &ml_lex, "kummi").is_empty());
     }
 
     #[test]

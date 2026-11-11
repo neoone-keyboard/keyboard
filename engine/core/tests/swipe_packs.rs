@@ -91,6 +91,26 @@ const HINDI_INHERENT_A: &[(&str, &str)] = &[
     ("matlab", "मतलब"),
 ];
 
+/// Hindi words drawn without their final anusvara or chandrabindu, as they are mostly written
+/// (the pack's `optionalFinals`): नहीं is `nahin` and, far more often, `nahi`.
+const HINDI_UNWRITTEN_NASAL: &[(&str, &str)] = &[
+    ("nahi", "नहीं"),
+    ("yaha", "यहाँ"),
+    ("logo", "लोगों"),
+    ("kahi", "कहीं"),
+];
+
+/// Hindi words that end in a consonant, the short `a` and `h` (`jagah`), drawn without going
+/// back to `a` before the `h`: on one row of keys the finger barely turns there. The pack's
+/// `dropTrailing.alsoKept` keys them with the `h` kept (`jgh`).
+const HINDI_FINAL_AH: &[(&str, &str)] = &[
+    ("jagh", "जगह"),
+    ("jagah", "जगह"),
+    ("tarh", "तरह"),
+    ("tarah", "तरह"),
+    ("subh", "सुबह"),
+];
+
 const ASSAMESE: &[(&str, &str)] = &[
     ("tumi", "তুমি"),
     ("manuh", "মানুহ"),
@@ -116,6 +136,41 @@ fn a_hindi_swipe_gives_the_hindi_word() {
 #[test]
 fn a_hindi_swipe_through_a_dropped_a_gives_the_hindi_word() {
     assert_native("hi", HINDI_INHERENT_A);
+}
+
+/// A word whose final nasal sign may go unwritten is stored under the skeleton without it
+/// too, and one that ends consonant, `a`, `h` under the skeleton with the `h` kept, so a swipe
+/// through the shorter spelling's keys finds it: in the first three, beside English.
+#[test]
+fn a_hindi_swipe_through_a_words_second_skeleton_gives_the_hindi_word() {
+    let engine = engine("hi");
+    for (drawn, word) in HINDI_UNWRITTEN_NASAL.iter().chain(HINDI_FINAL_AH) {
+        let found = swipe(&engine, drawn);
+        assert!(
+            found
+                .iter()
+                .take(3)
+                .any(|(text, kind, lang)| text == word && *kind == Kind::Romanised && lang == "hi"),
+            "hi {drawn}: no {word} in the first three of {found:?}"
+        );
+    }
+}
+
+/// A chat spelling of the pack's `chat-forms.tsv` is no skeleton of its word (`kyu` is not
+/// क्यों's `kyon`), so the swipe fits each row's own letters.
+#[test]
+fn a_hindi_swipe_through_a_chat_spelling_gives_its_word() {
+    let engine = engine("hi");
+    for (drawn, word) in [("kyu", "क्यों"), ("kyunki", "क्योंकि"), ("bohot", "बहुत")] {
+        let found = swipe(&engine, drawn);
+        assert!(
+            found
+                .iter()
+                .take(3)
+                .any(|(text, kind, lang)| text == word && *kind == Kind::Romanised && lang == "hi"),
+            "hi {drawn}: no {word} in the first three of {found:?}"
+        );
+    }
 }
 
 #[test]

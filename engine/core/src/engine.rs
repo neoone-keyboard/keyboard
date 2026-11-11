@@ -785,7 +785,10 @@ impl Engine {
         };
         let skeleton = r.skeleton(typed);
         let own = self.own_words();
-        let partial = begins(&skeleton, &r.word_skeleton(chosen))
+        // The letters of a word's shorter spelling (`nahi` for नहीं) are a spelling of it.
+        let chosen_skeletons = r.word_skeletons(chosen);
+        let partial = (!chosen_skeletons.contains(&skeleton)
+            && chosen_skeletons.iter().any(|whole| begins(&skeleton, whole)))
             || self.own_of(&own, pack).is_some_and(|own| {
                 own.lookup(r, typed, &|_| 0)
                     .iter()
@@ -1064,8 +1067,9 @@ impl Engine {
         self.suggest_lm(context_before, layout, autocorrect, deadline, &more)
     }
 
-    /// The words a swipe could have drawn (`swipe`), best first: English words and the
-    /// Malayalam words of Manglish skeletons, ranked with the context as typed words are.
+    /// The words a swipe could have drawn (`swipe`), best first: English words, the native
+    /// words of each pack's romanised skeletons and of its chat spellings, ranked with the
+    /// context as typed words are.
     /// `path` and `keys` are in the app's units; `context_before` ends where the word will go.
     /// The LM's context fill stops at `budget` (none: no limit), and without it the previous
     /// word sets the Manglish bias.
@@ -1137,11 +1141,11 @@ impl Engine {
         }
         // A pack's skeletons are drawn through the keys its own tables fold into each letter.
         let plain = swipe::SkeletonRules::default();
-        for (lang, mg, base, rules) in self.packs_active().filter_map(|(lang, p)| {
+        for (lang, mg, base, rules, tables) in self.packs_active().filter_map(|(lang, p)| {
             let rules = p.romanisation.as_ref().map_or(&plain, |r| r.swipe_rules());
             p.romanised
                 .as_ref()
-                .map(|mg| (lang, mg, *p.rules.block().start(), rules))
+                .map(|mg| (lang, mg, *p.rules.block().start(), rules, p.romanisation.as_ref()))
         }) {
             let bias = priors.get(lang);
             for f in swipe::decode(mg, &map, &path, Some(rules))
@@ -1156,13 +1160,47 @@ impl Engine {
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)
                 {
+                    // A word found by its second skeleton (`Romanisation::word_skeletons`:
+                    // नहीं drawn as `nahi`) is drawn that way only some of the time.
+                    let second = tables.is_some_and(|r| {
+                        r.word_skeletons(&text).iter().skip(1).any(|s| s == skeleton)
+                    });
                     let score = shape
                         + mg.log_prob(count)
                         + bias
                         + self.lm_term(scores, &text)
-                        + personal(&text);
+                        + personal(&text)
+                        - if second { w.second } else { 0.0 };
                     out.push(Candidate {
                         text,
+                        kind: Kind::Romanised,
+                        score,
+                        lang,
+                    });
+                }
+            }
+        }
+        // A pack's chat spellings (`chat-forms.tsv`: `kyu` for क्यों), which no skeleton holds:
+        // each row's letters fitted as they are written, as a learned word's are, and its word
+        // scored as a word of the pack's romanised lexicon is.
+        for (lang, p) in self.packs_active() {
+            let (Some(forms), Some(_)) = (&p.chat_forms, &p.romanised) else {
+                continue;
+            };
+            let bias = priors.get(lang);
+            for (latin, word) in forms.rows() {
+                let Some(count) = p.lexicon.get(word.as_bytes()) else {
+                    continue;
+                };
+                let cost = swipe::fit(&map, &path, latin);
+                if cost.is_finite() {
+                    let score = fit(cost, latin.as_bytes())
+                        + p.lexicon.log_prob(count)
+                        + bias
+                        + self.lm_term(scores, word)
+                        + personal(word);
+                    out.push(Candidate {
+                        text: word.to_string(),
                         kind: Kind::Romanised,
                         score,
                         lang,

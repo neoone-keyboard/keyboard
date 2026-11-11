@@ -52,9 +52,10 @@ fn keys_match(id: &str, file: &str, base: u32) -> usize {
         };
         let word = unpack(&key[sep + 1..], base);
         let stored = std::str::from_utf8(&key[..sep]).unwrap();
-        let got = r.word_skeleton(&word);
-        if got != stored && bad.len() < 20 {
-            bad.push(format!("{word}: stored {stored}, tables {got}"));
+        // One of the word's skeletons: a word with a shorter spelling has a second key.
+        let got = r.word_skeletons(&word);
+        if !got.iter().any(|s| s == stored) && bad.len() < 20 {
+            bad.push(format!("{word}: stored {stored}, tables {got:?}"));
         }
         n += 1;
     }

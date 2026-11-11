@@ -146,6 +146,25 @@ class Format1:
         """The romanised lookup key of a native word: the skeleton of its walk."""
         return self.skeleton(self.romanize(word))
 
+    def keys(self, word: str) -> list[str]:
+        """Every key of a native word: `key`, then the skeleton of its walk without a last sign
+        that the file's `optionalFinals` says may go unwritten, when that is another key (the
+        engine's `Romanisation::word_skeletons`). One key for a file without the field. The
+        key `dropTrailing.alsoKept` adds is not written here: this skeleton has no
+        `dropBetweenConsonants` step, which it needs."""
+        whole = self.key(word)
+        if not whole:
+            return []
+        latin = self.romanize(word)
+        for sign in self.data.get("optionalFinals", []):
+            end = self.data["finals"].get(sign, "")
+            if word.endswith(sign) and end and latin.endswith(end) and len(latin) > len(end):
+                other = self.skeleton(latin[: -len(end)])
+                if other and other != whole:
+                    return [whole, other]
+                break
+        return [whole]
+
 
 @lru_cache(maxsize=500_000)
 def _romanize(f: Format1, word: str) -> str:
@@ -225,6 +244,8 @@ def export(t: Tables) -> dict:
             "dropFinalVowel": {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3},
         },
         "looseSpelling": loose,
+        # Final signs people leave unwritten (`Format1.keys`), when the hand file names any.
+        **({"optionalFinals": hand["optionalFinals"]} if hand.get("optionalFinals") else {}),
         "notes": _notes(hand),
     }
 

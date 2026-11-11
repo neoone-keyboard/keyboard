@@ -11,7 +11,7 @@ use std::path::Path;
 pub mod native;
 pub mod romanisation;
 
-use mlengine_core::lexicon::{SEPARATOR, build};
+use mlengine_core::lexicon::{SEPARATOR, build, build_with_aliases};
 use mlengine_core::manglish;
 use mlengine_core::normalize::normalize;
 use mlengine_core::text::{Script, script, words};
@@ -504,16 +504,18 @@ pub fn write_bundle(
     fs::create_dir_all(out)?;
     let mut report = String::new();
     let manglish = manglish::entries(tables, malayalam);
-    let manglish_len = manglish.len();
-    let files: [(&str, Entries, usize); 5] = [
-        ("en.fst", to_entries(english), english.len()),
-        ("en-next.fst", english_next.to_vec(), english_next.len()),
-        ("ml.fst", to_entries(malayalam), malayalam.len()),
-        ("manglish.fst", manglish, manglish_len),
-        ("next.fst", next.to_vec(), next.len()),
+    // A word's other keys, for tables that give it a second spelling (`optionalFinals`).
+    let aliases = manglish::aliases(tables, malayalam);
+    let manglish_len = manglish.len() + aliases.len();
+    let files: [(&str, Entries, Entries, usize); 5] = [
+        ("en.fst", to_entries(english), Vec::new(), english.len()),
+        ("en-next.fst", english_next.to_vec(), Vec::new(), english_next.len()),
+        ("ml.fst", to_entries(malayalam), Vec::new(), malayalam.len()),
+        ("manglish.fst", manglish, aliases, manglish_len),
+        ("next.fst", next.to_vec(), Vec::new(), next.len()),
     ];
-    for (name, entries, n) in files {
-        let bytes = build(entries).map_err(io::Error::other)?;
+    for (name, entries, aliases, n) in files {
+        let bytes = build_with_aliases(entries, aliases).map_err(io::Error::other)?;
         fs::write(out.join(name), &bytes)?;
         let _ = writeln!(report, "{name}: {n} keys, {} bytes", bytes.len());
     }
@@ -624,15 +626,21 @@ pub fn write_native_bundle(
 ) -> io::Result<Stats> {
     fs::create_dir_all(out)?;
     let mut report = String::new();
-    let keys = table.entries(native);
-    let keys_len = keys.len();
-    let files: [(String, Entries, usize); 3] = [
-        (format!("{lang}.fst"), to_entries(native), native.len()),
+    let (keys, keys_len) = table.build(native)?;
+    let files: [(String, Vec<u8>, usize); 3] = [
+        (
+            format!("{lang}.fst"),
+            build(to_entries(native)).map_err(io::Error::other)?,
+            native.len(),
+        ),
         (format!("{romanised}.fst"), keys, keys_len),
-        ("next.fst".to_string(), next.to_vec(), next.len()),
+        (
+            "next.fst".to_string(),
+            build(next.to_vec()).map_err(io::Error::other)?,
+            next.len(),
+        ),
     ];
-    for (name, entries, n) in files {
-        let bytes = build(entries).map_err(io::Error::other)?;
+    for (name, bytes, n) in files {
         fs::write(out.join(&name), &bytes)?;
         let _ = writeln!(report, "{name}: {n} keys, {} bytes", bytes.len());
     }

@@ -871,6 +871,10 @@ pub struct Weights {
     pub uses: f32,
     /// A learned word's stand-in for `ln p(word)`.
     pub learned: f32,
+    /// Taken from a word found by its second skeleton (`Romanisation::word_skeletons`: नहीं
+    /// drawn as `nahi`): it is drawn that way only some of the time, and without this the
+    /// second keys cost Hindi's English swipes 8 firsts in 1,789 (5 with it).
+    pub second: f32,
 }
 
 impl Default for Weights {
@@ -881,6 +885,7 @@ impl Default for Weights {
             length: 4.0,
             uses: 0.5,
             learned: -12.0,
+            second: 1.0,
         }
     }
 }

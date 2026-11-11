@@ -31,6 +31,8 @@ struct Raw {
     clusters: HashMap<String, String>,
     skeleton: RawSkeleton,
     #[serde(default)]
+    optional_finals: Vec<String>,
+    #[serde(default)]
     loose_spelling: Option<RawLoose>,
     #[serde(default)]
     swipe: Option<RawSwipe>,
@@ -73,6 +75,8 @@ struct RawSkeleton {
     collapse_doubles: bool,
     #[serde(default)]
     drop_between_consonants: String,
+    #[serde(default)]
+    also_between_consonants: String,
     drop_final_vowel: DropFinalVowel,
 }
 
@@ -82,6 +86,8 @@ struct DropTrailing {
     letters: String,
     after_vowel: bool,
     min_length: usize,
+    #[serde(default)]
+    also_kept: bool,
 }
 
 #[derive(Deserialize)]
@@ -126,10 +132,16 @@ struct Skeleton {
     trailing: Vec<u8>,
     trailing_after_vowel: bool,
     trailing_min: usize,
+    /// `dropTrailing.alsoKept`: a word whose trailing letter hides a letter `between` would
+    /// drop is also keyed with the trailing letter kept (`Romanisation::word_skeletons`).
+    trailing_also_kept: bool,
     pairs: Vec<(Vec<u8>, Vec<u8>)>,
     singles: [Option<Vec<u8>>; 26],
     collapse_doubles: bool,
     between: Vec<u8>,
+    /// `alsoBetweenConsonants`: letters people write between two consonants for the vowel
+    /// `between` drops there (Hindi's `u`: `hum` for हम, `ham`).
+    between_also: Vec<u8>,
     final_vowels: Vec<u8>,
     final_after_consonant: bool,
     final_min: usize,
@@ -245,6 +257,10 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
     if let Some(said) = said_trail {
         trail = ascii_letters(&said, "swipe trail")?;
     }
+    // Only the dropped letters themselves: the ones written for them
+    // (`alsoBetweenConsonants`, Hindi's `u`) are for typed letters. Drawn at no cost between
+    // any two consonants, a `u` let every skeleton stand for its words with a real u too, and
+    // Hindi's held-out swipes fell from 17.7% to 15.7% first.
     Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail).dropping_between(&skeleton.between))
 }
 
@@ -263,6 +279,8 @@ pub struct Romanisation {
     signs: Keys,
     consonants: Keys,
     finals: Keys,
+    /// `optionalFinals`: the signs of `finals` people leave unwritten at a word's end, NFC.
+    optional_finals: Vec<Vec<char>>,
     clusters: Keys,
     skeleton: Skeleton,
 }
@@ -317,10 +335,12 @@ impl Romanisation {
             trailing: ascii_letters(&s.drop_trailing.letters, "dropTrailing")?,
             trailing_after_vowel: s.drop_trailing.after_vowel,
             trailing_min: s.drop_trailing.min_length,
+            trailing_also_kept: s.drop_trailing.also_kept,
             pairs,
             singles,
             collapse_doubles: s.collapse_doubles,
             between: ascii_letters(&s.drop_between_consonants, "dropBetweenConsonants")?,
+            between_also: ascii_letters(&s.also_between_consonants, "alsoBetweenConsonants")?,
             final_vowels: ascii_letters(&s.drop_final_vowel.vowels, "dropFinalVowel")?,
             final_after_consonant: s.drop_final_vowel.after_consonant,
             final_min: s.drop_final_vowel.min_length,
@@ -335,6 +355,19 @@ impl Romanisation {
         let signs = Keys::new(raw.vowel_signs);
         let consonants = Keys::new(raw.consonants);
         let clusters = Keys::new(raw.clusters);
+        let finals = Keys::new(raw.finals);
+        let optional_finals = raw
+            .optional_finals
+            .iter()
+            .map(|sign| {
+                let key: Vec<char> = nfc(sign).chars().collect();
+                match finals.map.get(&key) {
+                    Some(latin) if !latin.is_empty() => Ok(key),
+                    Some(_) => Err(format!("optionalFinals {sign:?}: its Latin in finals is empty already")),
+                    None => Err(format!("optionalFinals {sign:?}: not one of finals")),
+                }
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         // The file's own speller; else the one the engine holds for the script (Malayalam's,
         // for its packs published before the section); else one from the tables turned round.
         let speller = match raw.from_latin {
@@ -370,7 +403,8 @@ impl Romanisation {
             independent,
             signs,
             consonants,
-            finals: Keys::new(raw.finals),
+            finals,
+            optional_finals,
             clusters,
             skeleton,
         })
@@ -449,8 +483,32 @@ impl Romanisation {
         out
     }
 
+    /// The walk without the word's last sign, when the pack's `optionalFinals` says people
+    /// leave it unwritten there (Hindi's anusvara and chandrabindu: नहीं is `nahin` and
+    /// `nahi`, हूँ `hun` and `hu`). The letters before the sign are as the whole walk has
+    /// them. None for a word that doesn't end in such a sign, or is only the sign.
+    pub fn romanize_short(&self, word: &str) -> Option<String> {
+        if self.optional_finals.is_empty() {
+            return None;
+        }
+        let chars: Vec<char> = nfc(word)
+            .chars()
+            .filter(|&c| c != ZWJ && c != ZWNJ)
+            .collect();
+        let sign = self.optional_finals.iter().find(|sign| chars.ends_with(sign))?;
+        let latin = self.finals.map.get(sign)?;
+        let whole = self.romanize(word);
+        let short = whole.strip_suffix(latin.as_str())?;
+        (!short.is_empty()).then(|| short.to_string())
+    }
+
     /// The skeleton of Latin text, typed or walked (`ente`, `ende`, `entey` → `ent`).
     pub fn skeleton(&self, latin: &str) -> String {
+        self.skeleton_with(latin, true)
+    }
+
+    /// `skeleton`, with or without its `dropTrailing` step.
+    fn skeleton_with(&self, latin: &str, drop_trailing: bool) -> String {
         let rules = &self.skeleton;
         let mut s: Vec<u8> = latin
             .bytes()
@@ -458,7 +516,8 @@ impl Romanisation {
             .map(|b| b.to_ascii_lowercase())
             .collect();
         // 2. dropTrailing: entey → ente.
-        if s.len() >= rules.trailing_min.max(1)
+        if drop_trailing
+            && s.len() >= rules.trailing_min.max(1)
             && rules.trailing.contains(&s[s.len() - 1])
             && (!rules.trailing_after_vowel || (s.len() >= 2 && is_vowel(s[s.len() - 2])))
         {
@@ -513,6 +572,57 @@ impl Romanisation {
         String::from_utf8(out).unwrap_or_default()
     }
 
+    /// The skeleton of typed letters read the other way the pack's `alsoBetweenConsonants`
+    /// allows: each such letter between two consonants taken for the vowel
+    /// `dropBetweenConsonants` drops there, so dropped too (Hindi: `humse` is `humse`, and
+    /// read so `hmse`, हमसे's). None when the tables name no such letter or the typed letters
+    /// have none there: there is then only `skeleton`.
+    pub fn skeleton_respelt(&self, latin: &str) -> Option<String> {
+        let rules = &self.skeleton;
+        if rules.between.is_empty() || rules.between_also.is_empty() {
+            return None;
+        }
+        let whole = self.skeleton(latin).into_bytes();
+        let kept: Vec<u8> = (0..whole.len())
+            .filter(|&k| {
+                !(rules.between_also.contains(&whole[k])
+                    && k > 0
+                    && k + 1 < whole.len()
+                    && !is_vowel(whole[k - 1])
+                    && !is_vowel(whole[k + 1]))
+            })
+            .map(|k| whole[k])
+            .collect();
+        (kept.len() < whole.len() && !kept.is_empty())
+            .then(|| String::from_utf8(kept).unwrap_or_default())
+    }
+
+    /// The typed letters as `skeleton_respelt` reads them, written out: each
+    /// `alsoBetweenConsonants` letter between two consonants replaced by the vowel it stands
+    /// for (`humse` → `hamse`), to measure against a word's romanisation.
+    pub fn respelt(&self, latin: &str) -> String {
+        let rules = &self.skeleton;
+        let letters: Vec<u8> = latin
+            .bytes()
+            .filter(u8::is_ascii_alphabetic)
+            .map(|b| b.to_ascii_lowercase())
+            .collect();
+        let Some(&vowel) = rules.between.first() else {
+            return String::from_utf8(letters).unwrap_or_default();
+        };
+        let out: Vec<u8> = (0..letters.len())
+            .map(|k| {
+                let stands_in = rules.between_also.contains(&letters[k])
+                    && k > 0
+                    && k + 1 < letters.len()
+                    && !is_vowel(letters[k - 1])
+                    && !is_vowel(letters[k + 1]);
+                if stands_in { vowel } else { letters[k] }
+            })
+            .collect();
+        String::from_utf8(out).unwrap_or_default()
+    }
+
     /// The Latin a consonant of the tables is spelled with, without a vowel (യ → `y`).
     pub fn consonant(&self, letter: char) -> Option<&str> {
         self.consonants.map.get(&[letter][..]).map(String::as_str)
@@ -562,6 +672,29 @@ impl Romanisation {
     pub fn word_skeleton(&self, word: &str) -> String {
         self.skeleton(&self.romanize(word))
     }
+
+    /// Every skeleton the romanised lexicon keys `word` by: `word_skeleton` first, then the
+    /// skeleton of its shorter spelling (`romanize_short`) when it has one and it is another
+    /// (नहीं: `nhin`, then `nhi`), then, with `dropTrailing.alsoKept`, the skeleton of its walk
+    /// with the trailing letter kept when that lets `dropBetweenConsonants` drop the letter
+    /// before it (जगह, `jagah`: `jga`, then `jgh`, which a finger going j-g-h draws; the
+    /// first needs it back at `a` before the `h`). Only one of three letters or more: `kh`
+    /// for कह would stand for every path from k to h. Empty for a word without a skeleton.
+    pub fn word_skeletons(&self, word: &str) -> Vec<String> {
+        let whole = self.word_skeleton(word);
+        if whole.is_empty() {
+            return Vec::new();
+        }
+        let short = self
+            .romanize_short(word)
+            .map(|latin| self.skeleton(&latin))
+            .filter(|s| !s.is_empty() && *s != whole);
+        let rules = &self.skeleton;
+        let kept = (rules.trailing_also_kept && !rules.between.is_empty())
+            .then(|| self.skeleton_with(&self.romanize(word), false))
+            .filter(|s| *s != whole && s.len() <= whole.len() && s.len() >= 3);
+        std::iter::once(whole).chain(short).chain(kept).collect()
+    }
 }
 
 /// Malayalam's tables from `packs/ml.neopack`, for the engine's unit tests.
@@ -569,6 +702,19 @@ impl Romanisation {
 pub(crate) fn ml() -> &'static Romanisation {
     static ML: std::sync::OnceLock<Romanisation> = std::sync::OnceLock::new();
     ML.get_or_init(load_ml)
+}
+
+/// Hindi's tables from `packs/hi.neopack` (they name `optionalFinals`), for the engine's unit
+/// tests.
+#[cfg(test)]
+pub(crate) fn hi() -> &'static Romanisation {
+    static HI: std::sync::OnceLock<Romanisation> = std::sync::OnceLock::new();
+    HI.get_or_init(|| {
+        Romanisation::load(
+            &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/hi.neopack/romanisation.json"),
+        )
+        .unwrap()
+    })
 }
 
 /// An owned copy of `ml()`, for a test's `Sources`.
@@ -683,6 +829,80 @@ mod tests {
             hi.skeleton("main"),
             "में and मैं stay apart"
         );
+    }
+
+    #[test]
+    fn a_final_sign_the_pack_calls_optional_gives_a_second_spelling() {
+        let hi = pack("hi");
+        for (word, whole, short) in [
+            ("नहीं", "nahin", Some("nahi")),
+            ("हूँ", "hun", Some("hu")),
+            ("लोगों", "logon", Some("logo")),
+            ("में", "men", Some("me")),
+            ("दिन", "din", None),
+            ("हिंदी", "hindi", None),
+            ("ं", "n", None),
+        ] {
+            assert_eq!(hi.romanize(word), whole, "{word}");
+            assert_eq!(hi.romanize_short(word).as_deref(), short, "{word}");
+        }
+        assert_eq!(hi.word_skeletons("नहीं"), ["nhin", "nhi"]);
+        // `dropTrailing.alsoKept`: the h of jagah kept, the a before it is between consonants.
+        assert_eq!(hi.word_skeletons("जगह"), ["jga", "jgh"]);
+        assert_eq!(hi.word_skeletons("तरह"), ["tra", "trh"]);
+        assert_eq!(hi.word_skeletons("कह"), ["ka"], "two letters would be any path from k to h");
+        assert_eq!(hi.word_skeletons("तेरह"), ["tera"], "the e stays: nothing more is dropped");
+        assert_eq!(hi.word_skeletons("रखा"), ["rka"]);
+        assert_eq!(hi.word_skeletons("दिन"), ["din"]);
+        assert_eq!(hi.word_skeletons("नही"), ["nhi"]);
+        assert!(hi.word_skeletons("्").is_empty());
+        // A pack that names no such sign has one spelling and one skeleton for every word.
+        let ml = pack("ml");
+        assert_eq!(ml.romanize_short("കേരളം"), None);
+        assert_eq!(ml.word_skeletons("കേരളം"), [ml.word_skeleton("കേരളം")]);
+    }
+
+    #[test]
+    fn a_letter_written_for_the_dropped_vowel_gives_a_second_reading() {
+        let hi = pack("hi");
+        for (typed, skeleton, respelt, written) in [
+            ("humse", "humse", Some("hmse"), "hamse"),
+            ("hum", "hum", Some("hm"), "ham"),
+            ("humara", "humra", Some("hmra"), "hamara"),
+            ("kuch", "kuc", Some("kc"), "kach"),
+            ("hamse", "hmse", None, "hamse"),
+            ("tu", "tu", None, "tu"),
+            ("uttar", "utr", None, "uttar"),
+            ("hui", "hui", None, "hui"),
+        ] {
+            assert_eq!(hi.skeleton(typed), skeleton, "{typed}");
+            assert_eq!(hi.skeleton_respelt(typed).as_deref(), respelt, "{typed}");
+            assert_eq!(hi.respelt(typed), written, "{typed}");
+        }
+        assert_eq!(hi.skeleton_respelt("humse").unwrap(), hi.word_skeleton("हमसे"));
+        // Tables that name no such letter read typed letters one way.
+        let ml = pack("ml");
+        assert_eq!(ml.skeleton_respelt("humse"), None);
+        assert_eq!(ml.respelt("Humse"), "humse");
+    }
+
+    #[test]
+    fn an_optional_final_must_be_a_final_with_latin() {
+        let hi = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/hi.neopack/romanisation.json"),
+        )
+        .unwrap();
+        let with = |list: &str| {
+            let mut file: serde_json::Value = serde_json::from_str(&hi).unwrap();
+            file.as_object_mut()
+                .unwrap()
+                .insert("optionalFinals".into(), serde_json::from_str(list).unwrap());
+            Romanisation::parse(&file.to_string())
+        };
+        assert!(with(r#"["ं"]"#).is_ok());
+        assert!(with("[]").unwrap().romanize_short("नहीं").is_none());
+        assert!(with(r#"["क"]"#).unwrap_err().contains("not one of finals"));
+        assert!(with(r#"["ऽ"]"#).unwrap_err().contains("empty"));
     }
 
     #[test]

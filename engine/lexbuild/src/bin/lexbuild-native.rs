@@ -175,9 +175,11 @@ fn run(args: Args) -> io::Result<()> {
         let _ = writeln!(report, "{} top 20: {}", lang.id, top.join(" "));
         if let Some(path) = &args.romanisation {
             let table = Table::load(path)?;
-            let entries = table.entries(&vocab);
-            let _ = writeln!(report, "romanised keys skipped: {}", vocab.len() - entries.len());
-            write_fst(&args.out, "romanised.fst", entries, &mut report)?;
+            let skipped = vocab.iter().filter(|(word, _)| table.key(word).is_none()).count();
+            let _ = writeln!(report, "romanised keys skipped: {skipped}");
+            let (bytes, n) = table.build(&vocab)?;
+            fs::write(args.out.join("romanised.fst"), &bytes)?;
+            let _ = writeln!(report, "romanised.fst: {n} keys, {} bytes", bytes.len());
         }
     }
 

@@ -97,6 +97,74 @@ fn hinglish_on_the_latin_layout() {
     }
 }
 
+/// Hindi's anusvara and chandrabindu at a word's end are often left unwritten (`nahi` for
+/// नहीं, `hu` for हूँ): the pack's `optionalFinals` names them, the word is stored under both
+/// skeletons, and either spelling spells it out.
+#[test]
+fn a_final_nasal_left_unwritten_still_spells_the_word() {
+    let e = engine(&["hi"]);
+    // As the keyboard asks, the best reading in the middle: नहीं, not the misspelling नही.
+    let s = e.suggest("nahi", Layout::Latin, true);
+    assert_eq!(texts(&s)[0], "नहीं", "{}", show(&e, &s));
+    let s = suggest(&e, "nahi", Layout::Latin);
+    let place = |word: &str| texts(&s).iter().position(|t| *t == word);
+    assert!(place("नहीं") < place("नही").or(Some(usize::MAX)), "{}", show(&e, &s));
+    // Written out, it is the same word.
+    let s = e.suggest("nahin", Layout::Latin, true);
+    assert_eq!(texts(&s)[0], "नहीं", "{}", show(&e, &s));
+    for (typed, want) in [("hu", "हूँ"), ("hun", "हूँ"), ("mai", "मैं"), ("yaha", "यहाँ"), ("logo", "लोगों")] {
+        let s = suggest(&e, typed, Layout::Latin);
+        assert!(texts(&s).contains(&want), "{typed}: {}", show(&e, &s));
+    }
+    // A final न is a letter, not the sign: always written.
+    let s = suggest(&e, "di", Layout::Latin);
+    assert!(!texts(&s).contains(&"दिन"), "di: {}", show(&e, &s));
+}
+
+/// The short vowel Hindi's skeleton drops between consonants is written `a` or `u` (`hamse`,
+/// `humse`): the pack's `alsoBetweenConsonants`. A word with a real उ still wins for its own
+/// letters.
+#[test]
+fn a_u_written_for_the_short_vowel_finds_the_word() {
+    let e = engine(&["hi"]);
+    for (typed, want) in [
+        ("humse", "हमसे"),
+        ("hamse", "हमसे"),
+        ("humara", "हमारा"),
+        ("humne", "हमने"),
+        ("kuch", "कुछ"),
+        ("mujhe", "मुझे"),
+        ("dukan", "दुकान"),
+    ] {
+        let s = e.suggest(typed, Layout::Latin, true);
+        assert_eq!(texts(&s)[0], want, "{typed}: {}", show(&e, &s));
+    }
+    // `tum` and `sub` are English words too and keep the middle; the Hindi word is beside
+    // them, तुम ahead of any word the u would stand in for.
+    for (typed, want) in [("tum", "तुम"), ("sub", "सब"), ("hum", "हम")] {
+        let s = e.suggest(typed, Layout::Latin, true);
+        let hindi: Vec<&str> = s
+            .candidates
+            .iter()
+            .filter(|c| e.lang_id(c.lang).is_some_and(|l| l.0 == "hi"))
+            .map(|c| c.text.as_str())
+            .collect();
+        assert_eq!(hindi.first(), Some(&want), "{typed}: {}", show(&e, &s));
+    }
+}
+
+/// Spellings no rule reaches, from the pack's hand-written `chat-forms.tsv`: क्यों walks as
+/// `kyon`, and is written `kyu` and `kyun`.
+#[test]
+fn hindi_chat_spellings_offer_their_word() {
+    let e = engine(&["hi"]);
+    for typed in ["kyu", "kyun", "Kyu"] {
+        let s = suggest(&e, typed, Layout::Latin);
+        assert!(texts(&s).contains(&"क्यों"), "{typed}: {}", show(&e, &s));
+        assert_eq!(lang_of(&e, &s, "क्यों").as_deref(), Some("hi"));
+    }
+}
+
 #[test]
 fn devanagari_on_the_native_layout_completes_words() {
     let e = engine(&["hi"]);

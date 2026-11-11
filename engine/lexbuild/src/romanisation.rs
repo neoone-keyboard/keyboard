@@ -126,12 +126,51 @@ impl Table {
         Some(key)
     }
 
-    /// Romanised-lexicon entries for a native vocabulary.
+    /// Every romanised-lexicon key of a word: `key`'s first, then one for each other skeleton
+    /// the tables give it (`Romanisation::word_skeletons`: नहीं under `nhin` and, its final
+    /// anusvara unwritten, `nhi`). Empty without a skeleton or packing.
+    pub fn keys(&self, word: &str) -> Vec<Vec<u8>> {
+        let Some(packed) = self.pack(word) else {
+            return Vec::new();
+        };
+        self.tables
+            .word_skeletons(word)
+            .into_iter()
+            .map(|skeleton| {
+                let mut key = skeleton.into_bytes();
+                key.push(SEPARATOR);
+                key.extend(&packed);
+                key
+            })
+            .collect()
+    }
+
+    /// Romanised-lexicon entries for a native vocabulary: each word under its first key.
     pub fn entries(&self, vocab: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
         vocab
             .iter()
             .filter_map(|(word, count)| Some((self.key(word)?, *count)))
             .collect()
+    }
+
+    /// The vocabulary's words under their other keys (`keys` after the first), each with the
+    /// word's count: none for tables that give every word one skeleton.
+    pub fn aliases(&self, vocab: &[(String, u64)]) -> Vec<(Vec<u8>, u64)> {
+        vocab
+            .iter()
+            .flat_map(|(word, count)| self.keys(word).into_iter().skip(1).map(|key| (key, *count)))
+            .collect()
+    }
+
+    /// The romanised lexicon of a vocabulary (`lexicon::build_with_aliases` of `entries` and
+    /// `aliases`), and how many keys it has: a word's count is counted once, under whichever
+    /// key it is found.
+    pub fn build(&self, vocab: &[(String, u64)]) -> io::Result<(Vec<u8>, usize)> {
+        let (entries, aliases) = (self.entries(vocab), self.aliases(vocab));
+        let keys = entries.len() + aliases.len();
+        let bytes = mlengine_core::lexicon::build_with_aliases(entries, aliases)
+            .map_err(io::Error::other)?;
+        Ok((bytes, keys))
     }
 }
 
@@ -168,6 +207,31 @@ mod tests {
         ] {
             assert_eq!(t.canonical(word), latin, "{word}");
         }
+    }
+
+    /// A word whose final anusvara or chandrabindu may go unwritten (`optionalFinals`) is
+    /// stored under both skeletons, as the engine keys it, and counted once.
+    #[test]
+    fn a_word_with_an_optional_final_has_two_keys() {
+        let t = hindi();
+        let keys = t.keys("नहीं");
+        assert_eq!(keys.len(), 2);
+        assert_eq!(keys[0], t.key("नहीं").unwrap());
+        assert!(keys[0].starts_with(b"nhin\0") && keys[1].starts_with(b"nhi\0"));
+        assert_eq!(keys[0][5..], keys[1][4..]);
+        assert_eq!(keys, mlengine_core::manglish::keys(&t.tables, "नहीं"));
+        assert_eq!(t.keys("दिन"), [t.key("दिन").unwrap()]);
+        assert!(t.keys("abc").is_empty());
+        let vocab = [("नहीं".to_string(), 30), ("नही".to_string(), 10), ("दिन".to_string(), 60)];
+        assert_eq!(t.entries(&vocab).len(), 3);
+        assert_eq!(t.aliases(&vocab), [(keys[1].clone(), 30)]);
+        let (bytes, n) = t.build(&vocab).unwrap();
+        assert_eq!(n, 4);
+        let lexicon = mlengine_core::lexicon::Lexicon::from_bytes(bytes).unwrap();
+        assert_eq!(lexicon.get(&keys[0]), Some(30));
+        assert_eq!(lexicon.get(&keys[1]), Some(30));
+        // 30 of 100, not of 130.
+        assert!((lexicon.log_prob(30) - 0.3f32.ln()).abs() < 1e-6);
     }
 
     #[test]
