@@ -97,6 +97,7 @@
     "ः": [["h", 0.6], ["", 0.4]],
     "ऽ": [["", 0.6], ["a", 0.4]]
   },
+  "optionalFinals": ["ं", "ँ"],
   "inherent": {
     "medial": [["a", 0.9], ["", 0.1]],
     "schwaDeleted": [["", 0.6], ["a", 0.4]],
@@ -118,6 +119,7 @@
     "letters": {"z": "j", "f": "p", "w": "v", "q": "k"},
     "vowels": "aeiou",
     "dropBetweenConsonants": "a",
+    "alsoBetweenConsonants": "u",
     "dropFinal": "a"
   },
   "looseSpelling": {
@@ -128,6 +130,7 @@
   "notes": {
     "inherent": "The inherent vowel is typed 'a' inside a word and dropped at its end (घर ghar). Speech drops it inside words too (करब karab, करबाक karbak), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key.",
     "letters": "ऽ (avagraha) lengthens the vowel before it and is typed as nothing or as a (कऽ ka, भऽ bha); it is a final in the tables. Candrabindu is n or nothing (सँ san / sa, केँ ken / ke), anusvara n, or m before a labial. ज्ञ is gy (ज्ञान gyan). A nukta letter is its consonant plus U+093C after NFC, so its key is two code points; ड़ is r or d (बड़ bar / bad).",
-    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; mb and mp to nb and np. A final a after a consonant is dropped, which covers the final inherent vowel typed or not."
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; mb and mp to nb and np. A final a after a consonant is dropped, which covers the final inherent vowel typed or not.",
+    "unwritten": "A final candrabindu or anusvara after a vowel is as often left unwritten (सँ sa, केँ ke), so optionalFinals names both: such a word is also keyed by the skeleton of its walk without the n, and either spelling spells it out; a final न is always written. The dropped medial vowel is often written u (hum for हम, humar for हमर), so alsoBetweenConsonants u: typed letters with a u between consonants are also looked up with it dropped, behind the words that have the u. On the held-out Aksharantar rows, whose annotators wrote every final nasal, the two together move the first native suggestion from 46.4% to 46.3% and leave the bar at 50.1%."
   }
 }

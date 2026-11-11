@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "bho",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Bhojpuri",
   "nativeName": "भोजपुरी",
   "script": "deva",
@@ -23,8 +23,8 @@
     "lang.json": "7d68f4a78492a7538eeee8a73e99ea499395bf4c78fc0a49c67736405bf75b2d",
     "layout.json": "683e77f1020a49af4fb108b244db6cf268c15b85bb51c61ae0a1396312c14d5f",
     "next.fst": "629f094282bc7c30e74b40b5fa5bb3466015c79bd9976bef2445eaa0e03ca2ef",
-    "romanisation.json": "c0a0d8d0597de3acc16d491a22a377a1349be581fbd2ef410c42fec89ed2a6dd",
-    "romanised.fst": "5f4473c2e805142bcc40f5144ec0b6622ddee41930c6513cc2d42f6876f94816",
+    "romanisation.json": "9a2ae0a35ff40df14974c1175b110ededc113b864d12d1a41c5a63ece7d63dcb",
+    "romanised.fst": "9d0339f58e80f57842231c9e83d2d2efaf81682ca2f5b100889895d6ee993a97",
     "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
   },
   "credits": [

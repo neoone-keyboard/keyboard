@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "mai",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Maithili",
   "nativeName": "मैथिली",
   "script": "deva",
@@ -23,8 +23,8 @@
     "layout.json": "0bd162132ebe65a841555223ae2ca76621dcfe9c9bd9a2da024f833814989991",
     "mai.fst": "ca704166414f48236b87cb2e61398081bb181aff803e52b2431578412b5eac19",
     "next.fst": "a1349f4cbf90c676efee7cce0d3e7ca4f18f74c8ed44e10abadae8c9a006eb06",
-    "romanisation.json": "8227e442180711c765606d2a886ea67e57ebc3b17c4e141e54b4997881d242a4",
-    "romanised.fst": "2cc65904c1871f1ca0ac52bf55226bbb86f806967ff0b3c2b54307675824eeab",
+    "romanisation.json": "01168596ddb5d2cbe324417655d3037fa690de5653eedae684c25c20155dde16",
+    "romanised.fst": "1e8bd015701748ae0566e1a48df2214cf046d1c48796ba3e6bb6763c117b10f3",
     "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
   },
   "credits": [

@@ -239,6 +239,10 @@ def export(t: Tables) -> dict:
     }
     if sk.get("dropBetweenConsonants"):
         skeleton["dropBetweenConsonants"] = sk["dropBetweenConsonants"]
+    # A letter people write for that dropped vowel (Hindi's u: hum for हम); the engine reads
+    # typed letters the second way too. It changes no key, so this skeleton doesn't use it.
+    if sk.get("alsoBetweenConsonants"):
+        skeleton["alsoBetweenConsonants"] = sk["alsoBetweenConsonants"]
     skeleton["dropFinalVowel"] = {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3}
     return {
         "format": 1,

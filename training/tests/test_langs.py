@@ -316,8 +316,11 @@ def test_the_skeletons_optional_steps_come_from_the_hand_file():
     data["skeleton"]["dropTrailing"] = {"letters": "nm", "afterVowel": True, "minLength": 3}
     data["skeleton"]["dropBetweenConsonants"] = "a"
     data["skeleton"]["dropFinal"] = ""
+    data["skeleton"]["alsoBetweenConsonants"] = "u"
     t = Tables(data)
     f = Format1(export(t))
+    assert "alsoBetweenConsonants" not in plain
+    assert f.data["skeleton"]["alsoBetweenConsonants"] == "u"
     assert f.data["skeleton"]["dropTrailing"]["letters"] == "nm"
     assert f.data["skeleton"]["dropBetweenConsonants"] == "a"
     assert list(f.data["skeleton"])[-1] == "dropFinalVowel"

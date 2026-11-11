@@ -605,8 +605,10 @@ written, and so is one that follows a bare consonant (स्वयं). The fiel
 export copies it); after adding it, rebuild the romanised lexicon from the tables
 (`lexbuild-rekey romanisation.json <id>.fst <romanised>.fst` does it without the corpus) and
 run `scripts/pack.py --write`. `lexbuild --lang` and `lexbuild-native --romanisation` write
-both keys; `mlkb.langs.romanised_keys` writes one, so a `data/langs` language that uses the
-field should rekey afterwards.
+both keys; `mlkb.langs.romanised_keys` writes one, so for a `data/langs` language that uses
+the field `data/build-pack-lexicons.sh` runs `lexbuild-rekey` on the pack after it. For such
+a language write the field in both `romanisation.hand.json` and `romanisation-weights.json`,
+beside `finals` (Marathi, Maithili and Bhojpuri have it).
 
 **Two more for a skeleton that drops a vowel between consonants** (Hindi's
 `dropBetweenConsonants: "a"`), both optional:
@@ -615,7 +617,11 @@ field should rekey afterwards.
   (`hum`, `humse`, `humara` for हम, हमसे, हमारा, which walk with `a`). Typed letters with it
   between two consonants are also looked up with it dropped, behind the words that really
   have it (`kuch` is still कुछ first). It doesn't change the lexicon. For the few such words
-  people swipe most, add rows to `chat-forms.tsv`: a swipe doesn't use this field.
+  people swipe most, add rows to `chat-forms.tsv`: a swipe doesn't use this field. In a
+  `data/langs` language it goes in the `skeleton` of the hand and weights files, and the
+  export copies it (Maithili and Bhojpuri have it: `hum` for हम, `humar` for हमार). Measure
+  it: on held-out rows it moved a few first suggestions the wrong way in every language
+  tried, most in Marathi, which was left without it.
 - `"alsoKept": true` in `skeleton.dropTrailing`: a word that ends consonant, dropped vowel,
   dropped trailing letter (जगह `jagah`: `jga`) gets a second key with the trailing letter
   kept (`jgh`), so a swipe that goes j, g, h without returning to `a` finds it. It adds keys:
