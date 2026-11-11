@@ -155,6 +155,8 @@ targets:
     sources:
       - path: KeyboardAppTests
       - path: TestSupport
+      - path: KeyboardExtension/TopBarView.swift
+      - path: KeyboardExtension/KeyboardTheme.swift
       - path: ../../engine/core/tests/fixtures/gu.neopack
         type: folder
         buildPhase: resources
