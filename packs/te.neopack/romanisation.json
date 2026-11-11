@@ -1,0 +1,130 @@
+{
+  "format": 1,
+  "script": "telu",
+  "virama": "్",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": "a"
+  },
+  "independentVowels": {
+    "అ": "a",
+    "ఆ": "aa",
+    "ఇ": "i",
+    "ఈ": "ee",
+    "ఉ": "u",
+    "ఊ": "oo",
+    "ఋ": "ru",
+    "ౠ": "ru",
+    "ఌ": "lu",
+    "ౡ": "lu",
+    "ఎ": "e",
+    "ఏ": "e",
+    "ఐ": "ai",
+    "ఒ": "o",
+    "ఓ": "o",
+    "ఔ": "au"
+  },
+  "vowelSigns": {
+    "ా": "aa",
+    "ి": "i",
+    "ీ": "ee",
+    "ు": "u",
+    "ూ": "uu",
+    "ృ": "ru",
+    "ౄ": "ru",
+    "ె": "e",
+    "ే": "e",
+    "ై": "ai",
+    "ొ": "o",
+    "ో": "o",
+    "ౌ": "ou",
+    "ౢ": "lu",
+    "ౣ": "lu"
+  },
+  "consonants": {
+    "క": "k",
+    "ఖ": "kh",
+    "గ": "g",
+    "ఘ": "gh",
+    "ఙ": "n",
+    "చ": "ch",
+    "ఛ": "ch",
+    "జ": "j",
+    "ఝ": "jh",
+    "ఞ": "n",
+    "ట": "t",
+    "ఠ": "th",
+    "డ": "d",
+    "ఢ": "dh",
+    "ణ": "n",
+    "త": "t",
+    "థ": "th",
+    "ద": "d",
+    "ధ": "dh",
+    "న": "n",
+    "ప": "p",
+    "ఫ": "f",
+    "బ": "b",
+    "భ": "bh",
+    "మ": "m",
+    "య": "y",
+    "ర": "r",
+    "ఱ": "r",
+    "ల": "l",
+    "ళ": "l",
+    "ఴ": "zh",
+    "వ": "v",
+    "శ": "s",
+    "ష": "sh",
+    "స": "s",
+    "హ": "h",
+    "ౘ": "ts",
+    "ౙ": "dz",
+    "ౚ": "r"
+  },
+  "finals": {
+    "ం": "n",
+    "ఁ": "n",
+    "ః": "h",
+    "ఽ": ""
+  },
+  "clusters": {
+    "క్ష": "ksh",
+    "చ్చ": "cch",
+    "చ్ఛ": "chch",
+    "జ్ఞ": "gn",
+    "ట్ట": "tt",
+    "త్త": "tt",
+    "త్థ": "tth",
+    "ద్ద": "dd",
+    "ద్ధ": "ddh",
+    "శ్ర": "sr"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "nm",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["mchh", "nc"], ["chh", "c"], ["mkh", "nk"], ["mgh", "ng"], ["mch", "nc"], ["mjh", "nj"], ["mth", "nt"], ["mdh", "nd"], ["mph", "np"], ["mbh", "nb"], ["msh", "ns"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["zh", "l"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ow", "au"], ["ae", "e"], ["ea", "e"], ["oa", "o"], ["oe", "o"], ["mk", "nk"], ["mg", "ng"], ["mc", "nc"], ["mj", "nj"], ["mt", "nt"], ["md", "nd"], ["mp", "np"], ["mb", "nb"], ["ms", "ns"], ["mh", "nh"], ["mv", "nv"], ["mw", "nv"], ["mr", "nr"], ["ml", "nl"], ["my", "ny"]],
+    "singles": {
+      "f": "p",
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks"
+    },
+    "collapseDoubles": true,
+    "dropFinalVowel": {
+      "vowels": "",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
+  "notes": "inherent: The inherent vowel is a and is always said, so it is always typed (అమ్మ amma, తరగతి taragati): there is no schwa deletion, and a word ends in a virama only in loanwords (బస్ bas). anusvara: ం is the nasal of the stop after it inside a word (అందం andam, ఇంకా inka, పంపు pampu) and m at the end of a word (పుస్తకం pustakam). The tables have one spelling list for it wherever it stands, so the skeleton makes both readings one key: m before a consonant folds to n (the m + consonant entries of `replace`), and a final n or m after a vowel is dropped (dropTrailing). The price: a word that ends in n or m shares its key with the word without it. dentals: త is typed t or th (తెలుగు telugu / thelugu, తరువాత taruvata / tharuvatha) and ద d or dh; ట and డ are t and d. The skeleton folds th to t and dh to d, so త థ ట ఠ are one key letter, and ద ధ డ ఢ another. vowels: Long vowels are typed doubled about half the time (aa, ee, oo); ే and ో are mostly plain e and o. The skeleton folds aa, ee, ii, oo, uu, and ae and ea to e. letters: చ is ch, ఛ ch or chh, శ sh or s, ష sh, ఫ ph or f, వ v or w, ళ and ల l, ణ and న n, ఱ and ర r. ఋ and ృ are ru (కృష్ణ krushna) or ri (krishna). క్ష is ksh, జ్ఞ gn, jn or gy, శ్ర shr or sr. doubled: Doubled consonants are common and usually typed doubled (అక్క akka, చెప్పు cheppu); చ్చ is cch, chch or ch (వచ్చాడు vacchadu), త్త tt or tth, ద్ద dd or ddh. joiners: A ZWNJ after a virama (ఆన్‌లైన్) has no spelling: the walk skips it."
+}

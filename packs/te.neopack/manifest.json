@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "id": "te",
+  "version": "2026.11.11",
+  "name": "Telugu",
+  "nativeName": "తెలుగు",
+  "script": "telu",
+  "romanised": {
+    "name": "Tenglish"
+  },
+  "minEngine": 6,
+  "files": {
+    "lexicon": "te.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "lang.json": "9e58715780c7056060d49d6035c14236ddb2036f5d4bc48a33860e115f2f15ba",
+    "layout.json": "f62b1040e653aadfde146f12d10928dc290b215c7596f4eb41a19b531c126051",
+    "next.fst": "9060222591fbf4732422e190cbd227cdbc0d4cc3e4214a545c3786dcf51b7acf",
+    "romanisation.json": "f67abd9cc9072ddb0477d050f4dbe8ac0b2ce19d75ae6903247567ed64e29307",
+    "romanised.fst": "4e13e1766b3fa172d39de0b7e5f48e4b9f1535af86e1064a522c3a2e4a243288",
+    "te.fst": "5108e8d0bb959ab4c76dd6616419ec21c787edda048dfbc7a248c7437c10c06a",
+    "translit.mlkbnn": "80c71b3bf19092e4c07db15183913c376b7fccf470185be178a6910e15a09c66"
+  },
+  "credits": [
+    {
+      "name": "Telugu Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://te.wikipedia.org/"
+    },
+    {
+      "name": "Telugu Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://te.wikisource.org/"
+    },
+    {
+      "name": "Telugu Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://te.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}
