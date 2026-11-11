@@ -5,23 +5,35 @@
       "id": "as",
       "name": "Assamese",
       "nativeName": "অসমীয়া",
-      "version": "2026.11.14",
+      "version": "2026.11.15",
       "script": "beng",
-      "minEngine": 3,
+      "minEngine": 6,
       "size": 25840111,
-      "sha256": "c76727115c84b6e22305d5ada8be9387c9bac4c62ddb22d239c5d9c79aab8207",
-      "url": "https://neoone.jishnu.me/packs/as-2026.11.14.neopack"
+      "sha256": "41932e840c619f701beb29bbbca7046110baa57adb69ee444d95eda2903b260b",
+      "url": "https://neoone.jishnu.me/packs/as-2026.11.15.neopack"
     },
     {
       "id": "hi",
       "name": "Hindi",
       "nativeName": "हिन्दी",
-      "version": "2026.11.14",
+      "version": "2026.11.15",
+      "script": "deva",
+      "minEngine": 7,
+      "size": 26603883,
+      "sha256": "086b7304f7e8c9dcb8d08dd0c6abc4130f80f870a9e6405f13580ce615d4d095",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.15.neopack",
+      "englishFingerprint": "9a50d0c85c79a0df"
+    },
+    {
+      "id": "hi",
+      "name": "Hindi",
+      "nativeName": "हिन्दी",
+      "version": "2026.11.12",
       "script": "deva",
       "minEngine": 3,
-      "size": 26603883,
-      "sha256": "c7a9b2ff440d0e013d71d17be161f67c72270b02a25525f14bb81305e214988b",
-      "url": "https://neoone.jishnu.me/packs/hi-2026.11.14.neopack",
+      "size": 26195119,
+      "sha256": "dc5218f40c76290273bac648c12ef258379e5039c6b5f52cd00daba480afaeb3",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.12.neopack",
       "englishFingerprint": "9a50d0c85c79a0df"
     },
     {
@@ -39,12 +51,12 @@
       "id": "ta",
       "name": "Tamil",
       "nativeName": "தமிழ்",
-      "version": "2026.11.14",
+      "version": "2026.11.15",
       "script": "taml",
-      "minEngine": 4,
+      "minEngine": 6,
       "size": 29843371,
-      "sha256": "599165e1f5a1d65b794d69607f9a245c43231f8bc1f73084e8a956c33415ed53",
-      "url": "https://neoone.jishnu.me/packs/ta-2026.11.14.neopack"
+      "sha256": "c9e8ae94309053bd4ecf68c0d67ff55cb90468fb23d5ba2aefb943df021aad3b",
+      "url": "https://neoone.jishnu.me/packs/ta-2026.11.15.neopack"
     }
   ]
 }
