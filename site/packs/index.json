@@ -28,12 +28,12 @@
       "id": "ml",
       "name": "Malayalam",
       "nativeName": "മലയാളം",
-      "version": "2026.11.12",
+      "version": "2026.11.13",
       "script": "mlym",
       "minEngine": 1,
-      "size": 31423847,
-      "sha256": "cb78a4f4acc28d1f90417e8709dfe4df55435737b43ddf2be78984dfd99faa78",
-      "url": "https://neoone.jishnu.me/packs/ml-2026.11.12.neopack"
+      "size": 31416322,
+      "sha256": "a1bce6806e8aef729d5dbc4f291fc062ef02d433c6f6e6a5a747bbcc0900e469",
+      "url": "https://neoone.jishnu.me/packs/ml-2026.11.13.neopack"
     },
     {
       "id": "ta",
