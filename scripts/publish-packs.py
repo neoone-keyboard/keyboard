@@ -28,6 +28,12 @@ that its engine reads; one that no app would pick any more is refused, so delete
 file stays in R2: --deploy checks it is still served and never uploads it. Within an id the
 index lists the newest version first; every app picks, per id, the newest entry it can read.
 
+Unlisted packs: site-src/unlisted-packs.json names, by hand, the ids of packs in packs/ that are
+not published: trial packs handed out as files (scripts/pack.py --zip) and imported from Files.
+Their checksums are checked like any pack's, but they get no zip in build/site-packs/, no entry
+in the index, no line or section on the credits page and no upload. An id there that packs/
+doesn't have is refused, so delete it; to publish the pack, take its id off the list.
+
 Then it prints the `wrangler r2 object put` commands that upload the pack files. It runs them
 only with --deploy (`make site-deploy`), which uploads the files the site doesn't serve yet and
 then runs `wrangler deploy`. A file's name carries its version, so a published file never
@@ -64,6 +70,7 @@ WRANGLER = ["npx", "-y", "wrangler@4"]
 R2_PREFIX = "packs/"  # hosting/worker.js serves R2 key packs/<file> at /packs/<file>
 INDEX_CACHE = "public, max-age=300"
 KEPT = SITE_SRC / "kept-packs.json"
+UNLISTED = SITE_SRC / "unlisted-packs.json"
 LEXICON = ROOT / "apps" / "ios" / "KeyboardExtension" / "Lexicon"
 DATA_MANIFESTS = ROOT / "data" / "manifests"
 
@@ -127,15 +134,46 @@ def config() -> dict:
 
 # --- Packs -----------------------------------------------------------------------------------
 
-def build_packs(pack_module, out: Path, downloads: str) -> list[dict]:
-    """Zips every pack in packs/ into `out`, one file per pack id and version."""
+def unlisted_ids(raw: dict, pack_ids: list[str]) -> list[str]:
+    """The ids site-src/unlisted-packs.json (`raw`) leaves out of the site, checked against the
+    ids of the packs in packs/ (`pack_ids`). Raises SystemExit for anything but a list of
+    distinct ids of packs there."""
+    ids = raw.get("ids", [])
+    if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+        raise SystemExit("unlisted-packs.json: ids must be a list of pack ids")
+    twice = sorted({i for i in ids if ids.count(i) > 1})
+    if twice:
+        raise SystemExit(f"unlisted-packs.json: listed twice: {', '.join(twice)}")
+    unknown = [i for i in ids if i not in pack_ids]
+    if unknown:
+        raise SystemExit(f"unlisted-packs.json: packs/ has no pack {', '.join(unknown)}; delete the id")
+    return ids
+
+
+def read_unlisted(manifests: list[tuple[Path, dict]]) -> list[str]:
+    if not UNLISTED.is_file():
+        return []
+    return unlisted_ids(json.loads(UNLISTED.read_text(encoding="utf-8")), [m["id"] for _, m in manifests])
+
+
+def pack_manifests() -> list[tuple[Path, dict]]:
+    """Every pack folder in packs/ with its manifest."""
+    return [(folder, json.loads((folder / "manifest.json").read_text(encoding="utf-8")))
+            for folder in sorted(PACKS.glob("*.neopack"))]
+
+
+def build_packs(pack_module, out: Path, downloads: str, manifests: list[tuple[Path, dict]],
+                unlisted: list[str]) -> list[dict]:
+    """Zips every pack of `manifests` into `out`, one file per pack id and version, but for the
+    `unlisted` ones, whose checksums are checked and nothing more."""
     releases = []
-    for folder in sorted(PACKS.glob("*.neopack")):
-        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    for folder, manifest in manifests:
         current = pack_module.listed(folder, manifest)
         if manifest.get("sha256") != current:
             raise SystemExit(f"{folder}: checksums stale; run scripts/pack.py {folder} --write")
         pid, version = manifest["id"], manifest["version"]
+        if pid in unlisted:
+            continue
         archive = out / f"{pid}-{version}.neopack"
         pack_module.write_zip(folder, list(current), archive)
         entry = {
@@ -470,7 +508,9 @@ def main() -> int:
             for old in BUILD.iterdir():  # earlier versions' files
                 if old.is_file():
                     old.unlink()
-        releases = build_packs(pack_module, out, cfg["downloads"])
+        manifests = pack_manifests()
+        unlisted = read_unlisted(manifests)
+        releases = build_packs(pack_module, out, cfg["downloads"], manifests, unlisted)
         kept = read_kept(releases, cfg["downloads"])
         english = build_english(out, cfg["downloads"])
         files = site_files(cfg, releases, kept, english)
@@ -503,6 +543,9 @@ def main() -> int:
     for r in releases:
         ent = r["entry"]
         print(f"{ent['id']} {ent['version']}: {ent['size']} bytes, sha256 {ent['sha256']}")
+    for _, m in manifests:
+        if m["id"] in unlisted:
+            print(f"{m['id']} {m['version']}: unlisted (site-src/unlisted-packs.json), not published")
     for ent in kept:
         print(f"{ent['id']} {ent['version']}: kept for engine {ent['minEngine']}, served at {ent['url']}")
     print(f"english-base: {english['size']} bytes, sha256 {english['sha256']}")

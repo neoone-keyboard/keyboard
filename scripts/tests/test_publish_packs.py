@@ -1,4 +1,5 @@
-"""scripts/publish-packs.py: the pack index's entries kept for older engines.
+"""scripts/publish-packs.py: the pack index's entries kept for older engines, and the packs
+left out of the site.
 
     python3 -I -m unittest discover -s scripts/tests
 """
@@ -79,6 +80,48 @@ class Kept(unittest.TestCase):
         # An engine 1 entry older than the engine 2 one is still the newest engine 1 reads.
         one = entry(version="2026.11.01", min_engine=1)
         self.assertEqual(len(pp.kept_entries(kept(newer, one), releases(entry()), DOWNLOADS)), 2)
+
+
+class Unlisted(unittest.TestCase):
+    def test_ids_of_packs_in_packs(self):
+        self.assertEqual(pp.unlisted_ids({"about": "…", "ids": ["mr", "bn"]}, ["bn", "hi", "mr"]), ["mr", "bn"])
+        self.assertEqual(pp.unlisted_ids({}, ["hi"]), [])
+
+    def test_refusals(self):
+        cases = {"no pack": ["mr"], "twice": ["hi", "hi"], "not ids": [{"id": "hi"}], "not a list": "hi"}
+        for why, ids in cases.items():
+            with self.subTest(why), self.assertRaises(SystemExit):
+                pp.unlisted_ids({"ids": ids}, ["hi"])
+
+    def test_an_unlisted_pack_is_checked_but_not_built_or_listed(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            manifests = []
+            for pid in ("hi", "mr"):
+                pack = root / f"{pid}.neopack"
+                pack.mkdir()
+                (pack / "layout.json").write_text("{}")
+                manifest = {"id": pid, "name": pid.upper(), "version": "1", "script": "deva", "minEngine": 3,
+                            "files": {"layout": "layout.json"}}
+                manifest["sha256"] = pp.load_pack_module().listed(pack, manifest)
+                (pack / "manifest.json").write_text(json.dumps(manifest))
+                manifests.append((pack, manifest))
+            out = root / "out"
+            out.mkdir()
+            module = pp.load_pack_module()
+            got = pp.build_packs(module, out, DOWNLOADS, manifests, ["mr"])
+            self.assertEqual([r["entry"]["id"] for r in got], ["hi"])
+            self.assertEqual(sorted(p.name for p in out.iterdir()), ["hi-1.neopack"])
+            self.assertEqual([e["id"] for e in json.loads(pp.index_json(got, []))["packs"]], ["hi"])
+            # Unlisted, its checksums are still checked.
+            (root / "mr.neopack" / "layout.json").write_text("{ }")
+            with self.assertRaises(SystemExit):
+                pp.build_packs(module, out, DOWNLOADS, manifests, ["mr"])
+            # And a kept entry of an unlisted id has no pack to be older than.
+            with self.assertRaises(SystemExit):
+                pp.kept_entries(kept(entry(pid="mr", version="0", min_engine=2)), got, DOWNLOADS)
 
 
 class Index(unittest.TestCase):

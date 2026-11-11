@@ -1186,6 +1186,16 @@ with `make site-packs`, which publishes the language: the last step of `make tes
 (`publish-packs.py --check`: "out of date: packs/index.json"), which runs after every other
 check there, and `PackIndexTests` in `make test-swift`. Leave them.
 
+A pack that should be in the repository but not on the site yet (a trial pack for a few
+people to try) is cleared the other way: add its id to `ids` in
+`site-src/unlisted-packs.json`. An unlisted pack is checked like any pack (`pack.py --check`,
+`pack_check.rs`, its checksums in `publish-packs.py`), but `make site-packs` leaves it out of
+`site/packs/index.json`, the credits page and the uploads, so the app's Download section never
+offers it, and both checks above pass. Hand it out as a file
+(`python3 -I scripts/pack.py packs/xx.neopack --zip xx-<version>.neopack`), which Import from
+Files takes. To publish it, take the id off the list and run `make site-packs`. The script
+refuses an id that `packs/` has no pack for.
+
 ## Host your own packs
 
 You don't need a server to share a pack. A `.neopack` file anyone can download is enough,

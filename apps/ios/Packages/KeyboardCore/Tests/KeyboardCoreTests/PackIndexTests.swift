@@ -245,6 +245,8 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
 /// https pack files named by id and version. Any other entry of an id is one kept for older
 /// engines (site-src/kept-packs.json): older and for a lower engine than the pack in packs/,
 /// and the one an app on its engine picks. An app on the engine of packs/ picks those.
+/// The packs site-src/unlisted-packs.json names (trial packs, handed out as files) are in
+/// packs/ and not in the index.
 @Test func thePublishedIndexMatchesThePacks() throws {
     let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -252,8 +254,14 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
         .deletingLastPathComponent()
     let file = repoRoot.appending(path: "site/packs/index.json")
     let index = try PackIndex.decode(Data(contentsOf: file), base: URL(string: "https://example.test/packs/index.json")!)
-    let packs = PackDescriptor.scan(repoRoot.appending(path: "packs"))
+    struct Unlisted: Decodable { let ids: [String] }
+    let unlisted = try JSONDecoder().decode(
+        Unlisted.self, from: Data(contentsOf: repoRoot.appending(path: "site-src/unlisted-packs.json"))).ids
+    let inPacks = PackDescriptor.scan(repoRoot.appending(path: "packs"))
+    #expect(unlisted.allSatisfy { id in inPacks.contains { $0.id == id } }, "an unlisted id is a pack in packs/")
+    let packs = inPacks.filter { !unlisted.contains($0.id) }
     #expect(!packs.isEmpty)
+    #expect(index.packs.allSatisfy { !unlisted.contains($0.id) })
     let ids = index.packs.map(\.id).reduce(into: [String]()) { if $0.last != $1 { $0.append($1) } }
     #expect(ids == packs.map(\.id), "by id, an id's entries together")
     for entry in index.packs {
