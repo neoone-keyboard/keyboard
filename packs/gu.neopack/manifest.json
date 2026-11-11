@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "gu",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Gujarati",
   "nativeName": "ગુજરાતી",
   "script": "gujr",
   "romanised": {
     "name": "Gujlish"
   },
-  "minEngine": 4,
+  "minEngine": 6,
   "files": {
     "lexicon": "gu.fst",
     "romanisedLexicon": "romanised.fst",

@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "bn",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Bengali",
   "nativeName": "বাংলা",
   "script": "beng",
   "romanised": {
     "name": "Romanised Bengali"
   },
-  "minEngine": 4,
+  "minEngine": 7,
   "files": {
     "lexicon": "bn.fst",
     "romanisedLexicon": "romanised.fst",

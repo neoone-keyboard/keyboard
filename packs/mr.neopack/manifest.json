@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "mr",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Marathi",
   "nativeName": "मराठी",
   "script": "deva",
   "romanised": {
     "name": "Romanised Marathi"
   },
-  "minEngine": 2,
+  "minEngine": 7,
   "files": {
     "lexicon": "mr.fst",
     "romanisedLexicon": "romanised.fst",

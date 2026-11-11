@@ -64,7 +64,7 @@ fn edited(edit: impl Fn(&str) -> String, lang: Option<&str>) -> tempfile::TempDi
 fn the_pack_opens_with_its_own_script() {
     let pack = Pack::open(&fixture()).unwrap();
     assert_eq!(pack.manifest.script, "gujr");
-    assert_eq!(pack.manifest.min_engine, 4);
+    assert_eq!(pack.manifest.min_engine, 6);
     assert!(pack.file("lang").is_some());
     assert!(!script::supported().contains(&"gujr"), "the engine has no copy of Gujarati's rules");
 

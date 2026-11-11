@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "mai",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Maithili",
   "nativeName": "मैथिली",
   "script": "deva",
   "romanised": {
     "name": "Romanised Maithili"
   },
-  "minEngine": 2,
+  "minEngine": 7,
   "files": {
     "lexicon": "mai.fst",
     "romanisedLexicon": "romanised.fst",

@@ -8,7 +8,7 @@
   "romanised": {
     "name": "Romanised Gujarati"
   },
-  "minEngine": 4,
+  "minEngine": 6,
   "files": {
     "lexicon": "gu.fst",
     "romanisedLexicon": "romanised.fst",

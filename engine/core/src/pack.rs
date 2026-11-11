@@ -550,7 +550,7 @@ mod tests {
     #[test]
     fn the_committed_packs_open() {
         let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
-        for (id, script, min_engine) in [("ml", "mlym", 1), ("hi", "deva", 3), ("as", "beng", 3)] {
+        for (id, script, min_engine) in [("ml", "mlym", 1), ("hi", "deva", 7), ("as", "beng", 6)] {
             let pack = Pack::open(&packs.join(format!("{id}.neopack"))).unwrap();
             assert_eq!(pack.manifest.id, id);
             assert_eq!(pack.manifest.script, script);

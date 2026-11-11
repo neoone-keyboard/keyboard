@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "ta",
-  "version": "2026.11.14",
+  "version": "2026.11.15",
   "name": "Tamil",
   "nativeName": "தமிழ்",
   "script": "taml",
   "romanised": {
     "name": "Tanglish"
   },
-  "minEngine": 4,
+  "minEngine": 6,
   "files": {
     "lexicon": "ta.fst",
     "romanisedLexicon": "romanised.fst",
