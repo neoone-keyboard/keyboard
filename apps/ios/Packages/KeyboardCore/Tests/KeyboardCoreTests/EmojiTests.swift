@@ -195,7 +195,7 @@ private let wordsText = """
     #expect(inBoth < 10, "a handful of Latin words are in both lists")
     #expect(words.emoji(for: "പൂച്ച").first == "🐈")
     #expect(words.emoji(for: "pizza") == alone.emoji(for: "pizza"))
-    #expect(pack("hi").emojiWords == nil, "a pack without the role brings none")
+    #expect(pack("mai").emojiWords == nil, "a pack without the role brings none: CLDR has no Maithili words")
     // The app's copy for a Malayalam pack published before the role is the same file.
     let fallback = try Data(contentsOf: bundledEmoji.appending(path: "packs/ml/emoji-words.txt"))
     #expect(fallback == packs)

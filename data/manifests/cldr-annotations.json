@@ -1,14 +1,23 @@
 {
   "id": "cldr-annotations",
-  "name": "Unicode CLDR 49 emoji annotations (English, Malayalam)",
+  "name": "Unicode CLDR 49 emoji annotations",
   "homepage": "https://cldr.unicode.org/",
   "licence": "Unicode License v3",
   "licence_url": "https://www.unicode.org/license.txt",
-  "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, common/annotations/ and common/annotationsDerived/ en.xml and ml.xml, distributed under the Unicode License v3.",
+  "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, common/annotations/ and common/annotationsDerived/: en.xml for the app, and a pack language's files for its pack, distributed under the Unicode License v3.",
   "verdict": "use",
   "verdict_reason": "Permissive, like the Unicode emoji data: the CLDR data files are under the Unicode License v3, which allows modified copies with the notice, carried in the app's About screen.",
-  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt, with the derived names (flags by country, keycaps, people by role and gender) from annotationsDerived. English's files are the app's (apps/ios/KeyboardExtension/Emoji/); a pack language's (ml.xml and derived-ml.xml here) go to data/langs/<id>/ and into its pack as the emojiWords and emojiSearch roles, and Malayalam's also to the app's Emoji/packs/ml/, for a Malayalam pack published before packs carried them. No Manglish: CLDR has no romanised Malayalam.",
-  "retrieved": "2026-11-05",
+  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt, with the derived names (flags by country, keycaps, people by role and gender) from annotationsDerived. English's files are the app's (apps/ios/KeyboardExtension/Emoji/); a pack language's (\"packs\" here: pack id to CLDR locale, its files <locale>.xml and derived-<locale>.xml) go to data/langs/<id>/ by data/build-emoji.sh and into its pack as the emojiWords and emojiSearch roles, and Malayalam's also to the app's Emoji/packs/ml/, for a Malayalam pack published before packs carried them. Native script only: CLDR has no romanised words (no Manglish, no Hinglish). Not here: Bhojpuri, which CLDR 49 has no annotation files for (bho.xml is a 404), and Maithili, whose mai.xml names 8 emoji and whose derived file one; their packs bring no emoji words, and Hindi's are not put in their place.",
+  "retrieved": "2026-11-11",
+  "packs": {
+    "as": "as",
+    "bn": "bn",
+    "gu": "gu",
+    "hi": "hi",
+    "ml": "ml",
+    "mr": "mr",
+    "ta": "ta"
+  },
   "files": [
     {
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/en.xml",
@@ -29,6 +38,66 @@
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/ml.xml",
       "sha256": "c13a064ef79c2eaf88f9fd80604ef7107678511ea49ce6497d99084cd17a4729",
       "path": "derived-ml.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/as.xml",
+      "sha256": "443a04ca8a98397ae34dd19a31286a4b576014e4572ce93fb5f2a0de427a4373",
+      "path": "as.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/as.xml",
+      "sha256": "95dfc1893d2f5d2c603587fea800332f5ac624f866d2694160d40444340ecf24",
+      "path": "derived-as.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/bn.xml",
+      "sha256": "9b7bf4bd7b5deafd4370c5085d9a6a5e04029e21c005ace782fbd54c937fca1d",
+      "path": "bn.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/bn.xml",
+      "sha256": "46aafaaf8b74f17773cce1bac76dbd09d23611a5cfa34915fd017fd9ef26295e",
+      "path": "derived-bn.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/gu.xml",
+      "sha256": "4398e53da8d62137fa9c8994ad7b6d8e01c76d92c318154865f6a7eb59e47cc1",
+      "path": "gu.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/gu.xml",
+      "sha256": "c031ea8e3be30a2b91b6de8ddcba5103a5bec3077270b146bceb4cd51bdcfe24",
+      "path": "derived-gu.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/hi.xml",
+      "sha256": "c86d28c1ad8aadc2e087d230ac3dab36bd974798782d24d8583dfb6ad9ff99a0",
+      "path": "hi.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/hi.xml",
+      "sha256": "0efcaeca75876119d93cb09630ab6af55453a9281feff823a542b0688fe8fdd7",
+      "path": "derived-hi.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/mr.xml",
+      "sha256": "7b0c2df1cb4248cb1fed35a1f52db668505e6b88749efae79435a6d569f61cbf",
+      "path": "mr.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/mr.xml",
+      "sha256": "308430dc2de3f7f45823d6c765f919023d8b239309ce35f4ec15e48418166239",
+      "path": "derived-mr.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/ta.xml",
+      "sha256": "2b3d93c8ef4e1f185c74900cb1141992728fd956d14d41bd0eaa84b5decc3302",
+      "path": "ta.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/ta.xml",
+      "sha256": "0dcffbea9d83416655a511d88c73b322fa641bce62268d35562978e12f699c82",
+      "path": "derived-ta.xml"
     }
   ]
 }

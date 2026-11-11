@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "bn",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Bengali",
   "nativeName": "বাংলা",
   "script": "beng",
@@ -16,10 +16,14 @@
     "translit": "translit.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
     "bn.fst": "6d95da874d58376869e1e9d8c73cd359ac86eecda0fe8454ee19e32ee91fbfea",
+    "emoji-search.txt": "4f3b66906253671dc62086ff929b6ea4cefa2a71a29d90796c0de1c956b36742",
+    "emoji-words.txt": "2f664089dcd4944c51c52db45bec735abf4bc976c6da6d4c233adad379f56d66",
     "lang.json": "b9f2431f7b5d0474f35bef68d3d74ec7a0facdb11a170b75670d81422d39a57b",
     "layout.json": "bb4f9c86712733d1c9cde264c83d1261a8e612c4823dc2595a3bbb35a27cdd74",
     "next.fst": "0f5944ae0e6f25a4b3df88edb7535eaef3d0f341366c71a30949dd0a8020bfb7",
@@ -47,6 +51,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Bengali emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Bengali."
     },
     {
       "name": "English Wikipedia",

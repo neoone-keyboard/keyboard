@@ -38,13 +38,65 @@ private let oldMalayalam = PackDescriptor(id: "ml", name: "Malayalam", nativeNam
     #expect(both.emoji(for: "പൂച്ച").first == "🐈")
     #expect(both.emoji(for: "cat") == english.emoji(for: "cat"))
 
-    // Hindi brings no emoji words, and the app has no copy for it.
-    let hindi = try #require(lists.words(.bar, packs: [pack("hi")]))
-    #expect(hindi.emoji(for: "പൂച്ച").isEmpty)
-    #expect(hindi.emoji(for: "cat") == english.emoji(for: "cat"))
+    // Maithili brings no emoji words (CLDR has none for it), and the app has no copy for it.
+    let maithili = try #require(lists.words(.bar, packs: [pack("mai")]))
+    #expect(maithili.emoji(for: "പൂച്ച").isEmpty)
+    #expect(maithili.emoji(for: "बिल्ली").isEmpty, "Hindi's words are not Maithili's")
+    #expect(maithili.emoji(for: "cat") == english.emoji(for: "cat"))
 
     let three = try #require(lists.words(.bar, packs: [pack("hi"), malayalamPack, pack("ta")]))
     #expect(three.emoji(for: "പൂച്ച").first == "🐈")
+}
+
+/// The Hindi pack brings Hindi's emoji words (CLDR's hi annotations), as Malayalam's does.
+/// The words are in Devanagari only, as Malayalam's are in Malayalam only: a word typed on the
+/// Hindi keys has its emoji while it is typed; one typed in English letters has it once the
+/// bar's Devanagari word is in the text (a space after it), not for the Latin letters.
+@Test func hindisEmojiWordsComeWithTheHindiPack() throws {
+    let lists = Lists(folder: bundledEmoji)
+    let hindi = pack("hi")
+    #expect(hindi.emojiWords == packsFolder.appending(path: "hi.neopack/emoji-words.txt"))
+    #expect(hindi.emojiSearch == packsFolder.appending(path: "hi.neopack/emoji-search.txt"))
+    let bar = try #require(lists.words(.bar, packs: [hindi]))
+    let emoji = { (context: String, word: String) in
+        EmojiSuggestion.word(contextBefore: context, currentWord: word).map(bar.emoji(for:)) ?? []
+    }
+    // Typed in Devanagari: the word being typed.
+    #expect(emoji("मेरी बिल्ली", "बिल्ली").first == "🐈")
+    #expect(emoji("प्यार", "प्यार").first == "🥰")
+    // Typed as "billi": nothing for the Latin letters; the bar's बिल्ली, once committed, has it.
+    #expect(emoji("meri billi", "billi").isEmpty)
+    #expect(emoji("मेरी बिल्ली ", "").first == "🐈")
+    #expect(emoji("cat", "cat") == lists.words(.bar, packs: [])?.emoji(for: "cat"), "English is as without the pack")
+    // Without the pack, and with another language's, Hindi has no emoji.
+    #expect(try #require(lists.words(.bar, packs: [])).emoji(for: "बिल्ली").isEmpty)
+    #expect(try #require(lists.words(.bar, packs: [malayalamPack])).emoji(for: "बिल्ली").isEmpty)
+    // Hindi and Malayalam together: each language's words.
+    let both = try #require(lists.words(.bar, packs: [hindi, malayalamPack]))
+    #expect(both.emoji(for: "बिल्ली").first == "🐈" && both.emoji(for: "പൂച്ച").first == "🐈")
+
+    // The panel's search.
+    let search = try #require(lists.words(.search, packs: [hindi]))
+    #expect(search.words(startingWith: "बिल्ल").first { $0.word == "बिल्ली" }?.emoji.contains("🐈") == true)
+    #expect(try #require(lists.words(.search, packs: [])).words(startingWith: "बिल्ल").isEmpty)
+}
+
+/// Every pack that brings emoji words credits their source, CLDR, under its licence; the
+/// trial packs Marathi, Bengali and Gujarati bring theirs as Hindi does.
+@Test func aPackWithEmojiWordsCreditsCLDR() throws {
+    for id in ["ml", "hi", "mr", "bn", "gu"] {
+        let pack = pack(id)
+        #expect(pack.emojiWords != nil && pack.emojiSearch != nil, "\(id)")
+        let credit = try #require(pack.credits.first { $0.id == "cldr-annotations" }, "\(id)")
+        #expect(credit.licence == "Unicode License v3", "\(id)")
+        #expect(credit.licenceURL == "https://www.unicode.org/license.txt", "\(id)")
+        #expect(credit.attribution.hasPrefix("Copyright © 1991-2026 Unicode, Inc. \(pack.name) emoji keywords and names"), "\(id)")
+    }
+    // CLDR 49 has no Bhojpuri annotations and eight Maithili ones: those packs bring none.
+    for id in ["mai", "bho"] {
+        #expect(pack(id).emojiWords == nil && pack(id).emojiSearch == nil, "\(id)")
+        #expect(!pack(id).credits.contains { $0.id == "cldr-annotations" }, "\(id)")
+    }
 }
 
 @Test func thePanelsSearchReadsThePacksSearchWords() throws {
@@ -67,11 +119,11 @@ private let oldMalayalam = PackDescriptor(id: "ml", name: "Malayalam", nativeNam
 @Test func aMalayalamPackWithoutEmojiWordsGetsTheAppsCopy() throws {
     #expect(oldMalayalam.emojiWords == nil && oldMalayalam.emojiSearch == nil)
     for list in EmojiWordLists.List.allCases {
-        let files = EmojiWordLists.files(list, in: bundledEmoji, packs: [oldMalayalam, malayalamPack, pack("hi")])
+        let files = EmojiWordLists.files(list, in: bundledEmoji, packs: [oldMalayalam, malayalamPack, pack("mai")])
         #expect(files.app == bundledEmoji.appending(path: "\(list.rawValue).txt"))
         #expect(files.packs[0] == bundledEmoji.appending(path: "packs/ml/\(list.rawValue).txt"))
         #expect(files.packs[1] == packsFolder.appending(path: "ml.neopack/\(list.rawValue).txt"), "its own when it brings them")
-        #expect(files.packs[2] == bundledEmoji.appending(path: "packs/hi/\(list.rawValue).txt"))
+        #expect(files.packs[2] == bundledEmoji.appending(path: "packs/mai/\(list.rawValue).txt"))
         #expect(FileManager.default.fileExists(atPath: files.packs[0].path))
         #expect(!FileManager.default.fileExists(atPath: files.packs[2].path))
         #expect(try Data(contentsOf: files.packs[0]) == Data(contentsOf: files.packs[1]), "the copy is the pack's file")

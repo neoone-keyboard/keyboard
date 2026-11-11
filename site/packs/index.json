@@ -16,12 +16,12 @@
       "id": "hi",
       "name": "Hindi",
       "nativeName": "हिन्दी",
-      "version": "2026.11.13",
+      "version": "2026.11.14",
       "script": "deva",
       "minEngine": 3,
-      "size": 26351571,
-      "sha256": "158b7f3cc1ea363154a41fd246218e846c656f952710c23084b5f5815055cbe9",
-      "url": "https://neoone.jishnu.me/packs/hi-2026.11.13.neopack",
+      "size": 26602921,
+      "sha256": "36a8997b4549925694a5df5e3d5b507de4cab85ac72b883465c9ac0c6b9e2b0a",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.14.neopack",
       "englishFingerprint": "9a50d0c85c79a0df"
     },
     {

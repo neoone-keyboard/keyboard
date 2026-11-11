@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "mr",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Marathi",
   "nativeName": "मराठी",
   "script": "deva",
@@ -16,9 +16,13 @@
     "translit": "translit.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
+    "emoji-search.txt": "b0fbfe453262abf1316d889a4b6395673652ab02ef910a7ac69b92075fa834d6",
+    "emoji-words.txt": "4c47466715dae50df7baa5c794f2c423bc1b027daaabf5147f06766c45c2e581",
     "lang.json": "ca21330fd3c2a6f45575189e20e2c223ef6d1f596e633e6237fdb7c19a55738f",
     "layout.json": "ba529ee5ff7dc75f10a00a8bd655d1b41f014763aa3118ab258403e987c6320f",
     "mr.fst": "f6364d40d37f76817727f6b804f98187d3b707760e6a97c742d6c6a1ab7e9959",
@@ -47,6 +51,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Marathi emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Marathi."
     },
     {
       "name": "English Wikipedia",
