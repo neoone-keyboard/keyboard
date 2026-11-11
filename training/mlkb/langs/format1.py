@@ -26,7 +26,7 @@ from functools import cached_property, lru_cache
 from pathlib import Path
 
 from mlkb.langs import human
-from mlkb.langs.romanisation import LANGS, Tables
+from mlkb.langs.romanisation import LANGS, Tables, _drop_between_consonants
 
 VOWELS = "aeiou"
 
@@ -113,9 +113,9 @@ class Format1:
         s = [c for c in latin.lower() if "a" <= c <= "z"]
         trail = sk["dropTrailing"]
         if (
-            len(s) >= trail["minLength"]
+            len(s) >= max(trail["minLength"], 1)
             and s[-1] in trail["letters"]
-            and (not trail["afterVowel"] or s[-2] in VOWELS)
+            and (not trail["afterVowel"] or (len(s) >= 2 and s[-2] in VOWELS))
         ):
             s.pop()
         text = "".join(s)
@@ -132,6 +132,7 @@ class Format1:
             for sym in symbols:
                 if not (sk["collapseDoubles"] and out and out[-1] == sym):
                     out.append(sym)
+        out = _drop_between_consonants(out, sk.get("dropBetweenConsonants", ""))
         final = sk["dropFinalVowel"]
         # As romanize.rs: the length before the vowel is dropped is at least minLength.
         if (
@@ -150,8 +151,7 @@ class Format1:
         """Every key of a native word: `key`, then the skeleton of its walk without a last sign
         that the file's `optionalFinals` says may go unwritten, when that is another key (the
         engine's `Romanisation::word_skeletons`). One key for a file without the field. The
-        key `dropTrailing.alsoKept` adds is not written here: this skeleton has no
-        `dropBetweenConsonants` step, which it needs."""
+        key `dropTrailing.alsoKept` adds is not written here (`lexbuild-rekey` writes it)."""
         whole = self.key(word)
         if not whole:
             return []
@@ -228,6 +228,22 @@ def export(t: Tables) -> dict:
     # written: a file without it is read as the packs published before the field were, with
     # Malayalam's habits. A hand file that says nothing gets none.
     loose = {k: v for k, v in hand.get("looseSpelling", {}).items() if k in ("singles", "pairs", "collapse")}
+    # The skeleton's optional steps, copied from the hand file when it has them: a final letter
+    # dropped after a vowel (Gujarati's final anusvara, typed n, m or not at all) and a letter
+    # dropped between consonants (the medial inherent vowel). A file without them is as before.
+    skeleton = {
+        "dropTrailing": sk.get("dropTrailing", {"letters": "", "afterVowel": True, "minLength": 3}),
+        "pairs": [list(p) for p in pairs],
+        "singles": dict(sk["letters"]),
+        "collapseDoubles": True,
+    }
+    if sk.get("dropBetweenConsonants"):
+        skeleton["dropBetweenConsonants"] = sk["dropBetweenConsonants"]
+    # A letter people write for that dropped vowel (Hindi's u: hum for हम); the engine reads
+    # typed letters the second way too. It changes no key, so this skeleton doesn't use it.
+    if sk.get("alsoBetweenConsonants"):
+        skeleton["alsoBetweenConsonants"] = sk["alsoBetweenConsonants"]
+    skeleton["dropFinalVowel"] = {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3}
     return {
         "format": 1,
         "script": t.data["script"],
@@ -239,13 +255,7 @@ def export(t: Tables) -> dict:
         "consonants": consonants,
         "finals": canon["finals"],
         "clusters": dict(sorted(clusters.items())),
-        "skeleton": {
-            "dropTrailing": {"letters": "", "afterVowel": True, "minLength": 3},
-            "pairs": [list(p) for p in pairs],
-            "singles": dict(sk["letters"]),
-            "collapseDoubles": True,
-            "dropFinalVowel": {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3},
-        },
+        "skeleton": skeleton,
         "looseSpelling": loose,
         # Final signs people leave unwritten (`Format1.keys`), when the hand file names any.
         **({"optionalFinals": hand["optionalFinals"]} if hand.get("optionalFinals") else {}),

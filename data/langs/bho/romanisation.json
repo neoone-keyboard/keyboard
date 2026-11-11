@@ -1,0 +1,123 @@
+{
+  "format": 1,
+  "script": "deva",
+  "virama": "्",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "अ": "a",
+    "आ": "aa",
+    "इ": "i",
+    "ई": "ee",
+    "उ": "u",
+    "ऊ": "oo",
+    "ऋ": "ri",
+    "ए": "e",
+    "ऐ": "ai",
+    "ओ": "o",
+    "औ": "au",
+    "ऑ": "o",
+    "ऍ": "e"
+  },
+  "vowelSigns": {
+    "ा": "aa",
+    "ि": "i",
+    "ी": "ee",
+    "ु": "u",
+    "ू": "oo",
+    "ृ": "ru",
+    "ॄ": "ri",
+    "े": "e",
+    "ै": "ai",
+    "ो": "o",
+    "ौ": "au",
+    "ॉ": "o",
+    "ॅ": "e"
+  },
+  "consonants": {
+    "क": "k",
+    "ख": "kh",
+    "ग": "g",
+    "घ": "gh",
+    "ङ": "n",
+    "च": "ch",
+    "छ": "chh",
+    "ज": "j",
+    "झ": "jh",
+    "ञ": "n",
+    "ट": "t",
+    "ठ": "th",
+    "ड": "d",
+    "ढ": "dh",
+    "ण": "n",
+    "त": "t",
+    "थ": "th",
+    "द": "d",
+    "ध": "dh",
+    "न": "n",
+    "प": "p",
+    "फ": "f",
+    "ब": "b",
+    "भ": "bh",
+    "म": "m",
+    "य": "y",
+    "र": "r",
+    "ल": "l",
+    "ळ": "l",
+    "व": "v",
+    "श": "sh",
+    "ष": "sh",
+    "स": "s",
+    "ह": "h",
+    "क़": "k",
+    "ख़": "kh",
+    "ग़": "g",
+    "ज़": "z",
+    "ड़": "r",
+    "ढ़": "dh",
+    "फ़": "f",
+    "य़": "y"
+  },
+  "finals": {
+    "ं": "n",
+    "ँ": "n",
+    "ः": "h",
+    "ऽ": ""
+  },
+  "clusters": {
+    "क्ष": "ksh",
+    "ज्ञ": "gy",
+    "श्र": "shr"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["chh", "c"], ["ksh", "x"], ["kch", "x"], ["mbh", "nb"], ["mph", "np"], ["ch", "c"], ["sh", "s"], ["ks", "x"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["rh", "r"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "ai"], ["mb", "nb"], ["mp", "np"]],
+    "singles": {
+      "z": "j",
+      "f": "p",
+      "w": "v",
+      "q": "k"
+    },
+    "collapseDoubles": true,
+    "dropBetweenConsonants": "a",
+    "alsoBetweenConsonants": "u",
+    "dropFinalVowel": {
+      "vowels": "a",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
+  "optionalFinals": ["ं", "ँ"],
+  "notes": "inherent: The inherent vowel is typed 'a' inside a word and dropped at its end (घर ghar). Speech drops it inside words too (करत karat, करतानी kartani), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key. letters: ऽ (avagraha) lengthens the vowel before it and is typed as nothing or as a (कऽ ka, हऽ ha); it is a final in the tables. Candrabindu is n or nothing (हँ han / ha, में men / me), anusvara n, or m before a labial. ज्ञ is gy (ज्ञान gyan). A nukta letter is its consonant plus U+093C after NFC, so its key is two code points; ड़ is r or d (बड़ bar / bad, लइका and लड़िका). skeleton: Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; mb and mp to nb and np. A final a after a consonant is dropped, which covers the final inherent vowel typed or not. unwritten: A final candrabindu or anusvara after a vowel is as often left unwritten (में me, नाहीं nahi, काहें kahe), so optionalFinals names both: such a word is also keyed by the skeleton of its walk without the n, and either spelling spells it out; a final न is always written. The dropped medial vowel is often written u (hum for हम, humar for हमार), so alsoBetweenConsonants u: typed letters with a u between consonants are also looked up with it dropped, behind the words that have the u. On the held-out rows (Hindi words, whose annotators wrote every final nasal) the two together move the first native suggestion from 39.9% to 39.7% and leave the bar at 42.0%."
+}

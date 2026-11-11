@@ -116,6 +116,11 @@ build_lang_config() {
   mkdir -p "$PACK"
   cp "$BUNDLE/$LANG_ID.fst" "$BUNDLE/next.fst" "$BUNDLE/romanised.fst" "$PACK/"
   cp "$config/romanisation.json" "$PACK/"
+  # Tables that give some words a second key (optionalFinals, dropTrailing.alsoKept): the keys
+  # above are one per word, so the romanised lexicon is rebuilt from the tables, which adds them.
+  if grep -qE '"optionalFinals"|"alsoKept": *true' "$PACK/romanisation.json"; then
+    "$ROOT/engine/target/release/lexbuild-rekey" "$PACK/romanisation.json" "$PACK/$LANG_ID.fst" "$PACK/romanised.fst"
+  fi
   cp "$BUNDLE/stats.txt" "$config/lexicon-stats.txt"
   # shellcheck source=data/text-sources.sh
   . "$ROOT/data/text-sources.sh"

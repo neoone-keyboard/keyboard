@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "id": "mr",
+  "version": "2026.11.12",
+  "name": "Marathi",
+  "nativeName": "मराठी",
+  "script": "deva",
+  "romanised": {
+    "name": "Romanised Marathi"
+  },
+  "minEngine": 2,
+  "files": {
+    "lexicon": "mr.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "lang.json": "ca21330fd3c2a6f45575189e20e2c223ef6d1f596e633e6237fdb7c19a55738f",
+    "layout.json": "ba529ee5ff7dc75f10a00a8bd655d1b41f014763aa3118ab258403e987c6320f",
+    "mr.fst": "f6364d40d37f76817727f6b804f98187d3b707760e6a97c742d6c6a1ab7e9959",
+    "next.fst": "01877a2976e2ce512b259d7813aa3f327a7104f5d29f1d6e94c4855aed56234f",
+    "romanisation.json": "db2c6501c7677cd4ae05736d34c61c6824302608d70533dfeaade850ef112082",
+    "romanised.fst": "3feae527b82756f25cb6e62b4c2de4ec6ecf8e4f1cb1b2d772c31194c2010ea9",
+    "translit.mlkbnn": "50ef98689ef70e144509f661aad40edd54f03b422cd89ac204c9d0a95bced679"
+  },
+  "credits": [
+    {
+      "name": "Marathi Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://mr.wikipedia.org/"
+    },
+    {
+      "name": "Marathi Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://mr.wikisource.org/"
+    },
+    {
+      "name": "Marathi Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://mr.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

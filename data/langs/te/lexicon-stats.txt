@@ -1,0 +1,10 @@
+te tokens: 56226472, distinct forms: 6634807
+te dropped (a letter of the script, but not a word): 521739 tokens, 104079 forms
+te dropped top 20: 2019లో 4363, 2014లో 4057, 2018లో 3861, 2009లో 3729, 19వ 3415, 2వ 3409, 2017లో 3377, 2012లో 3337, 2013లో 3309, 2021లో 3300, 2016లో 3294, 1వ 3239, 2008లో 3218, 2022లో 3168, 20వ 3152, 2011లో 3074, 2015లో 3037, 2010లో 3020, 2007లో 2877, ట్వంటీ20 2870
+next.fst pairs: 148429 te, 149977 English
+te.fst: 300000 keys, 3393753 bytes
+next.fst: 298406 keys, 5249610 bytes
+te top 20: ఈ ఒక ఆ నుండి ఆమె తన అని లో ఇది కూడా ఉంది ఆయన ఉన్న తరువాత అనే ఉన్నాయి చ నా చెందిన ఆఫ్
+romanised keys skipped: 0
+romanised.fst: 300000 keys, 5946672 bytes
+te text by source: tewiki 33455222 words (55%), tewikisource 27302252 words (45%), tewikiquote 198583 words (0%)

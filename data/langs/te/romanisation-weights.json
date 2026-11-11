@@ -1,0 +1,347 @@
+{
+  "format": 1,
+  "script": "telu",
+  "language": "te",
+  "about": "How Telugu is typed in Latin letters (these fitted weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar tel (training/mlkb/langs/calibrate.py), whose only pairs outside the held-out test split are mined ones. Each table maps a letter (or a conjunct) to [spelling, weight] options, canonical first.",
+  "virama": "్",
+  "independentVowels": {
+    "అ": [["a", 1.0]],
+    "ఆ": [["aa", 0.931], ["a", 0.069]],
+    "ఇ": [["i", 0.997], ["e", 0.01]],
+    "ఈ": [["ee", 0.777], ["i", 0.203], ["ii", 0.02]],
+    "ఉ": [["u", 0.997], ["oo", 0.01]],
+    "ఊ": [["oo", 0.718], ["u", 0.256], ["uu", 0.026]],
+    "ఋ": [["ru", 0.6], ["ri", 0.4]],
+    "ౠ": [["ru", 0.6], ["ri", 0.4]],
+    "ఌ": [["lu", 1.0]],
+    "ౡ": [["lu", 1.0]],
+    "ఎ": [["e", 0.989], ["ye", 0.011]],
+    "ఏ": [["e", 0.861], ["ye", 0.117], ["ae", 0.015], ["ee", 0.01]],
+    "ఐ": [["ai", 0.912], ["i", 0.044], ["ei", 0.044]],
+    "ఒ": [["o", 0.993], ["vo", 0.01]],
+    "ఓ": [["o", 0.902], ["oo", 0.066], ["vo", 0.032]],
+    "ఔ": [["au", 0.654], ["ou", 0.216], ["ow", 0.13]]
+  },
+  "vowelSigns": {
+    "ా": [["aa", 0.702], ["a", 0.298]],
+    "ి": [["i", 0.999], ["e", 0.01]],
+    "ీ": [["ee", 0.812], ["i", 0.1], ["ii", 0.088]],
+    "ు": [["u", 1.0], ["oo", 0.01]],
+    "ూ": [["uu", 0.482], ["oo", 0.324], ["u", 0.194]],
+    "ృ": [["ru", 0.986], ["ri", 0.014]],
+    "ౄ": [["ru", 0.6], ["ri", 0.4]],
+    "ె": [["e", 1.0]],
+    "ే": [["e", 0.943], ["ae", 0.036], ["ee", 0.021], ["ea", 0.01]],
+    "ై": [["ai", 0.997], ["i", 0.01], ["ei", 0.01]],
+    "ొ": [["o", 1.0]],
+    "ో": [["o", 0.916], ["oo", 0.07], ["oe", 0.013], ["oa", 0.01]],
+    "ౌ": [["ou", 0.717], ["au", 0.186], ["ow", 0.097]],
+    "ౢ": [["lu", 1.0]],
+    "ౣ": [["lu", 1.0]]
+  },
+  "consonants": {
+    "క": [["k", 1.0]],
+    "ఖ": [["kh", 0.994], ["k", 0.01]],
+    "గ": [["g", 1.0]],
+    "ఘ": [["gh", 0.987], ["g", 0.013]],
+    "ఙ": [["n", 0.6], ["ng", 0.4]],
+    "చ": [["ch", 1.0], ["c", 0.01]],
+    "ఛ": [["ch", 0.61], ["chh", 0.39]],
+    "జ": [["j", 0.95], ["z", 0.05]],
+    "ఝ": [["jh", 0.8], ["j", 0.2]],
+    "ఞ": [["n", 0.7], ["ny", 0.3]],
+    "ట": [["t", 1.0]],
+    "ఠ": [["th", 0.734], ["t", 0.266]],
+    "డ": [["d", 1.0]],
+    "ఢ": [["dh", 0.85], ["d", 0.15]],
+    "ణ": [["n", 1.0]],
+    "త": [["t", 0.865], ["th", 0.135]],
+    "థ": [["th", 0.997], ["t", 0.01]],
+    "ద": [["d", 0.994], ["dh", 0.01]],
+    "ధ": [["dh", 0.999], ["d", 0.01]],
+    "న": [["n", 1.0]],
+    "ప": [["p", 1.0]],
+    "ఫ": [["f", 0.635], ["ph", 0.365]],
+    "బ": [["b", 1.0]],
+    "భ": [["bh", 0.999], ["b", 0.01]],
+    "మ": [["m", 1.0]],
+    "య": [["y", 1.0]],
+    "ర": [["r", 1.0]],
+    "ఱ": [["r", 1.0]],
+    "ల": [["l", 1.0]],
+    "ళ": [["l", 1.0]],
+    "ఴ": [["zh", 0.7], ["l", 0.3]],
+    "వ": [["v", 0.958], ["w", 0.042]],
+    "శ": [["s", 0.69], ["sh", 0.31]],
+    "ష": [["sh", 0.998], ["s", 0.01]],
+    "స": [["s", 1.0]],
+    "హ": [["h", 1.0]],
+    "ౘ": [["ts", 0.6], ["ch", 0.4]],
+    "ౙ": [["dz", 0.5], ["j", 0.3], ["z", 0.2]],
+    "ౚ": [["r", 1.0]]
+  },
+  "inCluster": {},
+  "afterVirama": {},
+  "clusters": {
+    "క్ష": [["ksh", 0.996], ["x", 0.01], ["kshh", 0.01]],
+    "జ్ఞ": [["gn", 0.672], ["jn", 0.207], ["gy", 0.121]],
+    "శ్ర": [["sr", 0.846], ["shr", 0.154]],
+    "చ్చ": [["cch", 0.508], ["ch", 0.455], ["chch", 0.036]],
+    "చ్ఛ": [["chch", 0.395], ["cch", 0.346], ["chh", 0.259]],
+    "త్త": [["tt", 0.973], ["tth", 0.013], ["thth", 0.01], ["th", 0.01]],
+    "ద్ద": [["dd", 0.985], ["ddh", 0.01], ["d", 0.01]],
+    "ద్ధ": [["ddh", 0.954], ["dh", 0.035], ["dd", 0.012]],
+    "త్థ": [["tth", 0.7], ["th", 0.3]],
+    "ట్ట": [["tt", 0.998], ["t", 0.01]]
+  },
+  "geminateSingle": 0.0,
+  "finals": {
+    "ం": [["n", 0.683], ["m", 0.317]],
+    "ఁ": [["n", 0.6], ["", 0.4]],
+    "ః": [["h", 0.7], ["", 0.3]],
+    "ఽ": [["", 1.0]]
+  },
+  "inherent": {
+    "medial": [["a", 1.0]],
+    "final": [["a", 1.0]],
+    "finalAfterCluster": [["a", 1.0]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; a final letter of `dropTrailing` after a vowel is dropped; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "zh",
+        "l"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ow",
+        "au"
+      ],
+      [
+        "ae",
+        "e"
+      ],
+      [
+        "ea",
+        "e"
+      ],
+      [
+        "oa",
+        "o"
+      ],
+      [
+        "oe",
+        "o"
+      ],
+      [
+        "mkh",
+        "nk"
+      ],
+      [
+        "mgh",
+        "ng"
+      ],
+      [
+        "mchh",
+        "nc"
+      ],
+      [
+        "mch",
+        "nc"
+      ],
+      [
+        "mjh",
+        "nj"
+      ],
+      [
+        "mth",
+        "nt"
+      ],
+      [
+        "mdh",
+        "nd"
+      ],
+      [
+        "mph",
+        "np"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "msh",
+        "ns"
+      ],
+      [
+        "mk",
+        "nk"
+      ],
+      [
+        "mg",
+        "ng"
+      ],
+      [
+        "mc",
+        "nc"
+      ],
+      [
+        "mj",
+        "nj"
+      ],
+      [
+        "mt",
+        "nt"
+      ],
+      [
+        "md",
+        "nd"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "ms",
+        "ns"
+      ],
+      [
+        "mh",
+        "nh"
+      ],
+      [
+        "mv",
+        "nv"
+      ],
+      [
+        "mw",
+        "nv"
+      ],
+      [
+        "mr",
+        "nr"
+      ],
+      [
+        "ml",
+        "nl"
+      ],
+      [
+        "my",
+        "ny"
+      ]
+    ],
+    "letters": {
+      "f": "p",
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks"
+    },
+    "vowels": "aeiou",
+    "dropTrailing": {
+      "letters": "nm",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "dropFinal": ""
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length only: Telugu keeps d and t, g and k apart (ద త, గ క).",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is a and is always said, so it is always typed (అమ్మ amma, తరగతి taragati): there is no schwa deletion, and a word ends in a virama only in loanwords (బస్ bas).",
+    "anusvara": "ం is the nasal of the stop after it inside a word (అందం andam, ఇంకా inka, పంపు pampu) and m at the end of a word (పుస్తకం pustakam). The tables have one spelling list for it wherever it stands, so the skeleton makes both readings one key: m before a consonant folds to n (the m + consonant entries of `replace`), and a final n or m after a vowel is dropped (dropTrailing). The price: a word that ends in n or m shares its key with the word without it.",
+    "dentals": "త is typed t or th (తెలుగు telugu / thelugu, తరువాత taruvata / tharuvatha) and ద d or dh; ట and డ are t and d. The skeleton folds th to t and dh to d, so త థ ట ఠ are one key letter, and ద ధ డ ఢ another.",
+    "vowels": "Long vowels are typed doubled about half the time (aa, ee, oo); ే and ో are mostly plain e and o. The skeleton folds aa, ee, ii, oo, uu, and ae and ea to e.",
+    "letters": "చ is ch, ఛ ch or chh, శ sh or s, ష sh, ఫ ph or f, వ v or w, ళ and ల l, ణ and న n, ఱ and ర r. ఋ and ృ are ru (కృష్ణ krushna) or ri (krishna). క్ష is ksh, జ్ఞ gn, jn or gy, శ్ర shr or sr.",
+    "doubled": "Doubled consonants are common and usually typed doubled (అక్క akka, చెప్పు cheppu); చ్చ is cch, chch or ch (వచ్చాడు vacchadu), త్త tt or tth, ద్ద dd or ddh.",
+    "joiners": "A ZWNJ after a virama (ఆన్‌లైన్) has no spelling: the walk skips it."
+  }
+}

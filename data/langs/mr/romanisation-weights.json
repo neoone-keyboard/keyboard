@@ -1,0 +1,251 @@
+{
+  "format": 1,
+  "script": "deva",
+  "language": "mr",
+  "about": "How Marathi is typed in Latin letters: native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar mar (training/mlkb/langs/calibrate.py). Each table maps a letter (or a letter + nukta, or a conjunct) to [spelling, weight] options, canonical first.",
+  "virama": "्",
+  "independentVowels": {
+    "अ": [["a", 1.0]],
+    "आ": [["aa", 0.959], ["a", 0.041]],
+    "इ": [["i", 0.978], ["e", 0.022]],
+    "ई": [["ee", 0.537], ["i", 0.463]],
+    "उ": [["u", 0.996], ["oo", 0.01]],
+    "ऊ": [["oo", 0.545], ["u", 0.455]],
+    "ऋ": [["ru", 0.6], ["ri", 0.4]],
+    "ए": [["e", 1.0]],
+    "ऐ": [["ai", 0.934], ["ei", 0.066]],
+    "ओ": [["o", 1.0]],
+    "औ": [["au", 0.828], ["ou", 0.172]],
+    "ऑ": [["o", 0.828], ["aa", 0.172]],
+    "ॲ": [["a", 0.7], ["e", 0.3]],
+    "ऍ": [["a", 0.741], ["e", 0.259]]
+  },
+  "vowelSigns": {
+    "ा": [["aa", 0.681], ["a", 0.319]],
+    "ि": [["i", 0.999], ["e", 0.01]],
+    "ी": [["ee", 0.651], ["i", 0.349]],
+    "ु": [["u", 0.998], ["oo", 0.01]],
+    "ू": [["oo", 0.986], ["u", 0.014]],
+    "ृ": [["ru", 0.957], ["ri", 0.043]],
+    "ॄ": [["ru", 1.0]],
+    "े": [["e", 0.999], ["a", 0.01]],
+    "ै": [["ai", 0.964], ["ei", 0.036]],
+    "ो": [["o", 1.0]],
+    "ौ": [["au", 0.941], ["ou", 0.059]],
+    "ॉ": [["o", 0.85], ["aa", 0.15]],
+    "ॅ": [["a", 0.7], ["e", 0.3]]
+  },
+  "consonants": {
+    "क": [["k", 1.0]],
+    "ख": [["kh", 0.997], ["k", 0.01]],
+    "ग": [["g", 1.0]],
+    "घ": [["gh", 0.992], ["g", 0.01]],
+    "ङ": [["n", 0.7], ["ng", 0.3]],
+    "च": [["ch", 0.999], ["c", 0.01]],
+    "छ": [["chh", 0.772], ["ch", 0.228]],
+    "ज": [["j", 0.998], ["z", 0.01]],
+    "झ": [["z", 0.54], ["jh", 0.448], ["j", 0.012]],
+    "ञ": [["n", 0.8], ["ny", 0.2]],
+    "ट": [["t", 1.0]],
+    "ठ": [["th", 0.993], ["t", 0.01]],
+    "ड": [["d", 1.0]],
+    "ढ": [["dh", 0.985], ["d", 0.015]],
+    "ण": [["n", 1.0]],
+    "त": [["t", 1.0]],
+    "थ": [["th", 0.983], ["t", 0.017]],
+    "द": [["d", 1.0]],
+    "ध": [["dh", 0.998], ["d", 0.01]],
+    "न": [["n", 1.0]],
+    "प": [["p", 1.0]],
+    "फ": [["ph", 0.546], ["f", 0.454]],
+    "ब": [["b", 1.0]],
+    "भ": [["bh", 0.996], ["b", 0.01]],
+    "म": [["m", 1.0]],
+    "य": [["y", 1.0]],
+    "र": [["r", 1.0]],
+    "ऱ": [["r", 1.0]],
+    "ल": [["l", 1.0]],
+    "ळ": [["l", 0.998], ["ll", 0.01]],
+    "व": [["v", 0.819], ["w", 0.181]],
+    "श": [["sh", 0.998], ["s", 0.01]],
+    "ष": [["sh", 0.993], ["s", 0.01]],
+    "स": [["s", 1.0]],
+    "ह": [["h", 1.0]],
+    "क़": [["k", 0.6], ["q", 0.4]],
+    "ख़": [["kh", 1.0]],
+    "ग़": [["g", 1.0]],
+    "ज़": [["z", 0.7], ["j", 0.3]],
+    "ड़": [["d", 0.6], ["r", 0.4]],
+    "ढ़": [["dh", 0.6], ["rh", 0.4]],
+    "फ़": [["f", 1.0]],
+    "य़": [["y", 1.0]]
+  },
+  "inCluster": {},
+  "afterVirama": {
+    "य": [["y", 0.999], ["", 0.01]],
+    "व": [["v", 0.692], ["w", 0.308]],
+    "र": [["r", 1.0]],
+    "ह": [["h", 1.0]]
+  },
+  "clusters": {
+    "क्ष": [["ksh", 0.937], ["x", 0.039], ["ks", 0.024]],
+    "ज्ञ": [["dny", 0.727], ["gy", 0.227], ["jn", 0.045]],
+    "श्र": [["shr", 0.925], ["sr", 0.075]]
+  },
+  "geminateSingle": 0.017,
+  "finals": {
+    "ं": [["n", 0.968], ["m", 0.032], ["", 0.01]],
+    "ँ": [["n", 0.5], ["", 0.5]],
+    "ः": [["h", 0.818], ["", 0.182]]
+  },
+  "optionalFinals": ["ं", "ँ"],
+  "inherent": {
+    "medial": [["a", 0.991], ["", 0.01]],
+    "schwaDeleted": [["a", 0.97], ["", 0.03]],
+    "final": [["", 0.971], ["a", 0.029]],
+    "finalAfterCluster": [["a", 0.743], ["", 0.257]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); every `dropBetweenConsonants` letter with a consonant on both sides is dropped; then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "ksh",
+        "x"
+      ],
+      [
+        "ks",
+        "x"
+      ],
+      [
+        "dny",
+        "gy"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "rh",
+        "r"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ei",
+        "ai"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "mph",
+        "np"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "f": "p",
+      "w": "v",
+      "q": "k"
+    },
+    "vowels": "aeiou",
+    "dropBetweenConsonants": "a",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed). Vowel length only, as for Hindi: Marathi keeps d and t apart (द, त), so no letter is read as another.",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is typed 'a' inside a word and dropped at its end (घर ghar, कमल kamal). Marathi's typists mostly keep the medial vowel that speech drops (करणार karanar as often as karnar), so schwaDeleted keeps 'a' first; the transliterator learns both, and the skeleton drops every a between two consonants so that karanar and karnar, shetakari and shetkari give one key.",
+    "letters": "ळ is typed l (शाळा shala) and ऱ r. ज and झ are also z (माझा maza / majha); z folds to j in the skeleton. ज्ञ is dny (ज्ञान dnyan), also gy; ऋ and ृ are ru (कृष्ण krushna), also ri. ॲ and ॅ are the English a of bank (बॅंक), ऑ and ॉ its o (ऑफिस). A nukta letter is its consonant plus U+093C after NFC, so its key is two code points.",
+    "finals": "Anusvara is n, or m before a labial; the skeleton folds mb and mp to nb and np so sambhav and sanbhav meet.",
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; dny to gy. A final a after a consonant is dropped, which covers the final inherent vowel typed or not.",
+    "unwritten": "A final anusvara after a vowel sign is often left unwritten (करणें karane), so optionalFinals names anusvara and candrabindu: such a word is also keyed by the skeleton of its walk without the n, and either spelling spells it out. One after a bare consonant (केलं) keeps its n in the key. On the held-out Aksharantar rows the first native suggestion stays 50.3% and the bar goes from 55.9% to 56.0%."
+  }
+}

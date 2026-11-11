@@ -101,6 +101,17 @@ class Tables:
     def _cluster_keys(self) -> list[str]:
         return sorted(self.table("clusters"), key=len, reverse=True)
 
+    @cached_property
+    def _independent_keys(self) -> list[str]:
+        return sorted(self.table("independentVowels"), key=len, reverse=True)
+
+    def _independent_at(self, word: str, i: int) -> str | None:
+        """The independent-vowel key at `word[i:]`, longest first."""
+        for key in self._independent_keys:
+            if word.startswith(key, i):
+                return key
+        return None
+
     def _consonant_at(self, word: str, i: int) -> str | None:
         """The consonant table key at `word[i:]` (a letter, or a letter + nukta), longest first."""
         for key in self._consonant_keys:
@@ -156,9 +167,14 @@ class Tables:
                     out.append(Slot("V", t["inherent"][ctx], f"inherent.{ctx}", ""))
                 i = j
                 continue
-            if c in t["independentVowels"]:
-                out.append(Slot("V", t["independentVowels"][c], "independentVowels", c))
-            elif c in t["vowelSigns"]:  # a stray sign: spelled as its vowel
+            vowel = self._independent_at(word, i)
+            if vowel is not None:
+                # A key may be several code points (Bengali অ্যা, the vowel of "and"), as in the
+                # format-1 walk: the longest one that matches.
+                out.append(Slot("V", t["independentVowels"][vowel], "independentVowels", vowel))
+                i += len(vowel)
+                continue
+            if c in t["vowelSigns"]:  # a stray sign: spelled as its vowel
                 out.append(Slot("V", t["vowelSigns"][c], "vowelSigns", c))
             elif c.isascii() and c.isalpha():
                 out.append(Slot("F", ((c.lower(), 1.0),), "latin", c.lower()))
@@ -282,7 +298,18 @@ class Tables:
 
     def _skeleton_uncached(self, latin: str) -> str:
         replace, letters, vowels, drop_final = self._skeleton
+        sk = self.data["skeleton"]
         s = "".join(c for c in latin.lower() if "a" <= c <= "z")
+        # The format's optional steps 2 and 5 (`dropTrailing`, `dropBetweenConsonants`), written
+        # in the hand file as the pack's file has them; `format1.export` copies them.
+        trail = sk.get("dropTrailing")
+        if (
+            trail
+            and len(s) >= max(trail.get("minLength", 3), 1)
+            and s[-1] in trail["letters"]
+            and (not trail.get("afterVowel", True) or (len(s) >= 2 and s[-2] in "aeiou"))
+        ):
+            s = s[:-1]
         out: list[str] = []
         i = 0
         while i < len(s):
@@ -296,6 +323,7 @@ class Tables:
             for sym in symbols:
                 if not out or out[-1] != sym:
                     out.append(sym)
+        out = _drop_between_consonants(out, sk.get("dropBetweenConsonants", ""))
         if len(out) >= 2 and out[-1] in drop_final and out[-2] not in vowels:
             out.pop()
         return "".join(out)
@@ -303,6 +331,18 @@ class Tables:
     def key(self, word: str) -> str:
         """The romanised lookup key of a native word: the skeleton of its canonical romanisation."""
         return self.skeleton(self.canonical(word))
+
+
+def _drop_between_consonants(out: list[str], letters: str) -> list[str]:
+    """The format's skeleton step 5: every letter of `letters` with a consonant on both sides
+    goes, all at once (Hindi "a": samajhana, samjhna -> smjna). As `romanisation.rs` does it."""
+    if not letters or len(out) < 3:
+        return out
+    last = len(out) - 1
+    return [
+        c for k, c in enumerate(out)
+        if not (c in letters and 0 < k < last and out[k - 1] not in "aeiou" and out[k + 1] not in "aeiou")
+    ]
 
 
 @lru_cache(maxsize=500_000)

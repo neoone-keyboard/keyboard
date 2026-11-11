@@ -1,0 +1,257 @@
+{
+  "format": 1,
+  "script": "gujr",
+  "language": "gu",
+  "about": "How Gujarati is typed in Latin letters (these fitted weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights, which follow Aksharantar's more careful annotators): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar guj (training/mlkb/langs/calibrate.py). Each table maps a letter (or a letter + nukta, or a conjunct) to [spelling, weight] options, canonical first.",
+  "virama": "્",
+  "independentVowels": {
+    "અ": [["a", 1.0]],
+    "આ": [["aa", 0.791], ["a", 0.209]],
+    "ઇ": [["i", 0.988], ["e", 0.013]],
+    "ઈ": [["i", 0.928], ["ee", 0.067], ["ii", 0.01]],
+    "ઉ": [["u", 0.997], ["oo", 0.01]],
+    "ઊ": [["u", 0.6], ["oo", 0.35], ["uu", 0.05]],
+    "ઋ": [["ru", 0.5], ["ri", 0.463], ["r", 0.037]],
+    "ઌ": [["li", 1.0]],
+    "ઍ": [["e", 0.7], ["a", 0.3]],
+    "એ": [["e", 0.983], ["ey", 0.01], ["ay", 0.01], ["ae", 0.01], ["a", 0.01]],
+    "ઐ": [["ai", 0.85], ["e", 0.1], ["ei", 0.05]],
+    "ઑ": [["o", 0.959], ["au", 0.041]],
+    "ઓ": [["o", 1.0]],
+    "ઔ": [["au", 0.6], ["ou", 0.2], ["ow", 0.1], ["o", 0.1]],
+    "ૠ": [["ru", 0.5], ["ri", 0.5]],
+    "ૡ": [["li", 1.0]],
+    "ૐ": [["om", 0.9], ["aum", 0.1]]
+  },
+  "vowelSigns": {
+    "ા": [["a", 0.538], ["aa", 0.462]],
+    "િ": [["i", 0.999], ["e", 0.01]],
+    "ી": [["ee", 0.514], ["i", 0.486], ["ii", 0.01]],
+    "ુ": [["u", 0.999], ["oo", 0.01]],
+    "ૂ": [["oo", 0.97], ["u", 0.027], ["uu", 0.01]],
+    "ૃ": [["ru", 0.557], ["ri", 0.433], ["r", 0.01]],
+    "ૄ": [["ru", 0.5], ["ri", 0.5]],
+    "ૅ": [["e", 0.803], ["a", 0.197]],
+    "ે": [["e", 0.444], ["ay", 0.294], ["ey", 0.261], ["ae", 0.01], ["a", 0.01]],
+    "ૈ": [["ai", 0.87], ["e", 0.086], ["ei", 0.044]],
+    "ૉ": [["o", 0.9], ["au", 0.1]],
+    "ો": [["o", 1.0]],
+    "ૌ": [["au", 0.6], ["ou", 0.2], ["ow", 0.17], ["o", 0.03]],
+    "ૢ": [["li", 1.0]],
+    "ૣ": [["li", 1.0]]
+  },
+  "consonants": {
+    "ક": [["k", 1.0]],
+    "ખ": [["kh", 0.997], ["k", 0.01]],
+    "ગ": [["g", 1.0]],
+    "ઘ": [["gh", 0.993], ["g", 0.01]],
+    "ઙ": [["n", 0.6], ["ng", 0.4]],
+    "ચ": [["ch", 0.998], ["c", 0.01]],
+    "છ": [["chh", 0.963], ["ch", 0.037]],
+    "જ": [["j", 0.999], ["z", 0.01]],
+    "ઝ": [["jh", 0.517], ["z", 0.479], ["j", 0.01]],
+    "ઞ": [["n", 0.8], ["ny", 0.2]],
+    "ટ": [["t", 1.0]],
+    "ઠ": [["th", 0.992], ["t", 0.01]],
+    "ડ": [["d", 1.0]],
+    "ઢ": [["dh", 0.955], ["d", 0.045]],
+    "ણ": [["n", 1.0]],
+    "ત": [["t", 0.999], ["th", 0.01]],
+    "થ": [["th", 0.998], ["t", 0.01]],
+    "દ": [["d", 1.0]],
+    "ધ": [["dh", 0.998], ["d", 0.01]],
+    "ન": [["n", 1.0]],
+    "પ": [["p", 1.0]],
+    "ફ": [["ph", 0.538], ["f", 0.462]],
+    "બ": [["b", 1.0]],
+    "ભ": [["bh", 0.998], ["b", 0.01]],
+    "મ": [["m", 1.0]],
+    "ય": [["y", 1.0]],
+    "ર": [["r", 1.0]],
+    "લ": [["l", 1.0]],
+    "ળ": [["l", 0.998], ["d", 0.01]],
+    "વ": [["w", 0.503], ["v", 0.497]],
+    "શ": [["sh", 0.999], ["s", 0.01]],
+    "ષ": [["sh", 0.988], ["s", 0.013]],
+    "સ": [["s", 1.0]],
+    "હ": [["h", 1.0]],
+    "ૹ": [["zh", 1.0]],
+    "જ઼": [["z", 1.0]],
+    "ફ઼": [["f", 1.0]],
+    "ડ઼": [["d", 0.6], ["r", 0.4]],
+    "ઢ઼": [["dh", 0.6], ["rh", 0.4]]
+  },
+  "inCluster": {},
+  "afterVirama": {},
+  "clusters": {
+    "ક્ષ": [["ksh", 0.98], ["x", 0.013], ["kh", 0.01]],
+    "જ્ઞ": [["gn", 0.711], ["gy", 0.232], ["jn", 0.058]],
+    "ત્ર": [["tr", 1.0]],
+    "ચ્ચ": [["chch", 0.836], ["cch", 0.099], ["ch", 0.066]],
+    "ચ્છ": [["chchh", 0.482], ["cchh", 0.259], ["chh", 0.259]],
+    "શ્ર": [["shr", 0.887], ["sr", 0.113]]
+  },
+  "geminateSingle": 0.025,
+  "finals": {
+    "ં": [["n", 0.977], ["", 0.023]],
+    "ઁ": [["n", 0.7], ["", 0.3]],
+    "ઃ": [["h", 0.869], ["", 0.131]],
+    "ઽ": [["", 1.0]]
+  },
+  "inherent": {
+    "medial": [["a", 0.995], ["", 0.01]],
+    "schwaDeleted": [["a", 0.946], ["", 0.054]],
+    "final": [["", 0.999], ["a", 0.01]],
+    "finalAfterCluster": [["", 0.931], ["a", 0.069]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "zh",
+        "j"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ow",
+        "au"
+      ],
+      [
+        "ey",
+        "e"
+      ],
+      [
+        "aay",
+        "e"
+      ],
+      [
+        "ay",
+        "e"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mph",
+        "np"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mp",
+        "np"
+      ]
+    ],
+    "letters": {
+      "f": "p",
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks"
+    },
+    "vowels": "aeiou",
+    "dropTrailing": {
+      "letters": "nm",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "dropBetweenConsonants": "a",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length only. m is not read as n here, though the skeleton folds them: typed naam must spell નામ and not માં. Gujarati keeps d and t, g and k apart (દ ત, ગ ક).",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is a. It is not said at the end of a word (ગુજરાત gujarat, ઘર ghar), and people rarely type it there; after a final cluster it is typed about as often as not (મિત્ર mitra / mitr, શબ્દ shabd / shabda). Inside a word Gujarati drops it between a vowel + lone consonant and a lone consonant + vowel (કરવું karvu, ગુજરાતી gujrati), and people type it either way, so the weighted tables have schwaDeleted. The pack's format-1 walk has no schwa rule and keeps every medial a (કરવું karavun); the skeleton drops an a between consonants instead, on both sides.",
+    "anusvara": "ં is n inside a word, and m before a labial (સંબંધ sambandh): the skeleton folds mb and mp to nb and np. At the end of a word, where it marks the neuter and the locative (કરવું, સારું, શું, ઘરમાં), chat usually leaves it out (karvu, saru, shu, gharma) and careful typists write n or m (karvun, gharmam); the skeleton drops a final n or m after a vowel (dropTrailing), so all three are one key. The price: a word that really ends in n or m shares its key with the word without it (નામ with ના). m is not listed as a spelling of ં, though Aksharantar's annotators type it at the end of a word more than n: the tables have one list for ં wherever it stands, the fit would make m its canonical spelling, and the key of every word with ં inside would then have m where people type n. The transliterator still learns the final m from Aksharantar's mined pairs.",
+    "e": "એ is e; Aksharantar's annotators also typed ey and ay (meynipyuleyshans), which are kept as rare spellings for the transliterator; the skeleton folds ey and ay to e (not ae: the ergative એ after આ, છોકરાએ chhokarae, is two vowels). ay is also the end of થાય, સમય, વિજય, which so share keys with words in e (thay with the); it is folded because one in twelve calibration pairs is typed that way.",
+    "vowels": "ઇ and ઈ are both i, ઉ and ઊ both u; long ones are sometimes typed ee and oo, and આ as aa. The skeleton folds aa, ee, ii, oo, uu.",
+    "letters": "છ is chh or ch (છે chhe / che), ઝ jh or z, ફ f or ph, વ v or w, શ sh or s (શું shu / su), ળ l. ઋ and ૃ are ru in Gujarati (કૃષ્ણ krushna) as often as ri. ક્ષ is ksh, જ્ઞ gn or gy, ત્ર tr, શ્ર shr.",
+    "skeleton": "A final n or m after a vowel is dropped first (dropTrailing), so karvun, karvum and karvu are one key: the neuter anusvara at the end of a word is typed all three ways. An a between two consonants is dropped (dropBetweenConsonants), so the medial inherent vowel typed or not gives one key (karvu / karavu, gujrati / gujarati). chh and ch fold to c, sh to s, the aspirates to their plain stops, f and ph to p, z and jh to j, w to v. A final a after a consonant is dropped, which covers the final inherent vowel typed or not."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-ben",
+  "name": "Aksharantar (AI4Bharat), Bengali",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-06): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Bengali files have 92,627 Dakshina rows and 5,478 Existing rows, which the filter in training/mlkb/langs/human.py drops (the tools keep only mined, Wikidata and manual rows). What is kept is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEF, AK-NEI: CC BY).",
+  "used_for": "ben_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/bn.neopack, and to fit and check the romanised Bengali tables (data/langs/bn/romanisation.json). ben_valid.json has no manual rows, so a quarter of ben_train.json's manual rows, held out by word, calibrate the tables and validate training. ben_test.json's manual rows (CC BY) are the held-out eval set: their words are left out of every training pair.",
+  "retrieved": "2026-11-11",
+  "notes": "Fetched 2026-11-11. Extract with: unzip ben.zip -d data/raw/aksharantar-ben/extracted (data/build-bn-text.sh does). ben_train.json has 1,231,428 rows: IndicCorp 1,009,448, Samanantar 114,558, Dakshina 76,330, Wikidata 18,249, AK-Freq 7,365, Existing 5,478. ben_valid.json has 11,276 rows: Dakshina 7,099, IndicCorp 2,778, Samanantar 1,007, Wikidata 392. ben_test.json has 14,167 rows: Dakshina 9,198, AK-Freq 2,270, AK-NEI 1,639, AK-NEF 1,060. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/ben.zip",
+      "sha256": "4ab6edcc6ab556040d8f43ee75eec73cc25af0cf72d09e4650dab26b196d5fe7",
+      "path": "ben.zip"
+    }
+  ],
+  "extracted": {
+    "ben_train.json": "fc3544e4484242aaffb5ad3f6301d1ddf76522825ddf181aec15e09889dfb92f",
+    "ben_valid.json": "770bc2d8b113546401fcfee90858fa2ada3ff2405e549816ed032e7e7f8738b0",
+    "ben_test.json": "b00ff14b8a9dda6318eb5298a8314930c590607ed17c8a8f90c4a6e66e1bd20a"
+  },
+  "status": "in packs/bn.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}

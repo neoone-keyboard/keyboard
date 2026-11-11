@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "id": "bho",
+  "version": "2026.11.12",
+  "name": "Bhojpuri",
+  "nativeName": "भोजपुरी",
+  "script": "deva",
+  "romanised": {
+    "name": "Romanised Bhojpuri"
+  },
+  "minEngine": 2,
+  "files": {
+    "lexicon": "bho.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "bho.fst": "83394204a3a48f0d9bea2be768896b7893be8838d1de750205272125d684a02f",
+    "lang.json": "7d68f4a78492a7538eeee8a73e99ea499395bf4c78fc0a49c67736405bf75b2d",
+    "layout.json": "683e77f1020a49af4fb108b244db6cf268c15b85bb51c61ae0a1396312c14d5f",
+    "next.fst": "629f094282bc7c30e74b40b5fa5bb3466015c79bd9976bef2445eaa0e03ca2ef",
+    "romanisation.json": "9a2ae0a35ff40df14974c1175b110ededc113b864d12d1a41c5a63ece7d63dcb",
+    "romanised.fst": "9d0339f58e80f57842231c9e83d2d2efaf81682ca2f5b100889895d6ee993a97",
+    "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
+  },
+  "credits": [
+    {
+      "name": "Bhojpuri Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://bh.wikipedia.org/"
+    },
+    {
+      "name": "Hindi Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikipedia.org/"
+    },
+    {
+      "name": "Hindi Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikisource.org/"
+    },
+    {
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

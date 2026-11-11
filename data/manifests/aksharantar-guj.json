@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-guj",
+  "name": "Aksharantar (AI4Bharat), Gujarati",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-11): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Gujarati files have 'Dakshina Dataset' and 'Existing sources' rows, which the filter in training/mlkb/data/human.py drops (the project's licence audit keeps them out of a pack): 105,601 Dakshina and 3,094 Existing rows are dropped by the filter. What is used is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEI, AK-NEF: CC BY).",
+  "used_for": "guj_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/gu.neopack, and its 6,129 AK-Freq manual rows to fit and check the romanised Gujarati tables (data/langs/gu/romanisation.json): guj_valid.json has no manual rows, so a quarter of train's (by word; 1,607 pairs) calibrates. guj_test.json's manual rows (AK-Freq, AK-NEI, AK-NEF, CC BY) are the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-11",
+  "notes": "Fetched 2026-11-11. Extract with: unzip guj.zip -d data/raw/aksharantar-guj/extracted (data/build-gu-text.sh does). guj_train.json has 1,143,212 rows: IndicCorp 1,013,574, Dakshina 86,832, Samanantar 31,343, AK-Freq 6,129, Existing 3,094, Wikidata 2,240. guj_valid.json 12,419: Dakshina 8,426, IndicCorp 3,398, Samanantar 499, Wikidata 96 (no manual rows). guj_test.json 18,077: Dakshina 10,343, AK-Freq 5,247, AK-NEI 1,481, AK-NEF 1,006. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/guj.zip",
+      "sha256": "2b83105a76c8d9b93007fc6fb6b5593b9ef45e0ae7d753036fe7a2c82a4b6208",
+      "path": "guj.zip"
+    }
+  ],
+  "status": "in packs/gu.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "extracted": {
+    "guj_train.json": "12322061ca2be1c6fbb0f40ae69f9ef6f3c001bf4740c25ccff68ca80b31cc18",
+    "guj_valid.json": "4ff42353a59b9f85e446c85996f36fb1265386f18fd93c23b73bba1f2f49f312",
+    "guj_test.json": "7441e602abbad8c60155595df1722868e3b6be3356533688c3ddb2e97f85e22b"
+  }
+}

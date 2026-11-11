@@ -1,0 +1,24 @@
+{
+  "id": "tewikiquote",
+  "name": "Telugu Wikiquote",
+  "homepage": "https://te.wikiquote.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://te.wikiquote.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Quotations on Telugu Wikiquote, collected by Wikiquote contributors.",
+  "used_for": "Telugu word frequencies and next-word pairs (packs/te.neopack; whole 2026-11-01 dump).",
+  "retrieved": "2026-11-11",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/tewikiquote/20261101/tewikiquote-20261101-pages-articles.xml.bz2",
+      "sha1": "90bab1bfb9ad2a9ce98eef41dfdd50090000f03f",
+      "path": "tewikiquote-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/te.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

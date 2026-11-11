@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "id": "gu",
+  "version": "2026.11.11",
+  "name": "Gujarati",
+  "nativeName": "ગુજરાતી",
+  "script": "gujr",
+  "romanised": {
+    "name": "Gujlish"
+  },
+  "minEngine": 4,
+  "files": {
+    "lexicon": "gu.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "gu.fst": "ba4fbc675ca827ff753fa72ab2581765196048b3f4027378693b561c76ac1c27",
+    "lang.json": "c80b3f361381b3a61d4ff0b0d883b792576188329ed97ac511ba82e2edd8443f",
+    "layout.json": "64843506c0ada7fe2bb7090b8d9a4bd8f6ab966efd941e55bde03d0ac88a1fd4",
+    "next.fst": "59cc857865d59f6879b76cd5dede75412910ba16c8a96c3ecd6ce8b703f5a4c1",
+    "romanisation.json": "0627ea206fb56db56a83a8ce4a3785dc98b267298a952d35b6bfcbfe87108568",
+    "romanised.fst": "efad2765d401e9573e170ec1054fad2d79df9e97ada39a2e8a56ee9720f38c9b",
+    "translit.mlkbnn": "45034320e98ebc99ce3f42e173fc216dbe08f9d6312e49f931bfff1c89b50c83"
+  },
+  "credits": [
+    {
+      "name": "Gujarati Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://gu.wikipedia.org/"
+    },
+    {
+      "name": "Gujarati Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://gu.wikisource.org/"
+    },
+    {
+      "name": "Gujarati Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://gu.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "format": 1,
+  "script": "deva",
+  "virama": "्",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "अ": "a",
+    "आ": "aa",
+    "इ": "i",
+    "ई": "ee",
+    "उ": "u",
+    "ऊ": "oo",
+    "ऋ": "ru",
+    "ए": "e",
+    "ऐ": "ai",
+    "ओ": "o",
+    "औ": "au",
+    "ऑ": "o",
+    "ॲ": "a",
+    "ऍ": "a"
+  },
+  "vowelSigns": {
+    "ा": "aa",
+    "ि": "i",
+    "ी": "ee",
+    "ु": "u",
+    "ू": "oo",
+    "ृ": "ru",
+    "ॄ": "ru",
+    "े": "e",
+    "ै": "ai",
+    "ो": "o",
+    "ौ": "au",
+    "ॉ": "o",
+    "ॅ": "a"
+  },
+  "consonants": {
+    "क": "k",
+    "ख": "kh",
+    "ग": "g",
+    "घ": "gh",
+    "ङ": "n",
+    "च": "ch",
+    "छ": "chh",
+    "ज": "j",
+    "झ": "z",
+    "ञ": "n",
+    "ट": "t",
+    "ठ": "th",
+    "ड": "d",
+    "ढ": "dh",
+    "ण": "n",
+    "त": "t",
+    "थ": "th",
+    "द": "d",
+    "ध": "dh",
+    "न": "n",
+    "प": "p",
+    "फ": "ph",
+    "ब": "b",
+    "भ": "bh",
+    "म": "m",
+    "य": "y",
+    "र": "r",
+    "ऱ": "r",
+    "ल": "l",
+    "ळ": "l",
+    "व": "v",
+    "श": "sh",
+    "ष": "sh",
+    "स": "s",
+    "ह": "h",
+    "क़": "k",
+    "ख़": "kh",
+    "ग़": "g",
+    "ज़": "z",
+    "ड़": "d",
+    "ढ़": "dh",
+    "फ़": "f",
+    "य़": "y"
+  },
+  "finals": {
+    "ं": "n",
+    "ँ": "n",
+    "ः": "h"
+  },
+  "clusters": {
+    "क्ष": "ksh",
+    "ज्ञ": "dny",
+    "श्र": "shr"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["chh", "c"], ["ksh", "x"], ["dny", "gy"], ["mbh", "nb"], ["mph", "np"], ["ch", "c"], ["sh", "s"], ["ks", "x"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["rh", "r"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "ai"], ["mb", "nb"], ["mp", "np"]],
+    "singles": {
+      "z": "j",
+      "f": "p",
+      "w": "v",
+      "q": "k"
+    },
+    "collapseDoubles": true,
+    "dropBetweenConsonants": "a",
+    "dropFinalVowel": {
+      "vowels": "a",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
+  "optionalFinals": ["ं", "ँ"],
+  "notes": "inherent: The inherent vowel is typed 'a' inside a word and dropped at its end (घर ghar, कमल kamal). Marathi's typists mostly keep the medial vowel that speech drops (करणार karanar as often as karnar), so schwaDeleted keeps 'a' first; the transliterator learns both, and the skeleton drops every a between two consonants so that karanar and karnar, shetakari and shetkari give one key. letters: ळ is typed l (शाळा shala) and ऱ r. ज and झ are also z (माझा maza / majha); z folds to j in the skeleton. ज्ञ is dny (ज्ञान dnyan), also gy; ऋ and ृ are ru (कृष्ण krushna), also ri. ॲ and ॅ are the English a of bank (बॅंक), ऑ and ॉ its o (ऑफिस). A nukta letter is its consonant plus U+093C after NFC, so its key is two code points. finals: Anusvara is n, or m before a labial; the skeleton folds mb and mp to nb and np so sambhav and sanbhav meet. skeleton: Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; dny to gy. A final a after a consonant is dropped, which covers the final inherent vowel typed or not. unwritten: A final anusvara after a vowel sign is often left unwritten (करणें karane), so optionalFinals names anusvara and candrabindu: such a word is also keyed by the skeleton of its walk without the n, and either spelling spells it out. One after a bare consonant (केलं) keeps its n in the key. On the held-out Aksharantar rows the first native suggestion stays 50.3% and the bar goes from 55.9% to 56.0%."
+}

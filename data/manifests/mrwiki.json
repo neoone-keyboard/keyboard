@@ -1,0 +1,24 @@
+{
+  "id": "mrwiki",
+  "name": "Marathi Wikipedia",
+  "homepage": "https://mr.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://mr.wikipedia.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Marathi Wikipedia articles by Wikipedia contributors.",
+  "used_for": "Marathi word frequencies, romanised Marathi lookup and next-word pairs (packs/mr.neopack; whole 2026-11-01 dump).",
+  "retrieved": "2026-11-11",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/mrwiki/20261101/mrwiki-20261101-pages-articles.xml.bz2",
+      "sha1": "512b614e2bb7185d5a236894500ea31ca9f69b87",
+      "path": "mrwiki-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/mr.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}
