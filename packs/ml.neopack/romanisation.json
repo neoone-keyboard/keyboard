@@ -40,5 +40,28 @@
     "dropFinalVowel": { "vowels": "ue", "afterConsonant": true, "minLength": 3 }
   },
   "looseSpelling": {"singles": {"d": "t"}, "pairs": [["ee", "i"], ["oo", "u"]], "collapse": "aiu"},
+  "fromLatin": {
+    "consonants": [
+      ["chh", "ഛ"], ["nth", "ന്ത"], ["ndh", "ന്ധ"], ["nch", "ഞ്ച"],
+      ["nj", "ഞ"], ["ng", "ങ"], ["nk", "ങ്ക"], ["nt", "ന്റ"], ["nd", "ന്ദ"],
+      ["ch", "ച"], ["kh", "ഖ"], ["gh", "ഘ"], ["jh", "ഝ"], ["th", "ത"], ["dh", "ധ"],
+      ["ph", "ഫ"], ["bh", "ഭ"], ["sh", "ഷ"], ["zh", "ഴ"],
+      ["k", "ക"], ["g", "ഗ"], ["c", "ക"], ["q", "ക"], ["j", "ജ"], ["t", "ട"], ["d", "ദ"],
+      ["n", "ന"], ["p", "പ"], ["f", "ഫ"], ["b", "ബ"], ["m", "മ"], ["y", "യ"], ["r", "ര"],
+      ["l", "ല"], ["v", "വ"], ["w", "വ"], ["s", "സ"], ["z", "സ"], ["h", "ഹ"], ["x", "ക്സ"]
+    ],
+    "vowels": [
+      ["aa", "ആ", "ാ"], ["ai", "ഐ", "ൈ"], ["au", "ഔ", "ൗ"], ["ee", "ഈ", "ീ"], ["ii", "ഈ", "ീ"],
+      ["oo", "ഊ", "ൂ"], ["uu", "ഊ", "ൂ"],
+      ["a", "അ", ""], ["i", "ഇ", "ി"], ["u", "ഉ", "ു"], ["e", "എ", "െ"], ["o", "ഒ", "ൊ"]
+    ],
+    "finalForms": [["ന", "ൻ"], ["ണ", "ൺ"], ["ല", "ൽ"], ["ര", "ർ"], ["മ", "ം"]],
+    "longBeforeOpenSyllable": { "signs": [["e", "േ"], ["o", "ോ"]], "notBefore": ["ch"] },
+    "finalVowels": [["y", "ി"]],
+    "fused": [{ "consonant": "r", "vowel": "i", "unless": "ii", "after": ["k", "h", "m", "v", "d", "th"], "sign": "ൃ" }],
+    "afterConsonant": [{ "consonant": "n", "after": ["sh", "r"], "native": "ണ" }],
+    "betweenVowels": [["ch", "ച്ച"]],
+    "beforeConsonant": [{ "consonant": "r", "native": "ർ", "notBefore": ["ര", "യ"] }]
+  },
   "notes": "Malayalam to Manglish. Reproduces the engine's original romanize.rs exactly (checked over every word of ml.fst). gh folds to k, not g: people write ഖ as gh as often as kh (sugham, mugham), and ഖ is far commoner than ഘ. A final -a is never dropped: it tells words apart (എന്താ / എന്ത്, അമ്മ / അമ്മു)."
 }

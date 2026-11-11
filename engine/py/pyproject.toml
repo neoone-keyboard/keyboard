@@ -19,4 +19,9 @@ cache-keys = [
     { file = "src/**/*.rs" },
     { file = "../core/Cargo.toml" },
     { file = "../core/src/**/*.rs" },
+    # Compiled into the engine: the embedded script rules and Malayalam's fromLatin.
+    { file = "../../data/langs/ml/lang.json" },
+    { file = "../../data/langs/hi/lang.json" },
+    { file = "../../data/langs/as/lang.json" },
+    { file = "../../packs/ml.neopack/romanisation.json" },
 ]

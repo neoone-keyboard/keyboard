@@ -91,17 +91,17 @@ fn free_spellings_are_in_the_pack_script() {
     }
 }
 
-/// The rule-based spelling is Malayalam's only, so without its transliterator a pack's word
-/// off the lexicon gets nothing in its script: the Assamese model, whose vocabulary has the
-/// apostrophe (134 tokens), must load for `kolkatar` to get one.
+/// Without its transliterator a pack's word off the lexicon gets the rule-based spelling of
+/// its own tables (`Romanisation::spell`; once Malayalam's only): rough, here with the lower
+/// of ত and ট. The Assamese model, whose vocabulary has the apostrophe (134 tokens), must load
+/// for `kolkatar` to get its own, better one.
 #[test]
 fn an_assamese_word_off_the_lexicon_gets_a_spelling() {
-    assert_eq!(
-        romanised(&engine("as", false), "kolkatar"),
-        Vec::<String>::new()
-    );
+    let by_rule = romanised(&engine("as", false), "kolkatar");
+    assert_eq!(by_rule, ["কল্কাটাৰ"]);
     let got = romanised(&engine("as", true), "kolkatar");
     assert!(!got.is_empty(), "kolkatar: no Assamese spelling");
+    assert_ne!(got, by_rule, "the model's spelling, not the rule's");
     assert!(got.iter().all(|w| in_script("as", w)), "{got:?}");
 }
 

@@ -520,6 +520,43 @@ may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
 (Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
 step 7 and run `scripts/pack.py --write` again.
 
+**A spelled guess without a model: `fromLatin`.** When nothing else answers for typed
+letters (no lexicon word, and no transliterator, or one that wasn't asked because the letters
+are an English word), the engine spells them by rule and offers that in a side slot. With no
+work from you the rules are your tables turned round: each Latin spelling of a consonant or a
+vowel gives its letter back. That is rough where two letters share a spelling, since the
+tables don't say which is commoner and the lower code point wins (Hindi `t` gives ट, not त;
+Tamil `tamil` gives டமில்). On the held-out sets, with the model taken out of the pack, it
+answers many more words but few of them right (first native suggestion right: Tamil 33.1% to
+36.0%, Assamese 34.1% to 35.0%, Hindi unchanged at 50.0%; no native suggestion at all: 55% to
+23%, 51% to 20%, 32% to 24%). A pack with a transliterator hardly uses it.
+
+For a better guess, add a `fromLatin` section to the pack's `romanisation.json` (by hand,
+after step 7, then `scripts/pack.py --write`; the export doesn't write it). Malayalam's is
+the worked example, and `RawFromLatin` in `engine/core/src/translit.rs` documents each part.
+Two tables are required, read left to right with the first match taken, so put longer
+spellings first:
+
+```json
+"fromLatin": {
+  "consonants": [["kh", "ख"], ["k", "क"], ["t", "त"], ["b", "ब"]],
+  "vowels": [["aa", "आ", "ा"], ["a", "अ", ""], ["i", "इ", "ि"]],
+  "bareFinal": true
+}
+```
+
+- `consonants`: `[latin, native]`. List every letter a to z that isn't a vowel spelling, or a
+  word with a missing letter gets no guess.
+- `vowels`: `[latin, letter, sign]`: the independent letter, and the sign on a consonant
+  (`""` for the inherent vowel).
+- `bareFinal`: a word-final consonant is written bare (Hindi कमल). Without it, it takes the
+  virama, or its `finalForms` entry (`[native, final]`: Malayalam's chillus, ന to ൻ).
+- The rest encode habits of Malayalam's typists that other languages may share:
+  `longBeforeOpenSyllable` (a short e or o is long before one consonant and a vowel: `mohan`),
+  `finalVowels` (a final `y` after a consonant is ി), `fused` (`r` + `i` after `k` is ൃ),
+  `afterConsonant` (`n` after `sh` is ണ), `betweenVowels` (a lone `ch` is ച്ച) and
+  `beforeConsonant` (`r` before a consonant is the chillu ർ).
+
 **Doubled letters.** A consonant doubled across a virama (க்க) is one slot. By default it is
 spelled with the letter's first Latin letter doubled (க `k` gives `kk`, but த `th` gives
 `tth`), or, `geminateSingle` of the time, like the single letter. When people type it another

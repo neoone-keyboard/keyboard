@@ -34,6 +34,8 @@ struct Raw {
     loose_spelling: Option<RawLoose>,
     #[serde(default)]
     swipe: Option<RawSwipe>,
+    #[serde(default)]
+    from_latin: Option<crate::translit::RawFromLatin>,
 }
 
 /// `swipe`: each part optional, derived from the skeleton when absent.
@@ -241,6 +243,7 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
 pub struct Romanisation {
     loose: Loose,
     swipe: crate::swipe::SkeletonRules,
+    speller: crate::translit::Speller,
     script: String,
     virama: Vec<char>,
     inherent: String,
@@ -317,19 +320,48 @@ impl Romanisation {
             None => Loose::before_the_field(),
         };
         let swipe = swipe_rules(&skeleton, raw.swipe)?;
+        let virama = nfc(&raw.virama);
+        let independent = Keys::new(raw.independent_vowels);
+        let signs = Keys::new(raw.vowel_signs);
+        let consonants = Keys::new(raw.consonants);
+        let clusters = Keys::new(raw.clusters);
+        // The file's own speller; else the one the engine holds for the script (Malayalam's,
+        // for its packs published before the section); else one from the tables turned round.
+        let speller = match raw.from_latin {
+            Some(section) => crate::translit::Speller::from_raw(section, &virama)?,
+            None => crate::translit::embedded(&raw.script).unwrap_or_else(|| {
+                let mut letters = crate::translit::rows(&clusters.map);
+                letters.extend(crate::translit::rows(&consonants.map));
+                let singles: Vec<(u8, Vec<u8>)> = LETTERS
+                    .iter()
+                    .zip(&skeleton.singles)
+                    .filter_map(|(l, s)| Some((*l, s.clone()?)))
+                    .collect();
+                crate::translit::Speller::derived(
+                    &virama,
+                    &letters,
+                    &crate::translit::rows(&independent.map),
+                    &crate::translit::rows(&signs.map),
+                    &raw.inherent,
+                    &singles,
+                    raw.at_word_end.inherent.is_empty(),
+                )
+            }),
+        };
         Ok(Self {
             loose,
             swipe,
+            speller,
             script: raw.script,
-            virama: nfc(&raw.virama).chars().collect(),
+            virama: virama.chars().collect(),
             inherent: raw.inherent,
             end_virama: raw.at_word_end.virama,
             end_inherent: raw.at_word_end.inherent,
-            independent: Keys::new(raw.independent_vowels),
-            signs: Keys::new(raw.vowel_signs),
-            consonants: Keys::new(raw.consonants),
+            independent,
+            signs,
+            consonants,
             finals: Keys::new(raw.finals),
-            clusters: Keys::new(raw.clusters),
+            clusters,
             skeleton,
         })
     }
@@ -469,6 +501,12 @@ impl Romanisation {
             out.pop();
         }
         String::from_utf8(out).unwrap_or_default()
+    }
+
+    /// `latin` spelled in the script by rule (`translit::Speller`): a guess for a word no
+    /// lexicon or model has. None unless it is all letters the tables can spell.
+    pub fn spell(&self, latin: &str) -> Option<String> {
+        self.speller.spell(latin)
     }
 
     /// What the skeleton means for a swipe over the Latin keys (`swipe::decode`).

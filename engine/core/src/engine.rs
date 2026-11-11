@@ -22,7 +22,6 @@ use crate::script::{self, ScriptRules, normalize_word as normalize};
 use crate::suffix::{self, Suffixes};
 use crate::swipe;
 use crate::text::{self, Script};
-use crate::translit::transliterate;
 use crate::user::UserStore;
 
 /// Most keys visited by one correction walk. Prefix lookups need no limit
@@ -116,7 +115,7 @@ pub struct PackSources {
     /// `next.fst`: next-word pairs, today both the pack's and English's.
     pub next_words: Option<Lexicon>,
     /// The neural transliterator (`nn::Translit`). Without it, romanised ranking is M2's:
-    /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
+    /// skeleton lookup, suffix splits and the rule-based spelling (`Romanisation::spell`).
     pub translit: Option<Translit>,
     /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
     /// ranking is M3a's: the previous word sets the romanised bias, `next.fst` the next words.
@@ -2148,8 +2147,8 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // The rule-based spelling (`translit::transliterate`) is Malayalam's, and so are three
-        // ranking choices below that keep its recorded results; none is pack data yet.
+        // Three ranking choices below are Malayalam's alone, to keep its recorded results;
+        // none is pack data yet.
         let malayalam = pack.rules.code() == "mlym";
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
@@ -2252,12 +2251,11 @@ impl Engine {
         }
         let free = free.map(|f| f.text);
         // Names and rare words: the model's own spelling (or, without the model, the
-        // rule-based one), as a side-slot guess.
+        // pack's rule-based one, `romanisation.json`'s `fromLatin`), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
             let guess = match free {
                 Some(text) => Some((text, rank::MANGLISH_MODEL_FREE)),
-                None if malayalam => transliterate(typed_n).map(|text| (text, rank::UNKNOWN)),
-                None => None,
+                None => r.spell(typed_n).map(|text| (text, rank::UNKNOWN)),
             };
             if let Some((text, score)) = guess {
                 found.side.push(Candidate {
