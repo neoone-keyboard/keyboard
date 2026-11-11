@@ -42,7 +42,7 @@ public enum Credits {
         Credit(
             id: "cldr-annotations", name: "Unicode CLDR 49 emoji annotations", licence: "Unicode License v3",
             licenceURL: "https://www.unicode.org/license.txt",
-            attribution: "Copyright © 1991-2026 Unicode, Inc. English and Malayalam emoji keywords and names from the Unicode Common Locale Data Repository, used for emoji suggestions. https://cldr.unicode.org/"
+            attribution: "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository, in English and in the language of each pack that brings its emoji words, used for the emoji suggestions and the emoji search. https://cldr.unicode.org/"
         ),
     ]
 

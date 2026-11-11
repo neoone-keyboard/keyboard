@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "hi",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Hindi",
   "nativeName": "हिन्दी",
   "script": "deva",
@@ -19,10 +19,14 @@
     "translit": "translit.mlkbnn",
     "lm": "lm.mlkbnn",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
     "chat-forms.tsv": "d71ff5431325c1b53a7b2bde43a569253af85181006812f2dc3052d6942a441f",
+    "emoji-search.txt": "a97a108ca5a0be449d743727fdc79392cc1dacb68db0af57b0b6068dbe7bce6b",
+    "emoji-words.txt": "6f1a5cb07f89170e78fde9469d793145756a6dfbd8283c4638f6b4dcaea3043a",
     "hi.fst": "1fa9ba05a26839017e585fc919e1c61c5a9de2acbca775ed6c6659a31b0b4326",
     "hinglish.fst": "7c9d2a297ca28cdf2500f3292b3247908d71c4a4f257882fef3fa56c259626da",
     "lang.json": "eae5cfb7c38df5b7fcca9eb786fac09f9f4cc8f2cd6fb2f3e0bfb62648df18b3",
@@ -52,6 +56,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Hindi emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Hindi."
     },
     {
       "name": "English Wikipedia",

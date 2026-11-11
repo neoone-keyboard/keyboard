@@ -967,18 +967,28 @@ know English from the app, and your language from your pack. The words come from
 [Unicode CLDR](https://cldr.unicode.org/)'s emoji annotations, which exist for most locales
 (Unicode License v3, already credited by the app).
 
+Look first at what CLDR has for your locale: some have no annotation files (Bhojpuri, `bho`)
+and some only a handful of entries (Maithili, `mai`, has eight). Such a pack brings no emoji
+words; don't give it a related language's.
+
 1. Add your locale's two files to `data/manifests/cldr-annotations.json`, next to
    Malayalam's: `common/annotations/xx.xml` as `xx.xml` and `common/annotationsDerived/xx.xml`
-   as `derived-xx.xml`, with their sha256 (`shasum -a 256`). CLDR's locale code must be your
-   pack id; the script takes every `<id>.xml` but English's as a pack language.
-2. `make emoji` writes `data/langs/xx/emoji-words.txt` and `emoji-search.txt`. It rewrites
-   the app's English files too, with the same bytes unless Unicode's data changed.
+   as `derived-xx.xml`, with their sha256 (`shasum -a 256`), and your pack to its `packs`:
+   pack id to CLDR locale (`"xx": "xx"`; they differ only if your pack id isn't CLDR's code).
+   Hindi, Marathi, Bengali, Gujarati, Assamese and Tamil are there already.
+2. `make emoji EMOJI_PACKS=xx` writes `data/langs/xx/emoji-words.txt` and `emoji-search.txt`.
+   Once they exist, a plain `make emoji` rebuilds them with every other language's. It
+   rewrites the app's English files too, with the same bytes unless Unicode's data changed.
 3. `scripts/pack.py packs/xx.neopack --write` (step 10) copies the two files into the pack,
    adds the `emojiWords` and `emojiSearch` roles and their checksums. `--check` fails when
    the pack's copies differ from `data/langs/xx/`. `minEngine` doesn't move: the engine
    doesn't read them, and an older app ignores them.
 4. Add a credit to the manifest, as Malayalam's has: id `cldr-annotations`, licence
-   `Unicode License v3`.
+   `Unicode License v3`, its `licenceUrl`, and the attribution with Unicode's copyright line.
+
+The words are in your script only: CLDR has no romanised ones. A word typed in English
+letters gets its emoji once the bar's native word is in the text, which is how Manglish
+works too.
 
 Everyday names for flags that CLDR only spells out in full (`അമേരിക്ക` for 🇺🇸) are a short
 list per pack id in `data/pipeline/emoji_data.py` (`PACK_FLAG_NAMES`); that one is a code

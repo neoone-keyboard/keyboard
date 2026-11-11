@@ -75,6 +75,24 @@ import MLEngine
     #expect(try !bar(reloaded, "raub").map(\.text).contains(free.text))
 }
 
+/// A pack's emoji words are in its script only (CLDR has no romanised words), so a word typed
+/// in English letters gets its emoji through the bar: the Hindi pack's tables turn "billi" into
+/// बिल्ली, and that spelling, byte for byte, is a word of the pack's emoji-words.txt. The same
+/// for Malayalam's "poocha" and പൂച്ച.
+@Test func aRomanisedWordReachesTheSpellingThePacksEmojiWordsHold() throws {
+    let packs = packDir.deletingLastPathComponent()
+    for (id, typed, native) in [("hi", "billi", "बिल्ली"), ("hi", "pyaar", "प्यार"), ("ml", "poocha", "പൂച്ച")] {
+        let pack = packs.appending(path: "\(id).neopack")
+        let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDirs: [pack.path]))
+        let bar = try engine.suggest(contextBefore: typed, layout: .latin, autocorrect: true).candidates.prefix(3)
+        #expect(bar.contains { $0.text == native && $0.language == id }, "\(typed): \(bar.map(\.text))")
+        let words = try String(contentsOf: pack.appending(path: "emoji-words.txt"), encoding: .utf8)
+        let line = words.split(separator: "\n").first { $0.hasPrefix("\(native)\t") }
+        #expect(line?.split(separator: "\t").last?.split(separator: " ").isEmpty == false, "\(native) has no emoji in pack \(id)")
+        #expect(!words.contains("\n\(typed)\t"), "\(typed) itself is no emoji word")
+    }
+}
+
 /// Spec §10 risk: Swift ↔ Rust call overhead. The whole keystroke budget is 15 ms;
 /// one FFI round-trip must be a tiny fraction of it.
 @Test func ffiRoundTripIsFast() throws {
