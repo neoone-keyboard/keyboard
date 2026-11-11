@@ -530,7 +530,7 @@ final class KeyboardViewController: UIInputViewController {
             }
             let shown = input.keysShown, shift = input.shift
             output.beginEdit()
-            input.insertSwipe(best, alternatives: Array(found.dropFirst().prefix(2)))
+            input.insertSwipe(best, alternatives: Array(found.dropFirst()))
             afterInput(keysBefore: shown, shiftBefore: shift)
         }
     }
