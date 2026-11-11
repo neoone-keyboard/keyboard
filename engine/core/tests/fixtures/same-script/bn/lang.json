@@ -1,0 +1,47 @@
+{
+  "id": "bn",
+  "name": "Bengali",
+  "script": "beng",
+  "block": ["0980", "09FF"],
+  "notWord": [["09E6", "09FE"]],
+  "firstLetter": [
+    ["0985", "0994"],
+    ["0995", "09B9"],
+    ["09DC", "09DF"]
+  ],
+  "virama": "09CD",
+  "signs": [
+    ["09BE", "09CC"],
+    ["09D7", "09D7"],
+    ["09E2", "09E3"],
+    ["09CD", "09CD"]
+  ],
+  "bases": [
+    ["0985", "0985"],
+    ["098F", "098F"],
+    ["0995", "09B9"],
+    ["09BC", "09BC"],
+    ["09DC", "09DF"]
+  ],
+  "apostrophe": false,
+  "replace": [
+    ["ত্‍", "ৎ"],
+    ["াে", "ো"],
+    ["অা", "আ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "ben",
+  "notes": {
+    "about": "Bengali's own rules. The engine's copy of the rules for a beng pack without this file is Assamese's (it folds র to ৰ), so the Bengali pack always carries this one.",
+    "block": "Bengali-Assamese, U+0980-U+09FF. Words are runs of these letters and signs.",
+    "notWord": "Digits ০-৯ and the currency and fraction signs are not word letters. Nor are ৰ (U+09F0) and ৱ (U+09F1): they are Assamese letters, so a token with one is Assamese text in a Bengali source and is not counted. Bengali's র (U+09B0) is kept as it is; nothing is folded.",
+    "replace": "After NFC: ত + virama + ZWJ is the old encoding of khanda ta ৎ. Two mis-encodings common in the dumps are mended: া + ে (the halves of ো in visual order) becomes ো, and অ + া becomes আ. NFC leaves য়, ড়, ঢ় as base + nukta (U+09BC), since U+09DC/09DD/09DF are composition exclusions. Every ZWJ and ZWNJ is dropped (no \"joiners\" field), as for Hindi and Assamese: র‍্য (র + ZWJ + virama + য, as in র‍্যাব) is stored and typed as র্য.",
+    "apostrophe": "Bengali does not write an apostrophe inside words the way Assamese does (হ'ল), so it ends a word.",
+    "phraseBreaks": "Bengali ends a sentence with the danda । (U+0964); ॥ ends verse. Next-word pairs never span one.",
+    "signs": "A vowel sign or virama must follow a base: a word with one after another vowel or sign is mis-encoded text and is not counted. ং ঁ ঃ may follow a vowel and are not in the list.",
+    "bases": "The consonants, the nukta, and two vowels: অ and এ take the -ya sign and আ-kar to write the vowel of English \"and\" (অ্যাপ, অ্যান্ড, এ্যান্ড), which is ordinary modern spelling. The text has such a word about 3 times in 1,000 (298,000 of 107 million)."
+  }
+}
