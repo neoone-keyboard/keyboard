@@ -37,10 +37,12 @@ private func packZip(
 private struct Fixture {
     let root: URL
     var packs: URL { root.appending(path: "Packs", directoryHint: .isDirectory) }
-    var installer: PackInstaller { PackInstaller(packsFolder: packs, support: support) }
+    let engine: PackSupport
+    var installer: PackInstaller { PackInstaller(packsFolder: packs, support: engine) }
 
-    init() throws {
+    init(support engine: PackSupport = support) throws {
         root = try temporaryFolder()
+        self.engine = engine
     }
 
     func archive(_ zip: TestZip, named name: String = "pack.neopack") throws -> URL {
@@ -315,9 +317,10 @@ private func tamilZip(withRules: Bool) -> TestZip {
     try f.installer.remove(id: "xx")
 }
 
-/// The committed Hindi pack, zipped by the pack builder, installs and reads as it did.
+/// The committed Hindi pack, zipped by the pack builder, installs and reads as it did, on an
+/// engine that reads what it needs (7: its optionalFinals and the skeleton's also-rules).
 @Test func theCommittedHindiPackInstalls() throws {
-    let f = try Fixture()
+    let f = try Fixture(support: PackSupport(format: 1, engine: 7, scripts: ["mlym", "deva", "beng"]))
     defer { f.cleanUp() }
     let archive = f.root.appending(path: "hi.neopack")
     let python = Process()
