@@ -401,6 +401,13 @@ speech. If it does, check how people actually type them before choosing its weig
 speakers drop them in typing, but Marathi's Aksharantar annotators mostly kept them (with
 canonical `""` the lookup found 58% of the manual rows; with `a`, 96%).
 
+When speech drops them and typists do either, also set `"dropBetweenConsonants": "a"` in the
+hand file's `skeleton`: every `a` with a consonant on both sides then leaves the key, so
+`karanar` and `karnar` find the same word. Hindi's file has it, and Marathi, Bengali, Maithili
+and Bhojpuri use it (Marathi's calibration skeleton went from 96.2% to 98.0%, and the held-out
+rows, whose typists drop far more of them, from 52.0% to 70.3%). The cost is the one every
+fold has: words that differ only by such a vowel share a key.
+
 **Calibrate.** Fit the weights to the human pairs:
 
 ```sh
@@ -565,8 +572,11 @@ way (`thth` for த்த), add the doubled letter to `clusters` with its spelli
 entry replaces the default.
 
 **Keys of more than one code point.** A key in `consonants` may be several code points, for a
-sound the script writes that way: Assamese's letter + nukta (য়). The longest key that matches
-is used. One limit: `finals` are matched before consonants, so a key whose first code point
+sound the script writes that way: Assamese's letter + nukta (য়). So may a key in
+`independentVowels`: Bengali writes the vowel of English "and" as অ + the -ya sign + the aa
+sign (অ্যাপ, অ্যান্ড), one key of four code points. For the lexicon to keep such words, the
+letter the signs follow must be in `lang.json`'s `bases` (Bengali lists অ and এ). The longest
+key that matches is used. One limit: `finals` are matched before consonants, so a key whose first code point
 is also in `finals` is never reached. Tamil lists ஃப (`f`) and ஃஜ (`z`) in `consonants`
 and ஃ in `finals`, so ஃப is read as ஃ, then ப (`p`). Typed `f` still finds those words
 only because Tamil's skeleton folds f to p (gap G35).
