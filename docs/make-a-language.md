@@ -64,7 +64,7 @@ packs/as.neopack/
 | `romanisation` | `romanisation.json` | The letter-by-letter spelling table and the skeleton folds. The engine folds what you type with it. Format: [romanisation spec](design/2026-11-06-m6-romanisation-format.md). | Needed with `romanisedLexicon`. |
 | `nextWords` | `next.fst` | Word pairs for the next-word suggestions after a space. | No |
 | `translit` | `translit.mlkbnn` | The transliterator (about 4.5M parameters, 4.7 MB int8). Spells words the lexicon has never seen. | No |
-| `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam has one. | No |
+| `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam, Hindi, Assamese and Tamil have one (step 12). | No |
 | `layout` | `layout.json` | The native-script keyboard pages. Without it the language is typed in Latin only and the language key skips it. | No |
 | `lang` | `lang.json` | The script's definition: `data/langs/xx/lang.json`, the file the lexicons were built with (step 2). `pack.py --write` copies it in. Engine 4. | **Yes.** `pack.py --check` fails without it. (The engine still reads an older `mlym`, `deva` or `beng` pack that lacks it.) |
 | `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a pack whose `lang.json` has `suffixJoins` uses it (Malayalam today; step 4b). | No |
@@ -1095,17 +1095,31 @@ all rows and over the words your romanised lexicon has; a pack with no entry in
 ### 12. Optional: a neural language model
 
 Malayalam's pack has a bilingual language model trained on Malayalam, its romanised form and
-English. It ranks suggestions by context, and the next-word bar uses it. Hindi's is being
-built now. The pipeline (`make lm-data lm LM_LANG=hi`) has a per-language config in
-`training/mlkb/lm/lang.py`, which lists only `ml` and `hi`, and it needs Dakshina's romanised
-sentences (12 languages) besides Aksharantar (gap G12). Plan on a pack without an LM; Assamese
-has none. If you do build one:
+English. It ranks suggestions by context, and the next-word bar uses it. Hindi, Assamese and
+Tamil have one too. The pipeline (`make lm-data lm LM_LANG=xx`) has a per-language config in
+`training/mlkb/lm/lang.py`, which lists `ml`, `hi`, `as` and `ta`; add yours there, copying
+Assamese's (`pack_lang=True` spells the romanised training text with your fitted tables from
+step 4). A pack is not worse without one: single words typed without a sentence come out the
+same either way. If you do build one:
 
-- it needs about 1B tokens of training, 4 to 7 hours on an M5 Max, plus about 2 hours of data
-  preparation;
+- it trains only on what your manifest credits. Assamese and Tamil use their own text from
+  step 3, Aksharantar and, of English, English Wikipedia alone (`english=("en-wiki",)`), so
+  they needed no new credit and no Dakshina. Hindi's and Malayalam's also read Simple English
+  Wikipedia, Wikinews and Project Gutenberg, which their manifests credit;
+- measure the pack without it first: add the pack to `LANGS` in
+  `training/mlkb/eval/__main__.py`, write the romanised next-word set
+  (`python -m mlkb.eval.next_sets --lang xx`: Dakshina's dev sentences where it has your
+  language, eval only, before `make lm-data`; else a synthetic set, after it), then
+  `python -m mlkb.eval --lang xx --translit ../packs/xx.neopack/translit.mlkbnn --record-nolm`;
+- it needs about 1B tokens of training (120,000 steps: 3.85 hours for Assamese and 4.62 for
+  Tamil on an M5 Max), plus data preparation (43 minutes for Assamese's 21M words, 1 hour 37
+  minutes for Tamil's 127M);
 - `make lm` refuses to copy a model that fails the memorisation check (no run of 50 tokens
-  copied from the training text) or makes the evaluation worse than the pack without an LM;
-- the pack's `minEngine` becomes 3.
+  copied from the training text) or makes the evaluation worse than the pack without an LM.
+  It copies the file but does not list it: add `"lm": "lm.mlkbnn"` to the manifest's `files`,
+  raise `version`, and run `pack.py --write`;
+- the pack's `minEngine` becomes 3 if it was lower;
+- `make bench-pack-lm LM_LANG=xx` is the latency gate (suggest p99 under 8 ms).
 
 ### 13. Put it on your iPhone
 
