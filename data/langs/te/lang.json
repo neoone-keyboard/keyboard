@@ -1,0 +1,28 @@
+{
+  "id": "te",
+  "name": "Telugu",
+  "script": "telu",
+  "block": ["0C00", "0C7F"],
+  "notWord": [["0C66", "0C6F"], ["0C77", "0C7F"]],
+  "firstLetter": [["0C05", "0C14"], ["0C15", "0C39"], ["0C58", "0C5A"], ["0C60", "0C61"]],
+  "virama": "0C4D",
+  "signs": [["0C3E", "0C44"], ["0C46", "0C48"], ["0C4A", "0C4D"], ["0C55", "0C56"], ["0C62", "0C63"]],
+  "bases": [["0C15", "0C39"], ["0C3C", "0C3C"], ["0C58", "0C5A"]],
+  "apostrophe": false,
+  "joiners": "afterVirama",
+  "replace": [],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "tel",
+  "notes": {
+    "about": "Telugu, in a script the engine has no rules of its own for: this file is all it knows. Sources: data/manifests/tewiki.json, tewikisource.json, tewikiquote.json, aksharantar-tel.json.",
+    "notWord": "The digits ౦-౯, and the siddham sign, the fraction digits and the tuumu sign (U+0C77 to U+0C7F).",
+    "firstLetter": "Independent vowels, consonants, ౘ ౙ ౚ and ౠ ౡ. Never a sign, the anusvara (ం), candrabindu or visarga.",
+    "signs": "Vowel signs, the length marks and the virama must follow a consonant. ం ఁ ః are left out: they can follow an independent vowel (అం, అః).",
+    "joiners": "A ZWNJ between the virama and the next letter is part of the word: Telugu writes loanwords with a visible virama (సాఫ్ట్‌వేర్, ఆన్‌లైన్, ఫేస్‌బుక్), and without the joiner the two consonants fuse into a conjunct (ఆన్లైన్), which reads as a mistake. The lexicon is built with them kept, so the pack needs engine 6.",
+    "replace": "None. ె + the ai length mark (U+0C56) is ై by NFC, which the normal form already applies.",
+    "phraseBreaks": "Telugu ends sentences with Latin punctuation; the dandas are listed for verse."
+  }
+}
