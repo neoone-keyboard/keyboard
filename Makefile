@@ -78,11 +78,14 @@ test-engine:
 # least covered first, and the total. Measures only; nothing fails on a number. Needs
 # cargo-llvm-cov, once:
 #   cd engine && rustup component add llvm-tools-preview && cargo install cargo-llvm-cov
-# The tests run several times slower instrumented (about 10 minutes).
+# The tests run several times slower instrumented (about 10 minutes, far longer on a busy
+# machine), which can fail a test that times itself (swipe's a_swipe_is_quick): a failing test
+# is reported in the output and the table is still printed (--ignore-run-fail). test-engine
+# is the gate, not this.
 coverage-engine:
 	@cd engine && $(CARGO) llvm-cov --version >/dev/null 2>&1 || { echo "cargo-llvm-cov not found. Install it with: cd engine && rustup component add llvm-tools-preview && cargo install cargo-llvm-cov"; exit 1; }
 	mkdir -p build/coverage
-	cd engine && $(CARGO) llvm-cov --workspace --json --summary-only --output-path ../build/coverage/engine.json
+	cd engine && $(CARGO) llvm-cov --workspace --ignore-run-fail --json --summary-only --output-path ../build/coverage/engine.json
 	@python3 -I scripts/coverage-table.py build/coverage/engine.json engine
 
 # The data checks: every pack's checksums, script rules and layout (scripts/pack.py --check),
