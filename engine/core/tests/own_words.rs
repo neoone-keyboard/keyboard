@@ -352,8 +352,8 @@ fn typed_forms(r: &Romanisation, word: &str) -> Vec<String> {
 }
 
 /// The pack's tables and its romanised lexicon, as `lexbuild-native` built it. The keys are
-/// packed from the first character of the pack's own rules, as the engine sets it for a
-/// loaded pack (`Romanisation::packed_from`).
+/// packed as the pack's own rules say, as the engine sets it for a loaded pack
+/// (`Romanisation::packed_by`).
 fn built(id: &str) -> (Romanisation, Lexicon) {
     let pack = pack(id);
     let rules = mlengine_core::script::for_pack(&pack.manifest.script, pack.file("lang").as_deref())
@@ -361,7 +361,7 @@ fn built(id: &str) -> (Romanisation, Lexicon) {
     (
         Romanisation::load(&pack.file("romanisation").unwrap())
             .unwrap()
-            .packed_from(*rules.block().start()),
+            .packed_by(rules.packing()),
         Lexicon::open(&pack.file("romanisedLexicon").unwrap()).unwrap(),
     )
 }

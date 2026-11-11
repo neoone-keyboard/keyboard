@@ -9,55 +9,33 @@
 //! precomputed top keys of a large subtree, or scans a small one whole.
 
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
+use crate::packing::Packing;
 use crate::romanisation::Romanisation;
 
 /// Candidates kept before the finer (slower) re-ranking by edit distance.
 const SHORTLIST: usize = 16;
 
-const ZWNJ: char = '\u{200C}';
-const ZWJ: char = '\u{200D}';
-
-/// The first code point of the script block `r`'s words are packed from (`pack`; U+0D00 for
-/// Malayalam, U+0900 for Devanagari): the one its pack's own rules give
-/// (`Romanisation::packed_from`, set when the engine opens the pack), else, for tables with
-/// no pack (a builder's, a test's), that of the rules in use for the tables' script. None
-/// when there are neither: its words can't be packed or unpacked, so nothing is keyed or
-/// found. A pack never gets here so: the engine refuses one whose tables are for another
-/// script than its own (`Sources::open`).
-pub fn block_base(r: &Romanisation) -> Option<char> {
-    r.base()
-        .or_else(|| crate::script::rules(r.script()).map(|rules| *rules.block().start()))
+/// How `r`'s words are packed (`packing`; the 128 code points from U+0D00 for Malayalam):
+/// as its pack's own rules say (`Romanisation::packed_by`, set when the engine opens the
+/// pack), else, for tables with no pack (a builder's, a test's), as the rules in use for the
+/// tables' script say. None when there are neither: its words can't be packed or unpacked,
+/// so nothing is keyed or found. A pack never gets here so: the engine refuses one whose
+/// tables are for another script than its own (`Sources::open`).
+pub fn packing(r: &Romanisation) -> Option<Packing> {
+    r.packing()
+        .or_else(|| crate::script::rules(r.script()).map(|rules| rules.packing()))
 }
 
-/// One byte per character: the 128 code points of the script block from `base` become
-/// 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02, and the apostrophe 0x27 (Assamese হ'ল; never in a
-/// Malayalam word). None if the word has any other character.
-pub fn pack(word: &str, base: char) -> Option<Vec<u8>> {
-    word.chars()
-        .map(|c| match c {
-            ZWNJ => Some(0x01),
-            ZWJ => Some(0x02),
-            '\'' => Some(b'\''),
-            _ => {
-                let offset = (c as u32).checked_sub(base as u32)?;
-                (offset < 0x80).then(|| 0x80 + offset as u8)
-            }
-        })
-        .collect()
+/// One byte per character (`Packing::pack`): the script's characters as 0x80 and up (and,
+/// for a character table, the free bytes below), ZWNJ 0x01, ZWJ 0x02, and the apostrophe
+/// 0x27 (Assamese হ'ল; never in a Malayalam word). None if the word has any other character.
+pub fn pack(word: &str, packing: Packing) -> Option<Vec<u8>> {
+    packing.pack(word)
 }
 
 /// The inverse of `pack`; None for bytes `pack` never writes.
-pub fn unpack(bytes: &[u8], base: char) -> Option<String> {
-    bytes
-        .iter()
-        .map(|&b| match b {
-            0x01 => Some(ZWNJ),
-            0x02 => Some(ZWJ),
-            b'\'' => Some('\''),
-            0x80..=0xFF => char::from_u32(base as u32 + u32::from(b - 0x80)),
-            _ => None,
-        })
-        .collect()
+pub fn unpack(bytes: &[u8], packing: Packing) -> Option<String> {
+    packing.unpack(bytes)
 }
 
 /// The romanised-lexicon key for a native word; None if it has no skeleton or can't be packed.
@@ -67,7 +45,7 @@ pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
         return None;
     }
     key.push(SEPARATOR);
-    key.extend(pack(word, block_base(r)?)?);
+    key.extend(pack(word, packing(r)?)?);
     Some(key)
 }
 
@@ -75,7 +53,7 @@ pub fn key(r: &Romanisation, word: &str) -> Option<Vec<u8>> {
 /// skeleton the tables give it (`Romanisation::word_skeletons`: नहीं under `nhin` and `nhi`).
 /// Empty if it has no skeleton or can't be packed.
 pub fn keys(r: &Romanisation, word: &str) -> Vec<Vec<u8>> {
-    let Some(packed) = block_base(r).and_then(|base| pack(word, base)) else {
+    let Some(packed) = packing(r).and_then(|p| pack(word, p)) else {
         return Vec::new();
     };
     r.word_skeletons(word)
@@ -130,7 +108,7 @@ pub struct Match {
 /// skeleton first, then longer ones, each group by frequency.
 pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     let typed_skeleton = r.skeleton(typed);
-    let Some(base) = block_base(r).filter(|_| !typed_skeleton.is_empty()) else {
+    let Some(packing) = packing(r).filter(|_| !typed_skeleton.is_empty()) else {
         return Vec::new();
     };
     let mut exact_prefix = typed_skeleton.clone().into_bytes();
@@ -160,7 +138,7 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
         let Some(sep) = key.iter().position(|&b| b == SEPARATOR) else {
             continue;
         };
-        let Some(word) = unpack(&key[sep + 1..], base) else {
+        let Some(word) = unpack(&key[sep + 1..], packing) else {
             continue;
         };
         let log_prob = lexicon.log_prob(count);
@@ -231,8 +209,8 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
 }
 
 /// Native words whose skeleton is exactly `skeleton`, most frequent first, with their counts,
-/// unpacked from the script block at `base` (`block_base`). One bounded lookup.
-pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(String, u64)> {
+/// unpacked by the pack's `packing`. One bounded lookup.
+pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, packing: Packing) -> Vec<(String, u64)> {
     if skeleton.is_empty() {
         return Vec::new();
     }
@@ -241,7 +219,7 @@ pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, base: char) -> Vec<(Stri
     lexicon
         .top_completions(&prefix, TOP_K)
         .into_iter()
-        .filter_map(|(key, count)| Some((unpack(&key[prefix.len()..], base)?, count)))
+        .filter_map(|(key, count)| Some((unpack(&key[prefix.len()..], packing)?, count)))
         .collect()
 }
 
@@ -328,8 +306,8 @@ mod tests {
         )
         .unwrap();
         let other = Romanisation::parse(&json.replace("\"script\": \"mlym\"", "\"script\": \"qzzq\"")).unwrap();
-        assert_eq!(block_base(ml()), Some('\u{0D00}'));
-        assert_eq!(block_base(&other), None);
+        assert_eq!(packing(ml()), Some(Packing::Block('\u{0D00}')));
+        assert_eq!(packing(&other), None);
         assert_eq!(key(&other, "എന്റെ"), None);
         let lex = lexicon(&[("എന്റെ", 100)]);
         assert_eq!(lookup(ml(), &lex, "ente").len(), 1);
@@ -338,17 +316,17 @@ mod tests {
 
     #[test]
     fn packing_round_trips_the_script_only() {
-        const ML: char = '\u{0D00}';
+        const ML: Packing = Packing::Block('\u{0D00}');
         for word in ["എന്റെ", "അവൻ", "ന\u{0D4D}\u{200D}", "ക\u{200C}ഷ"] {
             assert_eq!(unpack(&pack(word, ML).unwrap(), ML).as_deref(), Some(word));
         }
         assert_eq!(pack("abc", ML), None);
         assert_eq!(unpack(b"abc", ML), None);
         assert_eq!(pack("क्या", ML), None, "another script's letters don't pack");
-        const DEVA: char = '\u{0900}';
+        const DEVA: Packing = Packing::Block('\u{0900}');
         assert_eq!(pack("है", DEVA), Some(b"\xB9\xC8".to_vec()));
         assert_eq!(unpack(b"\xB9\xC8", DEVA).as_deref(), Some("है"));
-        const BENG: char = '\u{0980}';
+        const BENG: Packing = Packing::Block('\u{0980}');
         let packed = pack("হ'ল", BENG).unwrap();
         assert_eq!(packed[1], b'\'');
         assert_eq!(unpack(&packed, BENG).as_deref(), Some("হ'ল"));

@@ -35,6 +35,11 @@
 //!   also written with the other (Malayalam's final ു and ്; `other_final_u`).
 //! - `suffixJoins`: how a stem and a suffix of the pack's `suffixes.tsv` fuse ([`Joins`]).
 //!   Without it the pack's words are never split into a stem and suffixes.
+//! - `charTable` (engine 8): hex code point ranges, in order, listing the characters the
+//!   script's words are made of: the romanised lexicon packs them one byte each and the
+//!   transliterator spells in them (`packing`), up to `CharTable::MAX`. For a script whose
+//!   letters span more than 128 code points (Urdu's, across the Arabic block). Without it
+//!   both use the 128 code points from the script's first, as every pack before 8 does.
 //!
 //! A consonant, for the last three, is a `bases` letter that is not a combining mark.
 //!
@@ -46,6 +51,7 @@ use std::sync::Mutex;
 use serde::Deserialize;
 
 use super::ScriptRules;
+use crate::packing::{CharTable, Packing};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +87,8 @@ struct Raw {
     joiners: Option<String>,
     #[serde(default)]
     zwj_forms: Option<Vec<[String; 2]>>,
+    #[serde(default)]
+    char_table: Option<Vec<[String; 2]>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -221,6 +229,8 @@ pub struct ScriptDef {
     pub joiners: Option<crate::normalize::Joiners>,
     /// The file has `joiners` or `zwjForms` (see `script::for_pack`).
     pub says_joiners: bool,
+    /// `charTable`: the characters words are packed and spelled in (`packing`).
+    pub char_table: Option<&'static CharTable>,
 }
 
 fn in_ranges(ranges: &[(char, char)], c: char) -> bool {
@@ -318,7 +328,25 @@ impl ScriptDef {
             }
             _ => None,
         };
+        let char_table = raw
+            .char_table
+            .as_ref()
+            .map(|pairs| {
+                let mut table = Vec::new();
+                for &(a, b) in &ranges(pairs)? {
+                    table.extend(a..=b);
+                }
+                if let Some(c) = table.iter().find(|&&c| !in_ranges(&chars, c)) {
+                    return Err(format!(
+                        "charTable has U+{:04X}, which is not a character of the script",
+                        *c as u32
+                    ));
+                }
+                CharTable::intern(table)
+            })
+            .transpose()?;
         Ok(Self {
+            char_table,
             joiners,
             says_joiners,
             code: raw.script,
@@ -516,6 +544,15 @@ impl ScriptDef {
         if after == before { before } else { after }
     }
 
+    /// How the script's words are packed and spelled: its `charTable`, else the 128 code
+    /// points from its first.
+    pub fn packing(&self) -> Packing {
+        match self.char_table {
+            Some(table) => Packing::Table(table),
+            None => Packing::Block(*self.span().start()),
+        }
+    }
+
     /// The span from the first character of the script to the last.
     pub fn span(&self) -> RangeInclusive<char> {
         let start = self.ranges.iter().map(|r| r.0).min().unwrap_or('\0');
@@ -605,6 +642,9 @@ impl ScriptRules for DataScript {
     }
     fn joins(&self) -> Option<&Joins> {
         self.def.joins.as_ref()
+    }
+    fn packing(&self) -> Packing {
+        self.def.packing()
     }
 }
 

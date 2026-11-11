@@ -12,6 +12,7 @@ use std::path::Path;
 use std::{fs, io};
 
 use mlengine_core::lexicon::SEPARATOR;
+use mlengine_core::packing::Packing;
 use mlengine_core::romanisation::Romanisation;
 use mlengine_core::script::ScriptRules;
 use unicode_normalization::UnicodeNormalization;
@@ -23,18 +24,18 @@ fn nfc(s: &str) -> String {
     s.nfc().collect()
 }
 
-/// The engine's rules for the script (`mlengine_core::script`): its block, the base of `pack`,
-/// and which chars of it are letters. One definition, so lexbuild and the runtime split and
-/// classify words alike.
+/// The engine's rules for the script (`mlengine_core::script`): its characters, how `pack`
+/// packs them, and which of them are letters. One definition, so lexbuild and the runtime
+/// split and classify words alike.
 struct Script {
-    base: char,
+    packing: Packing,
     rules: &'static dyn ScriptRules,
 }
 
 fn script(code: &str) -> Option<Script> {
     let rules = mlengine_core::script::rules(code)?;
     Some(Script {
-        base: *rules.block().start(),
+        packing: rules.packing(),
         rules,
     })
 }
@@ -63,9 +64,16 @@ impl Table {
         Ok(Self { script, tables, starts })
     }
 
-    /// The first code point of the script block (U+0900 for Devanagari): `pack`'s base.
-    pub fn block_base(&self) -> char {
-        self.script.base
+    /// How `pack` packs the script's characters: the 128 code points from its first (U+0900
+    /// for Devanagari), or its own character table (`ScriptRules::packing`).
+    pub fn packing(&self) -> Packing {
+        self.script.packing
+    }
+
+    /// A character of the script, whether or not a letter (a danda or a native digit is not
+    /// one).
+    pub fn in_script(&self, c: char) -> bool {
+        self.script.rules.ranges().iter().any(|r| r.contains(&c))
     }
 
     /// A char of the script that can be part of a word: in the block, not punctuation or a digit.
@@ -108,11 +116,12 @@ impl Table {
     }
 
     /// One byte per char, by the engine's own packing (`mlengine_core::manglish::pack`) with
-    /// this script's base: the script block (128 code points from `block_base`) becomes
-    /// 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02, an apostrophe 0x27. None if the word has any other
-    /// character. (A word with an apostrophe never gets here: `is_native` has none.)
+    /// this script's `packing`: the script's characters become 0x80 and up (128 code points
+    /// from the first, or its character table), ZWNJ 0x01, ZWJ 0x02, an apostrophe 0x27. None
+    /// if the word has any other character. (A word with an apostrophe never gets here:
+    /// `is_native` has none.)
     pub fn pack(&self, word: &str) -> Option<Vec<u8>> {
-        mlengine_core::manglish::pack(word, self.script.base)
+        mlengine_core::manglish::pack(word, self.script.packing)
     }
 
     /// The romanised-lexicon key `skeleton\0packed-word`; None without a skeleton or packing.
@@ -282,9 +291,9 @@ mod tests {
         let t = Table::load(&path).unwrap();
         for word in ["হ'ল", "মানুহ", "উৎসৱ"] {
             let packed = t.pack(word).unwrap();
-            assert_eq!(Some(&packed), mlengine_core::manglish::pack(word, t.block_base()).as_ref());
+            assert_eq!(Some(&packed), mlengine_core::manglish::pack(word, t.packing()).as_ref());
             assert_eq!(
-                mlengine_core::manglish::unpack(&packed, t.block_base()).as_deref(),
+                mlengine_core::manglish::unpack(&packed, t.packing()).as_deref(),
                 Some(word)
             );
             assert_eq!(t.key(word), mlengine_core::manglish::key(&t.tables, word), "{word}");

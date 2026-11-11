@@ -124,21 +124,6 @@ fn words_are_in_normal_form(pack: &Pack, rules: &'static dyn ScriptRules) -> usi
     n
 }
 
-/// A romanised-lexicon key's packed native word back to text: block offsets 0x80–0xFF from
-/// `base`, ZWNJ 0x01, ZWJ 0x02, the apostrophe 0x27.
-fn unpack(bytes: &[u8], base: u32) -> Option<String> {
-    bytes
-        .iter()
-        .map(|&b| match b {
-            0x01 => Some('\u{200C}'),
-            0x02 => Some('\u{200D}'),
-            0x27 => Some('\''),
-            0x80.. => char::from_u32(base + u32::from(b - 0x80)),
-            _ => None,
-        })
-        .collect()
-}
-
 /// Every key `skeleton\0word` of the romanised lexicon is the tables' skeleton of the word.
 /// Returns the key count, or None for a pack without a romanised lexicon.
 fn keys_match_the_tables(pack: &Pack, rules: &'static dyn ScriptRules) -> Option<usize> {
@@ -148,7 +133,9 @@ fn keys_match_the_tables(pack: &Pack, rules: &'static dyn ScriptRules) -> Option
         .file("romanisation")
         .unwrap_or_else(|| panic!("{id}: a romanisedLexicon needs the romanisation role"));
     let r = Romanisation::load(&tables).unwrap();
-    let base = *rules.block().start() as u32;
+    // As the engine unpacks them: by the pack's rules (`ScriptRules::packing`), the 128 code
+    // points from the script's first or its own character table.
+    let packing = rules.packing();
     let map = fst::Map::new(std::fs::read(lexicon).unwrap()).unwrap();
     let mut stream = map.keys().into_stream();
     let (mut n, mut bad) = (0, Vec::new());
@@ -160,7 +147,7 @@ fn keys_match_the_tables(pack: &Pack, rules: &'static dyn ScriptRules) -> Option
         let parts = key.iter().position(|&b| b == 0).and_then(|sep| {
             Some((
                 std::str::from_utf8(&key[..sep]).ok()?,
-                unpack(&key[sep + 1..], base)?,
+                mlengine_core::manglish::unpack(&key[sep + 1..], packing)?,
             ))
         });
         let Some((stored, word)) = parts else {
@@ -264,6 +251,28 @@ fn a_pack_declaring_too_low_an_engine_fails() {
     }
     assert!(!err.contains("script deva"), "a need at or below 3 isn't named: {err}");
     let raised = manifest.replace(r#""minEngine": 3"#, r#""minEngine": 7"#);
+    std::fs::write(dir.path().join("manifest.json"), raised).unwrap();
+    assert_eq!(declares_the_engine_it_needs(&Pack::open(dir.path()).unwrap()), Ok(()));
+}
+
+/// A pack whose script lists its characters (`lang.json`'s `charTable`, Urdu's) under a
+/// manifest that declares engine 7: the check fails and names the table, as an engine 7 app
+/// would unpack its romanised keys from the block's first code point.
+#[test]
+fn a_pack_with_a_character_table_and_a_low_engine_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let lang = r#"{"script": "arab", "block": ["0600", "06FF"],
+        "charTable": [["0621", "063A"], ["0641", "064A"], ["06A9", "06A9"], ["06CC", "06CC"]]}"#;
+    std::fs::write(dir.path().join("lang.json"), lang).unwrap();
+    std::fs::write(dir.path().join("ur.fst"), b"x").unwrap();
+    let manifest = r#"{"format": 1, "id": "ur", "version": "2026.11.12", "name": "Urdu",
+        "nativeName": "اردو", "script": "arab", "minEngine": 7,
+        "files": {"lexicon": "ur.fst", "lang": "lang.json"}}"#;
+    std::fs::write(dir.path().join("manifest.json"), manifest).unwrap();
+    let err = declares_the_engine_it_needs(&Pack::open(dir.path()).unwrap()).unwrap_err();
+    assert!(err.contains("minEngine is 7, but the pack needs 8"), "{err}");
+    assert!(err.contains("charTable"), "{err}");
+    let raised = manifest.replace(r#""minEngine": 7"#, r#""minEngine": 8"#);
     std::fs::write(dir.path().join("manifest.json"), raised).unwrap();
     assert_eq!(declares_the_engine_it_needs(&Pack::open(dir.path()).unwrap()), Ok(()));
 }

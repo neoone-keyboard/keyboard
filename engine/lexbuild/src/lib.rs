@@ -527,11 +527,9 @@ pub fn write_bundle(
     Ok(Stats { report })
 }
 
-/// In the script's block, whether or not a letter (a danda or a native digit is not one).
+/// In the script's characters, whether or not a letter (a danda or a native digit is not one).
 fn in_block(table: &Table, c: char) -> bool {
-    (c as u32)
-        .checked_sub(table.block_base() as u32)
-        .is_some_and(|offset| offset < 0x80)
+    table.in_script(c)
 }
 
 /// Splits a line into the words of a native script described by `table`, and other words: a
