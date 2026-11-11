@@ -2,6 +2,7 @@
 //! (English, Malayalam, Manglish, next words) is optional: a missing or corrupt file
 //! only disables that source. Every walk over a lexicon is bounded.
 
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
@@ -10,15 +11,16 @@ use crate::chat_forms::ChatForms;
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
-use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words};
+use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words_of};
 use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Target, Translit};
+use crate::normalize::{Joiners, normalize_with};
 use crate::own::OwnWords;
 use crate::pack_layout::PackLayout;
 use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
 use crate::romanisation::Romanisation;
-use crate::script::{self, ScriptRules, normalize_word as normalize};
+use crate::script::{self, ScriptRules};
 use crate::suffix::{self, Suffixes};
 use crate::swipe;
 use crate::text::{self, Script};
@@ -102,8 +104,14 @@ pub struct Sources {
 pub struct PackSources {
     /// The manifest's `id`: "ml".
     pub id: LangId,
-    /// The rules for the manifest's `script`.
+    /// The language's own rules: its `lang.json`'s, or the engine's copy for the manifest's
+    /// `script`. Another loaded pack of the same script has its own, and each pack's words
+    /// are read by its own (`Engine::read`).
     pub rules: &'static dyn ScriptRules,
+    /// Keeps `rules` among the rule sets in use (`script::in_use`) while the pack is loaded,
+    /// for the code that splits and classifies text without an engine. None when they
+    /// overlap another script's in use.
+    pub in_use: Option<script::InUse>,
     /// The pack's `romanisation.json`: the walk and skeleton `romanised` is keyed by. Without
     /// it there is no romanised typing, so `Sources::open` leaves out `romanised` and
     /// `translit` too.
@@ -133,7 +141,9 @@ pub struct PackSources {
 impl PackSources {
     /// A pack with only its lexicon; the rest is set by struct update.
     pub fn new(id: LangId, rules: &'static dyn ScriptRules, lexicon: Lexicon) -> Self {
+        script::set_language(&id.0, rules);
         Self {
+            in_use: script::in_use(rules).ok(),
             id,
             rules,
             romanisation: None,
@@ -289,8 +299,11 @@ impl Sources {
         let Some(lexicon_path) = paths.lexicon.as_deref() else {
             return Ok(None);
         };
-        // From here on, words of the script are classified and normalised by the pack's rules.
-        script::install(rules)?;
+        // While the pack is loaded its rules are among those that say what a word of the
+        // script is (`script::all`), beside another loaded pack's of the same script; and
+        // they are the language's, by its id (`script::of_language`).
+        let in_use = script::in_use(rules)?;
+        script::set_language(&paths.id.0, rules);
         let lexicon =
             Lexicon::open(lexicon_path).map_err(|e| format!("lexicon unreadable: {e}"))?;
         let lm = paths
@@ -299,16 +312,19 @@ impl Sources {
             .and_then(|p| Lm::open(p).ok())
             .filter(|lm| Self::lm_fits(lm, english, &lexicon))
             .map(|mut lm| {
-                // Its native pieces are the pack's script (Malayalam's block for ml, as before).
-                lm.set_native(rules.block());
+                // Its native pieces are the pack's script (Malayalam's block for ml, as
+                // before), and its text is normalised by the pack's rules.
+                lm.set_rules(rules);
                 lm
             });
         let romanisation = paths
             .romanisation
             .as_deref()
-            .and_then(|p| Romanisation::load(p).ok());
-        // The romanised lexicon packs each word from the script's first code point: tables for
-        // another script would unpack every key as other words.
+            .and_then(|p| Romanisation::load(p).ok())
+            // The romanised lexicon packs each word from the first code point of the pack's
+            // own rules.
+            .map(|r| r.packed_from(*rules.block().start()));
+        // Tables for another script would unpack every key as other words.
         if let Some(r) = romanisation.as_ref().filter(|r| r.script() != rules.code()) {
             return Err(format!(
                 "the romanisation tables are for script {}, the pack is in {}",
@@ -320,6 +336,7 @@ impl Sources {
         Ok(Some(PackSources {
             id: paths.id.clone(),
             rules,
+            in_use: Some(in_use),
             romanised: open_lexicon(&paths.romanised).filter(|_| romanised),
             romanisation,
             next_words: open_lexicon(&paths.next_words),
@@ -596,24 +613,181 @@ impl Engine {
             .filter_map(|lang| self.pack(lang).map(|p| (lang, p)))
     }
 
-    /// The active pack written in the script `code` (`ScriptRules::code`).
-    fn pack_in_script(&self, code: &str) -> Option<(Lang, &PackSources)> {
-        self.packs_active().find(|(_, p)| p.rules.code() == code)
+    /// The active packs written in the script `code` (`ScriptRules::code`), in the user's
+    /// order: more than one when two active languages share a script.
+    fn packs_in_script<'a, 'c>(
+        &'a self,
+        code: &'c str,
+    ) -> impl Iterator<Item = (Lang, &'a PackSources)> + use<'a, 'c> {
+        self.packs_active().filter(move |(_, p)| p.rules.code() == code)
     }
 
-    /// The active pack a native-script word belongs to; None for any other word.
-    fn pack_of_word(&self, word: &str) -> Option<(Lang, &PackSources)> {
-        match text::script(word) {
-            Script::Native(code) => self.pack_in_script(code),
-            _ => None,
+    /// One rule set for each script, for text that is no one language's word (a sentence, a
+    /// word of two scripts): the first active pack's of that script, else the first loaded
+    /// pack's, else the first in use (`script::firsts`: the engine's own copy, for a script no
+    /// loaded pack is written in).
+    fn scripts(&self) -> Vec<&'static dyn ScriptRules> {
+        let mut found: Vec<&'static dyn ScriptRules> = Vec::new();
+        let all = self
+            .packs_active()
+            .map(|(_, p)| p.rules)
+            .chain(self.sources.packs.iter().map(|p| p.rules))
+            .chain(script::firsts());
+        for rules in all {
+            if !found.iter().any(|f| f.code() == rules.code()) {
+                found.push(rules);
+            }
+        }
+        found
+    }
+
+    /// `text` in the normal form every language shares (`normalize::normalize_with`: NFC, the
+    /// apostrophe, the joiner rules of `scripts`), without any language's own replacements.
+    fn plain(&self, text: &str) -> String {
+        let scripts = self.scripts();
+        let joiners: Vec<&Joiners> = scripts.iter().filter_map(|r| r.joiners()).collect();
+        normalize_with(text, &joiners)
+    }
+
+    /// `word`, text as it was written, in the normal form of the language it is read as, and
+    /// that language's pack if it is active. Rules are a language's, not a script's: a
+    /// native-script word is normalised by the rules of one pack (`PackSources::rules`).
+    ///
+    /// - One active pack is written in the word's script: that pack.
+    /// - Several are (`resolve`): the pack of `hint` if it can be a word of it; else the pack
+    ///   whose lexicon holds it as written; else the one whose lexicon holds it once its own
+    ///   rules have rewritten it; else the first, in the user's order, it can be a word of.
+    /// - None is: no pack, and the normal form is by a loaded pack's rules for the script,
+    ///   else by the rules in use for it (`script::rules`).
+    ///
+    /// `hint`: the language the word is known to be of, when one is: the layout it was typed
+    /// on, the language a candidate was offered as.
+    ///
+    /// Any other text (Latin, digits, two scripts) is only made `plain`.
+    fn read(&self, word: &str, hint: Option<Lang>) -> (String, Option<(Lang, &PackSources)>) {
+        let plain = self.plain(word);
+        let Script::Native(code) = text::script(&plain) else {
+            return (plain, None);
+        };
+        let mut packs = self.packs_in_script(code);
+        match (packs.next(), packs.next()) {
+            (Some((lang, pack)), None) => (pack.rules.normalize(&plain), Some((lang, pack))),
+            (Some(_), Some(_)) => {
+                let (lang, pack, normal) = self.resolve(word, code, hint);
+                (normal, Some((lang, pack)))
+            }
+            (None, _) => {
+                let loaded = self.sources.packs.iter().map(|p| p.rules);
+                let rules = loaded
+                    .filter(|r| r.code() == code)
+                    .chain(script::rules(code))
+                    .next();
+                (rules.map_or_else(|| plain.clone(), |r| r.normalize(&plain)), None)
+            }
         }
     }
 
-    /// The language a word is shown as: its script's pack, else the Latin layout's
-    /// (`latin_lang`).
+    /// `read`'s normal form.
+    fn normal(&self, word: &str) -> String {
+        self.read(word, None).0
+    }
+
+    /// `word` as `pack` reads it: in its normal form, if it is then a word by its rules
+    /// (`text::is_word_of`). None for text that is no word of the pack's language.
+    fn read_as(&self, pack: &PackSources, word: &str) -> Option<String> {
+        let normal = pack.rules.normalize(&script::plain(word, pack.rules));
+        text::is_word_of(pack.rules, &normal).then_some(normal)
+    }
+
+    /// Which of the active packs written in the script `code`, two or more, reads `word`,
+    /// and the word in its normal form. In this order, and among equals the first in the
+    /// user's order:
+    ///
+    /// 1. the pack of `hint`, if `word` can be a word of it (`read_as`);
+    /// 2. a pack whose lexicon holds the word as written: its own rules rewrite nothing in
+    ///    it (Bengali আমার, which Assamese's rules would fold to its own আমাৰ);
+    /// 3. a pack whose lexicon holds the word as its rules rewrite it (প্রথম, in Assamese's
+    ///    lexicon as প্ৰথম);
+    /// 4. a pack it can be a word of;
+    /// 5. the first pack.
+    ///
+    /// Only the lexicons decide, never the user's store: the same text reads the same way
+    /// before and after a word is learned.
+    fn resolve(&self, word: &str, code: &str, hint: Option<Lang>) -> (Lang, &PackSources, String) {
+        struct Reading<'a> {
+            lang: Lang,
+            pack: &'a PackSources,
+            normal: String,
+            /// The pack's rules make it a word.
+            own: bool,
+            /// Its lexicon holds the normal form.
+            held: bool,
+            /// Its rules' replacements changed nothing.
+            as_written: bool,
+        }
+        let mut readings: Vec<Reading<'_>> = self
+            .packs_in_script(code)
+            .map(|(lang, pack)| {
+                let written = script::plain(word, pack.rules);
+                let normal = pack.rules.normalize(&written);
+                Reading {
+                    lang,
+                    pack,
+                    own: text::is_word_of(pack.rules, &normal),
+                    held: pack.lexicon.get(normal.as_bytes()).is_some(),
+                    as_written: normal == written,
+                    normal,
+                }
+            })
+            .collect();
+        let first = |fits: &dyn Fn(&Reading<'_>) -> bool| readings.iter().position(fits);
+        let chosen = first(&|r| r.own && Some(r.lang) == hint)
+            .or_else(|| first(&|r| r.own && r.held && r.as_written))
+            .or_else(|| first(&|r| r.own && r.held))
+            .or_else(|| first(&|r| r.own))
+            .unwrap_or(0);
+        let reading = readings.swap_remove(chosen);
+        (reading.lang, reading.pack, reading.normal)
+    }
+
+    /// The active pack a native-script word in normal form is a word of, and the word as
+    /// that pack spells it; None for any other word. As `read`, for a word that needs no
+    /// normalising when one pack is written in its script: a candidate, a stored word.
+    /// `hint`: the language it is known to be of (`read`).
+    fn reading<'w>(
+        &self,
+        word: &'w str,
+        hint: Option<Lang>,
+    ) -> Option<(Lang, &PackSources, Cow<'w, str>)> {
+        let Script::Native(code) = text::script(word) else {
+            return None;
+        };
+        let mut packs = self.packs_in_script(code);
+        match (packs.next(), packs.next()) {
+            (Some((lang, pack)), None) => Some((lang, pack, Cow::Borrowed(word))),
+            (Some(_), Some(_)) => {
+                let (lang, pack, normal) = self.resolve(word, code, hint);
+                Some((lang, pack, Cow::Owned(normal)))
+            }
+            (None, _) => None,
+        }
+    }
+
+    /// The active pack a native-script word in normal form is a word of (`reading`).
+    fn pack_of_word(&self, word: &str) -> Option<(Lang, &PackSources)> {
+        self.reading(word, None).map(|(lang, pack, _)| (lang, pack))
+    }
+
+    /// The language a word is shown as: the pack's that reads it (`reading`, with `hint`),
+    /// else the Latin layout's (`latin_lang`).
+    fn lang_of(&self, word: &str, hint: Option<Lang>) -> Lang {
+        self.reading(word, hint)
+            .map_or_else(|| self.latin_lang(), |(lang, ..)| lang)
+    }
+
+    /// `lang_of` a word nothing is known of but its text.
     fn lang_of_word(&self, word: &str) -> Lang {
-        self.pack_of_word(word)
-            .map_or_else(|| self.latin_lang(), |(lang, _)| lang)
+        self.lang_of(word, None)
     }
 
     /// The language of what is typed on the Latin layout and is no lexicon's word (the typed
@@ -691,7 +865,7 @@ impl Engine {
     }
 
     pub fn learn(&self, word: &str) {
-        let word = normalize(word);
+        let word = self.normal(word);
         let word = text::learnable_address(&word).unwrap_or(&word);
         self.user().learn(word);
     }
@@ -705,14 +879,15 @@ impl Engine {
     /// (`rank::HABIT_WEIGHT`). Addresses and numbers are never part of a phrase; a phone
     /// number the word ends is learned (`note_number`).
     pub fn note_used(&self, context_before: &str, word: &str, layout: Layout) {
-        let word = normalize(word);
+        // A word typed on a pack's layout is that pack's.
+        let word = self.read(word, layout_lang(layout)).0;
         if !phrase_word(&word) {
             self.note_number(context_before, &word);
             return;
         }
         let (previous, earlier) = text::phrase_words(context_before);
-        let previous = previous.map(normalize).filter(|w| phrase_word(w));
-        let earlier = earlier.map(normalize).filter(|w| phrase_word(w));
+        let previous = previous.map(|w| self.normal(w)).filter(|w| phrase_word(w));
+        let earlier = earlier.map(|w| self.normal(w)).filter(|w| phrase_word(w));
         let counted = self.is_known_or_learned(&word);
         let habit = match layout {
             Layout::Latin => self.word_lang(&word).and_then(|lang| self.lang_id(lang)),
@@ -748,32 +923,35 @@ impl Engine {
     /// (`Candidate::lang`, by `lang_id`); None reads it from the word's script. Call this
     /// before `note_used` for the same tap, so the tap's use is counted.
     pub fn note_choice(&self, typed: &str, chosen: &str, lang: Option<&LangId>) {
-        let (typed, chosen) = (normalize(typed), normalize(chosen));
+        let typed = self.normal(typed);
+        // The word is read by the rules of the language it was offered as, if that pack can
+        // read it; else as any text is (`read`).
+        let named = lang.and_then(|id| self.sources.packs.iter().find(|p| p.id == *id));
+        let (chosen, pack) = match named.and_then(|p| Some((self.read_as(p, chosen)?, p))) {
+            Some((chosen, pack)) => (chosen, Some(pack)),
+            None => {
+                let (chosen, pack) = self.read(chosen, None);
+                (chosen, pack.map(|(_, p)| p))
+            }
+        };
         if text::script(&typed) != Script::Latin || typed.len() < 2 || !phrase_word(&chosen) {
             return;
         }
-        self.note_picked(&typed, &chosen, lang);
+        if let Some(pack) = pack {
+            self.note_picked(&typed, &chosen, pack);
+        }
         self.user().note_choice(&typed, &chosen);
     }
 
     /// `chosen`, tapped in the bar for the Latin letters `typed`, is saved as one of the user's
     /// own words (`UserStore::pick`) if it is a native-script word that its pack could hold
-    /// (`manglish::key`) and doesn't. Its pack is the loaded pack `lang` names, if that pack
-    /// writes the word's script (two packs may share one), else the active pack of the script;
-    /// only a pack with romanised typing has own words. The letters are kept with it unless
+    /// (`manglish::key`) and doesn't. `pack`: the pack that read it (`note_choice`): the
+    /// loaded pack the bar offered it as a word of, if it is a word by that pack's rules (two
+    /// packs may share a script), else the active pack that reads the text (`read`). Only a
+    /// pack with romanised typing has own words. The letters are kept with it unless
     /// they are only its beginning (a completion tapped after `raub`): they index the word
     /// (`own::OwnWords`), and a beginning is no spelling of it.
-    fn note_picked(&self, typed: &str, chosen: &str, lang: Option<&LangId>) {
-        let Script::Native(code) = text::script(chosen) else {
-            return;
-        };
-        let named = lang.and_then(|id| {
-            let pack = self.sources.packs.iter().find(|p| p.id == *id)?;
-            (pack.rules.code() == code).then_some(pack)
-        });
-        let Some(pack) = named.or_else(|| self.pack_in_script(code).map(|(_, p)| p)) else {
-            return;
-        };
+    fn note_picked(&self, typed: &str, chosen: &str, pack: &PackSources) {
         let (Some(r), Some(_)) = (&pack.romanisation, &pack.romanised) else {
             return;
         };
@@ -829,8 +1007,8 @@ impl Engine {
         let (Some(previous), earlier) = text::phrase_words(before) else {
             return Vec::new();
         };
-        let previous = normalize(previous);
-        let earlier = earlier.map(normalize);
+        let previous = self.normal(previous);
+        let earlier = earlier.map(|w| self.normal(w));
         let found = self
             .user()
             .followers(earlier.as_deref(), &previous, FOLLOWERS_PER_CONTEXT);
@@ -929,7 +1107,7 @@ impl Engine {
     /// An address (`text::is_address`) is learned the second time, without the
     /// punctuation typed after it.
     pub fn note_committed(&self, word: &str) {
-        let word = normalize(word);
+        let word = self.normal(word);
         if let Some(address) = text::learnable_address(&word) {
             self.user().note_typed(address);
         } else if !self.is_known(&word) && !self.would_replace(&word) {
@@ -982,7 +1160,7 @@ impl Engine {
     /// The user removed `word` from the bar: it is forgotten if learned and never
     /// suggested again (as typed, it still shows), until it is learned anew.
     pub fn remove_word(&self, word: &str) {
-        self.user().remove(&normalize(word));
+        self.user().remove(&self.normal(word));
         self.own_words();
     }
 
@@ -998,13 +1176,13 @@ impl Engine {
 
     /// Forgets one learned word without blocking it: suggested again only once learned anew.
     pub fn forget_word(&self, word: &str) {
-        self.user().forget(&normalize(word));
+        self.user().forget(&self.normal(word));
         self.own_words();
     }
 
     /// Un-removes a word removed from the bar; it is not learned by this.
     pub fn restore_word(&self, word: &str) {
-        self.user().restore(&normalize(word));
+        self.user().restore(&self.normal(word));
     }
 
     /// Takes out words the user removed from the bar. Pools are filtered before the
@@ -1091,7 +1269,7 @@ impl Engine {
         let more = || budget.is_none_or(|b| start.elapsed() < b);
         let lm_ctx = self.lm().map(|(_, _, lm)| {
             let mut ctx = self.lm_context();
-            let words = lm_words(context_before);
+            let words = lm_words_of(lm, context_before);
             let ready = ctx.sync(lm, &words, &more) && !words.iter().all(String::is_empty);
             (lm, ctx, ready)
         });
@@ -1129,7 +1307,7 @@ impl Engine {
                 };
                 let score = fit(f.cost, text.as_bytes())
                     + en.log_prob(f.count)
-                    + self.lm_term(scores, &text)
+                    + self.lm_term(scores, &text, EN)
                     + personal(&text);
                 out.push(Candidate {
                     text,
@@ -1168,7 +1346,7 @@ impl Engine {
                     let score = shape
                         + mg.log_prob(count)
                         + bias
-                        + self.lm_term(scores, &text)
+                        + self.lm_term(scores, &text, lang)
                         + personal(&text)
                         - if second { w.second } else { 0.0 };
                     out.push(Candidate {
@@ -1197,7 +1375,7 @@ impl Engine {
                     let score = fit(cost, latin.as_bytes())
                         + p.lexicon.log_prob(count)
                         + bias
-                        + self.lm_term(scores, word)
+                        + self.lm_term(scores, word, lang)
                         + personal(word);
                     out.push(Candidate {
                         text: word.to_string(),
@@ -1219,7 +1397,7 @@ impl Engine {
             if cost.is_finite() {
                 let score = fit(cost, word.as_bytes())
                     + w.learned
-                    + self.lm_term(scores, &word)
+                    + self.lm_term(scores, &word, self.latin_lang())
                     + personal(&word);
                 out.push(Candidate {
                     text: word,
@@ -1248,7 +1426,7 @@ impl Engine {
         let (typed, _) = self.current_word(context_before);
         let before = &context_before[..context_before.len() - typed.len()];
         let more = || budget.is_none_or(|b| start.elapsed() < b);
-        self.lm_context().sync(lm, &lm_words(before), &more);
+        self.lm_context().sync(lm, &lm_words_of(lm, before), &more);
     }
 
     /// Whether the LM is loaded and its context caught up with the last text it was given:
@@ -1274,7 +1452,7 @@ impl Engine {
         let before = &context_before[..context_before.len() - typed.len()];
         let after_space = typed.is_empty();
         let mut lm_ctx = self.lm_context();
-        let words = lm_words(before);
+        let words = lm_words_of(lm, before);
         let ready = lm_ctx.sync(lm, &words, &|| more(after_space));
         // At the start of the text the LM knows only how its corpus begins paragraphs, not how
         // messages begin: the first word is M3a's. On chat_golden (292 of 322 rows start the
@@ -1284,7 +1462,7 @@ impl Engine {
         // of its script: its bias and next words would be its own language's. M3a's then,
         // whose previous-word prior and `next.fst` are that pack's.
         let other_pack = text::previous_word(before)
-            .and_then(|(word, _)| self.pack_of_word(&normalize(word)))
+            .and_then(|(word, _)| self.read(word, None).1)
             .is_some_and(|(lang, _)| lang != lm_lang);
         let view = (ready && !at_start && !other_pack).then(|| LmView {
             lm,
@@ -1323,8 +1501,9 @@ impl Engine {
                 ..Suggestions::default()
             };
         }
-        // Classify and search the normal form (`don’` → `don'`); show the word as typed.
-        let typed_n = normalize(typed);
+        // Classify and search the normal form (`don’` → `don'`); show the word as typed. What
+        // is typed on a pack's layout is read by that pack's rules.
+        let (typed_n, typed_pack) = self.read(typed, layout_lang(layout));
         if address {
             return Suggestions {
                 typed: typed.to_string(),
@@ -1341,7 +1520,7 @@ impl Engine {
                 let mid_sentence = previous.is_some_and(|(_, end)| !end);
                 let previous = previous.map(|(word, _)| word);
                 let after_english =
-                    previous.is_some_and(|w| self.word_lang(&normalize(w)) == Some(EN));
+                    previous.is_some_and(|w| self.word_lang(&self.normal(w)) == Some(EN));
                 let priors = self.add_habit(self.with_lm(self.priors(previous), scores));
                 let favoured = self.favoured(&self.add_habit(self.priors(previous)));
                 self.suggest_latin(
@@ -1359,10 +1538,8 @@ impl Engine {
                 )
             }
             (_, Script::Native(_)) | (Layout::Native(_), _) => {
-                let pack = self
-                    .pack_of_word(&typed_n)
-                    .or_else(|| self.layout_pack(layout));
-                self.suggest_malayalam(typed, pack, scores, &own)
+                let pack = typed_pack.or_else(|| self.layout_pack(layout));
+                self.suggest_malayalam(typed, &typed_n, pack, scores, &own)
             }
             _ => vec![verbatim(typed, 0.0, self.latin_lang())],
         };
@@ -1370,7 +1547,7 @@ impl Engine {
         Suggestions {
             typed: typed.to_string(),
             candidates: suggestions,
-            vowel_signs: self.vowel_signs(context_before, typed),
+            vowel_signs: self.vowel_signs(context_before, &typed_n, layout),
         }
     }
 
@@ -1424,8 +1601,8 @@ impl Engine {
         match text::script(word) {
             Script::Latin => self.active.english() && self.english_count(word).is_some(),
             Script::Native(_) => self
-                .pack_of_word(word)
-                .is_some_and(|(_, p)| p.lexicon.get(word.as_bytes()).is_some()),
+                .reading(word, None)
+                .is_some_and(|(_, p, word)| p.lexicon.get(word.as_bytes()).is_some()),
             Script::Other => true, // numbers and the like are never learned
         }
     }
@@ -1455,7 +1632,7 @@ impl Engine {
     /// after the pack's own word, and 0 otherwise (another pack's word, or one in no
     /// lexicon). English's is always 0: only the differences matter.
     fn priors(&self, previous: Option<&str>) -> Priors {
-        let previous = previous.map(|w| self.word_lang(&normalize(w)));
+        let previous = previous.map(|w| self.word_lang(&self.normal(w)));
         let mut priors = Priors::default();
         for (lang, _) in self.packs_active() {
             let prior = match previous {
@@ -1483,15 +1660,18 @@ impl Engine {
     /// lexicon gets the better of the two spellings' terms: the LM learned both orthographies
     /// and leans to the older one (ഇന്നു over ഇന്ന്, അതു over അത്), so between the two the
     /// lexicon decides, as in M3a.
-    fn lm_term(&self, scores: Option<&dyn ContextScores>, text: &str) -> f32 {
+    ///
+    /// `lang`: the language the candidate is a word of (`Candidate::lang`), whose pack's rules
+    /// and lexicon these are when two active packs share the word's script.
+    fn lm_term(&self, scores: Option<&dyn ContextScores>, text: &str, lang: Lang) -> f32 {
         let Some(s) = scores else {
             return 0.0;
         };
         let own = s.weighted(text);
-        let Some((_, pack)) = self.pack_of_word(text) else {
+        let Some((_, pack, text)) = self.reading(text, Some(lang)) else {
             return own;
         };
-        match pack.rules.other_final_u(text) {
+        match pack.rules.other_final_u(&text) {
             Some(other) if pack.lexicon.get(other.as_bytes()).is_some() => {
                 own.max(s.weighted(&other))
             }
@@ -1800,43 +1980,43 @@ impl Engine {
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
         // Floors were checked on scores without it; the final one below takes it back out.
-        let lm_term = |text: &str| self.lm_term(scores, text);
+        let lm_term = |text: &str, lang: Lang| self.lm_term(scores, text, lang);
         if scores.is_some() {
             // Context reorders Manglish completions, but doesn't lift one over a word the
             // typed letters spell that was ahead of it: `വേഗം vaa` offered വന്നു (0.9 behind
             // വാ, 0.04 ahead after tier 0) in place of വാ.
-            let spelled_before: Vec<(String, f32)> = manglish
+            let spelled_before: Vec<(String, Lang, f32)> = manglish
                 .exact
                 .iter()
                 .filter(|(_, spelled)| *spelled)
-                .map(|(c, _)| (c.text.clone(), c.score))
+                .map(|(c, _)| (c.text.clone(), c.lang, c.score))
                 .collect();
             let completions_before: Vec<f32> =
                 manglish.completions.iter().map(|c| c.score).collect();
             for (c, _) in &mut corrections {
-                c.score += lm_term(&c.text);
+                c.score += lm_term(&c.text, c.lang);
             }
             for (c, _) in &mut manglish.exact {
-                c.score += lm_term(&c.text);
+                c.score += lm_term(&c.text, c.lang);
             }
             for c in completions
                 .iter_mut()
                 .chain(&mut manglish.completions)
                 .chain(&mut manglish.side)
             {
-                c.score += lm_term(&c.text);
+                c.score += lm_term(&c.text, c.lang);
             }
             for c in [&mut case_fix, &mut contraction, &mut dominant]
                 .into_iter()
                 .flatten()
             {
-                c.score += lm_term(&c.text);
+                c.score += lm_term(&c.text, c.lang);
             }
-            known_score = known_score.map(|s| s + lm_term(typed_n));
+            known_score = known_score.map(|s| s + lm_term(typed_n, self.latin_lang()));
             for (c, before) in manglish.completions.iter_mut().zip(completions_before) {
-                for (text, spelled) in &spelled_before {
+                for (text, lang, spelled) in &spelled_before {
                     if *spelled > before {
-                        let after = spelled + lm_term(text);
+                        let after = spelled + lm_term(text, *lang);
                         c.score = c.score.min(after - 1e-3);
                     }
                 }
@@ -2030,7 +2210,7 @@ impl Engine {
             }
             .filter(|best| {
                 best.score >= typed_c.score + rank::MARGIN
-                    && best.score - lm_term(&best.text) - own_term(&best.text) >= rank::MIN_REPLACE
+                    && best.score - lm_term(&best.text, best.lang) - own_term(&best.text) >= rank::MIN_REPLACE
             })
             .or_else(|| {
                 // Kept as a prefix where no Malayalam word fits the letters: the best
@@ -2054,7 +2234,12 @@ impl Engine {
         let replacement = match chosen.filter(|c| !self.user().is_removed(c) && offered(c)) {
             Some(text) => {
                 let malayalam = matches!(text::script(&text), Script::Native(_));
-                let lang = self.lang_of_word(&text);
+                // One of the user's own words is the pack's it was picked as a word of.
+                let picked = {
+                    let user = self.user();
+                    user.picked_word(&text).and_then(|p| self.lang_of_id(&p.lang.0))
+                };
+                let lang = self.lang_of(&text, picked);
                 let chosen = Candidate {
                     lang,
                     text: if malayalam { text } else { show(&text) },
@@ -2653,16 +2838,18 @@ impl Engine {
         arrange(typed, typed_n, others, None, Vec::new(), self.shown)
     }
 
-    /// Native-script typing, completed from `pack`'s lexicon (the typed word's script's, or
-    /// the layout's). `scores` and `own`: as in `suggest_latin`, on the completions.
+    /// Native-script typing, completed from `pack`'s lexicon (the pack that reads the typed
+    /// word, or the layout's). `typed_n`: the typed word in that pack's normal form. `scores`
+    /// and `own`: as in `suggest_latin`, on the completions.
     fn suggest_malayalam(
         &self,
         typed: &str,
+        typed_n: &str,
         pack: Option<(Lang, &PackSources)>,
         scores: Option<&dyn ContextScores>,
         own: &[String],
     ) -> Vec<Candidate> {
-        let typed_n = normalize(typed);
+        let typed_n = typed_n.to_string();
         let lang = pack.map_or(EN, |(lang, _)| lang);
         let mut others = Vec::new();
         if let Some(lex) = pack.map(|(_, p)| &p.lexicon) {
@@ -2677,7 +2864,7 @@ impl Engine {
                 let score = lex.log_prob(count)
                     - rank::COMPLETION_PENALTY
                     - rank::COMPLETION_PER_CHAR * extra
-                    + self.lm_term(scores, word);
+                    + self.lm_term(scores, word, lang);
                 others.push(Candidate {
                     text: word.to_string(),
                     kind: Kind::Completion,
@@ -2695,7 +2882,7 @@ impl Engine {
                 let score = lex.log_prob(count)
                     - rank::COMPLETION_PENALTY
                     - rank::COMPLETION_PER_CHAR * extra
-                    + self.lm_term(scores, &word);
+                    + self.lm_term(scores, &word, lang);
                 others.push(Candidate {
                     text: word,
                     kind: Kind::Completion,
@@ -2707,7 +2894,7 @@ impl Engine {
         for word in self.user().completions(&typed_n, 2) {
             let score = rank::LEARNED_COMPLETION;
             others.push(Candidate {
-                lang: self.lang_of_word(&word),
+                lang: self.lang_of(&word, Some(lang)),
                 text: word,
                 kind: Kind::Completion,
                 score,
@@ -2720,7 +2907,7 @@ impl Engine {
                     text: word.clone(),
                     kind: Kind::Completion,
                     score: rank::OWN_COMPLETION,
-                    lang: self.lang_of_word(word),
+                    lang: self.lang_of(word, Some(lang)),
                 });
             }
         }
@@ -2915,9 +3102,11 @@ impl Engine {
     /// How often `word` was seen in its lexicon's text, all cases together (as `next.fst`
     /// counts it); 0 for none.
     fn word_count(&self, word: &str) -> u64 {
-        let word = normalize(word);
+        let (word, pack) = self.read(word, None);
         match text::script(&word) {
-            Script::Native(_) => self.malayalam_count(&word),
+            Script::Native(_) => pack
+                .and_then(|(_, p)| p.lexicon.get(word.as_bytes()))
+                .unwrap_or(0),
             _ => self.sources.english.as_ref().map_or(0, |lex| {
                 lex.case_variants(word.as_bytes())
                     .iter()
@@ -2925,13 +3114,6 @@ impl Engine {
                     .sum()
             }),
         }
-    }
-
-    /// The count of a native-script word in its pack's lexicon, 0 for none.
-    fn malayalam_count(&self, word: &str) -> u64 {
-        self.pack_of_word(word)
-            .and_then(|(_, p)| p.lexicon.get(word.as_bytes()))
-            .unwrap_or(0)
     }
 
     /// The pack the LM's scores are about (its bias, its next words): the LM's own, else (for
@@ -2968,7 +3150,7 @@ impl Engine {
         ) else {
             return Vec::new();
         };
-        let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
+        let mut key = self.normal(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let found = lex.top_completions(&key, TOP_K);
         // Out of every time `previous` was seen (`next.fst` is counted from the lexicons'
@@ -2994,19 +3176,21 @@ impl Engine {
         let Some((previous, sentence_end)) = text::previous_word(context_before) else {
             return Vec::new();
         };
-        let mut key = normalize(previous).to_ascii_lowercase().into_bytes();
+        let mut key = self.normal(previous).to_ascii_lowercase().into_bytes();
         key.push(SEPARATOR);
         let mut found: Vec<Candidate> = Vec::new();
-        let packs: Vec<&Lexicon> = self
+        let packs: Vec<(Option<Lang>, &Lexicon)> = self
             .packs_active()
-            .filter_map(|(_, p)| p.next_words.as_ref())
+            .filter_map(|(lang, p)| Some((Some(lang), p.next_words.as_ref()?)))
             .collect();
         let english = self
             .sources
             .english_next
             .as_ref()
-            .filter(|_| packs.is_empty() && self.active.english());
-        for lex in packs.into_iter().chain(english) {
+            .filter(|_| packs.is_empty() && self.active.english())
+            .map(|lex| (None, lex));
+        // A native word in a pack's `next.fst` is that pack's.
+        for (from, lex) in packs.into_iter().chain(english) {
             for (k, count) in lex.top_completions(&key, TOP_K) {
                 let Ok(next) = std::str::from_utf8(&k[key.len()..]) else {
                     continue;
@@ -3021,7 +3205,7 @@ impl Engine {
                     next.to_string()
                 };
                 found.push(Candidate {
-                    lang: self.lang_of_word(&text),
+                    lang: self.lang_of(&text, from),
                     text,
                     kind: Kind::NextWord,
                     score: count as f32,
@@ -3043,14 +3227,23 @@ impl Engine {
     /// Orders the strip's vowel signs (the pack's `layout.json`) by how often each follows
     /// the typed prefix in the lexicon of the active pack whose letter ends the context.
     /// Signs never seen are left out; the keyboard appends them in the strip's order.
-    fn vowel_signs(&self, context_before: &str, typed: &str) -> Vec<char> {
-        let Some((_, pack)) = self.packs_active().find(|(_, p)| {
+    ///
+    /// `typed_n`: the word being typed, in the normal form of the pack that reads it. On a
+    /// pack's own layout it is that pack's strip, if a sign attaches by its rules: two active
+    /// packs of one script may each have one.
+    fn vowel_signs(&self, context_before: &str, typed_n: &str, layout: Layout) -> Vec<char> {
+        let has_strip = |p: &PackSources| {
             !p.vowel_sign_strip.is_empty() && p.rules.mark_base(context_before).is_some()
-        }) else {
+        };
+        let Some((_, pack)) = self
+            .layout_pack(layout)
+            .filter(|(_, p)| has_strip(p))
+            .or_else(|| self.packs_active().find(|(_, p)| has_strip(p)))
+        else {
             return Vec::new();
         };
         let lex = &pack.lexicon;
-        let prefix = normalize(typed);
+        let prefix = typed_n.to_string();
         let mut totals: Vec<(char, u64)> = pack
             .vowel_sign_strip
             .iter()
@@ -3263,6 +3456,14 @@ impl Priors {
             self.0.resize(i + 1, 0.0);
         }
         self.0[i] = prior;
+    }
+}
+
+/// The language of what is typed on `layout`, when the layout is one pack's.
+fn layout_lang(layout: Layout) -> Option<Lang> {
+    match layout {
+        Layout::Latin => None,
+        Layout::Native(lang) => Some(lang),
     }
 }
 

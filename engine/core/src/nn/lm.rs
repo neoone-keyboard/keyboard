@@ -225,6 +225,12 @@ impl Lm {
         self.tokenizer.set_native(block);
     }
 
+    /// `set_native` with the block of `rules`, the rules of the pack whose LM this is; its
+    /// text is normalised by them from now on (`Tokenizer::set_rules`).
+    pub fn set_rules(&mut self, rules: &'static dyn crate::script::ScriptRules) {
+        self.tokenizer.set_rules(rules);
+    }
+
     /// The per-piece tables shipped with the model.
     pub fn tables(&self) -> &Tables {
         &self.tables

@@ -559,9 +559,10 @@ pub fn pack_problem(pack_dir: String) -> Result<Option<String>, EngineError> {
     })
 }
 
-/// Makes the pack at `pack_dir`'s script rules the ones `native_mark_base` uses for its
-/// script, before the engine has opened (which does the same). Returns the script code, or nil
-/// when the pack can't be used.
+/// Makes the pack at `pack_dir`'s rules the ones `language_mark_base` uses for its language
+/// (the manifest's `id`), before the engine has opened (which does the same), and puts them
+/// among the rules in use for its script. Returns the script code, or nil when the pack can't
+/// be used.
 #[uniffi::export]
 pub fn use_pack_script(pack_dir: String) -> Result<Option<String>, EngineError> {
     guarded(|| {
@@ -569,14 +570,30 @@ pub fn use_pack_script(pack_dir: String) -> Result<Option<String>, EngineError> 
         let m = &pack.manifest;
         let rules = mlengine_core::script::for_pack(&m.script, pack.file("lang").as_deref()).ok()?;
         mlengine_core::script::install(rules).ok()?;
+        mlengine_core::script::set_language(&m.id, rules);
         Some(rules.code().to_string())
     })
 }
 
 /// The letter at the end of `context_before` that a vowel sign typed next would attach to, if
-/// any (`ScriptRules::mark_base`), in the script `script` (a pack manifest's `script`, "mlym").
-/// Nil for a script this engine has no rules for. A free function, not an `Engine` method:
-/// the keyboard asks on every key, on the main thread, before and without the engine.
+/// any (`ScriptRules::mark_base`), by the rules of the language `lang` (a pack manifest's
+/// `id`, "ml"): the pack's own, as `use_pack_script` or an opened engine named them. Two
+/// packs of one script may differ (a vowel takes a sign in one language and not in the
+/// other), so the keyboard asks by language. Nil for a language no pack was named for. A
+/// free function, not an `Engine` method: the keyboard asks on every key, on the main thread,
+/// before and without the engine.
+#[uniffi::export]
+pub fn language_mark_base(lang: String, context_before: String) -> Result<Option<String>, EngineError> {
+    guarded(|| {
+        mlengine_core::script::of_language(&lang)
+            .and_then(|rules| rules.mark_base(&context_before))
+            .map(String::from)
+    })
+}
+
+/// `language_mark_base` by script code (a pack manifest's `script`, "mlym"), for callers
+/// from before it: the first rules in use for the script, which are one language's when two
+/// packs of the script are loaded. Nil for a script this engine has no rules for.
 #[uniffi::export]
 pub fn native_mark_base(script: String, context_before: String) -> Result<Option<String>, EngineError> {
     guarded(|| {
@@ -1166,5 +1183,42 @@ mod tests {
         assert_eq!(base("mlym", "കി"), None);
         // A script without rules has no strip.
         assert_eq!(base("zzzz", "ക"), None);
+    }
+
+    #[test]
+    fn language_mark_base_answers_by_each_packs_own_rules() {
+        // Two packs of one script whose rules differ: a vowel is a base in one only.
+        let dir =
+            std::env::temp_dir().join(format!("mlengine-ffi-language-test-{}", std::process::id()));
+        let pack = |id: &str, bases: &str| {
+            let folder = dir.join(format!("{id}.neopack"));
+            std::fs::create_dir_all(&folder).unwrap();
+            let lang = format!(
+                r#"{{"script": "beng", "block": ["0980", "09FF"], "bases": [{bases}]}}"#
+            );
+            std::fs::write(folder.join("lang.json"), lang).unwrap();
+            let lexicon = mlengine_core::lexicon::build([("ক".as_bytes().to_vec(), 1)]).unwrap();
+            std::fs::write(folder.join("x.fst"), lexicon).unwrap();
+            let manifest = format!(
+                r#"{{"format": 1, "id": "{id}", "version": "1", "name": "X", "nativeName": "X",
+                    "script": "beng", "minEngine": 4,
+                    "files": {{"lexicon": "x.fst", "lang": "lang.json"}}}}"#
+            );
+            std::fs::write(folder.join("manifest.json"), manifest).unwrap();
+            folder.to_string_lossy().into_owned()
+        };
+        let first = pack("qa-ffi", r#"["0995", "09B9"]"#);
+        let second = pack("qb-ffi", r#"["0985", "0985"], ["0995", "09B9"]"#);
+        let base = |lang: &str, text: &str| language_mark_base(lang.into(), text.into()).unwrap();
+        assert_eq!(base("qa-ffi", "ক"), None, "no pack named yet");
+        // In either order, and again: each language keeps its own.
+        for dir in [&first, &second, &first] {
+            assert_eq!(use_pack_script(dir.clone()).unwrap().as_deref(), Some("beng"));
+            assert_eq!(base("qa-ffi", "অ"), None);
+            assert_eq!(base("qa-ffi", "ক"), Some("ক".to_string()));
+        }
+        assert_eq!(base("qb-ffi", "অ"), Some("অ".to_string()));
+        assert_eq!(base("zz-ffi", "ক"), None);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

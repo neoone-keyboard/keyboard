@@ -11,7 +11,15 @@ use crate::rank;
 /// The committed words before the cursor, `lm_normalize`d, the last `rank::LM_WORDS` of them;
 /// a leading "" stands for bos when they are the whole text.
 pub fn lm_words(before: &str) -> Vec<String> {
-    let normal = lm_normalize(before);
+    words_of(&lm_normalize(before))
+}
+
+/// `lm_words` for `lm`: normalised by its pack's rules (`Tokenizer::normal`).
+pub fn lm_words_of(lm: &Lm, before: &str) -> Vec<String> {
+    words_of(&lm.tokenizer().normal(before))
+}
+
+fn words_of(normal: &str) -> Vec<String> {
     let all: Vec<&str> = normal.split(' ').filter(|w| !w.is_empty()).collect();
     let mut out = Vec::with_capacity(all.len().min(rank::LM_WORDS) + 1);
     if all.len() < rank::LM_WORDS {
@@ -403,7 +411,7 @@ impl ContextScores for LmView<'_> {
     fn prefix_delta(&self, typed: &str) -> f32 {
         let (tok, tab) = (self.lm.tokenizer(), self.lm.tables());
         let (next, lang) = (self.ctx.next(), self.ctx.lang());
-        let prefix = format!("{WORD_START}{}", lm_normalize(typed));
+        let prefix = format!("{WORD_START}{}", tok.normal(typed));
         let (mut lm_mass, mut lex_mass) = (0f64, 0f64);
         for t in tok.starting_with(&prefix) {
             if tok.flags(t) & flag::LATIN == 0 {

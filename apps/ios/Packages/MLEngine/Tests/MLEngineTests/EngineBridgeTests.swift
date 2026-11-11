@@ -98,6 +98,14 @@ import MLEngine
     #expect(try nativeMarkBase(script: "zzzz", contextBefore: "ക") == nil)
 }
 
+@Test func markBaseByLanguageCrossesFFI() throws {
+    // A language no pack was named for has no rules; one whose pack was named has its own.
+    #expect(try languageMarkBase(lang: "zz-none", contextBefore: "ക") == nil)
+    #expect(try usePackScript(packDir: packDir.path) == "mlym")
+    #expect(try languageMarkBase(lang: "ml", contextBefore: "ന്റ") == "റ")
+    #expect(try languageMarkBase(lang: "ml", contextBefore: "കി") == nil)
+}
+
 /// The committed lexicon bundle, found from this file's path.
 private let lexiconDir = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

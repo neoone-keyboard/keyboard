@@ -65,8 +65,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
             keyboardChoice: KeyboardLanguageChoice.load(from: .standard),
             debugList: Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? ""
         )
-        // Each pack's script rules (its lang.json, or the engine's own copy) are what
-        // `nativeMarkBase` answers with from the first key, before the engine has opened.
+        // Each pack's own rules (its lang.json, or the engine's own copy for its script) are
+        // what `languageMarkBase` answers with for its language from the first key, before
+        // the engine has opened.
         for pack in state.packs {
             _ = try? usePackScript(packDir: pack.folder.path)
         }
