@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "kn",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Kannada",
   "nativeName": "ಕನ್ನಡ",
   "script": "knda",
@@ -16,9 +16,13 @@
     "translit": "translit.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
+    "emoji-search.txt": "2ab043a1ff769f22fd2ab5e4e18ef71e93cc127325928e5c5b44daad47e83f70",
+    "emoji-words.txt": "fbce117cc18abbb360d2cc9684019e2e4b50d0ee2607f44e94ab3d0e87b1db3c",
     "kn.fst": "d98fa81e4afd7b1f5d52b80665ae0c33a926529d667e661da890c78836d5b6ee",
     "lang.json": "b254c2259974381d3d1f76b0a64e40bc8ad805c6f426d04b36e7e94c1351ac3b",
     "layout.json": "e31a3ca54d46598cc161a4c78cbdfbaf19a9eb7cfc2d4f5518bbc97648c654b8",
@@ -47,6 +51,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Kannada emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Kannada."
     },
     {
       "name": "English Wikipedia",

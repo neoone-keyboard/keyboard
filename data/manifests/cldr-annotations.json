@@ -16,7 +16,8 @@
     "hi": "hi",
     "ml": "ml",
     "mr": "mr",
-    "ta": "ta"
+    "ta": "ta",
+    "kn": "kn"
   },
   "files": [
     {
@@ -98,6 +99,16 @@
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/ta.xml",
       "sha256": "0dcffbea9d83416655a511d88c73b322fa641bce62268d35562978e12f699c82",
       "path": "derived-ta.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/kn.xml",
+      "sha256": "546fe8077fb22506ecc4b805c33c8c9de46533cb0e435c2c771561de108f74ed",
+      "path": "kn.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/kn.xml",
+      "sha256": "40386459f58bdd71971b886989448131876b22d78627b723abd77714d3573519",
+      "path": "derived-kn.xml"
     }
   ]
 }
