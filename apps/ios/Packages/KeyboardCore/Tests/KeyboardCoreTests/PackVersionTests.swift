@@ -16,7 +16,7 @@ import KeyboardCore
 
 @Test func theCommittedPacksHaveTheirVersionAndFingerprint() throws {
     let hi = try PackDescriptor.load(folder: packsFolder.appending(path: "hi.neopack"))
-    #expect(hi.version == "2026.11.12")
+    #expect(hi.version == "2026.11.13")
     #expect(hi.minEngine == 3)
     #expect(hi.englishFingerprint == "9a50d0c85c79a0df")
     #expect(malayalamPack.minEngine == 1)
