@@ -222,9 +222,17 @@ def test_calibration_falls_back_to_a_held_out_slice_of_train():
     assert {h.native for h in again} == words
 
 
+def test_calibration_falls_back_to_the_valid_splits_mined_rows():
+    # Telugu: manual rows only in the test split. The valid split's IndicCorp rows calibrate.
+    valid = [_hp("v1", "IndicCorp"), _hp("v2", "IndicCorp"), _hp("name", "Samanantar"), _hp("t", "IndicCorp")]
+    rows, where = human.calibration_split(valid, [_hp("m", "IndicCorp")], {"t"}, "xyz")
+    assert [h.native for h in rows] == ["v1", "v2"], "IndicCorp only, never a test word, nothing from train"
+    assert "mined IndicCorp rows of xyz_valid.json" in where and "rough" in where
+
+
 def test_no_calibration_pairs_is_an_error():
     with pytest.raises(SystemExit, match="no calibration pairs"):
-        human.calibration_split([_hp("v", "IndicCorp")], [_hp("m", "Samanantar")], set(), "xyz")
+        human.calibration_split([_hp("v", "Samanantar")], [_hp("m", "IndicCorp")], set(), "xyz")
 
 
 def _fake_aksharantar(monkeypatch, rows: dict[str, list]) -> None:
