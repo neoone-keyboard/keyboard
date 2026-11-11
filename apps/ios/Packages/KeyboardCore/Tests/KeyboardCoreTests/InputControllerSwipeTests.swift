@@ -15,6 +15,23 @@ extension InputControllerTests {
         SuggestionSlot(suggestion: Suggestion(text, kind: .completion), quoted: false)
     }
 
+    @Test func everyWordOfASwipeReachesTheBar() {
+        let found = ["hello", "help", "held", "hells", "hero", "helm"].map { Suggestion($0, kind: .completion) }
+        #expect(input.insertSwipe(found))
+        #expect(output.text == "hello ")
+        #expect(input.suggestions.candidates.map(\.text) == found.map(\.text))
+        let bar = SuggestionBar(input.suggestions, limit: 8)
+        #expect(bar.more.map(\.suggestion.text) == ["hells", "hero", "helm"])
+        // A word past the three slots swaps the swiped one too.
+        input.commitSuggestion(bar.more[1])
+        #expect(output.text == "hero ")
+    }
+
+    @Test func aSwipeWithNoWordTypesNothing() {
+        #expect(!input.insertSwipe([]))
+        #expect(output.text == "")
+    }
+
     @Test func aSwipeTypesTheWordAndASpace() {
         swipe("hello")
         #expect(output.text == "hello ")

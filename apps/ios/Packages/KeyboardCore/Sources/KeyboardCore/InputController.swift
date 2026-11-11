@@ -375,6 +375,15 @@ public final class InputController {
 
     // MARK: Swipes
 
+    /// Types the best of the words a swipe could have drawn; every other one is the bar's,
+    /// which shows as many as it does for a typed word. False when there is no word.
+    @discardableResult
+    public func insertSwipe(_ found: [Suggestion]) -> Bool {
+        guard let best = found.first else { return false }
+        insertSwipe(best, alternatives: Array(found.dropFirst()))
+        return true
+    }
+
     /// Types a swiped word: a space first unless one is there already, the word as shift
     /// has it, and a space after. The bar shows the word and `alternatives`.
     public func insertSwipe(_ word: Suggestion, alternatives: [Suggestion]) {

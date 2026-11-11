@@ -523,14 +523,14 @@ final class KeyboardViewController: UIInputViewController {
             let found = await provider.swipe(path, keys: keys, contextBefore: context)
             guard let self, generation == swipeGeneration else { return }
             let elapsed = ContinuousClock.now - started
-            guard let found, let best = found.first, elapsed <= Self.swipeTimeout else {
+            guard let found, !found.isEmpty, elapsed <= Self.swipeTimeout else {
                 if found != nil { log.warning("Swipe dropped: its words came after \(Diagnostics.milliseconds(elapsed))") }
                 showSwipeFailed()
                 return
             }
             let shown = input.keysShown, shift = input.shift
             output.beginEdit()
-            input.insertSwipe(best, alternatives: Array(found.dropFirst()))
+            input.insertSwipe(found)
             afterInput(keysBefore: shown, shiftBefore: shift)
         }
     }
