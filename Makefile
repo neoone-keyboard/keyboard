@@ -134,9 +134,12 @@ eval:
 	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
 	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
 
-# Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json.
+# Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json: English
+# and Malayalam (swipe_eval), then each pack of SWIPE_PACKS (swipe_eval_packs; hi, as and ta
+# unless set) over its held-out words. A pack with no baseline there is printed, not gated.
+#   make eval-swipe SWIPE_PACKS=xx
 eval-swipe:
-	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture
+	cd engine && cargo test -p mlengine-core --release --test swipe_eval swipe_eval -- --ignored --nocapture --test-threads=1
 
 # Every suggestion over the eval inputs (engine/core/tests/golden_dump.rs), for refactors that
 # must not change output: with the default languages (data/golden/m6p1.tsv.gz) and with English

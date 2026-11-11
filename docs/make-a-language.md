@@ -1048,6 +1048,11 @@ model): the recording is of the pack as it is, so any such change moves it. With
 `GOLDEN_PACKS`, both cover every recorded pack. `engine/core/tests/golden_pack.rs` says what
 is typed.
 
+Swipe accuracy on the same held-out words, each drawn as a noisy path over QWERTY, is
+`make eval-swipe SWIPE_PACKS=xx`. It prints English and Malayalam first, then your pack over
+all rows and over the words your romanised lexicon has; a pack with no entry in
+`data/eval/baselines-swipe.json` is printed and not gated.
+
 ### 12. Optional: a neural language model
 
 Malayalam's pack has a bilingual language model trained on Malayalam, its romanised form and
