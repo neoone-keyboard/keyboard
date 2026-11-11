@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -274,6 +274,11 @@ emoji:
 # Which language the LM pipeline pairs with English (training/mlkb/lm/lang.py): ml, the default,
 # builds in training/build/lm and build/lm.pt as it always has; hi in training/build/lm-hi and
 # build/lm-hi.pt. (Not LANG, which is the locale.)  make lm-data lm LM_LANG=hi
+# as and ta (packs of data/langs/, text from data/build-<id>-text.sh) train on what their
+# manifests credit: of English, English Wikipedia only, and no Dakshina. Their eval sets are
+# `python -m mlkb.eval.next_sets --lang <id>` (ta before lm-data, as after it) and the record
+# without an LM, `python -m mlkb.eval --lang <id> --translit … --record-nolm`.
+# `make bench-pack-lm LM_LANG=<id>` is their latency gate.
 LM_LANG ?= ml
 LM_BUILD := build/$(if $(filter ml,$(LM_LANG)),lm,lm-$(LM_LANG))
 LM_EVAL := data/eval$(if $(filter ml,$(LM_LANG)),,/$(LM_LANG))
@@ -353,6 +358,14 @@ bench:
 bench-hi:
 	cd engine && $(CARGO) test --release -p mlengine-core --test pack_lm -- --include-ignored --nocapture
 	cd engine && MLENGINE_LM_LANG=hi $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
+
+# The same for any pack with an LM (engine/core/tests/pack_lm_any.rs: the pack's lm.mlkbnn, else
+# training/build/lm-$(LM_LANG).mlkbnn), typing words of the pack's held-out set: suggest p99
+# under 8 ms without and with the LM, the LM commit p99 under 1 ms and the context ring within
+# 2% of fresh windows.  make bench-pack-lm LM_LANG=as
+bench-pack-lm:
+	cd engine && NEOPACK_LM=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test pack_lm_any -- --include-ignored --nocapture --test-threads=1
+	cd engine && MLENGINE_LM_LANG=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore

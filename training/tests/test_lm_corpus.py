@@ -158,6 +158,48 @@ def test_hindi_builds_apart_from_malayalam():
     assert HI.tune_file.parent == HI.eval_dir == corpus.EVAL / "hi"
 
 
+def test_a_pack_language_trains_on_the_sources_its_manifest_credits():
+    import json
+
+    from mlkb.lm import lang
+
+    for lang_id in ("as", "ta"):
+        config = lang.load(lang_id)
+        assert [row[0] for row in corpus.english_sources(config)] == ["en-wiki"]
+        assert config.dakshina is None and config.dakshina_romanized is None
+        manifest = json.loads((config.pack / "manifest.json").read_text(encoding="utf-8"))
+        credits = {c["name"] for c in manifest["credits"]}
+        assert {"English Wikipedia", f"{config.name} Wikipedia", f"{config.name} Wikisource",
+                f"{config.name} Wikiquote", "Aksharantar (AI4Bharat)"} <= credits
+        assert not {"Simple English Wikipedia", "English Wikinews", "Project Gutenberg"} & credits
+    assert corpus.english_sources(HI) == corpus.ENGLISH
+
+
+def test_a_language_without_dakshina_reads_only_its_eval_sets_for_leaks(tmp_path):
+    (tmp_path / "next-romanised.tsv").write_text("moi ghorot ahim\tমই ঘৰত আহিম\n", encoding="utf-8")
+    keys = corpus.leak_keys(tmp_path, None, own=set(), dakshina_lang=None)
+    assert is_leak("মই ঘৰত আহিম।", keys) and is_leak("moi ghorot ahim", keys)
+
+
+def test_assamese_and_tamil_are_romanised_by_their_packs_tables(tmp_path):
+    from mlkb.lm import lang
+
+    for lang_id, text in (("as", "মই কাইলৈ ঘৰত আহিম। ক'ত আছা?\n"), ("ta", "நான் நாளை வீட்டுக்கு வருவேன். அவன் வந்தான்.\n")):
+        src = tmp_path / f"{lang_id}-clean.txt"
+        src.write_text(text, encoding="utf-8")
+        corpus._init_worker({}, lang_id)
+        corpus.synthesise(("romanised", str(src), str(tmp_path / f"{lang_id}.txt"), 1, 0, 1))
+        roman = (tmp_path / f"{lang_id}.txt").read_text(encoding="utf-8")
+        assert roman.isascii() and len(roman.split()) == len(text.split()), roman
+    assamese = lang.load("as")
+    assert assamese.word.findall("ক'ত আছা ১২ জন।") == ["ক'ত", "আছা", "জন"]
+    assert corpus.tune_pattern(assamese).fullmatch("মই কাইলৈ ঘৰত আহিম।")
+    assert not corpus.tune_pattern(assamese).fullmatch("মই ১২ ঘৰত")
+    assert "Assamese Wikiquote" in corpus.headers(assamese)[1]
+    assert corpus.headers(HI) == corpus.HEADERS["hi"]
+    corpus._init_worker({}, "ml")
+
+
 def test_hindi_words_leave_the_danda_and_digits_out():
     assert HI.word.findall("मैं घर गया। २०२६ में") == ["मैं", "घर", "गया", "में"]
 

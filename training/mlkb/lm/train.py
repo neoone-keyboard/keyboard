@@ -66,15 +66,22 @@ GROUPS = {
 
 
 def buckets_for(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, float]:
-    """`BUCKETS` with the language's native and romanised bucket names, in the same order."""
+    """`BUCKETS` with the language's native and romanised bucket names, in the same order. A
+    language without some English bucket (`LmLang.english`) gives that bucket's weight to the
+    English ones it has, in proportion, so English keeps its half of the batch."""
     names = {"ml": lang.native, "manglish": lang.romanised}
-    return {names.get(k, k): w for k, w in BUCKETS.items()}
+    english = {k: w for k, w in BUCKETS.items() if k.startswith("en-")}
+    kept = sum(w for k, w in english.items() if k in lang.english)
+    scale = sum(english.values()) / kept
+    return {names.get(k, k): w * scale if k in english else w
+            for k, w in BUCKETS.items() if k not in english or k in lang.english}
 
 
 def groups_for(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, tuple[str, ...]]:
-    """`GROUPS` with the language's bucket names."""
+    """`GROUPS` with the language's bucket names, and of the English buckets those it has."""
     names = {"ml": lang.native, "manglish": lang.romanised}
-    return {names.get(k, k): tuple(names.get(b, b) for b in v) for k, v in GROUPS.items()}
+    return {names.get(k, k): tuple(names.get(b, b) for b in v if not b.startswith("en-") or b in lang.english)
+            for k, v in GROUPS.items()}
 
 
 _SEEK = 64  # tokens searched ahead of a random offset for a window start

@@ -21,6 +21,22 @@ writes Hindi's Hinglish sets instead, `data/eval/hi/next-hinglish.tsv` (gate) an
 `next-hinglish.tune.tsv`, the same way from Dakshina's `hi/romanized/` dev sentences (Hindi
 normalised by the engine, `mlengine.lm_normalize`). Hindi's other next-word sets, held-out
 Hindi Wikipedia and Wikisource sentences, are written by `mlkb.lm.corpus --lang hi`.
+
+    uv run python -m mlkb.eval.next_sets --lang ta
+
+writes Tamil's Tanglish sets, `data/eval/ta/next-tanglish.tsv` and `next-tanglish.tune.tsv`, the
+same way from Dakshina's `ta/romanized/` dev sentences. Eval only: the Tamil pack trains on
+nothing of Dakshina's.
+
+    uv run python -m mlkb.eval.next_sets --lang as
+
+Dakshina has no Assamese, so Assamese's romanised sets are synthetic:
+`data/eval/as/next-romanised.tsv` and `next-romanised.tune.tsv` are the held-out sentences of
+`next-as.heldout.txt` and `next-as.tune.txt` (run `mlkb.lm.corpus --lang as` first), each word
+spelled once by the pack's fitted tables (`mlkb.langs.romanisation.Tables.variants`, seed
+`SEED`). The LM's romanised training text is spelled by the same tables, so these rows are
+kinder to an LM than what people type; they say whether romanised typing gets worse, not how
+good it is.
 """
 import argparse
 import random
@@ -97,27 +113,92 @@ def manglish_rows(roman: list[str], native: list[str], seed: int = SEED,
     return out[0], out[1]
 
 
-def hindi() -> int:
+TANGLISH_HEADER = HINGLISH_HEADER.replace("Hinglish", "Tanglish").replace("hi/romanized/hi.", "ta/romanized/ta.") \
+    .replace("--lang hi", "--lang ta").replace(
+        "# Eval only: these sentences are removed from the LM training text.",
+        "# Eval only: the Tamil pack trains on nothing of Dakshina's, and these sentences are removed from the\n"
+        "# LM training text.")
+SYNTHETIC_HEADER = """# Next-word eval set, romanised {name} ({split} split): roman<TAB>native, word-aligned sentences.
+# SYNTHETIC: the sentences of {source} (held-out {name} Wikipedia, Wikisource and Wikiquote text,
+# CC BY-SA 4.0, by their contributors), each word spelled once by the pack's fitted romanisation tables
+# (data/langs/{id}/romanisation-weights.json, seed {seed}); nobody typed these. Punctuation dropped,
+# sentences with digits or a word the tables can't spell skipped, 2 to {max_words} words.
+# Built by training/mlkb/eval/next_sets.py --lang {id}.
+"""
+
+
+def dakshina_sets(lang: str, romanised: str, header: str) -> int:
+    """`data/eval/<lang>/next-<romanised>.tsv` and its tune split, from Dakshina's `<lang>/romanized/`
+    dev sentences; the native side normalised by the engine (`mlengine.lm_normalize`)."""
     import mlengine
 
-    dakshina = RAW / "dakshina/dakshina_dataset_v1.0/hi/romanized"
-    roman = (dakshina / "hi.romanized.rejoined.dev.roman.txt").read_text(encoding="utf-8").splitlines()
-    native = (dakshina / "hi.romanized.rejoined.dev.native.txt").read_text(encoding="utf-8").splitlines()
+    dakshina = RAW / f"dakshina/dakshina_dataset_v1.0/{lang}/romanized"
+    roman = (dakshina / f"{lang}.romanized.rejoined.dev.roman.txt").read_text(encoding="utf-8").splitlines()
+    native = (dakshina / f"{lang}.romanized.rejoined.dev.native.txt").read_text(encoding="utf-8").splitlines()
     gate, tune = manglish_rows(roman, native, norm=mlengine.lm_normalize)
-    (EVAL / "hi").mkdir(exist_ok=True)
-    for name, split, rows in (("next-hinglish.tsv", "gate", gate), ("next-hinglish.tune.tsv", "tune", tune)):
+    (EVAL / lang).mkdir(exist_ok=True)
+    for name, split, rows in ((f"next-{romanised}.tsv", "gate", gate), (f"next-{romanised}.tune.tsv", "tune", tune)):
         body = "".join(f"{r}\t{n}\n" for r, n in rows)
-        (EVAL / "hi" / name).write_text(HINGLISH_HEADER.format(split=split, seed=SEED, max_words=MAX_WORDS) + body,
+        (EVAL / lang / name).write_text(header.format(split=split, seed=SEED, max_words=MAX_WORDS) + body,
                                         encoding="utf-8")
-    print(f"next-hinglish gate {len(gate)}, tune {len(tune)}", file=sys.stderr)
+    print(f"next-{romanised} gate {len(gate)}, tune {len(tune)}", file=sys.stderr)
+    return 0
+
+
+def hindi() -> int:
+    return dakshina_sets("hi", "hinglish", HINGLISH_HEADER)
+
+
+def synthetic_rows(sentences: list[str], spell: Callable[[str, random.Random], list[str]], rng: random.Random,
+                   want: int) -> list[tuple[str, str]]:
+    """Up to `want` `(roman, native)` rows: each sentence's words (punctuation dropped) with one
+    spelling of each drawn from `spell`; a sentence with a digit, a word `spell` can't spell or a
+    spelling that isn't a-z is skipped."""
+    rows = []
+    for sentence in sentences:
+        if len(rows) == want:
+            break
+        words = _words(sentence)
+        if not 2 <= len(words) <= MAX_WORDS or any(c.isdigit() for c in sentence):
+            continue
+        typed = []
+        for w in words:
+            spellings = spell(w, rng)
+            typed.append(rng.choice(spellings) if spellings else "")
+        if all(t.isascii() and t.isalpha() for t in typed):
+            rows.append((" ".join(typed), " ".join(words)))
+    return rows
+
+
+def synthetic_sets(lang: str, name: str, romanised: str = "romanised") -> int:
+    """`data/eval/<lang>/next-<romanised>.tsv` and its tune split from the language's held-out
+    native sentences, spelled by its fitted tables."""
+    from mlkb.langs.romanisation import Tables
+
+    tables = Tables.load(lang)
+    rng = random.Random(SEED)
+    for source, out, split, want in ((f"next-{lang}.heldout.txt", f"next-{romanised}.tsv", "gate", GATE_ROWS),
+                                     (f"next-{lang}.tune.txt", f"next-{romanised}.tune.tsv", "tune", TUNE_ROWS)):
+        lines = (EVAL / lang / source).read_text(encoding="utf-8").splitlines()
+        rows = synthetic_rows([line for line in lines if line.strip() and not line.startswith("#")],
+                              tables.variants, rng, want)
+        header = SYNTHETIC_HEADER.format(name=name, split=split, source=f"data/eval/{lang}/{source}", id=lang,
+                                         seed=SEED, max_words=MAX_WORDS)
+        (EVAL / lang / out).write_text(header + "".join(f"{r}\t{n}\n" for r, n in rows), encoding="utf-8")
+        print(f"{out}: {len(rows)} rows", file=sys.stderr)
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--lang", default="ml", choices=["ml", "hi"])
-    if parser.parse_args(argv).lang == "hi":
+    parser.add_argument("--lang", default="ml", choices=["ml", "hi", "as", "ta"])
+    lang = parser.parse_args(argv).lang
+    if lang == "hi":
         return hindi()
+    if lang == "ta":
+        return dakshina_sets("ta", "tanglish", TANGLISH_HEADER)
+    if lang == "as":
+        return synthetic_sets("as", "Assamese")
     smc = [normalize(l.strip()) for l in SMC.read_text(encoding="utf-8").splitlines() if l.strip()]
     (EVAL / "next-ml.txt").write_text(ML_HEADER + "\n".join(smc) + "\n", encoding="utf-8")
     roman = (DAKSHINA / "ml.romanized.rejoined.dev.roman.txt").read_text(encoding="utf-8").splitlines()

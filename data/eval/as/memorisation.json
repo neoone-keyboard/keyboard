@@ -1,0 +1,115 @@
+{
+  "model": "lm-as.mlkbnn",
+  "model_sha256": "40633f4b8dc0008da4e3cd05f1766fac156391b41c47b41bd7e255aac7154d4d",
+  "prompts": 1500,
+  "prompts_per_source": {
+    "en-wiki": 500,
+    "aswiki": 500,
+    "aswikisource": 500
+  },
+  "generations": 4500,
+  "prompt_tokens": 32,
+  "generated_tokens": 64,
+  "runs": [
+    {
+      "temperature": 0.0,
+      "seed": 0
+    },
+    {
+      "temperature": 0.7,
+      "seed": 1
+    },
+    {
+      "temperature": 0.7,
+      "seed": 2
+    }
+  ],
+  "window": 16,
+  "indexed_windows": 638003710,
+  "limit": 50,
+  "continuation": {
+    "max": 6,
+    "p99": 3.0,
+    "histogram": {
+      "0-9": 4500,
+      "10-19": 0,
+      "20-29": 0,
+      "30-39": 0,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "corpus": {
+    "max": 34,
+    "p99": 0.0,
+    "histogram": {
+      "0-9": 4459,
+      "10-19": 31,
+      "20-29": 9,
+      "30-39": 1,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "loop_distinct": 4,
+  "corpus_not_loops": {
+    "max": 34,
+    "p99": 0.0,
+    "histogram": {
+      "0-9": 4459,
+      "10-19": 31,
+      "20-29": 9,
+      "30-39": 1,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "worst_by_source": {
+    "en-wiki": 34,
+    "aswiki": 5,
+    "aswikisource": 18
+  },
+  "runs_over_half_the_limit": 4,
+  "loops_over_half_the_limit": 0,
+  "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from English and Assamese Wikipedia and Assamese Wikisource and Wikiquote (their contributors).",
+  "longest": [
+    {
+      "run": 34,
+      "distinct_tokens_in_run": 24,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "of peel region and part of the greater toronto area. the town is northwest of brampton. according to statistics canada the land area is and, according",
+      "generated": "to the united states census bureau, the town has a total area of , of which is land and , or 0.20%, is water. the city is located in the town of s.c., and is bordered to the north by the city of s.c."
+    },
+    {
+      "run": 29,
+      "distinct_tokens_in_run": 14,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "an average percentage for the city but high for the county. the percentages of the same-age residents with a bachelor's degree and a master's",
+      "generated": "degree is 10%. the average age of 18 is 10.0 years. the bachelor's degree is 10.0% of the age of 18, 10.0% from 18 to 24, 20.0% from"
+    },
+    {
+      "run": 29,
+      "distinct_tokens_in_run": 19,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "are actually from cenozoic mammals. however, a village in henan, central china was reported in 2007 to have spent",
+      "generated": "100 years in the city. the population was 1,000 in 2000, and the population was 1,000 in 2000. the population density was . the racial makeup of the city was 91.3% white,"
+    },
+    {
+      "run": 26,
+      "distinct_tokens_in_run": 19,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "groups of germans from russia emigrated to the americas (mainly canada, the united states, brazil and argentina), where they founded many towns",
+      "generated": "in the us. the city is now a member of the united states house of representatives. the city of point-on-pearson, a portion of the city's population, has a total area of , of which are land and , or 0.85%, are water. the"
+    }
+  ],
+  "longest_loops": [],
+  "pass": true
+}

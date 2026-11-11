@@ -31,6 +31,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from mlkb.lm import lang as lm_lang
 from mlkb.lm.gutenberg import CUTOFF, authors_dead_before, dialogue_lines, strip_boilerplate
 
 REPO = Path(__file__).resolve().parents[3]
@@ -224,9 +225,15 @@ def extract_dakshina(lang: str = "ml") -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--only", choices=["simplewiki", "wikinews", "gutenberg", "dakshina"], action="append")
-    parser.add_argument("--lang", default="ml", choices=["ml", "hi"], help="whose Dakshina sentences")
+    parser.add_argument("--lang", default="ml", choices=sorted(lm_lang.LANGS), help="whose Dakshina sentences")
     args = parser.parse_args(argv)
-    steps = args.only or ["simplewiki", "wikinews", "gutenberg", "dakshina"]
+    lang = lm_lang.load(args.lang)
+    # A language's LM reads only what its pack credits (`mlkb.lm.lang`): no Dakshina sentences
+    # for one without them, and only the English buckets it trains on.
+    needed = [step for step, bucket in (("simplewiki", "en-simple"), ("wikinews", "en-news"),
+                                        ("gutenberg", "en-gutenberg")) if bucket in lang.english]
+    needed += ["dakshina"] if lang.dakshina else []
+    steps = [s for s in (args.only or needed) if s in needed]
     TEXT.mkdir(parents=True, exist_ok=True)
     if "dakshina" in steps:
         extract_dakshina(args.lang)

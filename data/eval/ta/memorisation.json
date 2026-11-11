@@ -1,0 +1,115 @@
+{
+  "model": "lm-ta.mlkbnn",
+  "model_sha256": "7f5039e7485d46c8cf5a2e2fbe1037e3caf996820716e49c652bf971018d7171",
+  "prompts": 1500,
+  "prompts_per_source": {
+    "en-wiki": 500,
+    "tawiki": 500,
+    "tawikisource": 500
+  },
+  "generations": 4500,
+  "prompt_tokens": 32,
+  "generated_tokens": 64,
+  "runs": [
+    {
+      "temperature": 0.0,
+      "seed": 0
+    },
+    {
+      "temperature": 0.7,
+      "seed": 1
+    },
+    {
+      "temperature": 0.7,
+      "seed": 2
+    }
+  ],
+  "window": 16,
+  "indexed_windows": 1536046842,
+  "limit": 50,
+  "continuation": {
+    "max": 6,
+    "p99": 3.0,
+    "histogram": {
+      "0-9": 4500,
+      "10-19": 0,
+      "20-29": 0,
+      "30-39": 0,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "corpus": {
+    "max": 33,
+    "p99": 16.0,
+    "histogram": {
+      "0-9": 4415,
+      "10-19": 74,
+      "20-29": 8,
+      "30-39": 3,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "loop_distinct": 4,
+  "corpus_not_loops": {
+    "max": 33,
+    "p99": 16.0,
+    "histogram": {
+      "0-9": 4429,
+      "10-19": 60,
+      "20-29": 8,
+      "30-39": 3,
+      "40-49": 0,
+      ">=50": 0
+    }
+  },
+  "worst_by_source": {
+    "en-wiki": 33,
+    "tawiki": 20,
+    "tawikisource": 18
+  },
+  "runs_over_half_the_limit": 4,
+  "loops_over_half_the_limit": 0,
+  "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from English and Tamil Wikipedia and Tamil Wikisource and Wikiquote (their contributors).",
+  "longest": [
+    {
+      "run": 33,
+      "distinct_tokens_in_run": 18,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "was associated with outbreaks in europe, japan, and australasia. in 2006, there was another large increase in nov",
+      "generated": "gorod populations in the united states, and the population of 200,000 in 2010. the population density was . the racial makeup of the city was 99.3% white, 0.3% african american, 0.3% native american"
+    },
+    {
+      "run": 33,
+      "distinct_tokens_in_run": 18,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "28.0% in 2024. food insecurity is on the rise in africa and falling in latin america and the",
+      "generated": "united states. food in the united states is 1.5% of the population, and is 1.5% of the population. the population density was . the racial makeup of the city was 99.3% white, 0.3% african american, 0.3% native"
+    },
+    {
+      "run": 33,
+      "distinct_tokens_in_run": 18,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.0,
+      "prompt": "from 7% in 1997 to 26% in 2017, with the rate of growth sharply acceler",
+      "generated": "ating from 2018 to 2018. the rate of growth of the population was 10.5%. the population density was . the racial makeup of the city was 99.3% white, 0.3% african american, 0.3% native"
+    },
+    {
+      "run": 28,
+      "distinct_tokens_in_run": 20,
+      "loop": false,
+      "source": "en-wiki",
+      "temperature": 0.7,
+      "prompt": "proper in the u.s. state of florida, located on the atlantic coast of northeastern florida. it is the seat of government of duval county, with",
+      "generated": "a total area of , and is the seat of the national board of directors. the city of duval is bordered to the north by the city of kingston. the city has a total area of , of which is land and , or 0.35%, is water. the"
+    }
+  ],
+  "longest_loops": [],
+  "pass": true
+}

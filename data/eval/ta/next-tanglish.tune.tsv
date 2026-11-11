@@ -1,0 +1,507 @@
+# Next-word eval set, Tanglish (tune split): roman<TAB>native, word-aligned sentences.
+# From the Dakshina dataset v1.0 (Google Research, Roark et al., 2020), CC BY-SA 4.0:
+# ta/romanized/ta.romanized.rejoined.dev.{roman,native}.txt, shuffled with seed 20261103 and split into
+# disjoint halves (gate from the first, tune from the second). Punctuation dropped, sentences with
+# digits skipped, only pairs with the same word count (2 to 20) kept. The test sentences are not used.
+# Eval only: the Tamil pack trains on nothing of Dakshina's, and these sentences are removed from the
+# LM training text. Built by training/mlkb/eval/next_sets.py --lang ta.
+antha paththirikaiyil veliyidappattirundha kairegaip padaththai vaasagargal kairegai readeril payanpadutthi yemaattra mudiyum	அந்த பத்திரிகையில் வெளியிடப்பட்டிருந்த கைரேகைப் படத்தை வாசகர்கள் கைரேகை ரீடரில் பயன்படுத்தி ஏமாற்ற முடியும்
+ippaguthiyai nasa nilappadaththil kaanalaam	இப்பகுதியை நாசா நிலப்படத்தில் காணலாம்
+iroppaavin catholikka naadugalil kriththavak kalaip padaippugal uruvaakkappattana	ஐரோப்பாவின் கத்தோலிக்க நாடுகளில் கிறித்தவக் கலைப் படைப்புகள் உருவாக்கப்பட்டன
+vaan iyakkaviyalil seyalvazhakkil ikthu pinvarum panbugalaik kondathaay kollappadum	வான் இயக்கவியலில் செயல்வழக்கில் இஃது பின்வரும் பண்புகளைக் கொண்டதாய் கொள்ளப்படும்
+ithu kurithu ve	இது குறித்து வே
+ellaraiyum vida peranpinan	எல்லாரையும் விடப் பேரன்பினன்
+sandeshwara naayanaarukku thai maatham uththiram natchaththiraththandru kurupoosai nadaththappadugirathu	சண்டேசுவர நாயனாருக்கு தை மாதம் உத்திரம் நட்சத்திரத்தன்று குருபூசை நடத்தப்படுகிறது
+yerathaala boovulakil ulla ella minnanu sakthiyum sila vagai visaiyaazhiyai kondey uruvaakkappattirukindrana	ஏறத்தாழ பூவுலகில் உள்ள எல்லா மின்னணு சக்தியும் சில வகை விசையாழியைக் கொண்டே உருவாக்கப்பட்டிருக்கின்றன
+philippinesil kaasa noyaiyaip pokka payanpaduththukinranar	பிலிப்பைன்ஸில் காச நோயைப் போக்க பயன்படுத்துகின்றனர்
+illara vaazhkkaiyil satru uyarnthor pinpatra vendiyavaigal ena pinvarum ozhukkangal kurippidappadugindrana	இல்லற வாழ்க்கையில் சற்று உயர்ந்தோர் பின்பற்ற வேண்டியவைகள் என பின்வரும் ஒழுக்கங்கள் குறிப்பிடப்படுகின்றன
+melum arasu saaradha niruvanangalin moolam paaliyar sugadharam mattrum kudumbak kattupaadu patriya vizhipunarvugalai yearpaduthi varugiraar	மேலும் அரசு சாராத நிறுவனங்களின் மூலம் பாலியல் சுகாதாரம் மற்றும் குடும்பக் கட்டுப்பாடு பற்றிய விழிப்புணர்வுகளை ஏற்படுத்தி வருகிறார்
+ivar thanathu thalaiyay mamilthu kondathillai	இவர் தனது தலையை மழித்துக் கொண்டதில்லை
+vattaara varalaatru thuraiyil perithum edupattu pala noolkalai uruvaakki ullaar	வட்டார வரலாற்றுத் துறையில் பெரிதும் ஈடுபட்டுப் பல நூல்களை உருவாக்கி உள்ளார்
+ithu oru iru siragidaiya poochchiyaagum	இது ஒரு இரு சிறகுடைய பூச்சியாகும்
+inge ivai marainthu vaalum ivatrai kaanbathu kadinam	இங்கே இவை மறைந்து வாழும் இவற்றை காண்பது கடினம்
+ivargal iruvarum tamil thupparium puthinangal thiraikathai sirukathaigal ponravatrai eluthi varuginranar	இவர்கள் இருவரும் தமிழ் துப்பறியும் புதினங்கள் திரைக்கதை சிறுகதைகள் போன்றவற்றை எழுதி வருகின்றனர்
+neerazhivu nooi ponravatrai kuraikkum maruthuva pannbhu iruppadhaga sollapadugiradhu	நீரிழிவு நோய் போன்றவற்றைக் குறைக்கும் மருத்துவப் பண்பு இருப்பதாகச் சொல்லப்படுகிறது
+oriyolide kudumbatthil payobiyas fingbirds pittohooyis mattrum murkaala maankuyilkalum adangum	ஓரியோலிடெ குடும்பத்தில் பயோபியஸ் ஃபிங்பேர்ட்ஸ் பிட்டோஹுயிஸ் மற்றும் முற்கால மாங்குயில்களும் அடங்கும்
+naalangal karoor ilakkiya arakkattalaip parisu	நாளங்கள் கரூர் இலக்கிய அறக்கட்டளைப் பரிசு
+ithu thamizhnaadu pettra muthal perunjsuttru nithiyuthavi	இது தமிழ்நாடு பெற்ற முதல் பெருஞ்சுற்று நிதியுதவி
+eeroodakavaazhigalil avatrin tholum kooda valima maatreettil mukkiya pangu vagikkiradhu	ஈரூடகவாழிகளில் அவற்றின் தோலும் கூட வளிம மாற்றீட்டில் முக்கிய பங்கு வகிக்கிறது
+izai anip polintha yenthu kottu alkul	இழை அணிப் பொலிந்த ஏந்து கோட்டு அல்குல்
+iyarkaiyin velipura paguthi karumpazhuppaagavum kaanappadum	இறக்கையின் வெளிப்புறப் பகுதி கரும்பழுப்பாகவும் காணப்படும்
+iyesuvin pirappu	இயேசுவின் பிறப்பு
+unayandri yaarammaa	உனையன்றி யாரம்மா
+kiramasabai aandirku naangu murai kootta vaendum	கிராமசபை ஆண்டிற்கு நான்கு முறை கூட்ட வேண்டும்
+ithil naangu peril seyalalithaa mattum iranthathai aduththu vi	இதில் நான்கு பேரில் செயலலிதா மட்டும் இறந்ததை அடுத்து வி
+ith thotram meiyengalin muzhumaithanmaiyay saarthirukirathu vigithamuru engalil q ith thotram unmaiyaavathillai eduthukaataaga	இத் தேற்றம் மெய்யெண்களின் முழுமைத்தன்மையைச் சார்ந்திருக்கிறது விகிதமுறு எண்களில் q இத் தேற்றம் உண்மையாவதில்லை எடுத்துக்காட்டாக
+kopisettipaalayam ooraatchi ondraiyum ivvattathil ulladhu	கோபிச்செட்டிப்பாளையம் ஊராட்சி ஒன்றியம் இவ்வட்டத்தில் உள்ளது
+indiavil pulveli paguthikal niligiriyilum kaasi malaiyilum naagamalaiyilum kaanappadukindrana	இந்தியாவில் புல்வெளி பகுதிகள் நீலகிரியிலும் காசி மலையிலும் நாகமலையிலும் காணப்படுகின்றன
+thumbu kaitholilil payanpadum thenanthumbu ivvagai kalamaagum	தும்புக் கைத்தொழிலில் பயன்படும் தென்னந்தும்பு இவ்வகைக் கலமாகும்
+attudhan sandison ennum padhaviyana sivaperumanin aadaiikkum poosai porutgalukkum urriyavaranaga niyamithar	அத்துடன் சண்டீசன் எனும் பதவியான சிவபெருமானின் ஆடைக்கும் பூசை பொருட்களுக்கும் உரியவரானாக நியமித்தார்
+peraasiriyar mounaguruvin raavanesan nadakakoothaiyum vattukkottai nattukkooththaana tharma yuthaththaiyum vivaranappadamaakki aangila upathalaippukaludan nayena vadivil aavanapaduthi thamizhargal seithirukka vendiya oru arumpaniyai aattriyullaar	பேராசிரியர் மௌனகுருவின் இராவணேசன் நாட்டக்கூத்தையும் வட்டுக்கோட்டை நாட்டுக்கூத்தான தர்ம யுத்தத்தையும் விவரணப்படமாக்கி ஆங்கில உபதலைப்புக்களுடன் னஎன வடிவில் ஆவணப்படுத்தி தமிழர்கள் செய்திருக்க வேண்டிய ஒரு அரும்பணியை ஆற்றியுள்ளார்
+kalaip palli	கலைப் பள்ளி
+mellum edhu peenni niikkum marundhaga karuthapathu kathiriyaikka pooli maruthuvathilyulum payampadhuthapattadhu	மேலும் இது பிணி நீக்கும் மருந்தாக கருதப்பட்டு கதிரியக்க போலி மருத்துவத்திலும் பயன்படுத்தப்பட்டது
+yendra thoniyil thodarnthu koovum oru paravaiyaith thodarnthu mattravaiyum koovum	என்ற தொனியில் தொடர்ந்து கூவும் ஒரு பறவையைத் தொடர்ந்து மற்றவையும் கூவும்
+iththiraippadaththirkku premji amaran isaiyamaiththu varukindranar	இத்திரைப்படத்திற்கு பிரேம்ஜி அமரன் இசையமைத்து வருகின்றார்
+copo enra porthugeesiya sollil irundhu thamizhukku vandha sol	copo என்ற போர்த்துகீசிய சொல்லில் இருந்து தமிழுக்கு வந்த சொல்
+bhakyaraajin makan saanthanu bhakiyaraaj mattrum arimuga nadikai saanthini thamizharasan aakiyoer nadiththirunthanar	பாக்கியராஜின் மகன் சாந்தனு பாக்கியராஜ் மற்றும் அறிமுக நடிகை சாந்தினி தமிழரசன் ஆகியோர் நடித்திருந்தனர்
+ivar enthavoru thervuth thuduppaattap pottiyilum kalanthu kollavillai	இவர் எந்தவொரு தேர்வுத் துடுப்பாட்டப் போட்டியிலும் கலந்து கொள்ளவில்லை
+melum tibor bil eriyin then merke assam maanilatthin muthanmai aaraana brahmaputra aaru odugirathu	மேலும் திபோர் பில் ஏரியின் தென் மேற்கே அசாம் மாநிலத்தின் முதன்மை ஆறான பிரம்மபுத்திரா ஆறு ஓடுகிறது
+yaiyum misuriyin sen	யையும் மிசூரியின் சென்
+nirnayikkappatta vilaiyin thaakkaththil vaangkavum virkkappadavum koodiya alagukalaaka alavidappadum santhai aazham ennum karuththupadivaththudan thodarpudaiyathu	நிர்ணயிக்கப்பட்ட விலையின் தாக்கத்தில் வாங்கவும் விற்கப்படவும் கூடிய அலகுகளாக அளவிடப்படும் சந்தை ஆழம் என்னும் கருத்துப்படிவத்துடன் தொடர்புடையது
+sarvadesa thiraippada tharavuth thalaththil aangilam	சர்வதேச திரைப்பட தரவுத் தளத்தில் ஆங்கிலம்
+karpooram wicks matrum buckle ponra pala irumal thani marunthu thayaarippugalil irumal adakkiyaaga matrum kurippitta noiyakatrum marunthagavum payanpadugirathu	கற்பூரம் விக்ஸ் மற்றும் பக்லே போன்ற பல இருமல் தனி மருந்து தயாரிப்புக்களில் இருமல் அடக்கியாக மற்றும் குறிப்பிட்ட நோயகற்றும் மருந்தாகவும் பயன்படுகிறது
+idhanaal mundhaiya aakkangal azhikkappattu pudhiya ulladakkam ezhudhappaduvadhu thavirkkappadugiradhu	இதனால் முந்தைய ஆக்கங்கள் அழிக்கப்பட்டு புதிய உள்ளடக்கம் எழுதப்படுவது தவிர்க்கப்படுகிறது
+andru aayiraththirkum maerpattor ak kuzhanthaikku ennavaayitru ena naalithazh aluvalakaththaith thodarpu kondanar	அன்று ஆயிரத்திற்கும் மேற்பட்டோர் அக் குழந்தைக்கு என்னவாயிற்று என நாளிதழ் அலுவலகத்தைத் தொடர்பு கொண்டனர்
+selvanthar paandiyan jaisankar avar vaazhum graamaththin thalaivar	செல்வந்தர் பாண்டியன் ஜெய்சங்கர் அவர் வாழும் கிராமத்தின் தலைவர்
+vaayilodu puzhai amaiththu	வாயிலொடு புழை அமைத்து
+athodu koondalukku alagaiyum tharukirathu	அதோடு கூந்தலுக்கு அழகையும் தருகிறது
+innool ivar kurippitta idangkalil sirappu tholirsaalaikal nerukkamaaka amainthiruththalai koththamaippu enavum avai thozhithurai maavattangkalenavum kurippittullaar	இந்நூலில் அவர் குறிப்பிட்ட இடங்களில் சிறப்புத் தொழிற்சலைகள் நெருக்கமாக அமைந்திருத்தலைக் கொத்தமைப்பு எனவும் அவை தொழில்துறை மாவட்டங்களெனவும் குறிப்பிட்டுள்ளார்
+ikkaalappaguthiyil merku romap perarasin kadaisi mannan romulus agustus enbavan padhaviyil irunthu irakkappattaan	இக்காலப்பகுதியில் மேற்கு ரோமப் பேரரசின் கடைசி மன்னன் ரொமூலஸ் ஆகுஸ்டஸ் என்பவன் பதவியில் இருந்து இறக்கப்பட்டான்
+madurai salem siraikalil adaikkappattaar	மதுரை சேலம் சிறைகளில் அடைக்கப்பட்டார்
+airmarshal r	ஏர்மார்சல் ஆர்
+inaiyaththil virakeshari	இணையத்தில் வீரகேசரி
+thirumal arul vettal	திருமால் அருள் வேட்டல்
+intha mandalaththil keezhkkaanum oorgal ullana	இந்த மண்டலத்தில் கீழ்க்காணும் ஊர்கள் உள்ளன
+thuraththum nizhalgal	துரத்தும் நிழல்கள்
+proparcyl choloride	புரோபார்கைல் குளோரைடு
+yenave paathikkappattavar than udaigalaik kalainthu kolvaar	எனவே பாதிக்கப்பட்டவர் தன் உடைகளைக் களைந்து கொள்வார்
+pazangalum kaikarigalum	பழங்களும் காய்கறிகளும்
+atthakaiya nilavu nadayinpodhu nilavu karkalai segaritthadhodu pala aaivukkaruvigalaiyum nilavil niruvivittu vandhanar	அத்தகைய நிலவு நடையின்போது நிலவு கற்களை சேகரித்ததோடு பல ஆய்வுக்கருவிகளையும் நிலவில் நிறுவிவிட்டு வந்தனர்
+por thaangi pul vilangiyoonaith	போர் தாங்கிப் புள் விலங்கியோனைத்
+rasnayagam kaalathil paadasalaiyin manivizha kondaadappattadhu	இராசநாயகம் காலத்தில் பாடசாலையின் மணிவிழா கொண்டாடப்பட்டது
+yenave kuraivaana thandanaiye vazhanginaar	எனவே குறைவான தண்டனையே வழங்கினார்
+paarapatchamindri thalaiviritthaadum oozhal	பாரபட்ச்மின்றி தலைவிரித்தாடும் ஊழல்
+philipinesin laguna maakaanthil kalaamba endra idathil pirandavar risaal	பிலிப்பைன்சின் லகூனா மாகாணத்தில் கலாம்பா என்ற இடத்தில் பிறந்தவர் ரிசால்
+kutti kurian medaich sirippurai	குட்டி ஃகரியின் மேடைச் சிரிப்புரை
+kelviyum nane pathilum naane	கேள்வியும் நானே பதிலும் நானே
+tamil kanimai kalaisorkal	தமிழ் கணிமை கலைச்சொற்கள்
+avai ippudhu kidaikkavilai	அவை இப்போது கிடைக்கவில்லை
+padaga vilaivu oru seyalikku ethripartha nalvillaivukku bathilaga padagama villaivu erpadal	பாதக விளைவு ஒரு செயலுக்கு எதிர்பார்த்த நல்விளைவுக்கு பதிலாக பாதகமான விளைவு ஏற்படல்
+vattukottai yaazhpaanak kalloori thirunelveli paramesuvaraa kalloori aagiyavatril kalvi katru pinnar ilangai sattak kallooriyil payindru pattam petraar	வட்டுக்கோட்டை யாழ்ப்பாணக் கல்லூரி திருநெல்வேலி பரமேசுவரா கல்லூரி ஆகியவற்றில் கல்வி கற்று பின்னர் இலங்கை சட்டக் கல்லூரியில் பயின்று பட்டம் பெற்றார்
+intha malaigal pala aarugalin thotruvaayaga ullaana	இந்த மலைகள் பல ஆறுகளின் தோற்றுவாயாக உள்ளன
+urathoor enbana pudhukottai vattathil ullana arimanam	உறத்தூர் என்பன புதுக்கோட்டை வட்டத்தில் உள்ளன அரிமணம்
+porutkalin iyalbin adipadaiyil	பொருட்களின் இயல்பின் அடிப்படையில்
+ivarukku idhu thamizhnaadu arasin mudhal amaichravai padhaviyaagum	இவருக்கு இது தமிழ்நாடு அரசின் முதல் அமைச்சரவைப் பதவியாகும்
+kalavu pana mosadi aemaatral paraththamai aal kadaththal pothaik kadaththal kolai ponra pala kuttrachsaeyalgalai thaerinthu thittamittu mafia eedupadum	களவு பண மோசடி ஏமாற்றல் பரத்தமை ஆள் கடத்தல் போதைக் கடத்தல் கொலை போன்ற பல குற்றச்செயல்களை தெரிந்து திட்டமிட்டு மாஃப்பியா ஈடுபடும்
+sankaranaar kovilile	சங்கரனார் கோவிலிலே
+atheneram puligal tharappil lep	அதேநேரம் புலிகள் தரப்பில் லெப்
+gilgit mavattathil pesappadum mozhiye pothu chinavaaga kollappadukinrathu	கில்கிட் மாவட்டத்தில் பேசப்படும் மொழியே பொது ஷினாவாகக் கொள்ளப்படுகின்றது
+intha maruthuvamaiyil panipuriya londonil ulla saint thomas maruthuvamaiyil irunthu seviliya sagotharigal vandanar	இந்த மருத்துவமனையில் பணிபுரிய இலண்டனில் உள்ள செயின்ட் தாமஸ் மருத்துவமனையில் இருந்தது செவிலிய சகோதரிகள் வந்தனர்
+vinaimutri meelum thalaimaakan thaan thaerpaakanidam solkiraan thaerottum valaavanai ivar valam perunan endru kurippidukiraar	வினைமுற்றி மீளும் தலைமகன் தன் தேர்ப்பாகனிடம் சொல்கிறான் தேரோட்டும் வலவனை இவர் வலம் பெறுநன் என்று குறிப்பிடுகிறார்
+portugalin perumbaalaana pagudhigal apthaachit vamsatthin padaayosu thaibaavin kattuppattukkul irundhadhu	போர்த்துகலின் பெரும்பாலான பகுதிகள் அப்தாசிட் வம்சத்தின் படாயோசு தைபாவின் கட்டுப்பாட்டுக்குள் இருந்தது
+ore kulu thaan ikkutrabgalai seithirukka mudiyum endru santhekiththaargal	ஒரே குழு தான் இக்குற்றங்களைச் செய்திருக்க முடியும் என்று சந்தேகித்தார்கள்
+sarakku uyartthigal	சரக்கு உயர்த்திகள்
+ippaniyin ariviyal nokkangal	இப்பணியின் அறிவியல் நோக்கங்கள்
+ipparavai unnikkokku alavai otthu irukkum	இப்பறவை உண்ணிக்கொக்கு அளவை ஒத்து இருக்கும்
+pothuvaaga ithu minsaara iyakkigal moolam irumbu kayirugalai iyakkiyo visaiyiyakkak kuzhaai moolam paaymaththin alavai unthu thandinul uyara seitho iyakkappadum	பொதுவாக இது மின்சார இயக்கிகள் மூலம் இரும்பு கயிறுகளை இயக்கியோ விசையியக்கக் குழாய் மூலம் பாய்மத்தின் அளவை உந்து தண்டினுல் உயர செய்தோ இயக்கப்படும்
+ingu varum bakthargal maarbuvarai ulla intha neeril nadanthuthaan sellavendum	இங்கு வரும் பக்தர்கள் மார்புவரை உள்ள இந்த நீரில் நடந்துதான் செல்லவேண்டும்
+ithan poodhu vut paluvidai thasaigalum vayittrupura thisaigalum surukkamadaivathaal athigalavu vali veliyettrapadum	இதன் போது உட் பழுவிடைத் தசைகளும் வயிற்றுப்புறத் தசைகளும் சுருக்கமடைவதால் அதிகளவு வளி வெளியேற்றப்படும்
+kuzhanthai natchaththiramaaga arimugammagi pinnaalil ariyappettra nadigai aanaar	குழந்தை நட்சத்திரமாக அறிமுகமாகி பின்னாளில் அறியப்பெற்ற நடிகை ஆனார்
+muzhup palagai	முழுப் பலகை
+a il seraruththukku mun ivar naalu aandu indhiyaanaa maanilap palkalaikkazhagaththil koodaippanthu vilaiyaadinaar	ஏ இல் சேரருத்துக்கு முன் இவர் நாலு ஆண்டு இந்தியானா மாநிலப் பல்கலைக்கழகத்தில் கூடைப்பந்து விளையாடினார்
+ichsambavam satcharavulla arasiyal vidayamaaga needithathu	இச்சம்பவம் சச்சரவுள்ள அரசியல் விடயமாக நீடித்தது
+russia naduvan paathukaappup padaiyinarin thaakkuthalil ivar kollappattathaaga russia athikaarigal koorukinranar	உருசிய நடுவண் பாதுகாப்புப் படையினரின் தாக்குதலில் இவர் கொல்லப்பட்டதாக உருசிய அதிகாரிகள் கூறுகின்றனர்
+kilaigal thongik kondu irukkum	கிளைகள் தொங்கிக் கொண்டு இருக்கும்
+eer evvalavu kuraivaaga irukkiradho avvalavu adhigamaaga karuviyum thulliyamaaga irukkiradhu enru karudhappadum	eer எவ்வளவு குறைவாக இருக்கிறதோ அவ்வளவு அதிகமாக கருவியும் துல்லியமாக இருக்கிறது என்று கருதப்படும்
+iru kodugalum ore neelam kondavai enap paarppavargalukku munbe therinthalum indha neela verupadu unarappadukiradhu	இரு கோடுகளும் ஒரே நீளம் கொண்டவை எனப் பார்ப்பவர்களுக்கு முன்பே தெரிந்தாலும் இந்த நீள வேறுபாடு உணரப்படுகிறது
+nellore nagara sattamandrath thoguthi	நெல்லூர் நகர சட்டமன்றத் தொகுதி
+melum alexander olympiyasin thunaiyudan cleopatra attalas matrum palarai indha pottiyil kondru theerthaar	மேலும் அலெக்ஸாண்டர் ஒலிம்பியாஸின் துணையுடன் கிளியோபாட்ரா அட்டாலஸ் மற்றும் பலரை இந்த போட்டியில் கொன்று தீர்த்தார்
+saadhaarana soozhal nibandhanaigalin keezh idhu thirava nilayil kaanapadum	சாதாரண சூழல் நிபந்தனைகளின் கீழ் இது திரவ நிலையில் காணப்படும்
+iruppinum oru ye thara thooduppatta pootiyil kalanthu kondullaar	இருப்பினும் ஒரு ஏ தர துடுப்பாட்டப் போட்டியில் கலந்து கொண்டுள்ளார்
+maanilap sattapperavaiyil enthavoruk katchikkum allthu koottanikkum aruthip perumbaanmai kittaathu aatchi amaikka iyalaathiruppinum kudiyarasuth thalaivaraatchi amaiyalaam	மாநில சட்டப்பேரவையில் எந்தவொருக் கட்சிக்கும் அல்லது கூட்டணிக்கும் அறுதிப் பெரும்பான்மை கிட்டாது ஆட்சி அமைக்க இயலாதிருப்பினும் குடியரசுத் தலைவராட்சி அமையலாம்
+ikkokkugal perung kokkugal matrum siriya vellai kokkugalukku idaiyilaana alavil irukkum	இக்கொக்குகள் பெருங் கொக்குகள் மற்றும் சிறிய வெள்ளை கொக்குகளுக்கு இடையிலான அளவில் இருக்கும்
+kamalaapuram sattamandra thoguthi andra pradesa sattamandrathirkkaana thoguthiaagum	கமலாபுரம் சட்டமன்றத் தொகுதி ஆந்திரப் பிரதேச சட்டமன்றத்திற்கான தொகுதியாகும்
+ikkolkai aariyar varugaikku munnar sinthuveli ullitta indhiyaavil iruntha palangudi makkalin kolkai enpathai indhiyavil thondriya samana boutha matha kotpaadugalal ariyalaam	இக்கொள்கை ஆரியர் வருகைக்கு முன்னர் சிந்துவெளி உள்ளிட்ட இந்தியாவில் இருந்த பழங்குடி மக்களின் கொள்கை என்பதை இந்தியாவில் தோன்றிய சமண பௌத்த மதக் கோட்பாடுகளால் அறியலாம்
+ivanai kandu pulavar paadugiraar	இவனைக் கண்டு புலவர் பாடுகிறார்
+konnattu yerichchaloor maadalan mathuraik kumaranaar yennump pulavar ivanai iyaltherch senni yendru kurippidugiraar	கோனாட்டு எறிச்சலூர் மாடலன் மதுரைக் குமரனார் என்னுப் புலவர் இவனை இயல்தேர்ச் சென்னி என்று குறிப்பிடுகிறார்
+koshtaththil ulla vishnu durgaiyay vanangum pothu sandikesuvararai sivaalayaththil evvitha porutkalaiyum eduthu sellavillaiyena koori vananga vendum	கோஷ்டத்தில் உள்ள விஷ்ணு துர்க்கையை வணங்கும் போது சண்டிகேசுவரை சிவாலயத்தில் எவ்வித பொருட்களையும் எடுத்து செல்லவில்லையென கூறி வணங்க வேண்டும்
+ithu vaaranthorum vellikkizamaiyil veliyaagirathu	இது வாரந்தோறும் வெள்ளிக்கிழமையில் வெளியாகிறது
+seena china enru pothuvaga alaikappadum seena makkal kudiyarasu kilakasiyavilulla nadakum	சீனா china என்று பொதுவாக அழைக்கப்படும் சீன மக்கள் குடியரசு கிழக்காசியாவிலுள்ள நாடாகும்
+nithi patraakuraikal kaaalamkadanthu kandariyapattal matrum nathikal pothaathathaaka irunthal niruvana muthalidukalai vazhanga vangikal niraakarikalam matrum ithan vilaivaaka thivaalaaga aavathilirunthu thapika mudiyathu	நிதிப் பற்றாக்குறைகள் காலம்கடந்து கண்டறியப்பட்டால் மற்றும் நிதிகள் போதாததாக இருந்தால் நிறுவன முதலீடுகளை வழங்க வங்கிகள் நிராகரிக்கலாம் மற்றும் இதன் விளைவாக திவாலாவாக ஆவதிலிருந்து தப்பிக்க முடியாது
+oru sirantha kudumbaththin uruppinaraana savoo siyaachchin king vamsaththu mannarukkaaga paniyaatrinaar	ஒரு சிறந்த குடும்பத்தின் உறுப்பினரான சாவோ சியாச்சின் கிங் வம்சத்து மன்னருக்காக பணியாற்றினார்
+girekka paagthiriyaa perarasu	கிரேக்க பாக்திரியா பேரரசு
+ivarukku yeazhuthumayakkam kuraipaadu ullaadhu	இவருக்கு எழுத்துமயக்கம் குறைபாடு உள்ளது
+ivar paththu novelkalaiyum ezhuthiyullaar	இவர் பத்து நாவல்களையும் எழுதியுள்ளார்
+baalasubramaniam m	பாலசுப்பிரமணியம் எம்
+aanalum athan uchcha nilai trajon enddra perarassin kaalaththil aerpattathu	ஆனாலும் அதன் உச்ச நிலை டிராஜான் என்ற பேரரசின் காலத்தில் ஏற்பட்டது
+iravil aivana nel vayalil kaaval puriyum aadavar velicchatthukkaagath theeppantham vaitthiruppar	இரவில் ஐவண நெல் வயலில் காவல் புரியும் ஆடவர் வெளிச்சத்துக்காகத் தீப்பந்தம் வைத்திருப்பர்
+mannaal sirpam seivathu ulagam muzhuvathum paravi iruntha oru vagai pandaiya kalai aagum	மண்ணால் சிற்பம் செய்வது உலகம் முழுவதும் பரவி இருந்த ஒரு வகை பண்டைய கலை ஆகும்
+kurippaaga islamiya porkaala neratthil ithu thanathu ucchatthai thottathu	குறிப்பாக இசுலாமிய பொற்கால நேரத்தில் இது தனது உச்சத்தை தொட்டது
+ivar egyptil thangi iruntha pozhuthu egyptil ezhupapatta alexandria vai niruvinaar	இவர் எகிப்தில் தங்கி இருந்த பொழுது எகிப்தில் எழுப்பப்பட்ட அலெக்ஸாண்ட்ரியா வை நிறுவினார்
+chennai palagalaikalaga isaithurai padathittakulu uruppinar	சென்னைப் பல்கலைக்கழக இசைத்துறைப் பாடத்திட்டக்குழு உறுப்பினர்
+thirunelveli maavattaththileye makkal thogai athigamum nerukkamum ulla oor melappaalaiyam	திருநெல்வேலி மாவட்டத்திலேயே மக்கள் தொகை அதிகமும் நெருக்கமும் உள்ள ஊர் மேலப்பாளையம்
+ivvaaru sikkum oru vaadikaiyaalar piragu verendha vangiyilo nithi niruvanaththilo kadan pera mudiyaathu	இவ்வாறு சிக்கும் ஒரு வாடிக்கையாளர் பிறகு வேறெந்த வங்கியிலோ நிதி நிறுவனத்திலோ கடன் பெற முடியாது
+kanavalavu adipadaiyil yaerigal	கனவளவு அடிப்படையில் ஏரிகள்
+neram paarththu pechchimuththuvai pazhi vaanga kaaththirukkiraan karpagathin annan maarappan	நேரம் பார்த்து பேச்சிமுத்துவை பழி வாங்க காத்திருக்கிறான் கற்பகத்தின் அண்ணன் மாரப்பன்
+mum kalviyarivu petrullanar	மும் கல்வியறிவு பெற்றுள்ள்ணர்
+avomava sheilds	அவோமவா சீல்ட்சு
+maatraaka oru thaninabar allathu niruvanam kaasolaiyil panam allathu thaangki endru ezhuthi thaangkiyin paththiraththai thara vaaeendum	மாற்றாக ஒரு தனிநபர் அல்லது நிறுவனம் காசோலையில் பணம் அல்லது தாங்கி என்று எழுதித் தாங்கியின் பத்திரத்தைத் தர வேண்டும்
+podhuvaaga yerkanave irukkum vaarppurukkallukku ugandhadhaaga ulla ulleedugalaip pettru adhan adippadaiyil thodakka nilaiyil oppeettu vazhimurai seyalpadugiradhu	பொதுவாக ஏற்கனவே இருக்கும் வார்ப்புருக்களுக்கு உகந்ததாக உள்ள உள்ளீடுகளைப் பெற்று அதன் அடிப்படையில் தொடக்க நிலையில் ஒப்பீட்டு வழிமுறை செயல்படுகிறது
+ivar enthavoru thervuth thuduppaattap pottiyilum kalanthu kollavillai	இவர் எந்தவொரு தேர்வுத் துடுப்பாட்டப் போட்டியிலும் கலந்து கொள்ளவில்லை
+vilaiyaattukkal andrum indrum thamizahga arasin parisu pettrathu	விளையாட்டுக்கள் அன்றும் இன்றும் தமிழக அரசின் பரிசு பெற்றது
+perumbaalum kavithai katturai sirukathaigalaiye yezhuthi varukinraar	பெரும்பாலும் கவிதை கட்டுரை சிறுகதைகளையே எழுதி வருகின்றார்
+villiyatthin thirumanam ivar avarai vittup pirinthu tharsaarbudan thanittha aalumaiyaaga maara vazhivagutthulladhu	வில்லியத்தின் திருமணம் இவர் அவரை விட்டுப் பிரிந்து தற்சார்புடன் தனித்த ஆளுமையாக மாற வழிவகுத்துள்ளது
+appozhudhu mikavum azhagiya illam balakanaga avar irundhar	அப்பொழுது மிகவும் அழகிய இளம் பாலகனாக அவர் இருந்தார்
+ivanadhu oor neetoor enbadhu	இவனது ஊர் நீடூர் என்பது
+kotravaikku padaikkappatta pongal padaaiyal madai enappattathu	கொற்றவைக்குப் படைக்கப்பட்ட பொங்கல் படையல் மடை எனப்பட்டது
+ulagalavilaana makkalthogaip perukkaththaik kattuppaduthuvadharkaaga arasaangangal manidhargalin thevaiyatra thanikkoorugalai theermanithal	உலகளவிலான மக்கள்தொகைப் பெருக்கத்தைக் கட்டுப்படுத்துவதற்காக அரசாங்கங்கள் மனிதர்களின் தேவையற்ற தனிக்கூறுகளை தீர்மானித்தல்
+itharku sunthara sozhar noyuttru irunthamaiyinaal kunthavai manathil yerpatta maattramaaga irukkallam yendru ponniyin selvanil kalki koorugiraar	இதற்கு சுந்தர சோழர் நோயுற்று இருந்தமையினால் குந்தவை மனதில் ஏற்பட்ட மாற்றமாக இருக்கலாம் என்று பொன்னியின் செல்வனில் கல்கி கூறுகிறார்
+ethiraniyai paarthukkondu irandu varisaiyaaga utkaaruvaar	எதிரணியைப் பார்த்துக்கொண்டு இரண்டு வரிசையாக உட்காருவர்
+biotric muraimai	பயேற்றிக் முறைமை
+aasiriya urichseer yenappadum eerasaich seergal migunthuvarum piraseergalum kalanthuvarum aanaal nirainaduvaagiya vanjiyuriseergal karuvilangkani koovilangkani varaathu	ஆசிரிய உரிச்சீர் எனப்படும் ஈரசைச் சீர்கள் மிகுந்துவரும் பிறசீர்களும் கலந்துவரும் ஆனால் நிரைநடுவாகிய வஞ்சியுரிசீர்கள் கருவிளங்கனி கூவிளங்கனி வராது
+anghe ennidam siru kakhidha thondugalai kooduthanar	அங்கே என்னிடம் சிறு காகிதத் துண்டுகளைக் கொடுத்தனர்
+rinnaan kalla munnaan kenba endraar avinayanaar	றிந்நான் கல்ல முந்நான் கென்ப என்றார் அவிநயனார்
+endhavoru irandu saarpugalum ondrukku ondrukku ullidugalai serpadhan moolam serkalam	எந்தவொரு இரண்டு சார்புகளும் ஒன்றுக்கு ஒன்றுக்கு உள்ளீடுகளை சேர்ப்பதன் மூலம் சேர்க்கலாம்
+ithan moolam vilaiyaattuththanaththai mattumindri thanathu anbaiyum therivikkum	இதன் மூலம் விளையாட்டுத்தனத்தை மட்டுமின்றி தனது அன்பபையும் தெரிவிக்கும்
+idukkai thudupatta veraraana ivar oru idathukai marabuvazhaa suzhal pathuveechaalarum aavaar	இடக்கை துடுப்பாட்ட வீரரான இவர் ஒரு இடதுகை மரபுவழா சுழல் பந்துவீச்சாளரும் ஆவார்
+ivar enthavoru thervuth thuduppaattap pottiyilum kalanthu kollavillai	இவர் எந்தவொரு தேர்வுத் துடுப்பாட்டப் போட்டியிலும் கலந்து கொள்ளவில்லை
+saaivai aetram ottam allthu irakkam ottam enru varaiyarukkalaam	சாய்வை ஏற்றம் ஓட்டம் அல்லது இறக்கம் ஓட்டம் என்று வரையறுக்கலாம்
+vazhakkil kutramsattappattulla naalvarin peyarilum sothukkal irundhaalum adhu mudhalvar padhaviyai payanbaduthi sertha sothukkaldhaan	வழக்கில் குற்றம்சாட்டப்பட்டுள்ள நால்வரின் பெயரிலும் சொத்துக்கள் இருந்தாலும் அது முதல்வர் பதவியை பயன்படுத்தி சேர்த்த சொத்துக்கள்தான்
+irandu nootrandu aatchi kaalathil yezhu nizamgal aandullanar	இரண்டு நூற்றாண்டு ஆட்சிக் காலத்தில் ஏழு நிசாம்கள் ஆண்டுள்ளனர்
+perunpaalaana vazhukkal kanini vadivamaippilo allathu moolaniralelo manithargal seyyum thavarugallal yerpadubavai	பெரும்பாலான வழுக்கள் கணினி வடிவமைப்பிலோ அல்லது மூலநிரலிலோ மனிதர்கள் செய்யும் தவறுகளால் ஏற்படுபவை
+pirathaappum viji manamaaruvaal ena kaathirukkiraan	பிரதாப்பும் விஜி மனம்மாறுவாள் என காத்திருக்கிறான்
+roy sahepaga om poori	ராய் சாஹேப்பாக ஓம் பூரி
+putru noi gnabaga maradhi noi kuzhandhaigal kuraibadudan pirathal ponravatrirkum kaaranamaagiradhu	புற்று நோய் ஞாபக மறதி நோய் குழந்தைகள் குறைபாடுடன் பிறத்தல் போன்றவற்றிற்கும் காரணமாகிறது
+athan piragu indhiyath thunai gudiyarasuth thalaivarin seyalaalaraagavum indhiyak gudiyarasuth thalaivarin inai seyalaalaraagavum paniyaarriyullaaar	அதன் பிறகு இந்தியத் துணை குடியரசுத் தலைவரின் செயலாளராகவும் இந்தியக் குடியரசுத் தலைவரின் இணை செயலாளராகவும் பணியாற்றியுள்ளார்
+ivargal palligalil idainilai aasiriyargal nilaiyil ullanar	இவர்கள் பள்ளிகளில் இடைநிலை ஆசிரியர்கள் நிலையில் உள்ளனர்
+adhan kaai choool konda iraal meengal pola irukkumaam	அதன் காய் சூல் கொண்ட இறால் மீன்கள் போல இருக்குமாம்
+thirumalairayan pattinam	திருமலைராயன் பட்டணம்
+karpikkum neramum suzhalum	கற்பிக்கும் நேரமும் சூழலும்
+sundararajan iyakkaththil vaelivantha iththiraippadaththil patling mani v	சுந்தரராஜன் இயக்கத்தில் வெளிவந்த இத்திரைப்படத்தில் பாட்லிங் மணி வி
+aagaiyaal pothuvaaga veppam naeraththaich saarnthu maarukinrathu enalaam	ஆகையால் பொதுவாக வெப்பம் நேரத்தைச் சார்ந்து மாறுகின்றது எனலாம்
+maanavaraaga irukkum podhe thamizh ilaignar congressil inaindhu arasiyalil theeviram kaattinaar	மாணவராக இருக்கும் போதே தமிழ் இளைஞர் காங்கிரசில் இணைந்து அரசியலில் தீவிரம் காட்டினார்
+aanaal sanga kaala ilakkiyam matrum pazhanth thamizhiyiyal pal verupatta vayadhu karutthil kondu ezhuthappattadhu	ஆனால் சங்க கால இலக்கியம் மற்றும் பழந்த தமிழ்யில் பல் வேறுப்பட்ட வயது கருத்தில் கொண்டு எழுதப்பட்டது
+athan pinnar ezhuthath thodanginaar	அதன் பின்னர் எழுதத் தொடங்கினார்
+thirukkaampuliyuril kandukkap patta oru silaiyin sigai alangaaram kaanththaarak kalaiyai ninaivootugirathu	திருக்காம்புலியூரில் கண்டெடுக்கப் பட்ட ஒரு சிலையின் சிகை அலங்காரம் காந்தாரக் கலையை நினைவூட்டுகிறது
+pandaiya athenes nagaril raanuva athigarigal thernthedukkappattanar	பண்டைய ஏதென்ஸ் நகரில் இராணுவ அதிகாரிகள் தேர்ந்தெடுக்கப்பட்டனர்
+naatin thanmaanathai vittukodukathu mayabagithil maritha langabuvanan vangi manangkamalnan enru sundaa makkalal potrapattathudan avanathu valithonralgalum silivangi enra sirapupeyaraal kuripidapattanar	நாட்டின் தன்மானத்தை விட்டுக்கொடுக்காது மயாபாகித்தில் மரித்த இலிங்கபுவனன் வாங்ஙி மணங்கமழ்நன் என்று சுண்டா மக்களால் போற்றப்பட்டதுடன் அவனது வழித்தோன்றல்களும் சிலிவாங்ஙி என்ற சிறப்புப்பெயரால் குறிப்பிடப்பட்டனர்
+ivar vaanoordhi vadivamaippilum eedupattullaar	இவர் வானூர்தி வடிவமைப்பிலும் ஈடுபட்டுள்ளார்
+aangila aatchikaalathil indiayavin pala kurunaadugalil amaichargalil adhiga adhigaaram konda uyarndha amaichar ippeayaraal azahaikkappattar	ஆங்கில ஆட்சிகாலத்தில் இந்தியாவின் பல குறுநாடுகளில் அமைச்சர்களில் அதிக அதிகாரம் கொண்ட உயர்ந்த அமைச்சர் இப்பெயரால் அழைக்கப்பட்டார்
+ithil vijay s	இதில் விஜய் எஸ்
+ulloor pottigalil kazhal thiruppa panmugath thuduppaattakkaararaaga ariyappattaalum orunaal pannaattuth thuduppaattangalil thamathu mattaiyadith thiranai ithuvarai velippaduththavilai	உள்ளூர் போட்டிகளில் கழல் திருப்ப பன்முகத் துடுப்பாட்டக்காரராக அறியப்பட்டாலும் ஒருநாள் பன்னாட்டுத் துடுப்பாட்டங்களில் தமது மட்டையடித் திறனை இதுவரை வெளிப்படுத்தவில்லை
+adhu thaninabar uyimaiyai parikiradhu endru valuvaana thozhinutpa thiranalargalin karuthinai kaaka uruvaakkappatta ulaavi idhaagum	அது தனிநபர் உரிமையைப் பறிக்கிறது என்ற வலுவான தொழினுட்ப திறனாளர்களின் கருத்தினைக் காக்க உருவாக்கப்பட்ட உலாவி இதாகும்
+therku nuzhaivuvaayil mukkiya nuzhaivuvaayil aagum	தெற்கு நுழைவுவாயில் முக்கிய நுழைவுவாயில் ஆகும்
+nattil podhupalligal thovakkapaduvatharku munbhuvarai siya isulamiya manavargalum sanni isulamiya manavargalum thangal kalvi seyalmuraigalill siriya allavirkana idaivinaiye purindanar	நாட்டில் பொதுப்பள்ளிகள் துவக்கப்படுவதற்கு முன்புவரை சியா இசுலாமிய மாணவர்களும் சன்னி இசுலாமிய மாணவர்களும் தங்கள் கல்விச் செயல்முறைகளில் சிறிய அளவிற்கான இடைவினையே புரிந்தனர்
+indha nuul neyknda saaththira marapaakiya pathi pasu paasam ennum adippadaith thathuvangalai vilakkugirathu	இந்த நூல் நெய்கண்ட சாத்திர மரபாகிய பதி பசு பாசம் என்னும் அடிப்படைத் தத்துவங்களை விளக்குகிறது
+kundhavaiyum aniruddha pirammaraayarum innaindhu vandhiyathevanai kanchiyil irukkum aadhittha karikaalanukku thunaiyaaga irukkum padi anuppi vaikka mudivu seigiraargal	குந்தவையும் அநிருத்த பிரம்மராயரும் இணைந்து வந்தியத்தேவனை காஞ்சியில் இருக்கும் ஆதித்த கரிகாலனுக்கு துணையாக இருக்கும் படி அனுப்பி வைக்க முடிவு செய்கிறார்கள்
+devakiyum prabakarum inainthu aalavanthaaraik kolai seiya mudivu seithanar	தேவகியும் பிரபாக்கரும் இணைந்து ஆளவந்தாரைக் கொலை செய்ய முடிவு செய்தனர்
+munmozhithalaip poruththavarai paagupaadu konda amaippugal avvaaraana paagupaadu illaatha amaippugalilirundhu maarupadugindrana	முன்மொழிதலைப் பொறுத்தவரை பாகுபாடு கொண்ட அமைப்புகள் அவ்வாறான பாகுபாடு இல்லாத அமைப்புகளிலிருந்து மாறுபடுகின்றன
+maari nilaiyaanadhu alla	மாறி நிலையானது அல்ல
+ivargal iruvarum poesidonin pillaigal aavar	இவர்கள் இருவரும் பொசைடனின் பிள்ளைகள் ஆவர்
+lakki padimangalum thagavalgalum	லாக்கி படிமங்களும் தகவல்களும்
+aanaal sikkalaana kattitangalaip poruththavarai immurai ilaguvaanathallaa	ஆனால் சிக்கலான கட்டிடங்களைப் பொறுத்தவரை இம்முறை இலகுவானதல்ல
+di ethyl ether kurippaaga cellulose acetate yendrazhaikkappadum cellulose neghizhigal thayaarippathil karaippaanaaga mukkiyaththuvam vagiththathu	டை எத்தில் ஈதர் குறிப்பாக செல்லுலோஸ் அசெட்டேட் என்றழைக்கப்படும் செல்லுலோஸ் நெகிழிகள் தயாரிப்பதில் கரைப்பானாக முக்கியத்துவம் வகித்தது
+iththiruththalaththai andiya paguthigalil pala sivaalayangalirunthamaiyai agazhvayvuth tharavugal moolamariya mudikindrathu	இத்திருத்தலத்தை அண்டிய பகுதிகளில் பல சிவாலயங்களிருந்தமையை அகழ்வாய்வுத் தரவுகள் மூலமறிய முடிகின்றது
+aaruthal eeruli ootam	ஆறுதல் ஈருருளி ஓட்டம்
+mukavai maavattaththil kooppao naayakkanpattiyil piranthar	முகவை மாவட்டத்தில் கோப்பை நாயக்கன்பட்டியில் பிறந்தார்
+sekramento kings	சேக்ரமெண்டோ கிங்ஸ்
+malaiyil irundhu vizhum veeraavai ragini alaraludan pirikiraal	மலையில் இருந்து விழும் வீராவை ராகினி அலறலுடன் பிரிகிறாள்
+ennuru muraimai	எண்ணுரு முறைமை
+pagaivarkalukku veera maranam thanthaan	பகைவர்களுக்கு வீர மரணம் தந்தான்
+kanavanai ilanthu kaikulanthaiudan iruntha pothu kanavarin uravinargal sulchiyal sothukalai ilanthaar	கணவனை இழந்து கைக்குழந்தையுடன் இருந்த போது கணவரின் உறவினர்கள் சூழ்ச்சியால் சொத்துகளை இழந்தார்
+ukrainum urusiya saarbu kilarchiyalargalum puthiya amaithi petchukalai aarambithanar raaittarchu	உக்ரைனும் உருசிய சார்பு கிளர்ச்சியாளர்களும் புதிய அமைதிப் பேச்சுகளை ஆரம்பித்தனர் ராய்ட்டர்சு
+greeka kattidakkalaiyil moondru vaigaiyaana olungukkal payanpaatil irundhana	கிரேக்கக் கட்டிடக்கலையில் மூன்று வகையான ஒழுங்குகள் பயன்பாட்டில் இருந்தன
+ivar enthavoru thervuth thuduppaattap pottiyilum kalanthu kollavillai	இவர் எந்தவொரு தேர்வுத் துடுப்பாட்டப் போட்டியிலும் கலந்து கொள்ளவில்லை
+thanathu valkaiyai pathukaathuk kollavum siraipatta nilailirunthu thappithu kollavum thranulla pathukaappu kavasa angiyai uruvaakinaar	தனது வாழ்க்கையைப் பாதுகாத்துக் கொள்ளவும் சிறைபட்ட நிலையிலிருந்து தப்பித்துக் கொள்ளவும் திறனுள்ள பாதுகாப்புக் கவச அங்கியை உருவாக்கினார்
+ethan valiyaaga americka airoppa mattrum carribean theevugalil vulla thuraimugagalukku thinanthorum kappalgal kadanthu selginrana	இதன் வழியாக அமெரிக்கா ஐரோப்பா மற்றும் கரீபியன் தீவுகளில் உள்ள துறைமுகங்களுக்கு தினந்தோறும் கப்பல்கள் கடந்து செல்கின்றன
+uthaviyaalar kurukittu athai thaduththuvittaar	உதவியாளா் குறுக்கிட்டு அதை தடுத்துவிட்டார்
+avai sevaikalai vazhangum iruppu saarntha sothukalaagum	அவை சேவைகளை வழங்கும் இருப்பு சார்ந்த சொத்துகளாகும்
+iruppinum irandu muthalthara thuppaattap pottigalilum irandu a thara thuduppaattap pottigalilum kalanthu kondullaar	இருப்பினும் இரண்டு முதல்தர துடுப்பாட்டப் போட்டிகளிலும் இரண்டு ஏ தர துடுப்பாட்டப் போட்டிகளிலும் கலந்து கொண்டுள்ளார்
+sooraavali puyalgal sunami alaigal poogambangal mattrum yerimalaichseettrangal pondravai iyarkai seyalpaadugalinal yerpdum iyarkai seettrangal aagum	சூறாவளி புயல்கள் சுனாமி அலைகள் பூகம்பங்கள் மற்றும் எரிமலைச்சீற்றங்கள் போன்றவை இயற்கை செயல்பாடுகளினால் ஏற்படும் இயற்கை சீற்றங்கள் ஆகும்
+ithanaal kulirntha vadakkil irundhapothum merkku iroppaavin kadalorap paguthigal soodaaga ullana	இதனால் குளிர்ந்த வடக்கில் இருந்தபோதும் மேற்கு ஐரோப்பாவின் கடலோரப் பகுதிகள் சூடாக உள்ளன
+mannaiviyin maranathuku pinnar tollkeen miindhum oxfordukku idam periyarindhar	மனைவியின் மரணத்துக்குப் பின்னர் டோல்கீன் மீண்டும் ஆக்சுபோர்டுக்கு இடம் பெயர்ந்தார்
+amari tholaivu yenbathu irandu munaimigu anigalukku idaiyeyaana or alaveedu aagum ithu thaniththa kooru paguppaayvu nerimuraigalil oruginaippatharkum theervugal aagum	அமாரி தொலைவு என்பது இரண்டு முனைமிகு அணிகளுக்கு இடையேயான ஓர் அளவீடு ஆகும் இது தனித்த கூறு பகுப்பாய்வு நெறிமுறைகளில் ஒருங்கிணைப்பதற்கும் தீர்வுகள் ஆகும்
+ivatrai pondru pala porulkalai tharuvathai unarththum palampaadal ondru	இவற்றைப் போன்று பல பொருள்களைத் தருவதை உணர்த்தும் பழம்பாடல் ஒன்று
+velaanmai mattrum urpathi thuraiyil uyarithi enpathu seymippu kidanginul kalanchiyathinul porutkalai thondarnthu edukka sellum oru karuviyai kurikkum	வேளான்மை மற்றும் உற்பத்தி துறையில் உயர்த்தி என்பது சேமிப்பு கிடங்கினுள் களஞ்சியத்தினுள் பொருட்களை தொடர்ந்து எடுத்து செல்லும் ஒரு கருவியை குறிக்கும்
+intha thesaththin mathippu paathugakkapatta porutkalai vida athigamaaga irukkalaam	இந்த சேதத்தின் மதிப்பு பாதுகாக்கப்பட்ட பொருட்களை விட அதிகமாக இருக்கலாம்
+boologaththirku vanthapothu angu yerpatta beerangi oliyaik kettu nadunadungi kumaranin kaalgalil saranadainthu kaappaattra vendinar	பூலோகத்திற்கு வந்தபோது அங்கு ஏற்பட்ட பீரங்கி ஒலியைக் கேட்டு நடுநடுங்கி குமரனின் கால்களில் சரணடைந்து காப்பாற்ற வேண்டினர்
+oruvar meedhu oruvar alexanderyidam ithai pogaragave allithirudhanr	ஒருவர் மீது ஒருவர் அலெக்ஸாண்டரிடம் இதை புகராகவே அளித்திருந்தனர்
+yaamap pozhudhai indru ullodu poekkinaal naalaiya nilaiyai enni en ullam thunputtrukkonde irukkum	யாமப் பொழுதை இன்று உன்னோடு போக்கினால் நாளைய நிலையை எண்ணி என் உள்ளம் துன்புற்றுக்கொண்டே இருக்கும்
+oru kottin saaivin thanimathippaal akkottin senguththu nilai sarivu nilai alavidappadugirathu	ஒரு கோட்டின் சாய்வின் தனிமதிப்பால் அக்கோட்டின் செங்குத்து நிலை சரிவு நிலை அளவிடப்படுகிறது
+adhipatha naayanaarin guruboosai aanduthorum aavani maadham aayilyam natchathirathil kondaadappadugiradhu	அதிபத்த நாயனாரின் குருபூசை ஆண்டுதோறும் ஆவணி மாதம் ஆயில்யம் நட்சத்திரத்தில் கொண்டாடப்படுகிறது
+thaam nambugira yaethuvume vunmaiyil thavaranathaga irukkakudum enve athai kelvi kettu mempaduththida vendum yenbathe ith thathuvamaagum	தாம் நம்புகிற எதுவுமே உண்மையில் தவறானதாக இருக்கக்கூடும் எனவே அதை கேள்வி கேட்டு மேம்படுத்திட வேண்டும் என்பதே இத் தத்துவமாகும்
+ip pirivugal udaliyal maatrangalaiyum samuthaaya nilaigalaiyum adippadaiyaagak kondavai ivaigalaith thamizh ilakkiyangal kurippittu ezhuthi ullana	இப் பிரிவுகள் உடலியல் மாற்றங்களையும் சமுதாய நிலைகளையும் அடிப்படையாகக் கொண்டவை இவைகளைத் தமிழ் இலக்கியங்கள் குறிப்பிட்டு எழுதி உள்ளன
+suranga thei	சுரங்கத் தீ
+ithanmoolam ovoru muzhuvennukkum thaniththathoru pagaak kaaranippaduththum murai ullathu yenbathaiyum uruthi seiyamudiyum	இதன்மூலம் ஒவ்வொரு முழுவெண்ணுக்கும் தனித்ததொரு பகாக் காரணிப்படுத்தும் முறை உள்ளது என்பதையும் உறுதி செய்யமுடியும்
+aanalum tholliyalil ichol pandaiya semittiya mozhi pesum makkal yenbadhan oruvagai surukkamagap payanpadugindradhu	ஆனாலும் தொல்லியலில் இச்சொல் பண்டைய செமிட்டிய மொழி பேசும் மக்கள் என்பதன் ஒருவகைச் சுருக்கமாகப் பயன்படுகின்றது
+inthiya kalaachaaraththil kuzhandaigalukku kodukkappadum muthal thida unavaagavum ithu irukkirathu	இந்திய கலாசாரத்தில் குழந்தைகளுக்கு கொடுக்கப்படும் முதல் திட உணவாகவும் இது இருக்கிறது
+ikkiya amerikkaavil ivar thaan muthanmuthalil oru periya vaankaanagaththukkuth thalaimai thaangiyavar aavar	ஐக்கிய அமெரிக்காவில் இவர் தான் முதன்முதலில் ஒரு பெரிய வாண்காணகத்துக்குத் தலைமை தாங்கியவர் ஆவர்
+mongkeyin aatchiyil mangoliyargal iraaq siriyaa mattrum nansovaa arasu aagiyavattrai kaippattrinar	மோங்கேயின் ஆட்சியில் மங்கோலியர்கள் ஈராக் சிரியா மற்றும் நன்சோவா அரசு ஆகியவற்றைக் கைப்பற்றினர்
+tamilnadu muthalamaichargal	தமிழ்நாடு முதலமைச்சர்கள்
+sembodai r v polytechnic kalloori vedharanyam	செம்போடை ஆர் வி பாலிடெக்னிக் கல்லூரி வேதாரண்யம்
+ivarudaiya thiraippadangal perumbaalum naavalgal alladhu sirukadhaigalaith thazhuvi edukkappattavaiyaaga irukkum	இவருடைய திரைப்படங்கள் பெரும்பாலும் நாவல்கள் அல்லது சிறுகதைகளைத் தழுவி எடுக்கப்பட்டவையாக இருக்கும்
+india thiraipada muthanmai thalapathiyaga iruntha general b	இந்தியத் தரைப்படை முதன்மைத் தளபதியாக இருந்த ஜெனரல் பி
+ithanai palkeriya kaalpanthu ondriyam mellaanmai seigirathu	இதனை பல்கேரிய கால்பந்து ஒன்றியம் மேலாண்மை செய்கிறது
+inthiyath thirattu nithiyilirunthu eedukattapadum ena selavinathai arivithal	இந்தியத் திரட்டு நிதியிலிருந்து ஈடுகட்டப்படும் என செலவினத்தை அறிவித்தல்
+inthath thiraippadam kalavaiyaana vimarsanangalaip pettru thanthathu	இந்தத் திரைப்படம் கலவையான விமர்சனங்களைப் பெற்றுத் தந்தது
+boomiyaip pondra thanmaigal konda yettu kolgalai naasaavin keppler vinkalam kandupidiththullathu bbc	பூமியைப் போன்ற தன்மைகள் கொண்ட எட்டு கோள்களை நாசாவின் கெப்லர் விண்கலம் கண்டுபிடித்துள்ளது பிபிசி
+eninum sir isac newton muthan muthalil ichsothanaiyai niroopiththathaal avarathu paeyaraal newtonin valaiyam ena azhaikkappadugirathu	எனினும் சர் ஐசக் நியூட்டன் முதன் முதலில் இச்சோதனையைச் நிரூபித்ததால் அவரது பெயரால் நியூட்டனின் வளையம் என அழைக்கப்படுகிறது
+newyork nagarathil piranthu valarnthaar	நியூயார்க் நகரத்தில் பிரந்து வளந்தார்
+sungarargal valuppetra nilaiyil ippattam mugiyaithuvam petradhu	சுங்கர்கள் வலுப்பெற்ற நிலையில் இப்பட்டம் முக்கியத்துவம் பெற்றது
+ithu aandavarin thirumuzhukku vizhaavudan thodangi saambal puthanukku munthinam mudivadaigirathu	இது ஆண்டவரின் திருமுழுக்கு விழாவுடன் தொடங்கி சாம்பல் புதனுக்கு முன்தினம் முடிவடைகிறது
+avarin thaimozhi telugu aagum	அவரின் தாய்மொழி தெலுங்கு ஆகும்
+oru sitrinatthin allathu thaavaratthin ivvivarangal athanai pira thaavarangalin uravumurai vakaippaattu nilai marabuvazhi thodarbu pondra sikkalgalai kalaiya uthavugindrana	ஒரு சிற்றினத்தின் அல்லது தாவரத்தின் இவ்விவரங்கள் அதனை பிற தாவரங்களின் உறவுமுறை வகைப்பாட்டு நிலை மரபுவழி தொடர்பு போன்ற சிக்கல்களை களைய உதவுகின்றன
+mithamaana kasappuch chuvaiyaik kondirukkum	மிதமான கசப்புச் சுவையைக் கொண்டிருக்கும்
+atharkku pathilaaga alexander avargalidam nan alexanderaaga illaamalirunthaal naan oru diojenisaagaththaan inrukka virumbugiren yendru koorinaar	அதற்க்கு பதிலாக அலெக்ஸாண்டர் அவர்களிடம் நான் அலெக்ஸாண்டராக இல்லாமலிருந்தால் நான் ஒரு டியோஜெனிஸாகத்தான் இருக்க விரும்புகிறேன் என்று கூறினார்
+il iraich serukiya gnelikol kollikkuchchi pola vallaan porkkalaththil thondruvaan	இல் இறைச் செருகிய ஞெலிகோல் கொள்ளிக்குச்சி போல வல்லாண் போர்க்களத்தில் தோன்றுவான்
+athan narumanaththirkaaga oru paguthipporulaaga samaiyilum mukkiyamaaga indhiyaavil mathach sadangugalil narumananthoykkum thiravamaagavum maruththuva nokkangalukkaagavum payanpaduththappadugirathu	அதன் நறுமணத்திற்காக ஒரு பகுதிப்பொருளாக சமையலிலும் முக்கியமாக இந்தியாவில் மதச் சடங்குகளில் நறுமணந்தோய்க்கும் திரவமாகவும் மருத்துவ நோக்கங்களுக்காகவும் பயன்படுத்தப்படுகிறது
+veetu velai	வீட்டு வேலை
+therumannil kattiya karai avargalukku veedu	தெருமண்ணில் கட்டிய கரை அவர்களுக்கு வீடு
+thuvakkaththil haakkeyn permpaanmaiyaana seenargalaal pesappadum mozhiyaaga irundathu	துவக்கத்தில் ஹொக்கெய்ன் பெரும்பான்மையான சீனர்களால் பேசப்படும் மொழியாக இருந்தது
+selab la enbathu tibetiya peyar ithan artham azhakaana seeraana kanavaai aagum	செலப் லா என்பது திபெத்திய பெயர் இதன் அர்த்தம் அழகான சீரான கணவாய் ஆகும்
+pinnar hoysala mannargal palayakararkalaal virivaakappattathu	பின்னர் ஹொய்சால மன்னர்கள் பாளையகாரர்களால் விரிவாக்கப்பட்டது
+kaarisin karutthuppadi ariviyal sodhanaigal moolam meippikkak koodumaana manidha moolaiyin seyalgalthaan nalavaazhvu	ஃகாரிசின் கருத்துப்படி அறிவியல் சோதனைகள் மூலம் மெய்ப்பிக்கக் கூடுமான மனித மூளையின் செயல்கள்தான் நலவாழ்வு
+pala samugangalil soothu oru theeya palakkamaguvum vilakki vaikavendiya onragavum kollapadukinrathu	பல சமூகங்களில் சூது ஒரு தீய பழக்கமாகவும் விலக்கி வைக்கவேண்டிய ஒன்றாகவும் கொள்ளப்படுகின்றது
+kannagipuram enbathu ilangaiyil oliprappaagum oru vaanolith thodar naadagam aagum	கண்ணகிபுரம் என்பது இலங்கையில் ஒலிபரப்பாகும் ஒரு வானொலித் தொடர் நாடகம் ஆகும்
+acchuveliyil vazhindhu vandhar	அச்சுவேலியில் வாழ்ந்து வந்தார்
+ithu italiyil autostrata tei laki endru ariyappadugirathu	இது இத்தாலியில் ஆடோஸ்ட்ராடா டேய் லகி என்று அறியப்படுகிறது
+appodhu vishamithra munivarudan iramanum ilakuvum angu vandhargal	அப்போது விஸ்வாமித்திர முனிவருடன் இராமனும் இலக்குவனும் அங்கு வந்தார்கள்
+amilam serkkappatta katmiyam naitratek karaisalil idharsan salpaitai seluthum podhu manjal nirak kaatmiyam salpaidu uruvaagiradhu	அமிலம் சேர்க்கப்பட்ட காட்மியம் நைட்ரேட்டுக் கரைசலில் ஐதரசன் சல்பைடைச் செலுத்தும் போது மஞ்சள் நிறக் காட்மியம் சல்பைடு உருவாகிறது
+vinveli nilaiyangal pothuvaaga iruvagaipadum	விண்வெளி நிலையங்கள் பொதுவாக இருவகைப்படும்
+maavokko nagaraatchiku aaru wardugal aaththi aaru merku kadani kinaani mathaani makadaaraa muthvaani mattrum sopiya ullana	மாவோக்கோ நகராட்சிக்கு ஆறு வார்டுகள் ஆத்தி ஆறு மேற்கு கடணி கினானி மதானி மாகடாரா முத்வானி மற்றும் சோபியா உள்ளன
+muniyappar kovil	முனியப்பர் கோவில்
+i a s thervum anugumuraiyum	ஐ ஏ எஸ் தேர்வும் அணுகுமுறையும்
+markandeya puraanam	மார்க்கண்டேய புராணம்
+ipaal athiga vishathanmai udaiyathu	இப்பால் அதிக விஷத்தன்மை உடையது
+ivarin thaayar elinora olive ivar dublin ayarlaandil piranthaar	இவரின் தாயார் எலீநோரா ஒலிவ் இவர் டப்லின் அயர்லாந்தில் பிறந்தார்
+ithu thol vazhiyaaga marunthugalaich seluththavum payanpadugirathu	இது தோல் வழியாக மருந்துகளைச் செலுத்தவும் பயன்படுகிறது
+yeninum thamizh mozhi nalivadaiyak koodum	எனினும் தமிழ் மொழி நலிவடையக் கூடும்
+aduththu naagpooril yempress aalai nirvaagap poruppai yettrar	அடுத்து நாக்பூரில் எம்ப்ரஸ் ஆலை நிர்வாகப் பொறுப்பை ஏற்றார்
+inngu chithar perumakkal vazhithathaga nambapadugirathu alavaimalai adivarathil vadameirike athtanoor paguthill oru chithar kovil ulladhu	இங்கு சித்தர் பெருமக்கள் வாழ்ந்ததாக நம்பப்படுகிறது அலவாய்மலை அடிவாரத்தில் வடமேற்கே அத்தனூர் பகுதியில் ஒரு சித்தர் கோவில் உள்ளது
+charkkarai thayaarikka karumpae mulapporulaagum	சர்க்கரை தயாரிக்க கரும்பே மூலப்பொருளாகும்
+athan moolam oru puththunarvaiyum sakthiyaiyum alikkirathu	அதன் மூலம் ஒரு புத்துணர்வையும் சக்தியையும் அளிக்கிறது
+maamilaadan sangakaalap pulavargalil oruvar	மாமிலாடன் சங்ககாலப் புலவர்களில் ஒருவர்
+ikkarisu manidha nallavazhvu patri pesumpodhu sutrusuzhallai padhukakkum poruppu manithrukku undhu enbadhai kurippida thavarivittar endru vimarsanangal kooruginrargal	ஃகாரிசு மனித நலவாழ்வு பற்றிப் பேசும்போது சுற்றுச்சூழலைப் பாதுகாக்கும் பொறுப்பு மனிதருக்கு உண்டு என்பதைக் குறிப்பிடத் தவறிவிட்டார் என்று விமர்சகர்கள் கூறுகிறார்கள்
+melainaattu nadanakkalaigalaiyum indhiya naattu kalari pondra porkkalaigalaiyum barathanaatiyaththudan inaiththaar	மேலைநாட்டு நடனக்கலைகளையும் இந்திய நாட்டு களரி போன்ற போர்க்கலைகளையும் பரதநாட்டியத்துடன் இணைத்தார்
+oru pulappadum irumai natchatthiratthin sutruvatthap paathai pathivedugalil irunthu athan natchatthirangalin nirai kandariyappada mudiyum	ஒரு புலப்படும் இருமை நட்சத்திரத்தின் சுற்றுவட்டப் பாதை பதிவேடுகளில் இருந்து அதன் நட்சத்திரங்களின் நிறை கண்டறியப்பட முடியும்
+ingu irueru vendhar ennum sol seythanaiyum paandiyaraiyum kurikum	இங்கு இருவெரு வேந்தர் என்னும் சொல் சேதனையும் பாண்டியனையும் குறிக்கும்
+muthal muraiyaaga oruvar uyiriyalavugal karuviyayp payanpaduthum nigazhvu serkai enru azhaikkappadum	முதல் முறையாக ஒருவர் உயிரியளவுகள் கருவியைப் பயன்படுத்தும் நிகழ்வு சேர்க்கை என்று அழைக்கப்படும்
+ainthinai aimbathu palaiya vurai yenbathu pathinen keelkanakku noolkalul ondrana ainthinai aimbathu yennum noolukku eluthapatta palaiya vuraiyai kurikkum	ஐந்திணை ஐம்பது பழைய உரை என்பது பதினெண் கீழ்க்கணக்கு நூல்களுள் ஒன்றான ஐந்திணை ஐம்பது என்னும் நூலுக்கு எழுதப்பட்ட பழைய உரையைக் குறிக்கும்
+paayvuk kuzhaai yendra karuththai vaaniyarpiyalil payanpaduththugiraargal	பாய்வுக் குழாய் என்ற கருத்தை வானியற்பியலில் பயன்படுத்துகிறார்கள்
+suthanthiramaaga vaakkurimai alikkum urimai peruvathu yenbathu amerikka manitha urimai iyakkaththin oru perum ilakkaaga irundadhu	சுதந்திரமாக வாக்குரிமை அளிக்கும் உரிமை பெறுவது என்பது அமெரிக்க மனித உரிமை இயக்கத்தின் ஒரு பெரும் இலக்காக இருந்தது
+new britain theevu new kini theevai tompier neerinnai vitthiyaaga neerinnai aagiyavattraalum new ireland theevai saint georgesu kaalvaayaalum pirikkiradhu	நியூ பிரிட்டன் தீவு நியூ கினி தீவை டாம்ப்பியர் நீரிணை வித்தியாசு நீரிணை ஆகியவற்றாலும் நியூ அயர்லாந்து தீவை செயிண்ட் ஜோர்ஜசு கால்வாயாலும் பிரிக்கிறது
+naa padaikalukkum vadakorea padaikalum idaiyae nadantha poraagum	நா படைகளுக்கும் வடகொரியப் படைகளுக்கும் இடையே நடந்த போராகும்
+padugar ini varum aayiram padangalil nadippargal enru ethirparkka padugirathu	படுகர் இனி வரும் ஆயிரம் படங்களில் நடிப்பார்கள் என்ரு எதிர்பார்க்க படுகிறது
+pillaigalai santhikkum pothu evvaaru avargalin alavirku kuninthu varaverkiromo athu pola vaadikkaiyaalargalin thaevaikkaerppa nadakka vaendum	பிள்ளைகளை சந்திக்கும் போது எவ்வாறு அவர்களின் அளவிற்கு குனிந்து வரவேற்கிறோமோ அது போல் வாடிக்கையாளரின் தேவைக்கேற்ப நடக்க வேண்டும்
+sio bo uvin thangai	சியா போ யூவின் தங்கை
+vellaikku vettri vaippu iruppinum indha murai nagarvu siridhalavu thandhrithudan thittamitta nagarvaga irundhirukkum	வெள்ளைக்கு வெற்றி வாய்ப்பு இருப்பினும் இந்த முறை நகர்வு சிறிதளவு தந்திரத்துடன் திட்டமிட்ட நகர்வாக இருந்திருக்கும்
+ippadatthin kathaanaayagargalaaga k	இப்படத்தின் கதாநாயகர்களாக கே
+yivar james bond thiraipada thodargalil em endra kadhapaathirathil nadithathan moolam pughal pettra nadigai aanaar	இவர் ஜேம்ஸ் பாண்ட் திரைப்பட தொடர்களில் எம் என்ற கதாபாத்திரத்தில் நடித்ததன் மூலம் புகழ் பெற்ற நடிகை ஆனார்
+matrum thakistanin ragasiya seyarpaataalar iruvarum sernthu dhavuth meethu santhegapattu avanai kondruvidukinranar	மற்றும் தகிஸ்தானின் இரகசிய செயற்பாட்டாளர் இருவரும் சேர்ந்து தாவுட் மீது சந்தேகப்பட்டு அவனை கொன்றுவிடுகின்றனர்
+sakkaraththil irumbukkayiru suttrachsuttra aatkal yeriya petti methuvaaga mela uyarum	சக்கரத்தில் இரும்புக்கயிறு சுற்றச்சுற்ற ஆட்கள் ஏறிய பெட்டி மெதுவாக மேலே உயரும்
+yesu naadhar ivvulagil piranthu valarnthu makkalukku miitpu pattriya pothanaiyai valangi siluvaiyil vuyirthuranthu saavinindru vuyirpettrelunthathu varaiyilana nigalchigalai ikkurungaviyam paadukirathu	இயேசு நாதர் இவ்வுலகில் பிறந்து வளர்ந்து மக்களுக்கு மீட்புப் பற்றிய போதனையை வழங்கி சிலுவையில் உயிர்துறந்து சாவினின்று உயிர்பெற்றெழுந்தது வரையிலான நிகழ்ச்சிகளை இக்குறுங்காவியம் பாடுகிறது
+nikunjitham enbathu sivaperumaanin nootriyettu thaandavangalul ondraagum parathanaattiyatthil idamperugindra nootriyettu karanangalil ithu irupatthiyaaraavathu karanamaagum	நிகுஞ்சிதம் என்பது சிவபெருமானின் நூற்றியெட்டுத் தாண்டவங்களுள் ஒன்றாகும் பரதநாட்டியத்தில் இடம்பெறுகின்ற நூற்றியெட்டு கரணங்களில் இது இருபத்தியாராவது கரணமாகும்
+ulagalaaviya kiraamam enbathu ulagalaaviya alavil paruporuliyalukkum samookaviyalukkum idaiyilaana thodarbai vilakkavum payanpadukirathu	உலகளாவிய கிராமம் என்பது உலகளாவிய அளவில் பருப்பொருளியலுக்கும் சமூகவியலுக்கும் இடையிலான தொடர்பை விளக்கவும் பயன்படுகிறது
+thinathanthi thinamalar thinamani tha hindu aagiya paththirikaigal yerpaadu seitha vookamalippu kootangalil pesi maanavargalukku maaperum aalosanaigalai valangiyullaar	தினத்தந்தி தினமலர் தினமணி த ஹிந்து ஆகிய பத்திரிக்கைகள் ஏற்பாடு செய்த ஊக்கமளிப்புக் கூட்டங்களில் பேசி மாணவர்களுக்கு மாபெரும் ஆலோசனைகளை வழங்கியுள்ளார்
+maharashtra manila kooturavu vangi ltd	மஹாராஷ்ட்ரா மாநில கூட்டுறவு வங்கி லி
+butkevin udhaviyalaragavum avar nadathivantha kadaiyin kaappalaragavum seyalpattar	பட்கேவின் உதவியாளராகவும் அவர் நடத்திவந்த கடையின் காப்பாளராகவும் செயல்பட்டார்
+ovovoru yennukkum antha yennne oru pirivinaiyaaga irukkum	ஒவ்வொரு எண்ணுக்கும் அந்த எண்ணே ஒரு பிரிவினையாக இருக்கும்
+vangala desathudan nadantha mudhal aatathil moondru wicketgal eduthar	வங்காள தேசத்துடன் நடந்த முதல் ஆட்டத்தில் மூன்று விக்கெட்கள் எடுத்தார்
+migavum kadinamaandhum poti migundhadhumaana iththervin adipadaiyil poriyiyal padappidippu thittangalukku maanavargal therndhedukkappadugiraargal	மிகவும் கடினமானதும் போட்டி மிகுந்ததுமான இத்தேர்வின் அடிப்படையில் பொறியியல் பட்டப்படிப்பு திட்டங்களுக்கு மாணவர்கள் தேர்ந்தெடுக்கப்படுகிறார்கள்
+soviathnaattaich serntha ruthiya sembiya yenpaar thamizhmeethu konda pattrinaal tham peyarai uruthiyan sembiyan yena mattrikkondavar thamizh kattrarinthavar	சோவியத்நாட்டைச் சேர்ந்த ருதியா செம்பியா என்பார் தமிழ்மீது கொண்ட பற்றினால் தம் பெயரை உறுதியன் செம்பியன் என மாற்றிக்கொண்டவர் தமிழ் கற்றறிந்தவர்
+ivattrilum semikkum valaiyam idam pettrirukkum thevaippatta minkaantha alaigalai uruvakkum vagaiyil vadivamaikkappattullathu	இவற்றிலும் சேமிக்கும் வளையம் இடம் பெற்றிருக்கும் தேவைப்பட்ட மின்காந்த அலைகளை உருவாக்கும் வகையில் வடிவமைக்கப்பட்டுள்ளது
+venus sinnam penmaiyaikurikkum enrum pandaiya sembu kagavum irunthathu	வீனஸ் சின்னம் பெண்மையைகுறிக்கும் என்றும் பண்டைய செம்பு க்காகவும் இருந்தது
+nallamani kaalva	நல்லமணி கால்வா
+ikkoyilin arththa mandabach suvaril santeesar varalaaru naangu varisaiyil sethukkappattullathu	இக்கோயிலின் அர்த்த மண்டபச் சுவரில் சண்டீசர் வரலாறு நான்கு வரிசையில் செதுக்கப்பட்டுள்ளது
+mudrindha iillaigalillirundhu marundhagapayanpadum eucalyptus ennaai pirithedukkapadugiradhu	முதிர்ந்த இலைகளிலிருந்து மருந்தாகப்பயன்படும் யூக்கலிப்டஸ் எண்ணெய் பிரித்தெடுக்கப்படுகிறது
+paarkka vaendiya idangal	பார்க்க வேண்டிய இடங்கள்
+stone piradhinidhithuva kotpaadu kootru padi ovvoru pooliyan algebra set thuraiyil oru thanimamaagum enru algebra patri kooragiradhu	ஸ்டோன் பிரதிநிதித்துவ கோட்பாடு கூற்று படி ஒவ்வொரு பூலியன் அல்ஜீப்ரா செட் துறையில் ஒரு தனிமமாகும் என்று அல்ஜீப்ரா பற்றி கூறகிறது
+aanaal thavaraan yettrukkolaal veetham athigamaagum	ஆனால் தவறான ஏற்றுக்கொள்ளல் வீதம் அதிகமாகும்
+ingu mothijil mahotsavam endra vizha nadatthappadugiradhu	இங்கு மோதிஜீல் மகோத்சவம் என்ற விழா நடத்தப்படுகிறது
+pinnar thappisella murpatta pozhuthu avarum mattrum alexandarin iranthu thunaivargalum perdikkaas mattrum liyonaadas avarudan serththu kaavalargalaal pidiththu kollappattanar	பின்னர் தப்பிசெல்ல முற்பட்ட பொழுது அவரும் மற்றும் அலெக்ஸாண்டரின் இறந்து துணைவர்களும் பெர்டிக்காஸ் மற்றும் லியோனாடஸ் அவருடன் சேர்த்து காவலர்களால் பிடித்து கொல்லப்பட்டனர்
+tharpothu naduvan pulanaaivu seyalagathin iyakkunar porupil ullaar	தற்போது நடுவண் புலனாய்வுச் செயலகத்தின் இயக்குநர் பொறுப்பில் உள்ளார்
+ollolitthadhu idhil ol enbadhu isaiyai unnartthum kuraichorkilavi	ஒல்லொலித்தது இதில் ஒல் என்பது இசையை உணர்த்தும் குறைசொற்கிளவி
+padathhai sanoj mishraa iyakka paadalkalai ankit thivari sunitha shavhan muhammed irfhaan sujathaa majumdhaar maasha aakiyor paadiyullanar	படத்தை சனோஜ் மிஸ்ரா இயக்க படல்களை அன்கிட் திவாரி சுனிதா சௌஹான் முகம்மது இர்ஃபான் சுஜதா மஜும்தார் மஷா ஆகியோர் பாடியுள்ளனர்
+sila naalthan vanthu ithanaich seithaan	சில நாள்தான் வந்து இதனைச் செய்தான்
+ithu poiyaaga irukkak koodaathaa andru orunaal aguthai maarbil irumbuchchakkaram paaynthathu yendru pesikkondanare	இது பொய்யாக இருக்கக் கூடாதா அன்று ஒருநாள் அகுதை மார்பில் இரும்புச்சக்கரம் பாய்ந்தது என்று பேசிக்கொண்டனரே
+yenyenil neeranathu vaanilaiyaalalithal nigalvukku mukkiya kaaraniyagum	ஏனெனில் நீரானது வானிலையாலழிதல் நிகழ்வுக்கு முக்கியக் காரணியாகும்
+panmachchai enbathu panmuthalin ullaaga amaithirukkum oru kuzhi ponra amaippu	பன்மச்சை என்பது பன்முதலின் உள்ளாக அமைந்திருக்கும் ஒரு குழி போன்ற அமைப்பு
+nilakari agalthal enbathu nilathil irunthui nilakariyay agalnthu edupathu aagum	நிலக்கரி அகழ்தல் என்பது நிலத்தில் இருந்து நிலக்கரியை அகழ்ந்து எடுப்பது ஆகும்
+theenunma kaaichal	தீனுண்ம காய்ச்சல்
+kanchipurathil sila suduman paavaigal kandupidikkapatana	காஞ்சிபுரத்தில் சில சுடுமண் பாவைகள் கண்டுபிடிக்கப்பட்டன
+avarin aatchi kaalathil indhi kattaya mozhiyaaga pallikalil arimugappaduthappattathu	அவரின் ஆட்சி காலத்தில் இந்தி கட்டாய மொழியாகப் பள்ளிகளில் அறிமுகப்படுத்தப்பட்டது
+silar thamakulla anatharavuch soozhal kavalai kalakka mananilai pondravattrilirundhu nivaaranam pera soothaattaththai oru karuviyaagap payanpaduththukindraanar	சிலர் தமக்குள்ள அனாதரவுச் சூழல் கவலை கலக்க மனநிலை போன்றவற்றிலிருந்து நிவாரணம் பெற சூதாட்டத்தை ஒரு கருவியாகப் பயன்படுத்துகின்றனர்
+le system electoral ed son efaet sur la representation parliamentier tes paartitis le case european lgdj	லெ சிஸ்டெம் எலெக்டோரல் எட் சன் எஃபேட் சுர் லா ரெப்ரெசெண்டேஷன் பார்லெமெண்டையர் டெஸ் பார்டிடிஸ் லெ கேஸ் யூரோபீன் எல்ஜிடிஜே
+antha marathanil athiga ennikkaiyil palar kalanthukondanar	அந்த மராத்தானில் அதிக எண்ணிக்கையில் பலர் கலந்துகொண்டனர்
+kalakethara therthal thoguthi	கலகெதர தேர்தல் தொகுதி
+jayalalitha sotthukkuvippu vazhakku tamizhnaattin puthiya muthalvaraaga o panneerselvam pathaiviyetraar bbc	செயலலிதா சொத்துக்குவிப்பு வழக்கு தமிழ்நாட்டின் புதிய முதல்வராக ஓ பன்னீர்செல்வம் பதவியேற்றார் பிபிசி
+ananda vikatan pavazha vizha aandil muthirai parisugal ullitta pala parisugal	ஆனந்த விகடன் பவழ விழா ஆண்டில் முத்திரை பரிசுகள் உள்ளிட்ட பல பரிசுகள்
+ipparavaiyin koodugal thirandhe irrupathanall kazhugukallum perum pullipparundhugallum sirru kunjugalai vettaiyada iyalugiradhu	இப்பறவையின் கூடுகள் திறந்தே இருப்பதனால் கழுகுகளும் பெரும் புள்ளிப்பருந்துகளும் சிறு குஞ்சுகளை வேட்டையாட இயலுகிறது
+naattiyam piranthathu naadaka vaakaiyae	நாட்டியம் பிறந்தது நாடக வகையே
+ippattiyal nool velivantha aandinai muthanmaippaduththiye thogukkappattullathu	இப்பட்டியல் நூல் வெளிவந்த ஆண்டினை முதன்மைப்படுத்தியே தொகுக்கப்பட்டுள்ளது
+melum himaachal pradesam athan panikkatti malaigal adarntha pasumaiyaana pulveligal idaiye saagasa vilaiyaatukkalum mattrum amaithiyaana azhaagana yerigalukkum prasiththipettrathaaga ariyappadugirathu	மேலும் இமாச்சல பிரதேசம் அதன் பனிக்கட்டி மலைகள் அடர்ந்த பசுமையான புல்வெளிகள் இடையே சாகச விளையாட்டுக்களும் மற்றும் அமைதியான அழகான ஏரிகளுக்கும் பிரசித்திபெற்றதாக அறியப்படுகிறது
+ithanai iyattriyavar ulaganathar	இதனை இயற்றியவர் உலகநாதர்
+ival varugaikaga thaan rajanga thottam kattapattathu	இவள் வருகைக்காக தான் ராஜாங்க தோட்டம் கட்டப்பட்டது
+thaai avattrudan neeril mithanthu sellum	தாய் அவற்றுடன் நீரில் மிதந்து செல்லும்
+maelum paathukaappu illai	மேலும் பாதுகாப்புப் இல்லை
+naarga vallurukkal enum iru vagai vallurukkalavizhaiyangal ullana	நார்கள் வல்லுருக்கள் எனும் இரு வகை வல்லுருக்கலவிழையங்கள் உள்ளன
+m magalir uyartharap paadasaalaiyilum uyarnilaik kalviyai mat vinsten magalir kallooriyilum pettraar	எம் மகளிர் உயர்தரப் பாடசாலையிலும் உயர்நிலைக் கல்வியை மட் வின்ஸ்டன் மகளிர் கல்லூரியிலும் பெற்றார்
+mavatta aatsiyar endra muraiyil thari neyyum thozhilil kuzhanthaigalai eedupaduththum kuzhanthaith thozhilaalar muraiyai ozhippatharku paerumuyarchi eduththaar	மாவட்ட ஆட்சியர் என்ற முறையில் தறி நெய்யும் தொழிலில் குழந்தைகளை ஈடுபடுத்தும் குழந்தைத் தொழிலாளர் முறையை ஒழிப்பதற்கு பெருமுயற்சி எடுத்தார்
+eninum avaradhu moottha adhikaariyin uttharavukalai avvappothu purakkanippu seithaar	எனினும் அவரது மூத்த அதிகாரியின் உத்தரவுகளை அவ்வப்போது புறக்கணிப்பு செய்தார்
+kadarkaraivarai inthanaadu pravi irundhadhu	கடற்கரைவரை இந்தநாடு பரவி இருந்தது
+ivatrai pizhai thavaraatha irai noolgal endru karuthuvathu madamaitthanam	இவற்றை பிழை தவறாத இறை நூல்கள் என்று கருதுவது மடமைத்தனம்
+neelaththumbai aazhvanam	நீலத்தும்பை அழவணம்
+yenave angu ivarukku natpu yethum amaiyavillai	எனவே அங்கு இவருக்கு நட்பு ஏதும் அமையவில்லை
+paanidiya kallakallil irudhthe palla vaivazhi illakiyankal ingu irudha poodum iiyandham noorandhin peerage arabia illayikiyam valraith thodanghiyudhu	பண்டைய காலங்களில் இருந்தே பல வாய்வழி இலக்கியங்கள் இங்கு இருந்த போதும் ஐந்தாம் நூற்றான்டின் பிறகே அராபிய இலக்கியம் வளரத் தொடங்கியது
+intha kaala kattathil ulagin palveru kalasaaraththai serntha noolgalum thonmangalum varalaarukalum puraanangalum arabikku mozhipeyarkkappattana	இந்த காலக் கட்டத்தில் உலகின் பல்வேறு காலாச்சாரத்தை சேர்ந்த நூல்களும் தொன்மங்களும் வரலாறுகளும் புராணங்களும் அரபிக்கு மொழிபெயற்கப்பட்டன
+aangilikkam ilangai vazhakku angiliikkan enbathu kritthavatthin oru mukkiyap pirivu matrum varalaarumigu paarambariyamaagum	ஆங்கிலிக்கம் இலங்கை வழக்கு அங்கிலிக்கன் என்பது கிறித்தவத்தின் ஒரு முக்கியப் பிரிவு மற்றும் வரலாறுமிகு பாரம்பரியமாகும்
+thasaigal surunguvathodu retha kulaaigalum surukkamadainthirukkum	தசைகள் சுருங்குவதோடு இரத்தக் குழாய்களும் சுருக்கமடைந்திருக்கும்
+p s kumaraswamyraja amaiccharavaiyil	பி எஸ் குமாரசுவாமிராஜா அமைச்சரவையில்
+sibigal thoguppu madurai kamarajar palgalaik kazhagathil paada noolaaga idam petradhu	சிபிகள் தொகுப்பு மதுரை காமராஜர் பல்கலைக் கழகத்தில் பாட நூலாக இடம் பெற்றது
+ippor iru vadakoriyap padaigalin thodarntha yethirppugalaip purangkandu i	இப்போர் இரு வடகொரியப் படைகளின் தொடர்ந்த எதிர்ப்புகளைப் புறங்கண்டு ஐ
+kaatru visaiyaazhigal nagarum thiravatthilirunthu thookkiyai uruvaakkuvatharkum athai suzhalikku alikkavum kaatrilaiyai payanpadutthugindrana	காற்று விசையாழிகள் நகரும் திரவத்திலிருந்து தூக்கியை உருவாக்குவதற்கும் அதை சுழலிக்கு அளிக்கவும் காற்றிலையைப் பயன்படுத்துகின்றன
+keralavil ulla vaikkam enaum siriya nagar tiruvaankoor samaththaanaththil ullathu	கேரளாவில் உள்ள வைக்கம் எனும் சிறிய நகர் திருவாங்கூர் சமத்தானத்தில் உள்ளது
+kodai uzhavinaal mannil vaazhum payirgalil palveru noigal uruvaaguvatharku kaaranamaana poosanangalum poosana vitthukkalum pitthiyam paottopthoraa selavindri azhikkappadugindrana	கோடை உழவினால் மண்ணில் வாழும் பயிர்களில் பல்வேறு நோய்கள் உருவாகுவதற்கு காரணமான பூசணங்களும் பூசண வித்துக்களும் பித்தியம் பைட்டோப்தோரா செலவின்றி அழிக்கப்படுகின்றன
+sidhique kaavalthurai udhavi aanaiyalar acp ayap sagariya	சித்திக் காவல்துறை உதவி ஆணையாளர் ஏசிபி ஐயப் சகரியா
+guindy maruthuva sodhanaik karuvigal thozhirsaalai	கிண்டி மருத்துவ சோதனைக் கருவிகள் தொழிற்சாலை
+yenave nermarai yennangalai yenna vendum	எனவே நேர்மறை எண்ணங்களை எண்ண வேண்டும்
+purua suktham	புருஷ சூக்தம்
+• ivai naangaam thirumuraigalileye miguthiyaaga idam pettrullana	தெல்லிப்பளை சுன்னாகம் உடுவில் ஆகிய இடங்களில் வழக்கறிஞராகப் பணியாற்றினார்
+mee tholaivilum amainthullathu	மீ தொலைவிலும் அமைந்துள்ளது
+thoimaiyana radium velliyai polla venmai niramudaiyadhaga ulladhu	தூய்மையான ரேடியம் வெள்ளியைப் போல வெண்மை நிறமுடையதாக உள்ளது
+rajarathinam annalakshmi rajadurai pa	இராசரத்தினம் அன்னலட்சுமி இராசதுரை பா
+intha aatrrin sangakaalap peyar kaanjiyaaru yenbathaagum	இந்த ஆற்றின் சங்ககாலப் பெயர் காஞ்சியாறு என்பதாகும்
+vedhaantha raagavaiyyaa iyakkaththil velivantha iththiraippadaththil t	வேதாந்தா ராகவைய்யா இயக்கத்தில் வெளிவந்த இத்திரைப்படத்தில் டி
+udhayagiri sattamandrath thogudhi	உதயகிரி சட்டமன்றத் தொகுதி
+kanimi pirithedukkum in nilaiyil miga gavanamaaga seiyalpada vendiya nilaiyaagum	கணிமி பிரித்தெடுக்கும் இந் நிலையில் மிக கவனமாக செயல்பட வேண்டிய நிலையாகும்
+idhanaal eriporul utchelutthal thogudhiyudan koodiya vaaganangalil aavip poottu piracchinaiyaaga amaiyaadhu	இதனால் எரிபொருள் உட்செலுத்தல் தொகுதியுடன் கூடிய வாகனங்களில் ஆவிப் பூட்டு பிரச்சினையாக அமையாது
+pattiyaar jhiya	பாட்டியார் ஜியா
+olippu idangal	ஒலிப்பு இடங்கள்
+sarvasaara upanidatham yenbathu krishnayajoor vethaththaich saarntha upanidatham aagum	ஸர்வஸார உபநிடதம் என்பது கிருஷ்ணயஜுர் வேதத்தைச் சார்ந்த உபநிடதம் ஆகும்
+puvith thiruppa asaivu puviyeerppu visaiyai nokki alladhu vilakki asaivadhu	புவித் திருப்ப அசைவு புவியீர்ப்பு விசையை நோக்கி அல்லது விலக்கி அசைவது
+thoonkeyil erindha thoodithot sembaiyan	தூங்கெயில் எறிந்த தொடிதோட் செம்பியன்
+su bhramanakudumbam onru senranootraandil eppadi valkaiyai mella matrikondathu enbathai kaatukiraar	சு பிராமணக்குடும்பம் ஒன்று சென்றநூற்றாண்டில் எப்படி வாழ்க்கையை மெல்ல மாற்றிக்கொண்டது என்பதைக் காட்டுகிறார்
+idhumattumallaathu neelakesi thivakra vaamana munivar urai meru manthira puraana urai aagiyavattraiyum pathippithaar	இதுமட்டுமல்லாது நீலகேசி திவாகர வாமன முனிவர் உரை மேரு மந்திரப் புராண உரை ஆகியவற்றையும் பதிப்பித்தார்
+ivarum saranaagathi neriyai valiyuruthinaar	இவரும் சரணாகதி நெறியை வலியுறுத்தினார்
+ivvaalayaththai thiruththanthai muthalaam thomas seemaiththu punitha lawrence paerungkovilaaga maatrinaar	இவ்வாலயத்தை திருத்தந்தை முதலாம் தாமசுஸ் சீமைத்து புனித இலாரன்சு பெருங்கோவிலாக மாற்றினார்
+karnataka samaiyal	கர்நாடகா சமையல்
+manjal niratthil naarkonavamaippu padigamaaga ithu kaanappadugiradhu	மஞ்சள் நிறத்தில் நாற்கோணவமைப்பு படிகமாக இது காணப்படுகிறது
+keisenin irandu mukkiya amsangal pinvaruvana aagum	கெய்சேனின் இரண்டு முக்கிய அம்சங்கள் பின்வருவன ஆகும்
+intha sol frenchilirundu irakumathiyanathu angu athan porul subgrade kattapatta thalam allathu ailveyin keel irukum ullarntha porul	இந்தச் சொல் பிரெஞ்சிலிருந்து இறக்குமதியானது அங்கு அதன் பொருள் சப்கிரேட் கட்டப்பட்ட தளம் அல்லது இரயில்வேயின் கீழ் இருக்கும் உள்ளார்ந்த பொருள்
+keezheyulla pattiyalil al eyin thavirndha ella nagarangalum kadarkarai nagarangalaagum	கீழேயுள்ள பட்டியலில் அல் எயின் தவிர்ந்த எல்லா நகரங்களும் கடற்கரை நகரங்களாகும்
+pirkaalaththil kuprik amerikka sathuranga kazhagaththin uruppiaraanaar	பிற்காலத்தில் குப்ரிக் அமெரிக்க சதுரங்கக் கழகத்தின் உறுப்பினரானார்
+muthanilai ameenkal iodine imfloridudan vinaipuriyum pothu neerudanaana neeraarpagutthal vinaikku utpattu naitrailgalai uruvaakkugiradhu	முதனிலை அமீன்கள் அயோடின் ஐம்புளோரைடன் வினைபுரியும் போது நீருடனான நீராற்பகுத்தல் வினைக்கு உட்பட்டு நைட்ரைல்களை உருவாக்குகிறது
+aanalum intha vaarththaikku kaamam kalantha arththam mattumae kollappadum enkira kattaayamum illai	ஆனாலும் இந்த வார்த்தைக்கு காமம் கலந்த அர்த்தம் மட்டுமே கொள்ளப்படும் என்கிற கட்டாயமும் இல்லை
+ivai maanilangalukku maanilam verupadugindrana	இவை மாநிலங்களுக்கு மாநிலம் வேறுபடுகின்றன
+idhai naan eppodhum kadaipidipean	இதை நான் எப்போதும் கடைபிடிப்பேன்
+ennudaiya pangalippai patriyum nann migavum kavalai kondhulen karanam ipp pudhia yutha ethrippu pookku yuthargal ulagai allvathaga kurippidugirathu	என்னுடைய பங்களிப்பைப் பற்றியும் நான் மிகவும் கவலை கொண்டுள்ளேன் காரணம் இப் புதிய யூத எதிர்ப்புப் போக்கு யூதர்கள் உலகை ஆள்வதாகக் குறிப்பிடுகிறது
+ennai pasaiyudan niramatradhaga noonenal kanapadugiradhu	எண்ணெய்ப் பசையுடன் நிறமற்றதாக நோனேனால் காணப்படுகிறது
+unavaal thottruvikkappatta uruppukkalin thoguthi annamaiyakosam	உணவால் தோற்றுவிக்கப்பட்ட உறுப்புக்களின் தொகுதி அன்னமயகோசம்
+chennai sriree maruthuvamanai	சென்னை ஸ்ரீரி மருத்துவமனை
+ikkaalakattaththil rasipuram mattrum puthuppalayam paguthigalil panjaththaal pathikkappatta makkalukku kanji karumbu pondravattrai aliththu kuzahnthaisaami yendra vallal uthavinaar	இக்காலக்கட்டத்தில் இராசிபுரம் மற்றும் புதுப்பாளையம் பகுதிகளில் பஞ்சத்தால் பாதிக்கப்பட்ட மக்களுக்கு கஞ்சி கரும்பு போன்றவற்றை அளித்து குழந்தைசாமி என்ற வள்ளல் உதவினார்
+bhackiyaraj yeluthi iyakiyirunthaar	பாக்கியராஜ் எழுதி இயக்கியிருந்தார்
+meethamulla padaiyinarai thaanae thalaimai aetru thaerku nokki kadumaiyaana katosiani paalai nilam vazhiyaaga vazhinadaththi persian senraar	மீதமுள்ள படையினரை தானே தலைமை ஏற்று தெற்கு நோக்கி கடுமையான கேட்ரோசியன் பாலை நிலம் வழியாக வழிநடத்தி பாரசீகம் சென்றார்
+r jayalalitha matrum palarum nadiththirunthanar	ஆர் ஜெயலலிதா மற்றும் பலரும் நடித்திருந்தனர்
+maylum ithae thuraiyil malepadippum payila mudivu seythullaar	மேலும் இதே துறையில் மெல்படிப்பும் பயில முடிவு செய்துள்ளார்
+samasthaana inaippin mattroru prachchanai samasthaanamaaga amainththu jeenaakaath aagum	சமஸ்தான இணைப்பின் மற்றொரு பிரச்சனை சமஸ்தானமாக அமைந்தது ஜீனாகாத் ஆகும்
+castarin paaga natchathirangal ovvonrum niramaalaiyiyal irumaigalaagum	கேஸ்டரின் பாக நட்சத்திரங்கள் ஒவ்வொன்றும் நிறமாலையியல் இருமைகளாகும்
+sores sores nithi melaanmaiyin niruvanar aavaar	சொரெஸ் சொரெஸ் நிதி மேலாண்மையின் நிறுவனர் ஆவார்
+poththithiyaar paadalgal	பொத்திதியார் பாடல்கள்
+saaisathuratthinmam enbathu ganasathuratthaip pondra moondru parimaana uruvam	சாய்சதுரத்திண்மம் என்பது கனசதுரத்தைப் போன்ற மூன்று பரிமாண உருவம்
+aandavar abiraamai nokki avrin nattilirundhum inathavaridamirundhum purappatu dhaan kaanbikkum naatirkuch sella kattalaiyittar	ஆண்டவர் ஆபிராமை நோக்கி அவரின் நாட்டிலிருந்தும் இனத்தவரிடமிருந்தும் புறப்பட்டு தான் காண்பிக்கும் நாட்டிற்குச் செல்ல கட்டளையிட்டார்
+ivar manjal vudai thariththapodhu ivar oru pikku alla	இவர் மஞ்சள் உடை தரித்தபோதும் இவர் ஒரு பிக்கு அல்ல
+ivvoorin perum paguthi yellaikkulleye ilangaiyin pugazh pettra suttrullath thalamaana ootharthulai kaanappadugirathu	இவ்வூரின் பெரும் பகுதி எல்லைக்குள்ளேயே இலங்கையின் புகழ் பெற்ற சுற்றுலாத் தலமான ஊதற்துளை காணப்படுகிறது
+aangilaththil revolt yendra naalithazh moolam aangilam mattume therintha makkalikkaagap prasaaram seithaar	ஆங்கிலத்தில் ரிவோல்ட் என்ற நாளிதழ் மூலம் ஆங்கிலம் மட்டுமே தெரிந்த மக்களுக்காகப் பிரசாரம் செய்தார்
+vidthagal thaal kattul vidaar	வித்தகள் தாள் கட்டுள் விடார்
+alaipesi valaitthoguppugal	அலைபேசி வலைத்தொகுப்புகள்
+iruppinum themur muraiyaaga ilavarasaraaga niyamikkappadavillai	இருப்பினும் தெமுர் முறையாக இளவரசராக நியமிக்கப்படவில்லை
+ivargl ivanathu unmaiyaana peyar endrau sank rathu seya thaevathaa enum peyaraic suttikkaattugindranar	இவர்கள் இவனது உண்மையான பெயர் என்று சங் ரது செய தேவதா எனும் பெயரைச் சுட்டிக்காட்டுகின்றனர்
+cobalt oxide alladhu cobalt hydroxidudan acidic amilatthaich serthu vinaippadutthinaal cobalt ii acidate undaagiradhu	கோபால்ட் ஆக்சைடு அல்லது கோபால்ட் ஐதராக்சைடுடன் அசிட்டிக் அமிலத்தைச் சேர்த்து வினைப்படுத்தினால் கோபால்ட் ii அசிட்டேட்டு உண்டாகிறது
+intha soozal mandalangal ariviyalaalargalukku aayvukkalangalaagavum suttrulaap payanigalukku kadal paayum kelikkaik kalangalaagavum vilangukinrana	இந்த சூழல் மண்டலங்கள் அறிவியலாளர்களுக்கு ஆய்வுக்களங்களாகவும் சுற்றுலாப் பயணிகளுக்கு கடல் பாயும் கேளிக்கைக் களங்களாகவும் விளங்குகின்றன
+ithu kurippitta kattangal konda varayil vilaiyaadappadugirathu	இது குறிப்பிட்ட கட்டங்கள் கொண்ட வரைவில் விளையாடப்படுகிறது
+keralaavil ulla oorgal mattrum nagarangal	கேரளாவில் உள்ள ஊர்கள் மற்றும் நகரங்கள்
+• seyarkai kolkalilum kanakkeettuk karuvikalilum sooriya minkalangal payanpadukinrana	• செயற்கை கோள்களிலும் கணக்கீட்டுக் கருவிகளிலும் சூரிய மின்கலன்கள் பயன்படுகின்றன
+thavil em venkatesh subramaniyan kaviraj s sundar purushothaman	தவில் எம் வெங்கடேஷ் சுப்ரமணியன் கவிராஜ் எஸ் சுந்தர் புருஷொத்தமன்
+manitha membaattuch chutten adippadaiyil nadu airoppiya naadugal migavum valarchidaiyum naadugal varisaiyil vaikkappattullana	மனித மேம்பாட்டுச் சுட்டெண் அடிப்படையில் நடு ஐரோப்பிய நாடுகள் மிகவும் வளர்ச்சியடையும் நாடுகள் வரிசையில் வைக்கப்பட்டுள்ளன
+maanavargalukkaana kaattriyakkaviyal	மாணவர்களுக்கான காற்றியக்கவியல்
+poondooril poonpiththaan undu	பூண்டுறில் பூண்பித்தான் உண்டு
+uchchiyilirundhu thodangu	உச்சியிலிருந்து தொடங்கு
+pesum kalai valarpom yenum nool munnaal tamilaga muthalvar karunaanithi avargalaal yezhuthapattathaagum	பேசும் கலை வளர்ப்போம் எனும் நூல் முன்னாள் தமிழக முதல்வர் கருணாநிதி அவர்களால் எழுதப்பட்டதாகும்
+keerithru innailladhalam	கீற்று இணையதளம்
+avarathu thaaivazhi paattanum paattiyum englandin burmingham nagaril vaazhnthavargal	அவரது தாய்வழி பாட்டனும் பாட்டியும் இங்கிலாந்தின் பர்மிங்காம் நகரில் வாழ்ந்தவர்கள்
+ennai mattrum iyarkkai erivaayu kinnarugalil thutthanaaga puramaidu kalandha karaisalgal payanpadutthappadugindrana	எண்ணெய் மற்றும் இயற்கை எரிவாயு கிணறுகளில் துத்தநாக புரோமைடு கலந்த கரைசல்கள் பயன்படுத்தப்படுகின்றன
+inippu pulippu kaarppu thuvarppu uvarppu kasappu	இனிப்பு புளிப்பு கார்ப்பு துவர்ப்பு உவர்ப்பு கசப்பு
+ithan kani unavaaga payanpadugirathu	இதன் கனி உணவாகப் பயன்படுகிறது
+kaathalaridaippattru kaathal	காதலரிடைப்பற்று காதல்
+mersan arasan paadalai ezhuthiyavar kavignar vivek paadiyavargal ji	மெர்சல் அரசன் பாடலை எழுதியவர் கவிஞர் விவேக் பாடியவர்கள் ஜி
+ithu naveenaththuvam matrum naeriyath thanithuvam paetrippathanaal ithanaal idaikkaalaththil niruvappatta madangal anaiththum ichsattangalaiyae aetru pinpatrukinrana	இது நவீனத்துவம் மற்றும் நேரியத் தனித்துவம் பெற்றிருப்பதனால் இதனால் இடைக்காலத்தில் நிறுவப்பட்ட மடங்கள் அனைத்தும் இச்சட்டங்களையே ஏற்று பின்பற்றின
+sila kannakkeedugal anubhavappoorvamaanavai alladhu kattaiviral vidhi soothirangal mattravai vazhakkamaana iyakkaviyalin adippadaiyil amaindhavai	சில கணக்கீடுகள் அனுபவப்பூர்வமானவை அல்லது கட்டைவிரல் விதி சூத்திரங்கள் மற்றவை வழக்கமான இயக்கவியலின் அடிப்படையில் அமைந்தவை
+sirappup payirchigal	சிறப்புப் பயிற்சிகள்
+intha vazhakkaththukku maaraaga vazhangikkonde irundaal melulagam kittaathu yendra nilai vanthapothum melulagai vendaam yendru othukkivittu vazangikkonde iruppathu nandru yenth thirukkural kurippidugirathu	இந்த வழக்கத்துக்கு மாறாக வழங்கிக்கொண்டே இருந்தால் மேலுலகம் கிட்டாது என்ற நிலை வந்தபோதும் மேலுலகை வேண்டாம் என்று ஒதுக்கிவிட்டு வழங்கிக்கொண்டே இருப்பது நன்று எனத் திருக்குறள் குறிப்பிடுகிறது
+ithu vattavadivil sakkkarampola irukkum	இது வட்டவடிவில் சக்கரம்போல இருக்கும்
+melum aasiyavai kadavulin parisagavum karuthinaar	மேலும் ஆசியாவை கடவுளின் பரிசாகவும் கருதினார்
+afrikkath thookkanaangkuruvi quelea yenbathu siriya pasarin ina paravaiyaagum	ஆப்பிரிக்கத் தூக்கணாங்குருவி quelea என்பது சிறிய பசரின் இன பறவையாகும்
+yisai thamasa puraanam yendrum ariyapadukindrana	இவை தாமச புராணம் என்றும் அறியப்படுகின்றன
+iroppaavil innoottraandu muzhuvathum nadukalukkidaiye porgal pala idampettrana	ஐரோப்பாவில் இந்நூற்றாண்டு முழுவதும் நாடுகளுக்கிடையே போர்கள் பல இடம்பெற்றன
+thirugani poll melirundhu kizhe parakumbodhu katrill suzhaluthal	திருகாணி போல் மேலிருந்து கீழே பறக்கும்போது காற்றில் சுழலுதல்
+suranga vibaththu	சுரங்க விபத்து
+shely hawkins naadagath thiraippada nadigaraaga thanathu nadippu vaazkkaiyaith thuvanginaar	ஷேலி ஹாக்கின்ஸ் நாடகத் திரைப்பட நடிகராக தனது நடிப்பு வாழ்க்கையைத் துவங்கினார்
+intha rail nilayathil kilakku merku valithadam matrum vattapathai valithadam agiya irandum santhippathu kuripidathakkathu	இந்த ரயில் நிலையத்தில் கிழக்கு மேற்கு வழித்தடம் மற்றும் வட்டப்பாதை வழித்தடம் ஆகிய இரண்டும் சந்திப்பது குறிப்பிடத்தக்கது
+ivarin ilamaikkaalam pattri athigam ariyamudiyaatha nilaiyil ullathu	இவரின் இளமைக்காலம் பற்றி அதிகம் அறியமுடியாத நிலையில் உள்ளது
+baarmic amilatthai sodium carbonattudan vinaipuriyach seidhu nadunilaiyaakkam moolamaaga sodium bromide aaivagatthil thayaarikkappadugiradhu	பார்மிக் அமிலத்தை சோடியம் கார்பனேட்டுடன் வினைபுரியச் செய்து நடுநிலையாக்கம் மூலமாக சோடியம் பார்மேட்டு ஆய்வகத்தில் தயாரிக்கப்படுகிறது
+ithu paruva nilai maarupaadugalinaalo allathu vegu viraivaaga maari varum suttruch soozhal nilaigalinaalo uruvaakalaam	இது பருவ நிலை மாறுபாடுகளினாலோ அல்லது வெகு விரைவாக மாறி வரும் சுற்றுச் சூழல் நிலைகளினாலோ உருவாகலாம்
+yenaiya aikkiya naadugal amaippugalukku uthaviyaaga manithaabimaanap panigalirkuthavavum thesappadangal pondravatraith thayaaritthu ilavasamaana viniyogitthu varugindranar	ஏனைய ஐக்கிய நாடுகள் அமைப்புக்களுக்கு உதவியாக மனிதாபினப் பணிகளிற்குதவும் தேசப்படங்கள் போன்றவற்றைத் தயாரித்து இலவசமான விநியோகித்து வருகின்றனர்
+indhu samanam paeththam seikkiyam marrum pira mathanglil ivai mukkiyaththuvam perugindrana	இந்து சமணம் பெளத்தம் சீக்கியம் மற்றும் பிற மதங்களில் இவை முக்கியத்துவம் பெறுகின்றன
+ivar panmuga thiramaigaludaiya oru peraalumai	இவர் பன்முகத் திறமைகளுடைய ஒரு பேராளுமை
+seen puththaandu pondra mukkiya pandikaikalai thavirpathu nallathu	சீன புத்தாண்டு போன்ற முக்கிய பண்டிகைகளைத் தவிர்ப்பது நல்லது
+iruppinum ithu verum oliverupaadu isaivaip payanpadutthukindradhu	இருப்பினும் இது வெறும் ஒலிவேறுபாடு இசைவைப் பயன்படுத்துகின்றது
+oru melliya thadiman konda vatta valaya vettrida kulaai valiyaaga thugalgal mudukkapadukindrana	ஒரு மெல்லிய தடிமன் கொண்ட வட்ட வலய வெற்றிடக் குழாய் வழியாக துகள்கள் முடுக்கப்படுகின்றன
+ithanal avarkalai policesar kaidhu seidhu jailill adaithanar	இதனால் அவர்களை போலீசார் கைது செய்து ஜெயிலில் அடைத்தனர்
+prathamarin athigaarangal kuraikkappattullana melum arasiyalamaippinpadi avarin athigarangalai vagaippaduththuvathum kadinam	பிரதமரின் அதிகாரங்கள் குறைக்கப்பட்டுள்ளன மேலும் அரசியலமைப்பின்படி அவரின் அதிகாரங்களை வகைப்படுத்துவதும் கடினம்
+ithu oruvar murkaalaththil prachchinaikkuriya visayaththil thodarpudaiyavaraaga irukkiraara enru amerikkap padaigal kandupidippatharku migavum uthavikaramaaga irukkum	இது ஒருவர் முற்காலத்தில் பிரச்சினைக்குரிய விசயத்தில் தொடர்புடையவராக இருக்கிறாரா என்று அமெரிக்கப் படைகள் கண்டுபிடிப்பதற்கு மிகவும் உதவிகரமாக இருக்கும்
+ivannudaiya pathinetam aatchiyandhill ivan ethirparthapadiye mudhalam mugalan tan nanbargalana tamilnadu nigaridhargalai innaithu kondhu padaiyedhu vandhan	இவனுடைய பதினெட்டாம் ஆட்சியாண்டில் இவன் எதிர்பார்த்தபடியே முதலாம் முகலன் தன் நண்பர்களான தமிழ்நாட்டு நிகந்தர்களை இணைத்துக் கொண்டு படையெடுத்து வந்தான்
+onrankaal =onrinadhu kaal	ஒன்றன்கால் =ஒன்றினது கால்
+kuraintha kuviyathooram kenda thattakkuvilensaip paayanpaduththinaal newtonin valaiyangal nerukkamadaigindrana	குறைந்த குவியதுாரம் கெண்ட தட்டக்குவிலென்சைப் பயன்படுத்தினால் நியூட்டனின் வளையங்கள் நெருக்கமடைகின்றன
+thottra seranaik kudavaayil kottaththuch siraiyil adaiththaan	தோற்ற சேரனைக் குடவாயில் கோட்டத்துச் சிறையில் அடைத்தான்
+aanaalum ivar kattamaippu pattiyalil aaraavathaaaka vanthathanaal naadalumandraththukku theervaakavillai	ஆனாலும் இவர் கூட்டமைப்புப் பட்டியலில் ஆறாவதாக வந்ததனால் நாடாளுமன்றத்துக்குத் தெரிவாகவில்லை
+aaram vetrumai thogaiyil aagrinai peyargalin pin vallezhuthugal migum	ஆறாம் வேற்றுமைத் தொகையில் அஃறிணைப் பெயர்களின் பின் வல்லெழுத்துகள் மிகும்
+avar vinggaanani omi babavin thanthai aavaar ithanpadi omi baabavin maamaa dhorabji aavaar	அவர் விஞ்ஞானி ஓமி பாபாவின் தந்தை ஆவார் இதன்படி ஓமி பாபாவின் மாமா தோரப்ஜி ஆவார்
+ratthasaatchi ennum vaartthai thangal nambikkaikkaaka rattham sinthi uyir neetthavargal endra porulaith tharum	இரத்தசாட்சி என்னும் வார்த்தை தங்கள் நம்பிக்கைக்காக இரத்தம் சிந்தி உயிர் நீத்தவர்கள் என்ற பொருளைத் தரும்
+pothumaana adarththi konda samasayanik amilam silpadimamaathal vinaiyil eedupattu sayanoorik amilam matrum saiyamelaidu endra palluruppigalaith tharugirathu	போதுமான அடர்த்தி கொண்ட சமசயனிக் அமிலம் சில்படிமமாதல் வினையில் ஈடுபட்டு சயனூரிக் அமிலம் மற்றும் சையமெலைடு என்ற பல்லுறுப்பிகளைத் தருகிறது
+than annan irandhadhum peravalathil aazhndhaal ivar meendum serumani hanovarukku vandhullar	தன் அண்ணன் இறந்ததும் பேரவலத்தில் ஆழ்ந்ததால் இவர் மீண்டும் செருமனி ஹனோவருக்கு வந்துள்ளார்
+maanguyilgal oruthunai manam kondathu	மாங்குயில்கள் ஒருதுணை மணம் கொண்டது
+henriyetta suvaan leevit	ஹென்றியேட்டா சுவான் லீவிட்
+pinnalil alexandarudan maththiya asiavil gurillaa porittu pinvaangiya aiynthaam arthashershus thaan belsus raajyatthin mannam aavaar	பின்னலில் அலெக்ஸாண்டருடன் மத்திய ஆசியாவில் குரில்லா போரிட்டு பின்வாங்கிய ஐந்தாம் அர்தஷெர்ஷெஸ் தான் பெஸ்சுஸ் ராஜ்யத்தின் மன்னன் ஆவார்
+ivargalin thozhil munaithal aarvaththilum avattril perumpaanmaiyaaga ivargal vettri kandamaiyaalum ivargal bepaal mapiyaa yendru azhaikkapdugiraal	இவர்களின் தொழில் முனைதல் ஆர்வத்தாலும் அவற்றில் பெரும்பான்மையாக இவர்கள் வெற்றி கண்டமையாலும் இவர்கள் பேபால் மாபியா என்று அழைக்கப்படுகிறார்கள்
+ichseivinai seyyum muraiyinaip palar unmaiyaenavum silar seivinaiyai oru mooda nambikkai enavum kooruvar	இச்செய்வினை செய்யும் முறையினைப் பலர் உணமையெனவும் சிலர் செய்வினையை ஒரு மூட நம்பிக்கை எனவும் கூறுவர்
+ithu oru varalaatru karpanaik kadhaiyaagum ikkadhai singappooril ulla thamizh murasu ennum patthirikkaiyil veliyaana thodar kadhaiyaagum	இது ஒரு வரலாற்று கற்பனைக் கதையாகும் இக்கதை சிங்கப்பூரில் உள்ள தமிழ் முரசு என்னும் பத்திரிக்கையில் வெளியான தொடர் கதையாகும்
+oru silla ellimaiyana uyarrithigalill veedugalill ulladhu poll sadharana otrai kadhavu porutha pattirukum	ஒரு சில எளிமையான உயர்த்திகளில் வீடுகளில் உள்ளது போல சாதாரண ஒற்றை கதவு பொருத்த பட்டிருக்கும்
+ivar thanathu yezhuththukalil yellaam thaniyaga sambalam pettru tharsaarbodu vaazhum viruppathai adikkadi kurippittuk kooruvathaik kaanalaam	இவர் தனது எழுத்துகளில் எல்லாம் தனியாக சம்பளம் பெற்று தற்சார்போடு வாழும் விருப்பத்தை அடிக்கடி குறிப்பிட்டுக் கூறுவதைக் காணலாம்
+nool ezhudhum kaalap pagudhiyil vendiya aadharavu alithamai	நூல் எழுதும் காலப் பகுதியில் வேண்டிய ஆதரவு அளித்தமை
+idhan porul engal thandhai abraham enbadhaagum	இதன் பொருள் எங்கள் தந்தை ஆபிரகாம் என்பதாகும்
+ulagin palvaeru thiraippadangkal poattiyitta nilaiyil naduvar kuzhuvaal ippadam sirantha thiraippadamaaga thaernthedukkappattu viruthu petrullathu	உலகின் பல்வேறு திரைப்படங்கள் போட்டியிட்ட நிலையில் நடுவர் குழுவால் இப்படம் சிறந்த திரைப்படமாகத் தேர்ந்தெடுக்கப்பட்டு விருது பெற்றுள்ளது
+ivarin kudumbaththinar telugu mozhiyai thaaimozhiyaaga udaiyavargal aavar	இவரின் குடும்பத்தினர் தெலுங்கு மொழியை தாய்மொழியாக உடையவர்கள் ஆவர்
+seethai magapperu valiyaal mukkiyathaal ithu perumukkal endru vazhangappadugirathu endrum koorappadugirathu	சீதை மகப்பேறு வலியால் முக்கியதால் இது பெருமுக்கல் என்று வழங்கப்படுகிறது என்றும் கூறப்படுகிறது
+velippazhuvidai thasaikal surunga utpazhuvidai thasaikal thalarum	வெளிப்பழுவிடைத் தசைகள் சுருங்க உட்பழுவிடைத் தசைகள் தளரும்
+rosemary wise	உரோசுமேரி வைசு
+ftc advanced rulemaking mattrum oil market manipulation kuriththu visaariththa u s vanigak kuzhuvirkku munbaaga vazhangappatta vaakumoolam	எஃப்டிசி அட்வான்ஸ்ட் ரூல்மேக்கிங் மற்றும் ஆயில் மார்க்கெட் மேனிபுலேஷன் குறித்து விசாரித்த யூ எஸ் வணிகக் குழுவிற்கு முன்பாக வழங்கப்பட்ட வாக்குமூலம்
+discapirio los angelsil oru illathaiyum newyorkilulla battery park city il oru vettaiyum vaanginaar	டிஸ்கபிரியோ லாஸ் ஏஞ்சல்ஸில் ஒரு இல்லத்தையும் நியூயார்க்கிலுள்ள பேட்டரி பார்க் சிட்டி யில் ஒரு வீட்டையும் வாங்கினார்
+themaangani pulimaangani karuvilangani koovilangani yendra vaaypaattal amaiyapperum naangu seergalum vanjik seergalukku uthaaranangal aagum	தேமாங்கனி புளிமாங்கனி கருவிளங்கனி கூவிளங்கனி என்ற வாய்பாட்டால் அமையப்பெறும் நான்கு சீர்களும் வஞ்சிச் சீர்களுக்கு உதாரணங்கள் ஆகும்
+malaiyaga thozhirchanga varalaaru	மலையகத் தொழிற்சங்க வரலாறு
+magaathma gandhiyin naangaavathu magan devadoss gandhiyin magan	மகாத்மா காந்தியின் நான்காவது மகன் தேவதாஸ் காந்தியின் மகன்
+ivarathu uraiyil ariya pala vilakangal kaanapadukinrana	இவரது உரையில் அரிய பல விளக்கங்கள் காணப்படுகின்றன
+indha aasiriyappavil thaditha ezhuthil kattappattullavai vanchchi uriccheer	இந்த ஆசிரியப்பாவில் தடித்த எழுத்தில் காட்டப்பட்டுள்ளவை வஞ்சி உரிச்சீர்
+ithiraippadatthil jai sham siva chandiran sathyaraj aagiyor mudhanmaippaathirangalil naditthu varugindranar	இத்திரைப்படத்தில் ஜெய் சாம் சிவா சந்திரன் சத்யராஜ் ஆகியோர் முதன்மைப்பாத்திரங்களில் நடித்து வருகின்றனர்
+itharku arugil vegaland sutrulaaa maiyam amainthullathu	இதற்கு அருகில் வீகாலேண்ட் சுற்றுலா மையம் அமைந்துள்ளது
+thamizhnaatin vizhuppuram maavattaththil thindivanaththilirundhu marakaanam sellum perunthuch salaiyil ikkundru amainthullathu pudhuvaiyilirundhu kiliyanoor vazhiyaagavum ivvidaththirkuch sellalaam	தமிழ்நாட்டின் விழுப்புரம் மாவட்டத்தில் திண்டிவனத்திலிருந்து மரக்காணம் செல்லும் பேருந்துச் சாலையில் இக்குன்று அமைந்துள்ளது புதுவையிலிருந்து கிளியனூர் வழியாகவும் இவ்விடத்திற்குச் செல்லலாம்
+lakshmi poojai yenbathu annai mahalakshmiyin paripoorana arulaipera seyyappadum oru vazhipaadaagum	லட்சுமி பூஜை என்பது அன்னை மகாலட்சுமியின் பரிபூரண அருளைப்பெற செய்யப்படும் ஒரு வழிபாடாகும்
+ithanmoolam thanithani natchathirangalal yetta mudiyatha kattanggalai uruvaakugirathu	இதன்மூலம் தனித்தனி நட்சத்திரங்களால் எட்ட முடியாத கட்டங்களை உருவாக்குகிறது
+pondra vanakkavazhipaadugalil kankoodaaga intha sagotharatthuvatthai kaanalaam ithu intha kalimaavin magimaiyaagum	போன்ற வணக்கவழிபாடுகளில் கண்கூடாக இந்த சகோதரத்துவத்தை காணலாம் இது இந்த கலிமாவின் மகிமையாகும்
+tharumar athirathanidam sendru engal kulatthil uyirudan irukkum ore vaarisu virisvathethu mattume	தருமர் அதிரதனிடம் சென்று எங்கள் குலத்தில் உயிருடன் இருக்கும் ஒரே வாரிசு விரிஸ்வதேது மட்டுமே
+tharpothu kurangkinangkal mikavum azhinthu varum tharuvaayil ullathu	தற்போது குரங்கினங்கள் மிகவும் அழிந்து வரும் தருவாயில் உள்ளது
+star plussil oliparappaana kayaamath ki raadh endra thodaril gauri vaidhegi endra munnani vedangalil naditthullaar	ஸ்டார் பிளஸ்ஸில் ஒளிபரப்பான கயாமத் கி ராத் என்ற தொடரில் கௌரி வைதேகி என்ற முன்னணி வேடங்களில் நடித்துள்ளார்
+avargal iruvarum nilavil aaivugal merkondirundha pothu kattalap pettaga vimaani ken mattingli nilavaich suttri vanthu avathaanippilirunthaar	அவர்கள் இருவரும் நிலவில் ஆய்வுகள் மேற்கொண்டிருந்த போது கட்டளைப் பெட்டக விமானி கென் மாட்டிங்லி நிலவைச் சுற்றி வந்து அவதானிப்பிலிருந்தார்
+indhiya pakkaththilirundhu selp laa sella irandhu paathaigal ullana ondru gangtaak vazhiyaaga mattrondru kalimbaang vazhiyaaga selkirathu	இந்திய பக்கத்திலிருந்து செலப் லா செல்ல இரண்டு பாதைகள் உள்ளன ஒன்று கேங்டாக் வழியாக மற்றொன்று கலிம்பாங் வழியாக செல்கிறது
+pothuvaaga thiruppa asaivugal thiruppaththirkuk kaaranamaana thoondalin peyar kondu azhaikkappadum	பொதுவாக திருப்ப அசைவுகள் திருப்பத்திற்குக் காரணமான தூண்டலின் பெயர் கொண்டு அழைக்கப்படும்
+ulagamo duyirugalu mulaithara valamvarum	உலகமொ டுயிர்களு முலைதர வலம்வரும்
+kuvadiyaana aaru therku nookkip paaindhu adhan irudhiyil neenda dhoorathirku yesupaniyavukkum porthugalukkum idaiilaana yellaiyaaga vilangugindradhu	குவாடியான ஆறு தெற்கு நோக்கிப் பாய்ந்து அதன் இறுதியில் நீண்ட தூரத்திற்கு எசுப்பானியாவுக்கும் போர்த்துக்கலுக்கும் இடையிலான எல்லையாக விளங்குகின்றது
+moondru natchaththira thoguthiyil moondru natchaththirangkalumae kanisamaana niraiyudan irukkum pothu iruthiyil moondril oru natchaththiram aththoguthiyil irunthu veliyeatraapaadukirathu	மூன்று நட்சத்திரத் தொகுதியில் மூன்று நட்சத்திரங்களுமே கணிசமான நிறையுடன் இருக்கும் போது இறுதியில் மூன்றில் ஒரு நட்சத்திரம் அத்தொகுதியில் இருந்து வெளியேற்றப்படுகிறது
+ippanjaayatthil raamaapuram iraamaapuram kaalani g	இப்பஞ்சாயத்தில் இராமாபுரம் இராமாபுரம் காலணி ஜீ
+navina kudiyarasil pirathinidhigalai therindhuppathaikku ulagam thazhuvia oru muraiyaga therthal kadaippidikkapadhugiradhu	நவீன குடியரசில் பிரதிநிதிகளைத் தேர்ந்தெடுப்பதற்கு உலகம் தழுவிய ஒரு முறையாக தேர்தல் கடைப்பிடிக்கப்படுகிறது
+• indhiyaavil punjab thamizhnaadu uthirapradesam bihar orissa mattrum maththiya pradesaththil kanappadugindrana	• இந்தியாவில் பஞ்சாப் தமிழ்நாடு உத்திரபிரதேசம் பீகார் ஒரிஸ்ஸா மற்றும் மத்திய பிரதேசத்தில் காணப்படுகின்றன
+antha jaminthaarin magan seeman thiraipadam edukkum idathirku vanthu mottaiyadikkum kaatchi thanathu thanthaiyin peyarai keduthuvidum enavae athai edukka koodathu ena thadukkiraan	அந்த ஜமீந்தாரின் மகன் சீமான் திரைப்படம் எடுக்கும் இடத்திற்கு வந்து மொட்டையடிக்கும் காட்சி தனது தந்தையின் பெயரைக் கெடுத்துவிடும் எனவே அதை எடுக்கக் கூடாது எனத் தடுக்கிறான்
+ondru oru vilangu thanadhu choozhaludan kalandhupaduvathaagum mattrondru oru vilangu suvaarasiyamattra alladhu aabatthaanadhaagak kaatchiyallikkum vaerondraagath thannai urumaattrrik kollvadhu	ஒன்று ஒரு விலங்கு தனது சூழலுடன் கலந்துபடுவதாகும் மற்றொன்று ஒரு விலங்கு சுவாரசியமற்ற அல்லது ஆபத்தானதாகக் காட்சியளிக்கும் வேறொன்றாகத் தன்னை உருமாற்றிக் கொள்வது
+kaaveripoompattinaththil samana thuravi saaranarkku kalkooyil silaathalam ondru irunthathu	காவிரிப்பூம்பட்டினத்தில் சமணத் துறவி சாரணர்க்குக் கல்கோயில் சிலாதலம் ஒன்று இருந்தது
+iru nabargalum suttu kollapattu panaya kaithigal anaivarum viduvikkapattanar	இரு நபர்களும் சுட்டுக் கொல்லப்பட்டு பணயக் கைதிகள் அனைவரும் விடுவிக்கப்பட்டனர்
+sadangukalin pothu isaippatharkaagave saama vedham iyattrappatttathaagum	சடங்குகளின் போது இசைப்பதற்காகவே சாம வேதம் இயற்றப்பட்டதாகும்
+ithan nadavadikkaigalin vibarangal seyarpaattu nilaiyilulla nabargalin adaiyaalangal yenbana miga mukkiyamaana maraikkappatta vidayangalaagavullana	இதன் நடவடிக்கைகளின் விபரங்கள் செயற்பாட்டு நிலையிலுள்ள நபர்களின் அடையாளங்கள் என்பன மிக முக்கியமான மறைக்கப்பட்ட விடயங்களாகவுள்ளன

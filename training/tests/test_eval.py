@@ -102,6 +102,18 @@ def test_hindi_runs_its_own_sets_on_its_own_pack():
     assert "hi:lexicon" in engine.loaded_sources() and "hi:romanised" in engine.loaded_sources()
 
 
+def test_assamese_and_tamil_run_their_own_sets_on_their_own_packs():
+    from mlkb.eval.__main__ import LANGS, load_engine
+
+    for lang, romanised in (("as", "next_romanised"), ("ta", "next_tanglish")):
+        config = LANGS[lang]
+        assert set(config.next_sets) == {"next_en", f"next_{lang}", romanised}
+        assert config.next_sets[f"next_{lang}"][2] == "native"
+        assert config.gate_baselines.name == "baselines-nolm.json" and config.gate_baselines.parent.name == lang
+        sources = load_engine(None, None, lang).loaded_sources()
+        assert f"{lang}:lexicon" in sources and f"{lang}:romanised" in sources
+
+
 def test_the_lm_gate_wants_every_next_set_and_context_set_above_the_baseline():
     from mlkb.eval.__main__ import LANGS, ship_gate
 

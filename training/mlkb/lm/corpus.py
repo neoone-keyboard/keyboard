@@ -11,6 +11,10 @@ files are Hindi's in `data/eval/hi/` (`next-hi.tune.txt`, `next-hi.heldout.txt`)
 no English tune split: it reads Malayalam's `data/eval/next-en.tune.txt`, which its training
 text leaves out as an eval set.
 
+A pack of `data/langs/<id>/` (`as`, `ta`: `LmLang.pack_lang`) spells its romanised buckets with
+the pack's fitted tables (`mlkb.langs.romanisation.Tables.variants`) and writes only the English
+buckets its manifest credits (`LmLang.english`: `en-wiki` alone); it reads no Dakshina file.
+
 Reads data/raw/text/ (see `mlkb.lm.sources` and data/build-lexicons.sh) and writes:
 
 | File | From |
@@ -200,8 +204,8 @@ def _eval_strings(path: Path) -> Iterator[str]:
             yield f"{cols[0]} {cols[2]}"
 
 
-def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED, own: set[Path] | None = None,
-              more: Iterable[Path] = (), dakshina_lang: str = "ml") -> set[int]:
+def leak_keys(eval_dir: Path = EVAL, dakshina: Path | None = DAKSHINA_ROMANIZED, own: set[Path] | None = None,
+              more: Iterable[Path] = (), dakshina_lang: str | None = "ml") -> set[int]:
     """Keys of every string in every eval set (each column, each context with its word, each
     sentence) in `eval_dir` and the `more` directories, and of every Dakshina romanised dev and
     test sentence of `dakshina_lang`, in both scripts, with and without punctuation. The `own`
@@ -214,7 +218,7 @@ def leak_keys(eval_dir: Path = EVAL, dakshina: Path = DAKSHINA_ROMANIZED, own: s
         for path in sorted(directory.iterdir()):
             if path.suffix in (".txt", ".tsv") and path not in own:
                 strings.extend(_eval_strings(path))
-    for path in sorted(dakshina.glob(f"{dakshina_lang}.romanized.rejoined.*.txt")):
+    for path in sorted(dakshina.glob(f"{dakshina_lang}.romanized.rejoined.*.txt")) if dakshina else ():
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 strings.append(line)
@@ -286,6 +290,7 @@ def transliterated(words: Iterable[str], lang: lm_lang.LmLang = lm_lang.ML) -> d
         engine = mlengine.Engine(
             malayalam=str(pack / lang.lexicon), manglish=str(pack / lang.romanised_lexicon),
             romanisation=str(pack / "romanisation.json"), translit=str(pack / lang.translit),
+            lang=str(pack / "lang.json") if lang.pack_lang else None,
             pack=lang.id, script=json.loads((pack / "manifest.json").read_text(encoding="utf-8"))["script"],
         )
     out: dict[str, list[str]] = {}
@@ -340,6 +345,10 @@ def speller(lang: lm_lang.LmLang) -> Speller:
     the language's spelling table (`mlkb.langs`, `table_romanise.variants`)."""
     if lang.id == "ml":
         return _malayalam_spellings
+    if lang.pack_lang:
+        from mlkb.langs.romanisation import Tables
+
+        return Tables.load(lang.id).variants
     from mlkb import langs
 
     table = table_romanise.Table.load(langs.load(lang.id).romanisation)
@@ -614,6 +623,33 @@ GATE_HI_HEADER = """# Next-word eval set, Hindi (gate split, held-out half): one
 # them a sentence of the training text. Built by training/mlkb/lm/corpus.py --lang hi.
 """
 HEADERS = {"ml": (TUNE_ML_HEADER, GATE_ML_HEADER), "hi": (TUNE_HI_HEADER, GATE_HI_HEADER)}
+# A pack of `data/langs/<id>/`: its text is Wikipedia, Wikisource and Wikiquote.
+TUNE_PACK_HEADER = """# Next-word eval set, {name} (tune split, for weight sweeps only): one sentence per line.
+# {{n}} sentences of 4-20 words sampled (seed {{seed}}) from held-out paragraphs, never trained on, of
+# {name} Wikipedia, {name} Wikisource and {name} Wikiquote (CC BY-SA 4.0, by their contributors,
+# https://{id}.wikipedia.org/, https://{id}.wikisource.org/, https://{id}.wikiquote.org/).
+# Built by training/mlkb/lm/corpus.py --lang {id}.
+"""
+GATE_PACK_HEADER = """# Next-word eval set, {name} (gate split, held-out half): one sentence per line.
+# {{n}} sentences of 4-20 words sampled (seed {{seed}}) from held-out paragraphs, never trained on, of
+# {name} Wikipedia, {name} Wikisource and {name} Wikiquote (CC BY-SA 4.0, by their contributors,
+# https://{id}.wikipedia.org/, https://{id}.wikisource.org/, https://{id}.wikiquote.org/), disjoint
+# from the tune split, and none of them a sentence of the training text.
+# Built by training/mlkb/lm/corpus.py --lang {id}.
+"""
+
+
+def headers(lang: lm_lang.LmLang) -> tuple[str, str]:
+    """The tune and gate files' headers, with `{n}` and `{seed}` left to fill."""
+    if lang.id in HEADERS:
+        return HEADERS[lang.id]
+    return (TUNE_PACK_HEADER.format(name=lang.name, id=lang.id),
+            GATE_PACK_HEADER.format(name=lang.name, id=lang.id))
+
+
+def english_sources(lang: lm_lang.LmLang) -> tuple[tuple[str, str, int | None], ...]:
+    """The rows of `ENGLISH` the language's LM trains on (`LmLang.english`)."""
+    return tuple(row for row in ENGLISH if row[0] in lang.english)
 
 
 def tune_pattern(lang: lm_lang.LmLang) -> re.Pattern:
@@ -621,7 +657,7 @@ def tune_pattern(lang: lm_lang.LmLang) -> re.Pattern:
     punctuation only (the danda for Hindi)."""
     if lang.id == "ml":
         return _TUNE_ML
-    chars = lang.word.pattern.strip("[]+")
+    chars = lang.word_chars or lang.word.pattern.strip("[]+")
     return re.compile(f"[{chars}][{chars} ,.?!।-]*")
 
 
@@ -735,7 +771,7 @@ def main(argv: list[str] | None = None) -> int:
         pending = pool.map_async(synthesise, jobs)
 
         heldout_en, tune_en = Reservoir(HELDOUT_SENTENCES, rng), Reservoir(TUNE_SENTENCES, random.Random(args.seed + 2))
-        for bucket, name, cap in ENGLISH:
+        for bucket, name, cap in english_sources(lang):
 
             def on_valid_en(raw: str, norm: str, bucket: str = bucket) -> None:
                 for s in sentences(norm):
@@ -761,7 +797,7 @@ def main(argv: list[str] | None = None) -> int:
         (EVAL / "next-en.tune.txt").write_text(
             TUNE_EN_HEADER.format(n=len(tune_en.items), seed=args.seed + 2) + "\n".join(tune_en.items) + "\n",
             encoding="utf-8")
-    tune_header, gate_header = HEADERS[lang.id]
+    tune_header, gate_header = headers(lang)
     lang.tune_file.write_text(
         tune_header.format(n=len(tune_nat.items), seed=args.seed + 1) + "\n".join(tune_nat.items) + "\n",
         encoding="utf-8")
