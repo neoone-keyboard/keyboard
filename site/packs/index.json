@@ -5,12 +5,12 @@
       "id": "as",
       "name": "Assamese",
       "nativeName": "অসমীয়া",
-      "version": "2026.11.12",
+      "version": "2026.11.13",
       "script": "beng",
-      "minEngine": 2,
-      "size": 16094220,
-      "sha256": "4955d7e85615bf937f7b9da68354ff95dde556ac3db79c759cbc2c1e2cf20452",
-      "url": "https://neoone.jishnu.me/packs/as-2026.11.12.neopack"
+      "minEngine": 3,
+      "size": 25649332,
+      "sha256": "7dd85cac0a0e6cd7562b172462109e6fc902e3df9fa47d06b25d5fd1618e8efa",
+      "url": "https://neoone.jishnu.me/packs/as-2026.11.13.neopack"
     },
     {
       "id": "hi",
