@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-kan",
+  "name": "Aksharantar (AI4Bharat), Kannada",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-12): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Kannada files have 'Dakshina Dataset' rows, which the filter in training/mlkb/data/human.py drops (the project's licence audit keeps them out of a pack): 51,117 Dakshina rows are dropped by the filter. There are no 'Existing sources' rows. What is used is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEI, AK-NEF: CC BY).",
+  "used_for": "kan_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/kn.neopack. Kannada has manual rows only in kan_test.json, so the romanised Kannada tables (data/langs/kn/romanisation.json) are fitted to the mined IndicCorp rows of kan_valid.json (3,271 pairs after the filter), which also validate training. kan_test.json's manual rows (AK-Freq, AK-NEI, AK-NEF, CC BY) are the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-12",
+  "notes": "Fetched 2026-11-12. Extract with: unzip kan.zip -d data/raw/aksharantar-kan/extracted (data/build-kn-text.sh does). kan_train.json has 2,906,728 rows: IndicCorp 2,826,695, Dakshina 43,373, Samanantar 36,482, Wikidata 178 (no manual rows). kan_valid.json 7,025: IndicCorp 3,849, Dakshina 2,729, Samanantar 441, Wikidata 6 (no manual rows). kan_test.json 11,380: Dakshina 5,015, AK-Freq 4,213, AK-NEI 1,274, AK-NEF 878. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/kan.zip",
+      "path": "kan.zip",
+      "sha256": "a0c18fa0a8bf06b34d413b09c3e7b9505b74ba3f7f1fa2ae724793fc3fc7d650"
+    }
+  ],
+  "status": "in packs/kn.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "extracted": {
+    "kan_train.json": "64fd9eee186cc310d43776c1d549e0a6d4bdaaf438ba66bc80b9914558228c85",
+    "kan_valid.json": "09d1e8e9c76768d2b98cb961db136957a1de211d7878878802081f13087bbef8",
+    "kan_test.json": "37f4a0c2615e54f0374993faf7f27209e95e3c7bef4f846ad10dd43bb12cfe6c"
+  }
+}
