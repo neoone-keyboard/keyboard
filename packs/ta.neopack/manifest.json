@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ta",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Tamil",
   "nativeName": "தமிழ்",
   "script": "taml",
@@ -17,9 +17,13 @@
     "lm": "lm.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
+    "emoji-search.txt": "ee157cd97ded628b32ad80a0283feb62252c057bee0651044ad08ac7c3a43fd7",
+    "emoji-words.txt": "4f05bc1f3d59f7307f72d91d5db1d7c983d2b898eb96bf1960620305acc4b052",
     "lang.json": "921de21419e75521bd4a3432f41b24958fd24633c2db0593c2ab8c6d83c7e2a8",
     "layout.json": "c630694441dc112d55d5b3010f9827cf4e0323db7f5ce5f580c2a634da7ff7e7",
     "lm.mlkbnn": "7f5039e7485d46c8cf5a2e2fbe1037e3caf996820716e49c652bf971018d7171",
@@ -49,6 +53,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Tamil emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Tamil."
     },
     {
       "name": "English Wikipedia",

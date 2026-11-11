@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "as",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Assamese",
   "nativeName": "অসমীয়া",
   "script": "beng",
@@ -17,10 +17,14 @@
     "lm": "lm.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
     "as.fst": "c9fd95a89287bc9e23d0f050e62c558f3f103742cbb2b1c2adc52b2a458073b6",
+    "emoji-search.txt": "7be3c672d20fd5a9f6b5816b816803c3c9235ff858b8f8c3d73cabba9ac7622b",
+    "emoji-words.txt": "e705a0f6a592083e86494469a0c74824d233849a92d817550ea10ae1797a4783",
     "lang.json": "18a0cc226b75b4b27b90a892ed487cb9ec162dfb17a1a0a97b424f9429974f76",
     "layout.json": "4ca35fbf1aedcc5e1dc6f89d9b19ba6b6986f09cb5df38be075a7648e1f0d184",
     "lm.mlkbnn": "40633f4b8dc0008da4e3cd05f1766fac156391b41c47b41bd7e255aac7154d4d",
@@ -49,6 +53,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Assamese emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Assamese."
     },
     {
       "name": "English Wikipedia",
