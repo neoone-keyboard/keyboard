@@ -85,6 +85,10 @@ const HINDI_INHERENT_A: &[(&str, &str)] = &[
     ("pyar", "प्यार"),
     ("ghar", "घर"),
     ("dhanyavad", "धन्यवाद"),
+    ("karne", "करने"),
+    ("kab", "कब"),
+    ("samajh", "समझ"),
+    ("matlab", "मतलब"),
 ];
 
 const ASSAMESE: &[(&str, &str)] = &[
@@ -127,6 +131,7 @@ fn a_tamil_swipe_gives_the_tamil_word() {
 #[test]
 fn with_english_off_a_pack_swipe_gives_only_its_words() {
     assert_native_alone("hi", HINDI);
+    assert_native_alone("hi", HINDI_INHERENT_A);
     assert_native_alone("as", ASSAMESE);
     assert_native_alone("ta", TAMIL);
 }

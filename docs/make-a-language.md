@@ -516,8 +516,12 @@ a skeleton letter may be drawn through every letter the skeleton folds into it (
 through `g` and `q`, its `s` through `c` and `j`; Hindi's `t` only through `t`), the finger
 may pass through `h` after a letter that a pattern ending in `h` folds to (`th` to `t`), and it
 may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
-`dropFinalVowel`). If the derived lists are wrong for your language, a `swipe` section in
-`romanisation.json` overrides the last two: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
+`dropFinalVowel`, and any `singles` letter that becomes one of those vowels: Assamese drops a
+final `a` and reads `o` as `a`, so a swipe may end on `o`). If your skeleton has
+`dropBetweenConsonants`, the finger may also go to one of those letters between any two
+consonants of a skeleton: Hindi's `karne` is the skeleton `krne`, and a swipe through
+k-a-r-n-e finds it. If the derived lists are wrong for your language, a `swipe` section in
+`romanisation.json` overrides the aspirated and trailing letters: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
 (Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
 step 7 and run `scripts/pack.py --write` again.
 

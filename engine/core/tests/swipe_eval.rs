@@ -14,8 +14,12 @@
 //! `swipe_eval_packs` does the same for the other packs (`SWIPE_PACKS`, default `hi as ta`):
 //! every Latin word of the pack's held-out set (`data/eval/<id>/translit-human.tsv`) drawn the
 //! same way with no text before it, on an engine with English and that pack, scored over all
-//! rows and over the words the pack's romanised lexicon has. A pack with no entry in the
-//! baselines file is only printed.
+//! rows and over the words the pack's romanised lexicon has, and then the English rows on that
+//! engine (`english with <id>`): what the pack's words cost an English swipe. A set with no
+//! entry in the baselines file is only printed.
+//!
+//! `swipe_recall` and `swipe_recall_packs` say how often the beam finishes the expected word's
+//! skeleton at all, `swipe_word` follows one word.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -290,9 +294,6 @@ fn swipe_eval() {
             expected: r.expected.clone(),
         })
         .collect();
-    let en_same = |a: &str, b: &str| {
-        a.to_lowercase().replace('\u{2019}', "'") == b.to_lowercase().replace('\u{2019}', "'")
-    };
     let gate = every == 1
         && std::env::var("SWIPE_WEIGHTS").is_err()
         && std::env::var("SWIPE_NOISE").is_err();
@@ -314,6 +315,11 @@ fn swipe_eval() {
         &mut run(&engine, &known, 2, |a, b| a == b),
         gate,
     );
+}
+
+/// English words are the same whatever their case and apostrophe.
+fn en_same(a: &str, b: &str) -> bool {
+    a.to_lowercase().replace('\u{2019}', "'") == b.to_lowercase().replace('\u{2019}', "'")
 }
 
 /// English and `pack` as shipped, without its transliterator (a swipe never asks it).
@@ -405,6 +411,13 @@ fn swipe_eval_packs() {
             &mut run(&engine, &known, seed, |a, b| a == b),
             gate,
         );
+        let english: Vec<Row> = english_rows().into_iter().step_by(every).collect();
+        report(
+            &format!("english with {id}"),
+            &format!("english_with_{id}"),
+            &mut run(&engine, &english, 1, en_same),
+            gate,
+        );
     }
 }
 
@@ -424,7 +437,7 @@ fn swipe_recall() {
     let keys = qwerty();
     let map = KeyMap::new(&keys).unwrap();
     let mut rng = Rng(2);
-    let (mut rows, mut found, mut first, mut top16) = (0, 0, 0, 0);
+    let (mut rows, mut found, mut first, mut top16, mut spelled) = (0, 0, 0, 0, 0);
     for row in manglish_rows().into_iter().step_by(every) {
         let Some(key) = mlengine_core::manglish::key(&tables, &row.expected) else {
             continue;
@@ -440,6 +453,7 @@ fn swipe_recall() {
         );
         let finished = decode(&mg, &map, &path, Some(rules));
         rows += 1;
+        spelled += usize::from(tables.skeleton(&row.drawn).as_bytes() == skeleton);
         if let Some(rank) = finished.iter().position(|f| f.key == skeleton) {
             found += 1;
             first += usize::from(rank == 0);
@@ -458,10 +472,11 @@ fn swipe_recall() {
         }
     }
     println!(
-        "{rows} rows: skeleton found {:.4}, first {:.4}, in top 16 {:.4}",
+        "{rows} rows: skeleton found {:.4}, first {:.4}, in top 16 {:.4}; drawn with the word's skeleton {:.4}",
         found as f64 / rows as f64,
         first as f64 / rows as f64,
-        top16 as f64 / rows as f64
+        top16 as f64 / rows as f64,
+        spelled as f64 / rows as f64
     );
 }
 

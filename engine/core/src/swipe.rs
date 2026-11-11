@@ -1141,6 +1141,13 @@ mod tests {
         let as_ = pack("as");
         assert_eq!(as_.swipe_rules().trail, b"ao");
         assert_eq!(as_.swipe_rules().keys(b'a'), b"ao");
+        // So a swipe of `bhalo` ends on o at no cost to the skeleton `bal`; with only the a
+        // allowed after the end, the stretch to o is a word that stops short.
+        let lexicon = lex(&[("bal\0x", 1)]);
+        let path = resample(&ideal_path(&keymap(), "bhalo", 4.0), STEP, MAX_POINTS);
+        let cost = |rules: &SkeletonRules| decode(&lexicon, &keymap(), &path, Some(rules))[0].cost;
+        let only_a = SkeletonRules::new(&[(b'a', b'o')], b"b", b"a");
+        assert!(cost(&only_a) > cost(as_.swipe_rules()) + 2.0);
         // Only Hindi drops a letter inside a word.
         assert_eq!(hi.swipe_rules().between, b"a");
         for other in [ta.swipe_rules(), as_.swipe_rules(), crate::romanisation::ml().swipe_rules()] {
