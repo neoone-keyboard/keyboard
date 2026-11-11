@@ -1033,6 +1033,21 @@ word is lost, with the model alone beside the engine (it needs torch, so
 The full evaluation (`python -m mlkb.eval`: transliteration, next words, English no-harm, with
 baselines and gates) has entries for Malayalam and Hindi only (gap G11).
 
+**Record your pack's suggestion bars.** An accuracy score says how many words changed, not
+which. Once the pack types the way you want, record the exact bar it gives for every prefix of
+a few hundred of your held-out words (and of the first sentences of any
+`data/eval/xx/next-*` file you have):
+
+```sh
+make golden-save-packs GOLDEN_PACKS=xx    # writes data/golden/packs/xx.tsv.gz; commit it
+make golden-check-packs GOLDEN_PACKS=xx   # prints "golden xx: identical", or the bars that moved
+```
+
+Run the first again whenever you change the pack's files on purpose (new lexicons, a new
+model): the recording is of the pack as it is, so any such change moves it. Without
+`GOLDEN_PACKS`, both cover every recorded pack. `engine/core/tests/golden_pack.rs` says what
+is typed.
+
 ### 12. Optional: a neural language model
 
 Malayalam's pack has a bilingual language model trained on Malayalam, its romanised form and
@@ -1097,6 +1112,7 @@ Open a pull request with:
   `romanisation.json`, `lexicon-stats.txt`);
 - `data/build-xx-text.sh`;
 - `data/eval/xx/translit-human.tsv`;
+- `data/golden/packs/xx.tsv.gz`, the pack's recorded suggestion bars (step 11);
 - `packs/xx.neopack/` with every file and up-to-date checksums;
 - in the description: the calibrate report (where its calibration pairs came from, and the
   held-out test numbers you didn't tune on), the output of `python -m mlkb.eval.pack --lang xx`
@@ -1115,7 +1131,8 @@ make test-pack PACK_LANG=xx
 It checks the pack's checksums, script rules and layout (`pack.py --check`), that the engine
 opens the pack and loads every file the manifest lists, that every lexicon word is in your
 script's normal form, and that every romanised key is the one your tables give
-(`engine/core/tests/pack_check.rs`); then the checks that cover all packs. It ends with
+(`engine/core/tests/pack_check.rs`); then the checks that cover all packs; then, when you
+have recorded them, that the pack's suggestion bars are the recorded ones. It ends with
 `test-pack: packs/xx.neopack passes`. Also run `make test-engine` and `make golden-check`,
 which must print `golden: identical` and `golden ml-only: identical`: a new pack changes
 nothing for the others.

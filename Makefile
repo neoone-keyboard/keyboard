@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packstestflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -67,7 +67,7 @@ twopacks: tools project $(XCFRAMEWORK)
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData-twopacks -allowProvisioningUpdates \
 	  ML_GIT_COMMIT=$(GIT_COMMIT) ML_DEBUG_PACKS="hi as" ML_ACTIVE_LANGUAGES=ml,hi build -quiet
 
-test: test-engine test-data test-training test-swift eval
+test: test-engine test-data test-training test-swift eval golden-check-packs
 
 test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
@@ -108,12 +108,15 @@ test-data:
 # pack"): its checksums, script rules and layout; that the engine opens it and loads every file
 # its manifest lists; its lexicon words in normal form and its romanised keys against its
 # tables (engine/core/tests/pack_check.rs, for the pack named); then the checks test-data runs
-# for every pack. It leaves out the site index, which only lists published packs.
+# for every pack; and, once the pack's suggestion bars are recorded (golden-save-packs, below),
+# that they are still the recorded ones. It leaves out the site index, which only lists
+# published packs.
 #   make test-pack PACK_LANG=ta
 test-pack:
 	python3 -I scripts/pack.py packs/$(PACK_LANG).neopack --check
 	cd engine && NEOPACK=$(PACK_LANG) $(CARGO) test -q --release -p mlengine-core --test pack_check -- --ignored --nocapture
 	$(PACK_CHECKS)
+	@if [ -f data/golden/packs/$(PACK_LANG).tsv.gz ]; then $(MAKE) --no-print-directory golden-check-packs GOLDEN_PACKS=$(PACK_LANG); fi
 	@echo "test-pack: packs/$(PACK_LANG).neopack passes"
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
@@ -157,6 +160,32 @@ golden-check: golden
 	@gzip -dc $(GOLDEN_ML_ONLY) | diff - build/golden/ml-only.tsv > build/golden/diff-ml-only.txt \
 	  && echo "golden ml-only: identical" \
 	  || { echo "golden ml-only: $$(grep -c '^>' build/golden/diff-ml-only.txt) lines differ (build/golden/diff-ml-only.txt)"; head -20 build/golden/diff-ml-only.txt; exit 1; }
+
+# The same for the other packs (engine/core/tests/golden_pack.rs): the bar for every prefix of
+# inputs from the pack's own eval data (data/eval/<id>/), on an engine with English and that
+# pack, recorded in data/golden/packs/<id>.tsv.gz. GOLDEN_PACKS names the packs: by default
+# every pack with a recording. golden-save-packs records them (again after a pack's files
+# change on purpose: new lexicons, a new model), golden-check-packs fails on any difference
+# and prints "golden <id>: identical" for each pack that has none.
+#   make golden-save-packs GOLDEN_PACKS=ta
+GOLDEN_PACKS_DIR := data/golden/packs
+GOLDEN_PACKS ?= $(sort $(patsubst $(GOLDEN_PACKS_DIR)/%.tsv.gz,%,$(wildcard $(GOLDEN_PACKS_DIR)/*.tsv.gz)))
+golden-packs:
+	@test -n "$(GOLDEN_PACKS)" || { echo "no pack to record: make golden-save-packs GOLDEN_PACKS=<id>"; exit 1; }
+	cd engine && GOLDEN_PACKS="$(GOLDEN_PACKS)" $(CARGO) test -q --release -p mlengine-core --test golden_pack -- --ignored golden_dump_packs
+golden-save-packs: golden-packs
+	mkdir -p $(GOLDEN_PACKS_DIR)
+	for id in $(GOLDEN_PACKS); do gzip -9nc build/golden/packs/$$id.tsv > $(GOLDEN_PACKS_DIR)/$$id.tsv.gz || exit 1; done
+golden-check-packs: golden-packs
+	@status=0; for id in $(GOLDEN_PACKS); do \
+	  if [ ! -f $(GOLDEN_PACKS_DIR)/$$id.tsv.gz ]; then \
+	    echo "golden $$id: not recorded (make golden-save-packs GOLDEN_PACKS=$$id)"; status=1; \
+	  elif gzip -dc $(GOLDEN_PACKS_DIR)/$$id.tsv.gz | diff - build/golden/packs/$$id.tsv > build/golden/packs/diff-$$id.txt; then \
+	    echo "golden $$id: identical"; \
+	  else \
+	    echo "golden $$id: $$(grep -c '^>' build/golden/packs/diff-$$id.txt) lines differ (build/golden/packs/diff-$$id.txt)"; \
+	    head -20 build/golden/packs/diff-$$id.txt; status=1; \
+	  fi; done; exit $$status
 
 # The Malayalam pack as a .neopack file (a zip of packs/ml.neopack), for import or download.
 pack:
