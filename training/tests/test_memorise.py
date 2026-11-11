@@ -65,3 +65,12 @@ def test_the_share_alike_text_is_the_languages():
 
     assert share_alike() == SHARE_ALIKE
     assert share_alike(lang.load("hi")) == ("en-wiki", "en-simple", "hi", "hinglish-0", "hinglish-1", "mixed-0")
+
+
+def test_a_pack_with_english_wikipedia_only_has_no_simple_wikipedia_shard():
+    from mlkb.lm import lang
+    from mlkb.lm.memorise import english_prompts, share_alike
+
+    assert english_prompts() == ("en-wiki", "en-simple")
+    assert english_prompts(lang.load("as")) == ("en-wiki",)
+    assert share_alike(lang.load("ta")) == ("en-wiki", "ta", "tanglish-0", "tanglish-1", "mixed-0")

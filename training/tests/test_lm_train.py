@@ -38,6 +38,18 @@ def test_sentence_windows_start_after_a_sentence_end(tmp_path):
         assert x[0] in (2, 16, 22)
 
 
+def test_a_pack_with_english_wikipedia_only_gives_it_all_of_englishs_weight():
+    from mlkb.lm import lang
+    from mlkb.lm.train import buckets_for, groups_for
+
+    for lang_id, romanised in (("as", "romanised"), ("ta", "tanglish")):
+        got = buckets_for(lang.load(lang_id))
+        assert list(got) == ["en-wiki", lang_id, romanised, "mixed"]
+        assert abs(got["en-wiki"] - 0.50) < 1e-9 and abs(sum(got.values()) - 1.0) < 1e-9
+        assert got[lang_id] == BUCKETS["ml"] and got[romanised] == BUCKETS["manglish"]
+        assert groups_for(lang.load(lang_id))["en"] == ("en-wiki",)
+
+
 def test_hindi_buckets_keep_the_weights_under_their_own_names():
     from mlkb.lm import lang
     from mlkb.lm.train import GROUPS, buckets_for, groups_for, score

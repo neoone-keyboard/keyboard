@@ -63,7 +63,12 @@ SHARE_ALIKE = ("en-wiki", "en-simple", "ml", "manglish-0", "manglish-1", "mangli
 
 def share_alike(lang: lm_lang.LmLang = lm_lang.ML) -> tuple[str, ...]:
     """The share-alike training shards of the language's LM (`SHARE_ALIKE` for Malayalam)."""
-    return ("en-wiki", "en-simple", lang.native, *lang.romanised_buckets(), *lang.mixed_buckets())
+    return (*english_prompts(lang), lang.native, *lang.romanised_buckets(), *lang.mixed_buckets())
+
+
+def english_prompts(lang: lm_lang.LmLang = lm_lang.ML) -> tuple[str, ...]:
+    """The share-alike English buckets the language's LM trains on: prompts are drawn from each."""
+    return tuple(b for b in ("en-wiki", "en-simple") if b in lang.english)
 
 
 RUNS = ((0.0, 0), (0.7, 1), (0.7, 2))  # (temperature, seed)
@@ -253,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     shards = {name: np.memmap(args.shards / f"{name}.bin", np.uint16, "r") for name in share}
     rng = np.random.default_rng(SEED)
     jobs = []  # (source, shard, position)
-    for name in ("en-wiki", "en-simple"):
+    for name in english_prompts(lang):
         for p in prompts(shards[name], 0, len(shards[name]), word_start, args.prompts, rng):
             jobs.append((name, name, p))
     starts = paragraph_starts(shards[nat])
@@ -323,7 +328,8 @@ def main(argv: list[str] | None = None) -> int:
         "loops_over_half_the_limit": sum(x[2] for x in longest),
         "quoted_text_licence": "The prompts and generations below quote CC BY-SA 4.0 text from "
                                f"English and {lang.name} Wikipedia and {lang.name} Wikisource "
-                               "(Wikipedia and Wikisource contributors).",
+                               + (f"and {lang.after_wikisource} (their contributors)."
+                                  if lang.after_wikisource else "(Wikipedia and Wikisource contributors)."),
         "longest": [entry(x) for x in longest if not x[2]][:10],
         "longest_loops": [entry(x) for x in longest if x[2]][:5],
         "pass": passed,

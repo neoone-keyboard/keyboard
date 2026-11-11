@@ -34,3 +34,13 @@ def test_the_vocabulary_sample_reads_the_languages_files():
     assert sorted(ml.values()) == sorted(hi.values())
     assert tokenizer.valid_files() == tokenizer.VALID_FILES
     assert "valid-hinglish.txt" in tokenizer.valid_files(lang.load("hi"))
+
+
+def test_a_pack_with_english_wikipedia_only_samples_no_other_english():
+    from mlkb.lm import lang, tokenizer
+
+    got = tokenizer.targets(lang.load("as"))
+    assert set(got) == {"as.txt", "romanised-0.txt", "en-wiki.txt"}
+    assert got["en-wiki.txt"] == int(tokenizer.SAMPLE_SENTENCES * tokenizer.SHARES["english"])
+    assert tokenizer.valid_files(lang.load("ta")) == (
+        "valid-en-wiki.txt", "valid-ta.txt", "valid-tanglish.txt", "valid-mixed.txt")

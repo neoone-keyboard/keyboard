@@ -33,17 +33,21 @@ VALID_FILES = ("valid-en-wiki.txt", "valid-en-simple.txt", "valid-en-news.txt", 
 
 
 def valid_files(lang: lm_lang.LmLang = lm_lang.ML) -> tuple[str, ...]:
-    """`VALID_FILES` with the language's native and romanised buckets."""
+    """`VALID_FILES` with the language's native and romanised buckets, and of the English ones
+    only those its LM trains on (`LmLang.english`)."""
     names = {"valid-ml.txt": f"valid-{lang.native}.txt", "valid-manglish.txt": f"valid-{lang.romanised}.txt"}
-    return tuple(names.get(n, n) for n in VALID_FILES)
+    english = {f"valid-{b}.txt" for b in lang.english}
+    return tuple(names.get(n, n) for n in VALID_FILES if not n.startswith("valid-en-") or n in english)
 
 
 def targets(lang: lm_lang.LmLang = lm_lang.ML) -> dict[str, int]:
-    """Sentences wanted from each file (`SHARES`, with the language's file names)."""
+    """Sentences wanted from each file (`SHARES`, with the language's file names). English's
+    share is split over the English buckets the language has, by `ENGLISH_WEIGHTS`."""
     out = {f"{lang.native}.txt": int(SAMPLE_SENTENCES * SHARES["ml.txt"]),
            f"{lang.romanised}-0.txt": int(SAMPLE_SENTENCES * SHARES["manglish-0.txt"])}
-    total = sum(ENGLISH_WEIGHTS.values())
-    for name, w in ENGLISH_WEIGHTS.items():
+    weights = {name: w for name, w in ENGLISH_WEIGHTS.items() if name.removesuffix(".txt") in lang.english}
+    total = sum(weights.values())
+    for name, w in weights.items():
         out[name] = int(SAMPLE_SENTENCES * SHARES["english"] * w / total)
     return out
 
