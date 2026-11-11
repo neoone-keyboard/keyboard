@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use fst::{IntoStreamer, Streamer};
 use lexbuild::romanisation::Table;
-use mlengine_core::lexicon::{FIRST_WORD_BYTE, build};
+use mlengine_core::lexicon::FIRST_WORD_BYTE;
 
 fn main() -> std::io::Result<()> {
     let args: Vec<PathBuf> = std::env::args_os().skip(1).map(PathBuf::from).collect();
@@ -26,9 +26,8 @@ fn main() -> std::io::Result<()> {
             vocab.push((word, count));
         }
     }
-    let entries = table.entries(&vocab);
-    let n = entries.len();
-    std::fs::write(out, build(entries).map_err(std::io::Error::other)?)?;
+    let (bytes, n) = table.build(&vocab)?;
+    std::fs::write(out, bytes)?;
     eprintln!("{}: {n} keys from {} words", out.display(), vocab.len());
     Ok(())
 }

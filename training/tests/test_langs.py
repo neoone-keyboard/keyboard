@@ -120,6 +120,14 @@ def test_format1_file_follows_the_spec():
     assert f.romanize("উৎসৱ").startswith("ut")
 
 
+def test_format1_optional_finals_give_a_second_key():
+    f = Format1.load("as")
+    assert f.keys("মানুহ") == [f.key("মানুহ")]
+    hindi = Format1.load(langs.load("hi").pack / "romanisation.json")
+    assert hindi.keys("हूँ") == ["hun", "hu"]
+    assert hindi.keys("दिन") == ["din"]
+
+
 def test_format1_export_matches_the_weighted_canonical_spellings():
     # Without the contexts the format can't hold, the two walks agree on plain words.
     f, t = Format1(export(Tables.load("as"))), Tables.load("as")

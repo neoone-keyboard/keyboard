@@ -7,7 +7,10 @@
 
 Each word is keyed by the skeleton of its walk under the pack's format-1 `romanisation.json`
 (`mlkb.langs.format1.Format1.key`): the walk and skeleton the engine will run, so the build and
-run time agree. One key per word, as for Malayalam.
+run time agree. One key per word, as for Malayalam. A language whose tables name
+`optionalFinals` has a second key for some words (`Format1.keys`), which this file does not
+write: build its romanised lexicon from the tables instead (`lexbuild-native --romanisation`, or
+`lexbuild-rekey` on the finished lexicon), which stores both and counts each word once.
 """
 
 import argparse

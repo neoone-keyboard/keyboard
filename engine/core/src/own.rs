@@ -41,9 +41,9 @@ impl OwnWords {
         r: &Romanisation,
         picked: impl Iterator<Item = (&'a str, &'a [String])>,
     ) -> Self {
-        // Each word with its own skeleton, walked once.
-        let mut all: Vec<(&str, &[String], String)> = picked
-            .filter_map(|(word, typed)| Some((word, typed, word_skeleton(r, word)?)))
+        // Each word with its own skeletons, walked once.
+        let mut all: Vec<(&str, &[String], Vec<String>)> = picked
+            .filter_map(|(word, typed)| Some((word, typed, word_skeletons(r, word)?)))
             .collect();
         all.sort_by_key(|(word, _, _)| *word);
         all.dedup_by_key(|(word, _, _)| *word);
@@ -68,7 +68,7 @@ impl OwnWords {
     /// is then as `build` would make it with the word so. False, and nothing changes, for a
     /// word the pack builder could not key.
     pub fn put(&mut self, r: &Romanisation, word: &str, typed: &[String]) -> bool {
-        let Some(skeleton) = word_skeleton(r, word) else {
+        let Some(skeleton) = word_skeletons(r, word) else {
             return false;
         };
         let place = match self.words.binary_search_by(|w| w.as_str().cmp(word)) {
@@ -165,27 +165,29 @@ impl OwnWords {
                     missing,
                     distance: if spelled { 0 } else { distance },
                     spelled,
+                    other_reading: false,
                 }
             })
             .collect()
     }
 }
 
-/// The skeleton the pack builder keys `word` by (`manglish::key`); None for a word it could
-/// not key: one with no skeleton, or with a character outside the script.
-fn word_skeleton(r: &Romanisation, word: &str) -> Option<String> {
+/// The skeletons the pack builder keys `word` by (`manglish::keys`: one, or two for a word
+/// with a shorter spelling); None for a word it could not key: one with no skeleton, or with
+/// a character outside the script.
+fn word_skeletons(r: &Romanisation, word: &str) -> Option<Vec<String>> {
     manglish::pack(word, manglish::block_base(r)?)?;
-    Some(r.word_skeleton(word)).filter(|skeleton| !skeleton.is_empty())
+    Some(r.word_skeletons(word)).filter(|skeletons| !skeletons.is_empty())
 }
 
 /// The skeletons a word is indexed by: its own, and those of the letters it was picked for.
 fn skeletons<'a>(
     r: &'a Romanisation,
-    own: String,
+    own: Vec<String>,
     typed: &'a [String],
 ) -> impl Iterator<Item = String> + 'a {
     let typed = typed.iter().map(|letters| r.skeleton(letters));
-    std::iter::once(own).chain(typed.filter(|skeleton| !skeleton.is_empty()))
+    own.into_iter().chain(typed.filter(|skeleton| !skeleton.is_empty()))
 }
 
 /// Whether `word` is one of `words`, which are sorted by bytes.
@@ -234,6 +236,23 @@ mod tests {
         assert!(index.lookup(ml(), "kerala", &no_uses).is_empty());
         assert!(index.lookup(ml(), "", &no_uses).is_empty());
         assert!(index.lookup(ml(), "123", &no_uses).is_empty());
+    }
+
+    /// A word with a shorter spelling (Hindi's `optionalFinals`) is indexed by both skeletons,
+    /// as the pack's lexicon keys it.
+    #[test]
+    fn finds_a_word_by_its_shorter_spelling() {
+        use crate::romanisation::hi;
+        let picked = [("रहूँगीं".to_string(), Vec::<String>::new())];
+        let mut index = OwnWords::build(hi(), picked.iter().map(|(w, t)| (w.as_str(), t.as_slice())));
+        for typed in ["rahungin", "rahungi"] {
+            let found = index.lookup(hi(), typed, &no_uses);
+            assert_eq!(found.len(), 1, "{typed}");
+            assert_eq!((found[0].missing, found[0].spelled), (0, true), "{typed}");
+        }
+        assert!(index.put(hi(), "जाऊँ", &[]));
+        let found = index.lookup(hi(), "jau", &no_uses);
+        assert_eq!((found[0].word.as_str(), found[0].missing, found[0].spelled), ("जाऊँ", 0, true));
     }
 
     #[test]

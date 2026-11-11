@@ -510,6 +510,39 @@ published before the field, with Malayalam's three habits above. Measure a chang
 and the first slot from 24.8% to 25.0%; dropping the field's vowel folds cost Hindi a point of
 first slot.
 
+**A final sign people leave unwritten: `optionalFinals`.** Some signs at a word's end are
+written about half the time. Hindi's anusvara and chandrabindu are the case: नहीं is `nahin`
+and `nahi`, हूँ `hun` and `hu`, में `mein` and `me`. Don't drop the letter in the skeleton
+(`dropTrailing` `n` would also turn दिन, `din`, into दी), and don't give the sign an empty
+spelling in `finals` unless nobody writes it (Assamese's chandrabindu). List it instead:
+
+```json
+"optionalFinals": ["ं", "ँ"]
+```
+
+Each entry is a key of `finals`. A word that ends in one is then stored under two keys, the
+skeleton of its walk and the skeleton of its walk without that sign, and typing or swiping
+either spelling finds it and counts as spelling it out. A sign inside a word is always
+written, and so is one that follows a bare consonant (स्वयं). The field is in the pack's `romanisation.json` (and in the hand file, from which the
+export copies it); after adding it, rebuild the romanised lexicon from the tables
+(`lexbuild-rekey romanisation.json <id>.fst <romanised>.fst` does it without the corpus) and
+run `scripts/pack.py --write`. `lexbuild --lang` and `lexbuild-native --romanisation` write
+both keys; `mlkb.langs.romanised_keys` writes one, so a `data/langs` language that uses the
+field should rekey afterwards.
+
+**Two more for a skeleton that drops a vowel between consonants** (Hindi's
+`dropBetweenConsonants: "a"`), both optional:
+
+- `"alsoBetweenConsonants": "u"` in `skeleton`: a letter people write for the dropped vowel
+  (`hum`, `humse`, `humara` for हम, हमसे, हमारा, which walk with `a`). Typed letters with it
+  between two consonants are also looked up with it dropped, behind the words that really
+  have it (`kuch` is still कुछ first). It doesn't change the lexicon. For the few such words
+  people swipe most, add rows to `chat-forms.tsv`: a swipe doesn't use this field.
+- `"alsoKept": true` in `skeleton.dropTrailing`: a word that ends consonant, dropped vowel,
+  dropped trailing letter (जगह `jagah`: `jga`) gets a second key with the trailing letter
+  kept (`jgh`), so a swipe that goes j, g, h without returning to `a` finds it. It adds keys:
+  rebuild the romanised lexicon as for `optionalFinals`.
+
 **Swiping romanised words.** A swipe over the Latin keys is matched against the skeletons of
 your romanised lexicon, and the rules for that come from your skeleton, with nothing to write:
 a skeleton letter may be drawn through every letter the skeleton folds into it (Tamil's `k`
@@ -523,7 +556,9 @@ consonants of a skeleton: Hindi's `karne` is the skeleton `krne`, and a swipe th
 k-a-r-n-e finds it. If the derived lists are wrong for your language, a `swipe` section in
 `romanisation.json` overrides the aspirated and trailing letters: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
 (Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
-step 7 and run `scripts/pack.py --write` again.
+step 7 and run `scripts/pack.py --write` again. A swipe also fits the letters of each row of
+your `chat-forms.tsv` as they are written, so a chat spelling no skeleton holds (Hindi's
+`kyu` for क्यों) can be swiped as well as typed.
 
 **A spelled guess without a model: `fromLatin`.** When nothing else answers for typed
 letters (no lexicon word, and no transliterator, or one that wasn't asked because the letters
