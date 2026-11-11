@@ -1,0 +1,506 @@
+# Next-word eval set, romanised Assamese (tune split): roman<TAB>native, word-aligned sentences.
+# SYNTHETIC: the sentences of data/eval/as/next-as.tune.txt (held-out Assamese Wikipedia, Wikisource and Wikiquote text,
+# CC BY-SA 4.0, by their contributors), each word spelled once by the pack's fitted romanisation tables
+# (data/langs/as/romanisation-weights.json, seed 20261103); nobody typed these. Punctuation dropped,
+# sentences with digits or a word the tables can't spell skipped, 2 to 20 words.
+# Built by training/mlkb/eval/next_sets.py --lang as.
+bhaake dir dbaru teu phulu xottee ne thakileo	ভাকে দিৰ দ্বাৰু তেও ফুলো সত্তি নে থাকিলেও
+ai kotha dhekiyal betmela xoyakiyaie nard boraye burhaa setiyat koi moharojaat jonale	এই কথা ঢেকিয়াল বেতমেলা শয়কিয়ায়ে নাৰদ বড়ায়ে বুঢ়া চেটিয়াত কৈ মহাৰজাত জনালে
+sondokoro pora uliyai apunee xumobar aga aage aani taat	চন্দুকৰ পৰা উলিয়াই আপুনি সোমোৱাৰ আগে আগে আনি তাত
+kisuderi todhaa lagi taai chaai rol xei agantok chaamurtir ukh xorirotuloi	কিছুদেৰী তধা লাগি তাই চাই ৰল সেই আগন্তক ছায়ামূৰ্তিৰ ওখ শৰীৰটোলৈ
+karengghoror nirman koruta bongali musolman xomprodaayoro ghonosyamoudinor ghor	কাৰেংঘৰৰ নিৰ্মাণ কৰোঁতা বঙালী মুছলমান সম্প্ৰদায়ৰ ঘনশ্যামউদিনৰ ঘৰ
+korar bhoyot xi xabodhane thake punor notoon manuhor porisoy lubar issa tar nai	কৰাৰ ভয়ত সি সাৱধানে থাকে পুনৰ নতুন মানুহৰ পৰিচয় লোৱাৰ ইচ্ছা তাৰ নাই
+aahee teunr hata o bhori sparso karat aamalokor probhu zishu khristr	আহি তেওঁৰ হাত ও ভৰি স্পৰ্শ কৰাত আমালোকৰ প্ৰভু যীশু খ্ৰীষ্টৰ
+teur premor patri biyetris	তেওঁৰ প্ৰেমৰ পাত্ৰী বিয়েট্ৰিচ্
+pohor nokarile xahityor oxim rupor oloppa dekhiboloi napai	পোহৰ নকৰিলে সাহিত্যৰ অসীম ৰূপৰ অলপপা দেখিবলৈ নাপায়
+nodeeyaalor sinaki sondo xur baajile be sura hoi	নদীয়ালৰ চিনাকি ছন্দ সুৰ বাজিলে বে সুৰা হৈ
+astom edouwaarde bharot vromon koriboloi aahi bumwai bondarot naame	অষ্টম এডওৱাৰ্ডে ভাৰত ভ্ৰমণ কৰিবলৈ আহি বোম্বাই বন্দৰত নামে
+taropichhot teu kichudinoro babe kapuror dukan akhnot selosomenor sakrio korichilo	তাৰপিছত তেওঁ কিছুদিনৰ বাবে কাপোৰৰ দোকান এখনত ছেলছমেনৰ চাকৰিও কৰিছিল
+take bhaabi xomoy nosto kraa nasil	তাকে ভাবি সময় নষ্ট কৰা নাছিল
+xeiburor ortho aku nubujile aaroo shi jadukorotur faloloi sai todha laagil	সেইবোৰৰ অৰ্থ একো নুবুজিলে আৰু সি যাদুকৰটোৰ ফাললৈ চাই তধা লাগিল
+odaror monot naheeke xukh xanti	উদাৰৰ মনত নাহিকে সুখ শান্তি
+jiburae xurjyoropra monomuha rong kari ane	যিবোৰে সূৰ্য্যৰপৰা মনমোহা ৰঙ কাঢ়ি আনে
+dhan poka maane tunir morno	ধান পকে মানে টুনিৰ মৰণ
+bhabisilo atiya xi borat porinot hoiche	ভাবিছিলোঁ এতিয়া সি বৰত পৰিণত হৈছে
+baandoror aji moha bhujo	বান্দৰৰ আজি মহা ভোজ
+zaau ki koro namr bixom batik jonmabor pokhye jothest	যাওঁ কি কৰো নামৰ বিষম বাতিক জন্মাবৰ পক্ষে যথেষ্ট
+nabnitar byakhya xuni sokolura mazot hahira rul util	নৱনীতাৰ ব্যাখ্যা শুনি সকলোৰে মাজত হাঁহিৰ ৰোল উঠিল
+ulome maneekyo moni yen thupaa thupa	ওলমে মাণিক্য মণি যেন থোপা থোপা
+aanondt nase aji xoklu poraanee	আনন্দত নাচে আজি সকলো পৰাণী
+ei bakyat kasu sukaa ai bhab	এই বাক্যত কচু চোকা এই ভাব
+masa suchi tani loi jabloi dhorile	মাছ চুঁচি টানি লৈ যাবলৈ ধৰিলে
+kunu kunuwe xiw mondir ba jyutirlingg dorsan koriboloi yay	কোনো কোনোৱে শিৱ মন্দিৰ বা জ্যোতিৰ্লিংগ দৰ্শন কৰিবলৈ যায়
+uttorot proxonggokrome tekhete ullek kore yae	উত্তৰত প্ৰসংগক্ৰমে তেখেতে উল্লেখ কৰে যে
+xorir aru mon ubhoioke pbhawit	শৰীৰ আৰু মন উভয়কে প্রভাৱিত
+a dhorme tumaar aamar istok bichir kirtta dault bas maanoke	এ ধৰ্মে তোমাৰ আমাৰ ইস্তক বিচিৰ কীৰ্ত্ত দৌলত বাচ মানকে
+doibik xokti baa ovaawar gunot kabeeror onubhobo jene tikhyna	দৈৱিক শক্তি বা অভাৱৰ গুণত কবীৰৰ অনুভৱ যেনে তীক্ষ্ণ
+utxorgo korichil paaposweekar xoonichil aru ghore ghore pobitro komuneey	উৎসৰ্গ কৰিছিল পাপস্বীকাৰ শুনিছিল আৰু ঘৰে ঘৰে পবিত্ৰ কমুনীয়
+takeha ojoieu fun korisil taaru protikriya amar dorei	তাকেহে অজয়েও ফোন কৰিছিল তাৰো প্ৰতিক্ৰিয়া আমাৰ দৰেই
+mrigyar orthe raaja voil ograxor	মৃগয়াৰ অৰ্থে ৰাজা ভৈল অগ্ৰসৰ
+tuthor goliyai pelai zaay	তোথৰ গলিয়াই পেলাই যায়
+si hetu sorono asi dekhilo tumar	সি হেতু চৰণ আসি দেখিলো তোমাৰ
+ane khelonata hate aki luba sobi bjowhar kora hoichil	এনে খেলনাত হাতে আঁকি লোৱা ছবি ব্যৱহাৰ কৰা হৈছিল
+prohaar korutobilaakoloi apon piti oki uday holo aamor ni baahor motibilaak	প্ৰহাৰ কৰোতবিলাকলৈ অপোন পিটি অকি উদয় হল আমোৰ নি বাহৰ মতিবিলাক
+sumbar aab ahumo mote plek mitor dina kpilakusora sangsokeeloi borno	সোমবাৰ আব আহোম মতে প্লেক মিতৰ দিনা কপিলাঁকোষৰ চাংচকীলৈ বৰ্ণ
+manuhe doinondin kamor dayeri lekhib pareele aaru proti xaptahot prathomor	মানুহে দৈনন্দিন কামৰ ডায়েৰী লিখিব পাৰিলে আৰু প্ৰতি সপ্তাহত প্ৰথমৰ
+roi nu roi binaale ai kuli	ৰৈ নো ৰৈ বিনালে ঐ কুলি
+niyom logai kaam koribloi xubeedha diyai ei xobhar uddesya	নিয়ম লগাই কাম কৰিবলৈ সুবিধা দিয়াই এই সভাৰ উদ্দেশ্য
+silaamarito asroy loi thake aaru ingraje dax luwar pisoto ghuri	চিলামাৰিত আশ্ৰয় লৈ থাকে আৰু ইংৰাজে দেশ লোৱাৰ পিছত ঘূৰি
+xeibabe xeibur manuhor lgot xomporka karise	সেইবাবে সেইবোৰ মানুহৰ লগত সম্পৰ্ক কৰিছে
+pujonon kriite xaadhu bishnurotul tejoxoh	পূজনং ক্ৰিয়তে সাধো বিষ্ণুৰতুল তেজসঃ
+uthise monggol pvati gaan	উঠিছে মঙ্গল প্রভাতী গান
+aru xea koruna ahiche	আৰু সেয়া কৰুণা আহিছে
+natun vini mto stexne	নতুন ভিণি মত ষ্টেশনে
+kisudin xorujini debi uss maadhjyomik maalika bidyaloyotu xikhyokota korichil	কিছুদিন সৰোজিনী দেৱী উচ্চ মাধ্যমিক মালিকা বিদ্যালয়তো শিক্ষকতা কৰিছিল
+i vaagi sigi naana xoru xura rajyo hoy	ই ভাগি ছিগি নানা সৰু সুৰা ৰাজ্য হয়
+sriholiraam mohonto thakur dbaaraai	শ্ৰীহলিৰাম মহন্ত ঠাকুৰ দ্বাৰাই
+iyar xubaad aaroo corib	ইয়াৰ সোৱাদ আৰু চৰিব
+he vagobn zotha yahomookompitehosmi ebong naardenaatmoxat krita	হে ভগবন যথা য়াহমুকম্পিতেহস্মি এবং নাৰদেনাত্মসাৎ কৃত্বা
+xatykire kritbak bodh kare tetiya kritar foleeya anbilake lg lagi	সাত্যকিৰে কৃতবাক বধ কৰে তেতিয়া কৃতাৰ ফলীয়া আনবিলাকে লগ লাগি
+iyak xindhu xomtholoropora chuleman	ইয়াক সিন্ধু সমথলৰপৰা চুলেমান
+orthat swodexi kapur kaani buwa kotar baar sombhaalibolai tirota	অৰ্থাৎ স্বদেশী কাপোৰ কানি বোৱা কটাৰ বাৰ চম্ভালিবলৈ তিৰোতা
+diia eya ek xikhahe aasil	দিয়া এয়া এক শিক্ষাহে আছিল
+jagonnath aage poribaak ronge	জগন্নাথ আগে পঢ়িবাক ৰঙ্গে
+je tur dore xodanonda xatyonistha pabitro atmaro thaai nexsoy	যে তোৰ দৰে সদানন্দ সত্যনিষ্ঠ পবিত্ৰ আত্মাৰ ঠাই নিশ্চয়
+aanohatedi jodi bostoo dutaai ake dixot gotee kori thake tetiya	আনহাতেদি যদি বস্তু দুটাই একে দিশত গতি কৰি থাকে তেতিয়া
+agni akax kunthum	অগ্নি আকাশ কুন্থুম
+varotoborsot bongaali dwitii xarbussa kothit bhasa	ভাৰতবৰ্ষত বঙালী দ্বিতীয় সৰ্বোচ্চ কথিত ভাষা
+koi pothaale ze teo bongalre soite axmra preeti sthapon	কৈ পঠালে যে তেওঁ বঙ্গালৰে সৈতে অসমৰ প্ৰীতি স্থাপন
+xresto xonggitokar sbanond kirkire behoti howaa sa thaa wu	শ্ৰেষ্ঠ সংগীতকাৰ স্বানন্দ কিৰ্কিৰে বেহতী হৱা চা থা ৱো
+toikhet bor ujar lor maanuh achil	তৈখেত বৰ উজাৰ লৰ মানুহ আছিল
+nizok rokhya koriboloi raavaxokle ai dhal ostro byowohar karisil	নিজক ৰক্ষা কৰিবলৈ ৰাভাসকলে এই ঢাল অস্ত্ৰ ব্যৱহাৰ কৰিছিল
+aei aapaar agontuku meelisil	এই আপাৰ আগন্তুকো মিলিছিল
+dekhuiam roghubore koto bolo dhora	দেখুয়াম ৰঘুবৰে কত বল ধৰে
+jahaz porisalna totha jatrixokole byowohar koribor babe eyat xoktixali onatar teligrafor subidha achil	জাহাজ পৰিচালনা তথা যাত্ৰীসকলে ব্যৱহাৰ কৰিবৰ বাবে ইয়াত শক্তিশালী অনাতাঁৰ টেলিগ্ৰাফৰ সুবিধা আছিল
+ai kamt prithwee op	এই কামত পৃথ্বী অপ
+lab u pagor poriaar moi khule gel	লাব ও পাগৰ পৰিাৰ মই খুলে গেল
+natun poreeya nizukti purneer oboxoro	নতুন পৰীয়া নিযুক্তি পুৰণিৰ অৱসৰ
+anebura kam adha koraakoi aerile praaye nosto ho	এনেবোৰ কাম আধা কৰাকৈ এৰিলে প্ৰায়ে নষ্ট হয়
+tate grur pocha goboro bohuto dichilu	তাতে গৰুৰ পচা গোবৰ বহুত দিছিলোঁ
+vaagre sub nuware ahar ba nidrar ovabe katoro korib	ভাগৰে ছুব নোৱাৰে আহাৰ বা নিদ্ৰাৰ অভাৱে কাতৰ কৰিব
+moi kontok dur krim	মই কণ্টক দূৰ কৰিম
+todupori totkalinobhawe bhartor bikhjat rojonitibid syama proxaad mukharjeeye xahojugita korisil	তদুপৰি তৎকালীনভাৱে ভাৰতৰ বিখ্যাত ৰজনীতিবিদ শ্যামা প্ৰসাদ মুখাৰ্জীয়ে সহযোগিতা কৰিছিল
+andhaar pureer ojan dex	আন্ধাৰ পুৰীৰ অজান দেশ
+itare neermit ai durgotur nirmankal xaadharonote choturdox othoba ponchodox shotika buli dhora hoy	ইটাৰে নিৰ্মিত এই দুৰ্গটোৰ নিৰ্মাণকাল সাধাৰণতে চতুৰ্দশ অথবা পঞ্চদশ শতিকা বুলি ধৰা হয়
+teu prayei tothakothit xotyagroh xosaakoiye	তেওঁ প্ৰায়েই তথাকথিত সত্যাগ্ৰহ সঁচাকৈয়ে
+dhormme amar xongkhya bosri basori komai aamar manuhok loi goi	ধৰ্ম্মে আমাৰ সংখ্যা বছৰি বছৰি কমাই আমাৰ মানুহক লৈ গৈ
+foloto tewu ganot mur ongxogrohonako bes pasond korisil	ফলত তেৱোঁ গানত মোৰ অংশগ্ৰহণক বেছ পছন্দ কৰিছিল
+adi goonor painot purnokola okalot bikax hobaloi lokhyya karile	আদি গুণৰ পৈণত পূৰ্ণকলা অকালত বিকাশ হোৱালৈ লক্ষ্য কৰিলে
+keh kre saamre botaash	কেহ কৰে চামৰে বতাস
+poraa han kibaa kinee ami dibo lage	পৰা হন কিবা কিনি আমি দিব লাগে
+kameng nodikhone orunachol prodexor poob kameng zila aaru pascheemo kaameng jilar xima nirdharit korise	কামেং নদীখনে অৰুণাচল প্ৰদেশৰ পূব কামেং জিলা আৰু পশ্চিম কামেং জিলাৰ সীমা নিৰ্ধাৰিত কৰিছে
+nodeekhnoro poschime sesaa aaru igolnesto obhoyaronyo aaru poobe pokwe braghyo prakalpa aaru oxmot naameree rastriy udyan obosthit	নদীখনৰ পশ্চিমে ছেছা আৰু ঈগলনেষ্ট অভয়াৰণ্য আৰু পূবে পক্বে ব্ৰাঘ্য প্ৰকল্প আৰু অসমত নামেৰী ৰাষ্ট্ৰীয় উদ্যান অৱস্থিত
+indeebore mrit ghoineeyekor mahee makor jeeyek xuneshworik	ইন্দীবৰে মৃত ঘৈণীয়েকৰ মাহী মাকৰ জীয়েক সোণেশ্বৰীক
+aan aekhn gabot inraazi madhjomor shkul khaaela hoichil	আন এখন গাঁৱত ইংৰাজী মাধ্যমৰ স্কুল খােলা হৈছিল
+ei khobob soni aton burhaguhaiye edol soinyo loi koliiaboboloi voteeyai	এই খবব শনি আতন বুঢ়াগোহাঁইয়ে এদল সৈন্য লৈ কলিয়াববলৈ ভটিয়াই
+sporshoi xarir bidirno koraar agotei botahot opongi uthise duti xrir	স্পৰ্শই শৰীৰ বিদিৰ্ণ কৰাৰ আগতেই বতাহত ওপঙি উঠিছে দুটি শৰীৰ
+kalar gtit owosye sei ghator sin sab aaji naai	কালৰ গতিত অৱশ্যে সেই ঘাটৰ চিন চাব আজি নাই
+pasoto moharaj nornaaraine xongkorodebok isr gyaan kori xotror namat doox bigha mati brohmuttor hichape prodan kore	পাছত মহাৰাজ নৰনাৰায়ণে শঙ্কৰদেৱক ঈশ্বৰ জ্ঞান কৰি সত্ৰৰ নামত দুশ বিঘা মাটি ব্ৰহ্মোত্তৰ হিচাপে প্ৰদান কৰে
+ajon bowxaayi hubatuwei tar ziwnor lakhyyo aaru jihetu xi ajn guzoraatee taaro mte eiaa taar tezatei boi ase	এজন ব্যৱসায়ী হোৱাটোৱেই তাৰ জীৱনৰ লক্ষ্য আৰু যিহেতু সি এজন গুজৰাটী তাৰ মতে এয়া তাৰ তেজতেই বৈ আছে
+teu aponar bindhi aatiburok gras	তেওঁ আপোনাৰ বিন্ধী আতিবোৰক গ্ৰাস
+nethakile ze kobiye iyaak xadharono premikor akhyan kori	নেথাকিলে যে কবিয়ে ইয়াক সাধাৰণ প্ৰেমিকৰ আখ্যান কৰি
+dhormo grahon kori sonxar tyago kore	ধৰ্ম গ্ৰহণ কৰি সংসাৰ ত্যাগ কৰে
+xoite varot xomporke bortoman korttobyo bisyor alap alusona solaaiche	সৈতে ভাৰত সম্পৰ্কে বৰ্তমান কৰ্ত্তব্য বিষয়ৰ আলাপ আলোচনা চলাইছে
+kadomr ghorloi nimokh tel kaachit daila aepuwa aru ketiyabaa dui eta bilaxee bostuu aaha	কাদমৰ ঘৰলৈ নিমখ তেল কাচিৎ দাইল এপোৱা আৰু কেতিয়াবা দুই এটা বিলাসী বস্তুও আহে
+tripurar parwotyo oncholot dholai nodeer utpottee hoiche	ত্ৰিপুৰাৰ পাৰ্বত্য অঞ্চলত ঢলাই নদীৰ উৎপত্তি হৈছে
+bipod apodora majedi jab	বিপদ আপদৰ মাজেদি যাব
+ee bimanobondaror somvawoniyota aaru biswo aitihyo khyetra aaroo poreebexor oprot iyaar probhab xondorvot bixexogyaxokle udweg prokax korise	এই বিমানবন্দৰৰ সম্ভাৱনীয়তা আৰু বিশ্ব ঐতিহ্য ক্ষেত্ৰ আৰু পৰিৱেশৰ ওপৰত ইয়াৰ প্ৰভাৱ সন্দৰ্ভত বিশেষজ্ঞসকলে উদ্বেগ প্ৰকাশ কৰিছে
+aalusok xomaluchokxokle iak mugdhokari ttha romaantik aakhya diye aru koyo ze purbowortee kitapodukhonor tulonaat iar bishoyobostu poinat	আলোচক সমালোচকসকলে ইয়াক মুগ্ধকাৰী তথা ৰোমাণ্টিক আখ্যা দিয়ে আৰু কয় যে পূৰ্বৱৰ্তী কিতাপদুখনৰ তুলনাত ইয়াৰ বিষয়বস্তু পৈণত
+eko xulikhit trikun premokaheeni aaru chaaritrik bikaxr logte ak uttejoko aaru xihoronokaari xamoronir babe i jothesto proxongsaa pay	এক সুলিখিত ত্ৰিকোণ প্ৰেমকাহিনী আৰু চাৰিত্ৰিক বিকাশৰ লগতে এক উত্তেজক আৰু শিহৰণকাৰী সামৰণিৰ বাবে ই যথেষ্ট প্ৰশংসা পায়
+porbote porbote hahe bonaphule	পৰ্বতে পৰ্বতে হাঁহে বনফুলে
+khuchnami aahil o hazu porognau tumar naame mour	খোচ্নামী আহিল ও হাজো পৰগণাও তোমাৰ নামে মৌৰ
+si kolaat poriyaa jogot	সি কোলাত পৰিয়া জগত
+pisoloi djyo imortelach af meluhaa keibatau bharotiy vasha zene gujorati maarathi oxomeeiaa aaru telugut prakax paai	পিছলৈ দ্য ইমৰ্টেলছ অফ মেলুহা কেইবাটাও ভাৰতীয় ভাষা যেনে গুজৰাটী মাৰাঠী অসমীয়া আৰু তেলুগুত প্ৰকাশ পায়
+gotei sohorokhon solaath korileu ene	গোটেই চহৰখন চলাথ কৰিলেও এনে
+bndhu biiugr ae akosmik baatori shuni malabhug membororo murot bina maghe bojrapat para jen hol	বন্ধু বিয়োগৰ এই আকস্মিক বাতৰি শুনি মালভোগ মেম্বৰৰ মূৰত বিনা মেঘে বজ্ৰপাত পৰা যেন হল
+debir anugrohot anukul bayoo juge kee deen maante ephesas	দেবীৰ অনুগ্ৰহত অনুকুল বায়ু যোগে কেই দিন মানতে এফেচাচ
+jaeteyaloi tumi atmar ostitwo	যেতিয়ালৈ তুমি আত্মাৰ অস্তিত্ব
+ajikali akhor zutaute xobdor mool	আজিকালি আখৰ যোঁটাওতে শব্দৰ মূল
+ontoror goopt bhab rakhi antarat	অন্তৰৰ গুপ্ত ভাব ৰাখি অন্তৰত
+chobitu dekhiyei totalike mura aagate jiiaslir kathee et	ছবিটো দেখিয়েই ততালিকে মোৰ আগতে জিয়াচলিৰ কাঠী এট
+janoxongkhya briddhi rodh korib lage	জনসংখ্যা বৃদ্ধি ৰোধ কৰিব লাগে
+hridpindo durbol hoi pore aaru aakarot dangoro hoi pore	হৃদপিণ্ড দুৰ্বল হৈ পৰে আৰু আকাৰত ডাঙৰ হৈ পৰে
+kori dibloi kakooti minti koriboloi dhorile	কৰি দিবলৈ কাকুতি মিনতি কৰিবলৈ ধৰিলে
+shorixripor hridozontro oxompurnobhawe charita kothalit bibhokto	সৰীসৃপৰ হৃদযন্ত্ৰ অসম্পূৰ্ণভাৱে চাৰিটা কোঠালিত বিভক্ত
+ishworor putra awotar hoichil	ঈশ্বৰৰ পুত্ৰ অৱতাৰ হৈছিল
+baandor puhoniya hoi manuhor ukoni chaaleo xihot ei sbovaabotu ereb nubare	বান্দৰ পোহনীয়া হৈ মানুহৰ ওকণি চালেও সিহঁত এই স্বভাবটো এৰিব নোৱাৰে
+tenakoi bohuto dinei mai xoory uthaa	তেনেকৈ বহুত দিনেই মই সূৰ্য উঠা
+srishrixiboxingh bhupal montree bor xenani xomasrimottoruno	শ্ৰীশ্ৰীশিবসিংহ ভূপাল মন্ত্ৰি বৰ সেনানি সমশ্ৰীমত্তৰুণ
+kintu ra keijonoman xodosyi raajonoitik dala arombho krebor babe prosexta aromvo koraaro pist gogoi ra pora aatari aahe	কিন্তু ৰ কেইজনমান সদস্যই ৰাজনৈতিক দল আৰম্ভ কৰিবৰ বাবে প্ৰচেষ্টা আৰম্ভ কৰাৰ পিছত গগৈ ৰ পৰা আতঁৰি আহে
+iyat teu bjyawosay ba muloto manow xompod bikaxar khetrot vaaroteeyo kinbodontixmuhor proyug kore	ইয়াত তেওঁ ব্যৱসায় বা মূলতঃ মানৱ সম্পদ বিকাশৰ ক্ষেত্ৰত ভাৰতীয় কিংবদন্তিসমূহৰ প্ৰয়োগ কৰে
+hindu dorshon aru biswax xomporkiy bohutu prsnawoleero uttor diboloi onusthantur jriyote seshta kora hoichhe	হিন্দু দৰ্শন আৰু বিশ্বাস সম্পৰ্কীয় বহুতো প্ৰ্শ্নাৱলীৰ উত্তৰ দিবলৈ অনুষ্ঠানটোৰ জৰিয়তে চেষ্টা কৰা হৈছে
+xonibaare gadhooli beepool palehi	শনিবাৰে গধূলি বিপুল পালেহি
+tekheta kunu xomooto bongalee bondhoor ghorotohe asilogoi	তেখেতে কোনো সময়ত বঙ্গালী বন্ধুৰ ঘৰতহে আছিলগৈ
+triteei ti oroo som ilihutronoy	তৃতীয় টী অৰও সম ইলিহোত্ৰনয়
+rodot snxar puri more	ৰদত সংসাৰ পুৰি মৰে
+teo jwolanto zuit dub jab	তেওঁ জ্বলন্ত জুইত ডুব যাব
+kon alhiloi garaalor hahinee	কোন আলহীলৈ গঁৰালৰ হাঁহিনী
+sorairo nak xareexripar dorei naakor phutabur thutor pichophalor uporor ongxot thake	চৰাইৰ নাক সৰীসৃপৰ দৰেই নাকৰ ফুটাবোৰ ঠোঁটৰ পিছফালৰ ওপৰৰ অংশত থাকে
+kopou aaru soraike dhoree bohutu sarair nakar futabur xingr dore soorokhamulok kothina khulare abrit hoy	কপৌ আৰু চৰাইকে ধৰি বহুতো চৰাইৰ নাকৰ ফুটাবোৰ শিংৰ দৰে সুৰক্ষামূলক কঠিন খোলাৰে আবৃত হয়
+boikunthonaath kori vaagot bhttasarjyo	বৈকুণ্ঠনাথ কৰি ভাগত ভট্টাচাৰ্য্য
+yokritor thiko tolotei thokaa ata khyudro tholi pittostholeet zokritot prostut huwa ros xongrokhit hoi thake	যকৃতৰ থিক তলতেই থকা এটা ক্ষুদ্ৰ থলী পিত্তস্থলীত যকৃতত প্ৰস্তুত হোৱা ৰস সংৰক্ষিত হৈ থাকে
+bataasaa akti suumoni aekti xubon no xaphura kori prithoke prithke xei	বাতাচা একটি শুরুমণি একটি সুবর্ণ ন সফুৰা কৰি পৃথকে পৃথকে সেই
+teun logot niyaa manuhor vitorot xoiniko khetiyako aru dormoguruu asil	তেওঁ লগত নিয়া মানুহৰ ভিতৰত সৈনিক খেতিয়ক আৰু ধৰ্মগুৰুও আছিল
+tar dwara si fulropora mom gutai tar pach thengoro topinaato	তাৰ দ্বাৰা সি ফুলৰপৰা মম গোটাই তাৰ পাচ ঠেঙ্গৰ তপিনাত
+paaxwikotar unmottota bibhotxota dhwonx kori	পাশৱিকতাৰ উন্মত্ততা বীভৎসতা ধ্বংস কৰি
+zaaye gulok chori rathot	যায়ে গোলক চৰি ৰথত
+kora nasil jodiu ai dalor onugameelukor xongkhyo	কৰা নাছিল যদিও এই দলৰ অনুগামীলোকৰ সংখ্য
+kintoo varot sorokare ei tothyoxomuh grohon kariboloi osbikara kre	কিন্তু ভাৰত চৰকাৰে এই তথ্যসমূহ গ্ৰহণ কৰিবলৈ অস্বীকাৰ কৰে
+mekurie aendur ata dhorela	মেকুৰিএ এন্দুৰ এটা ধৰিলে
+moramri lagi jakhom hoy	মৰামৰি লাগি জখম হয়
+hatot pai ma loxmeer kripat jibilaak xomptti arjjon	হাতত পাই মা লক্ষ্মীৰ কৃপাত যিবিলাক সম্পত্তি আৰ্জ্জন
+ghotib tetia ai xite xaip hoi	ঘটিব তেতিয়া এই শীতে সাীপ হৈ
+saikelor belo maari danar mahak xumaai ahil taur matto xuni olindao	চাইকেলৰ বেল মাৰি ডাঙৰ মহাক সোমাই আহিল তেওঁৰ মাতটো শুনি অলিন্দও
+zurohat bhmoput tajomohol kaamakhya ram rahim ityadi	যোৰহাট ব্রহ্মপুত্র তাজমহল কামাখ্যা ৰাম ৰহিম ইত্যাদি
+pujar protimak xendooro diyaa boron korar pisot ai khela arombha hoy	পূজাৰ প্ৰতিমাক সেন্দূৰ দিয়া বৰণ কৰাৰ পিছত এই খেলা আৰম্ভ হয়
+roth dhboj ghora goj shenaat oxongkhyo	ৰথ ধ্বজ ঘোঁৰা গজ সেনাত অসংখ্য
+akou jee kotha kole manuhr khan jonme tene kathaa ussarono	আকৌ যি কথা কলে মানুহৰ খং জন্মে তেনে কথা উচ্চাৰণ
+padumor gs pani ba bukaat goze	পদুমৰ গছ পানী বা বোকাত গজে
+ai sotya nobesbore aajihe jeebonot prothomobaaror karne abiskar korile	এই সত্য নবেশ্বৰে আজিহে জীৱনত প্ৰথমবাৰৰ কাৰণে আবিষ্কাৰ কৰিলে
+debaalyar mondiroti sotiya xil aaru itare dhuniiakoi xja	দেৱালয়ৰ মন্দিৰটি চটিয়া শিল আৰু ইটাৰে ধুনীয়াকৈ সজা
+xorwussa upadhi labho koreeb parisila i xaamanyo gourobor bixoy	সৰ্বোচ্চ উপাধি লাভ কৰিব পাৰিছিল ই সামান্য গৌৰৱৰ বিষয়
+gaa gosor gathir pora xipa ulay	গা গছৰ গাঁঠিৰ পৰা শিপা উলায়
+maanuhe xandeh korisil aaru haeloichayu vabichil ze teuro proti aabelardor zi akorsono xi kamolipsa bixuddho prem nohoy	মানুহে সন্দেহ কৰিছিল আৰু হেলইছায়ো ভাবিছিল যে তেওঁৰ প্ৰতি আবেলাৰ্ডৰ যি আকৰ্ষণ সি কামলিপ্সা বিশুদ্ধ প্ৰেম নহয়
+ma oxohay aasil tothaapiu ebaro ga nokopil na maro	মা অসহায় আছিল তথাপিও এবাৰ গা নকপিঁল নে মাৰ
+xongket pai mai mar masiyakhonote bohilu	সঙ্কেত পাই মই মাৰ মাচিয়াখনতে বহিলো
+xoundoryota mlan paraloi lokhyorakhi protitu liot abar ba dubaar	সৌন্দৰ্যতা ম্লান পৰালৈ লক্ষ্যৰাখি প্ৰতিটো লয়ত এবাৰ বা দুবাৰ
+ai protijugitaat teu mis photujenik khitaap joy karaar logota suranto protijogitaar khitap nijor dokholloi ane	এই প্ৰতিযোগিতাত তেওঁ মিছ ফটোজেনিক খিতাপ জয় কৰাৰ লগতে চূড়ান্ত প্ৰতিযোগিতাৰ খিতাপ নিজৰ দখললৈ আনে
+iyaar folat vaartor bibhinno proxaxonik xomosyaaie mur dani uthat bhaartiy sena agobarhi aahil	ইয়াৰ ফলত ভাৰতৰ বিভিন্ন প্ৰশাসনিক সমস্যায়ে মূৰ দাঙি উঠাত ভাৰতীয় সেনা আগবাঢ়ি আহিল
+bujis mur ghrot hoy dhunaa	বুজিছ মোৰ ঘৰত হয় ধূনা
+praij paboloi xokhom hoy	প্ৰাইজ পাবলৈ সক্ষম হয়
+umrangsur uchre pajore puwa brihat sunsilor bhandarr babe iyat keibatao simento udyug prtisthaa hoise	উমৰাংছুৰ ওচৰে পাজৰে পোৱা বৃহৎ চূনশিলৰ ভাণ্ডাৰৰ বাবে ইয়াত কেইবাটাও চিমেণ্ট উদ্যোগ প্ৰতিষ্ঠা হৈছে
+apuni apotti nokorib aaru moyu aapooni daax logat loi ohat aapotti nokrim	আপুনি আপত্তি নকৰিব আৰু ময়ো আপুনি দাস লগত লৈ অহাত আপত্তি নকৰিম
+aaroo batot kaku nomaskar nokreeba	আৰু বাটত কাকো নমস্কাৰ নকৰিবা
+ei dui suraanta poristhitir majar bhagot dhrupdee achoronobure provaw bistaar kore	এই দুই চূড়ান্ত পৰিস্থিতিৰ মাজৰ ভাগত ধ্ৰুপদী আচৰণবোৰে প্ৰভাৱ বিস্তাৰ কৰে
+aidre tu bamune dine deena amak dubai	এইদৰে তো বামুণে দিনে দিনে আমাক ডুবাই
+aroo bhalopuware hridoy chaposopiyaa hoi thokar pachotu taai otitot ghoomutiyai phurise	আৰু ভালপোৱাৰে হৃদয় চপচপীয়া হৈ থকাৰ পাছতো তাই অতীতত ঘুমুটিয়াই ফুৰিছে
+tar uporere gari aa ghura xodai juba ohaakore	তাৰ ওপৰেৰে গাৰি আ ঘোৰা সদাই জোৱা অহাকৰে
+lalukxula borphukone ajom xbaahok guwahati gotaai diboloi kra xorojontror teu birudhita korisil	লালুকসোলা বৰফুকনে আজম শ্বাহক গুৱাহাটী গতাই দিবলৈ কৰা ষড়যন্ত্ৰৰ তেওঁ বিৰোধিতা কৰিছিল
+kine odbhut bostu baje	কিনে অদভুত বস্তু বাজে
+teu joiw roxayon aaru udbhid roxayonr khyetrokhonoloi aagobruwa owodanor babe jonajaat	তেওঁ জৈৱ ৰসায়ন আৰু উদ্ভিদ ৰসায়নৰ ক্ষেত্ৰখনলৈ আগবঢ়োৱা অৱদানৰ বাবে জনাজাত
+tumi zi thaait thiy hoi oha xeithaipobitro	তুমি যি ঠাইত থিয় হৈ অহা সেইঠাইপবিত্ৰ
+iyar upareu teu udvido roxayon odhyoyon kori meleriyaa aru mrigee rugro ausadh udbhawn krisil	ইয়াৰ উপৰিও তেওঁ উদ্ভিদ ৰসায়ন অধ্যয়ন কৰি মেলেৰিয়া আৰু মৃগী ৰোগৰ ঔষধ উদ্ভাৱন কৰিছিল
+nohru di rondhaa xakar bhajir xubaad horenor	নহৰু দি ৰন্ধা শাকৰ ভাজিৰ সোৱাদ হৰেনৰ
+koompaneer molukat rati duprot suri	কুম্পানীৰ মলুকত ৰাতি দুপৰত চুৰি
+aeiburoro zoriiote smartafunot bivinno kaaryo xompadit kra hoi	এইবোৰৰ জৰিয়তে স্মাৰ্টফোনত বিভিন্ন কাৰ্য সম্পাদিত কৰা হয়
+araa eidore kone khubabuwa korib pare	এৰা এইদৰে কোনে খোৱাবোৱা কৰিব পাৰে
+dokhyinoloi aaru poobloi aahi bax korisil	দক্ষিণলৈ আৰু পূবলৈ আহি বাস কৰিছিল
+udondo hostir guno kohan nyaa	উদণ্ড হস্তীৰ গুণ কহন নযায়
+xoneet kuworir gitburot eidre biyanam ainam	শোণিত কুঁৱৰীৰ গীতবোৰত এইদৰে বিয়ানাম আইনাম
+nahi kache annopan naahike trupite	নাহি কচে অন্নপান নাহিকে তৃপিতি
+eibor kaani kapor aaru nipindhe	এইবোৰ কানি কাপোৰ আৰু নিপিন্ধে
+ai mukta aaru bitreet khotiyanoke bloksein bula hoy	এই মুক্ত আৰু বিতৰিত খতিয়ানকে ব্লকচেইন বোলা হয়
+aei udvid xomuhot phul ful aaru iar fol somoohr vitrot beejo xamooh xoorokhit hoi thake	এই উদ্ভিদ সমূহত ফুল ফুল আৰু ইয়াৰ ফল সমূহৰ ভিতৰত বীজ সমূহ সুৰক্ষিত হৈ থাকে
+ei udvida xomuht puroth pat phul sipa fol dekhaa jay	এই উদ্ভিদ সমূহত পূৰঠ পাত ফুল শিপা ফল দেখা যায়
+baa bindarei pani xumai jolmogna hoyo	বা বিন্ধাৰেই পাণী সোমাই জলমগ্ন হয়
+bhukal parom xukhe baax korisilo	বহুকাল পৰম সুখে বাস কৰিছিল
+xoru kalote bor dhitingaa aaru uddhot sbobhawar achil	সৰু কালতে বৰ ধিতিঙ্গা আৰু উদ্ধত স্বভাৱৰ আছিল
+jani muka xoda xakhi tottbagyanijon	জানি মোক সদা সখি তত্ত্বজ্ঞানীজন
+xei xomyot bhatkhinir pora ata xundor gundha ulay	সেই সময়ত ভাতখিনিৰ পৰা এটা সুন্দৰ গোন্ধ ওলায়
+ke ke porile tomolake je ai kthaa na	কে কে পড়িলে তোমোলাকে যে এই কথা ন
+kisu kaarjy koraar pisot mol mutra	কিছু কাৰ্য্য কৰাৰ পিচত মল মূত্ৰ
+flovenoisoy baabe raego protiraedh khyomota	ফ্লভেনয়ছয় বাবে ৰােগ প্ৰতিৰােধ ক্ষমতা
+thoi gurowar niyom aulukei prowortton kre	থৈ গোৰোৱাৰ নিয়ম এওঁলোকেই প্ৰৱৰ্ত্তন কৰে
+ani jihubak suyan dibar nimite hom azo poia moy tumalukok zee daxloi loi	আনি যিহোৱাক সুয়াণ দিবৰ নিমিত্তে হোম আজ পয়া ময় তোমালোকক যি দেশলৈ লৈ
+monuroma dwipmaalaa indroja upozati xalini vromor bilaxita	মনোৰমা দ্বীপমালা ইন্দ্ৰজা উপজাতি শালিনী ভ্ৰমৰ বিলাসিতা
+laaur gutiie ai jeeb jntuburok bohutu bemaaror pora rokhya kora dekha jaay	লাওৰ গুটিয়ে এই জীৱ জন্তুবোৰক বহুতো বেমাৰৰ পৰা ৰক্ষা কৰা দেখা যায়
+bhangor khutat vara garu pari	ভাঙৰ খুটাত ভাৰ গাৰু পাৰি
+obostare kisu luke bhokti koril	অবস্তৰে কিছু লোকে ভকতি কৰিল
+koise je thoibir ghoroto aeko krisna tomar rokto sari krisno jonma pai	কৈছে যে থৈবীৰ ঘৰত এক কৃষ্ণ তোমাৰ ৰক্ত চাৰি কৃষ্ণ জন্ম পাই
+kot aheese kat goise kune kar khobor raakhe	কত আহিছে কত গৈছে কোণে কাৰ খবৰ ৰাখে
+koribloi dasik potai dile	কৰিবলৈ দাসীক পঠাই দিলে
+bisobedonat iyar lepono karile uposhom paewa	বিষবেদনাত ইয়াৰ লেপন কৰিলে উপশম পােৱা
+saxonkarta pati oxmor shaayotwo xaxonoru prostab diye	শাসনকৰ্তা পাতি অসমৰ স্বায়ত্ব শাসনৰো প্ৰস্তাব দিয়ে
+neug selai fiingi boropatrr neugo pubali nathum eixokolak bonggi	নেওগ চেলাই ফিরিঙ্গি বৰপাত্ৰৰ নেওগ পোৱালি নাথুম এইসকলক বঙ্গি
+thuwa morapator patokhinee dib laage	থোৱা মৰাপাটৰ পাতখিনি দিব লাগে
+mrityuro pichot teur deh poruwaaye aawori dhorisil buliu bisbaax kora hay	মৃত্যুৰ পিছত তেওঁৰ দেহ পৰুৱায়ে আৱৰি ধৰিছিল বুলিও বিশ্বাস কৰা হয়
+thakee chorokarar logt oxohojug koriboloi aru sworajyo dale	থাকি চৰকাৰৰ লগত অসহযোগ কৰিবলৈ আৰু স্বৰাজ্য দলে
+xomo sigarat khai akou ahi bohisilohi	সময় ছিগাৰেট খাই আকৌ আহি বহিছিলহি
+pthom dwitiy triteeio chtuth pnsom xostho xoptomo	প্রথম দ্বিতীয় তৃতীয় চতুর্থ পঞ্চম ষষ্ঠ সপ্তম
+lajr abhornae sui goisil taaik	লাজৰ আভৰণে চুই গৈছিল তাইক
+amaru je parmarthika mritju ghatib pare ziwnor baatotu sei eke	আমাৰো যে পাৰমাৰ্থিক মৃত্যু ঘটিব পাৰে জীৱনৰ বাটতো সেই একে
+xeidekhi ketiyaba omrit gosto bih fol loga aku na kotha	সেইদেখি কেতিয়াবা অমৃত গছতো বিহ ফল লগা একো ন কথা
+xuna gurudeb moi koro nibedan	শুনা গুৰুদেৱ মই কৰোঁ নিবেদন
+kochari aai vutiyaa ai sutiyaa maeyaae aru tamil aayi	কছাৰী আই ভুটিয়া আই চুটিয়া মােয়াে আৰু তামিল আয়ি
+durbhagyoboxot muktiro pisot chobitu protyaxa puron korar baabe byortho hoyo	দুৰ্ভাগ্যবশত মুক্তিৰ পিছত ছবিটো প্ৰত্যাশা পূৰণ কৰাৰ বাবে ব্যৰ্থ হয়
+diogoi pobisoy khtriy bahur	দিওঁগৈ পবিচয় ক্ষত্ৰিয় বাহুৰ
+sigaretor gaend xohyo krib naevaru	চিগাৰেটৰ গােন্ধ সহ্য কৰিব নােৱাৰোঁ
+seibur raakhiche teur bichonato	সেইবোৰ ৰাখিছে তেওঁৰ বিছনাত
+jadukorotuwe tak haatt dhori tan mari anile aaru aene etaa kantliya	যাদুকৰটোৱে তাক হাতত ধৰি টান মাৰি আনিলে আৰু এনে এটা কাণতলীয়া
+kiyonu nukuwaa kathaa maatile nidiyaa mat	কিয়নো নোকোৱা কথা মাতিলে নিদিয়া মাত
+jomunaar porau je tar	যমুনাৰ পৰাও যে তাৰ
+joshosbi xilpi protimaa boruba paander mrityur pisot guwalopriya lukogeetoro sadhna kora xilpee xokolor vitor ghuxal onytom asil	যশস্বী শিল্পী প্ৰতিমা বৰুৱা পাণ্ডেৰ মৃত্যুৰ পিছত গোৱালপৰীয়া লোকগীতৰ সাধনা কৰা শিল্পী সকলৰ ভিতৰ ঘোষাল অন্যতম আছিল
+teu asil beesitrobiryor kanistha santan	তেওঁ আছিল বিচিত্ৰবীৰ্যৰ কনিষ্ঠ সন্তান
+xeya aasil bhartot inrajro xaxonokalor xami	সেয়া আছিল ভাৰতত ইংৰাজৰ শাসনকালৰ সময়
+bohul ghono jen bhoru bamofal	বহুল ঘন যেন ভঁৰু বামফল
+joy korisil aroo tara adhipoti mamudok chiturot bondi kori	জয় কৰিছিল আৰু তাৰ অধিপতি মামুদক চিতোৰত বন্দী কৰি
+bilax aan ki si jeewn dhaaron kriboloi xrusti kora lagotiaal	বিলাস আন কি সি জীৱন ধাৰণ কৰিবলৈ সৃষ্টি কৰা লাগতিয়াল
+uporipuruxor tezr xomwondhoi mohontodewok boixnob xahitjyo aaru mohapurusia dhormor proxarotar uddesye udwaul kori toolisil	উপৰিপুৰুষৰ তেজৰ সম্বন্ধই মহন্তদেৱক বৈষ্ণৱ সাহিত্য আৰু মহাপুৰুষীয়া ধৰ্মৰ প্ৰসাৰতাৰ উদ্দেশ্যে উদ্বাউল কৰি তুলিছিল
+pise xei kalar praasin axomiyar konu	পিছে সেই কালৰ প্ৰাচীন অসমীয়াৰ কোনো
+monedhre zeno aibilaak vogabanor namat teur karjyot logaai diun	মনেধৰে যেন এইবিলাক ভগবানৰ নামত তেওঁৰ কাৰ্য্যত লগাই দিওঁ
+ae sthaan lav kra tau hoiche prathomogoraki satri	এই স্থান লাভ কৰা তেওঁ হৈছে প্ৰথমগৰাকী ছাত্ৰী
+iar peesat teor dhonaxomooh byoboharojugy aaru boidh kari tuli xiwaji phaundesonor onudaan hisabe ortho jomaa kore	ইয়াৰ পিছত তেওঁৰ ধনসমূহ ব্যৱহাৰযোগ্য আৰু বৈধ কৰি তুলি শিৱাজী ফাউণ্ডেচনৰ অনুদান হিচাবে অৰ্থ জমা কৰে
+iyare xaasti sworoope ximaantato durga xojaar logote dafolaxokol voiyamloi ohat nisedh kora hoy	ইয়াৰে শাস্তি স্বৰূপে সীমান্তত দুৰ্গ সজাৰ লগতে ডফলাসকল ভৈয়ামলৈ অহাত নিষেধ কৰা হয়
+kr huwa kiyono kanu sit porimanokoi	কৰ হোৱা কিয়নো কেনো চিৎ পৰিমাণকৈ
+moulana mohommod aalee johar bta zamiya oldo boaj aechosiieson natun dillee	মৌলানা মহম্মদ আলী জহৰ বঁটা জামিয়া অল্ড বয়জ এছচিয়েছন নতুন দিল্লী
+laahe lahe krishok andolon tibro hoi utha aaru xomogro bhaarotte biyopi pare	লাহে লাহে কৃষক আন্দোলন তীব্ৰ হৈ উঠে আৰু সমগ্ৰ ভাৰততে বিয়পি পৰে
+mosolomanoro hatrapora mur rajyor mohatirthasthan kamakhjyapith kenekoi	মছলমানৰ হাতৰপৰা মোৰ ৰাজ্যৰ মহাতীৰ্থস্থান কামাখ্যাপীঠ কেনেকৈ
+gaytri sastror bochon xosa kintu tak nizahe jp korib pari	গায়ত্ৰী শাস্ত্ৰৰ বচন সঁচা কিন্তু তাক নিজেহে জপ কৰিব পাৰি
+iyaare rupok zen lagae	ইয়াৰে ৰূপক যেন লাগে
+gotike tar babe beleg	গতিকে তাৰ বাবে বেলেগ
+paathok hob srijut matiram gauburha aaru moulbi iyu chuf ali	পাঠক হব শ্ৰীযুত মাটিৰাম গাওঁবুঢ়া আৰু মৌলবী ইয়ু ছুফ আলি
+xojja aaru fulor chaneki onuxori iyak kisumaan up prokarat beebhokto korib paari	সজ্জা আৰু ফুলৰ চানেকি অনুসৰি ইয়াক কিছুমান উপ প্ৰকাৰত বিভক্ত কৰিব পাৰি
+dokhyin aseyar amerikaan dijitel aarkaivot abala boxur bisoye tothya	দক্ষিণ এছিয়াৰ আমেৰিকান ডিজিটেল আৰ্কাইভত আবালা বসুৰ বিষয়ে তথ্য
+ami keentu kothatar zobab	আমি কিন্তু কথাটাৰ জবাব
+xikhyoko xei aagor ekedhrnor ataibilak	শিক্ষকো সেই আগৰ একেধৰণৰ আটাইবিলাক
+koi ze teu xihotor rush aru folt huba odhoirjyar kotha	কয় যে তেওঁ সিহঁতৰ ৰোষ আৰু ফলত হোৱা অধৈৰ্য্যৰ কথা
+pur swotwo bilup kari jasi britees razyor ontorgoto kori loi	পোৰ স্বত্ব বিলোপ কৰি ঝাঁচি বৃটিছ ৰাজ্যৰ অন্তৰ্গত কৰি লয়
+zaanibaa durlobh itu jonmo xongxarot	জানিবা দুৰ্ল্লভ ইটো জন্ম সংসাৰত
+kiionu tetiya taat onek brahmon pandit baxo korisil	কিয়নো তেতিয়া তাত অনেক ব্ৰাহ্মণ পণ্ডিত বাস কৰিছিল
+aalpona toiiar kariboloi byawhrito xamogribur xokolu thaaite xahoje puwa jay	আল্পনা তৈয়াৰ কৰিবলৈ ব্যৱহৃত সামগ্ৰীবোৰ সকলো ঠাইতে সহজে পোৱা যায়
+xeiehe ei kola dhonee dukiya sakolore ghorot procholit	সেয়েহে এই কলা ধনী দুখীয়া সকলোৰে ঘৰত প্ৰচলিত
+rangeen paaudar kobaartoj saaul xukan moyoda fuloro pahi haaldhi xindur aabir aaru rangin baali byowhaar koriu iyaak sristi kora hoy	ৰঙীন পাউডাৰ কোৱাৰ্টজ চাউল শুকান ময়দা ফুলৰ পাহি হালধি সিন্দূৰ আবিৰ আৰু ৰঙীন বালি ব্যৱহাৰ কৰিও ইয়াক সৃষ্টি কৰা হয়
+monte bhaabi thiro korichu je amar jibonor zi suwa eidore	মনতে ভাবি থিৰ কৰিছোঁ যে আমাৰ জীৱনৰ যি ছোৱা এইদৰে
+vabi grih karjyt somooli mon nidi ramormia borageexokolere xoite harinam	ভাবি গৃহ কাৰ্যত সমূলি মন নিদি ৰামৰমীয়া বৰাগীসকলেৰে সৈতে হৰিনাম
+ba upaxnaadi kore xibilake xogunobrohmor aasroy nolole xaadhna xiddho	বা উপাসনাদি কৰে সিবিলাকে সগুণব্ৰহ্মৰ আশ্ৰয় নললে সাধনা সিদ্ধ
+prithibir panir nilomil aaroo aakasi daworor madhurimaro lookaa bhaakoo guput premobartaa	পৃথিবীৰ পানীৰ নিলমিল আৰু আকাশী ডাৱৰৰ মাধুৰিমাৰ লুকা ভাকু গুপুত প্ৰেমবাৰতা
+xost aagar dare hoi	শশ্ত আগৰ দৰে হৈ
+mohilaxokole burkha peendar onuseelontu ata xamajik proxangg	মহিলাসকলে বোৰ্খা পিন্ধাৰ অনুশীলনটো এটা সামাজিক প্ৰসংগ
+korma kara ghor nisinakoi tumular ghoi	কৰ্ম কৰা ঘৰ নিচিনাকৈ তোমোলৰ ঘঈ
+pase nonbaboli xobukhmosore bichalem gobilakor odhyoi daniyal moneeyaa mitaloi ark aworadh korile	পাছে নংবাবলি সবুখমচৰে বিচালেম গবিলাকৰ অধ্যই দানিয়েল মনিয়া মীতালৈ আৰক অৱৰাধ কৰিলে
+hol holo xai bishoie jen kaktot prasarit nohoi	হল হল সেই বিষয়ে যেন কাকতত প্ৰচাৰিত নহয়
+moi deutar kost xohjo korib pora	মই দেউতাৰ কষ্ট সহ্য কৰিব পৰা
+awosye hindi vasato durbl huwa hetuke sobi nirmatasakole tekhetok chobit obhinoyor borokoi xujugo diya nachil	অৱশ্যে হিন্দী ভাষাত দুৰ্বল হোৱা হেতুকে ছবি নিৰ্মাতাসকলে তেখেতক ছবিত অভিনয়ৰ বৰকৈ সুযোগ দিয়া নাছিল
+sorukalor paraye teo thakuror xaahityo kormor proti aakorxit haisil	সৰুকালৰ পৰায়ে তেওঁ ঠাকুৰৰ সাহিত্য কৰ্মৰ প্ৰতি আকৰ্ষিত হৈছিল
+mgodh raajyo laabh kre	মগধ ৰাজ্য লাভ কৰে
+tat akole okole xi aenekuba beya kotha anekuwa beya kam dekhiboloi	তাত অকলে অকলে সি এনেকুৱা বেয়া কথা এনেকুৱা বেয়া কাম দেখিবলৈ
+osrot xopot khai koiso edhanman kuja ketiyao mora nai	ওচৰত শপত খাই কৈছো এধানমান কুজা কেতিয়াও মৰা নাই
+xusodebi dala dabi onupoma debi imalaa	সুষদেবী দালা দেবী অনুপমা দেবী ঈমালা
+pujarineee puzar paasot artir ontoto xovokti	পূজাৰিণীএ পূজাৰ পাছত আৰতিৰ অন্তত সভক্তি
+ei antorjatik diboxoti udozapnor mukhyo uddesyo hoise poristhiti tantror xntulonor babe udvidor poragojugor kshetrot moumakhir bumikar bixoye xjagota xristi kra	এই আন্তৰ্জাতিক দিৱসটি উদযাপনৰ মুখ্য উদ্দেশ্য হৈছে পৰিস্থিতি তন্ত্ৰৰ সন্তুলনৰ বাবে উদ্ভিদৰ পৰাগযোগৰ ক্ষেত্ৰত মৌমাখিৰ ভূমিকাৰ বিষয়ে সজাগতা সৃষ্টি কৰা
+sita jolar pisoto mukhy xukoprkaxkaree aru nikototom atmiyosokole jwali thoka sitakhon akadhikbar porikromaa korib lage	চিতা জ্বলাৰ পিছত মুখ্য শোকপ্ৰকাশকাৰী আৰু নিকটতম আত্মীয়সকলে জ্বলি থকা চিতাখন একাধিকবাৰ পৰিক্ৰমা কৰিব লাগে
+daangor kechaa kothalaro bakli gusaai dokhor bhukhobokoi	ডাঙৰ কেচা কঠালৰ বাকলি গুচাই ডোখৰ ভোখবকৈ
+nole topona namor ek raakhyoxok zuddhokhyetrot nihot kore	নলে তপন নামৰ এক ৰাক্ষসক যুদ্ধক্ষেত্ৰত নিহত কৰে
+mohabhaarotor ek biboron onuxori nolae tundoko namar ek danowok hatya krisil	মহাভাৰতৰ এক বিৱৰণ অনুসৰি নলে তুণ্ডক নামৰ এক দানৱক হত্যা কৰিছিল
+tata ghontaa eta aari	তাতে ঘণ্টা এটা আৰি
+raam ojudhjyaloi ohar xomoyot xoogrib jamwawonto aru onyaanyxoklok xuvechcha zonaisil aaru aalingono korisil	ৰাম অযোধ্যালৈ অহাৰ সময়ত সুগ্ৰীৱ জাম্বাৱন্ত আৰু অন্যান্যসকলক শুভেচ্ছা জনাইছিল আৰু আলিঙ্গন কৰিছিল
+aru tomiu xei xei dore nirmml aru xuddha hoi thakiba	আৰু তুমিও সেই সেই দৰে নিৰ্ম্মল আৰু শুদ্ধ হৈ থাকিবা
+spondon xonsaar kore xeye brtti	স্পন্দন সঞ্চাৰ কৰে সেয়ে বৃত্তি
+jibur xobdo xongskritrapraa oxomeea vaxloi aahiche ussaronor byaghat	যিবোৰ শব্দ সংস্কৃতৰপৰা অসমীয়া ভাষলৈ আহিছে উচ্চাৰণৰ ব্যাঘাত
+ba sbor bikritir niyom onuxare sei majot para ronjonor poriboton baa xaepa	বা স্বৰ বিকৃতিৰ নিয়ম অনুসাৰে সেই মাজত পৰা ৰঞ্জনৰ পৰিবর্তন বা শােপ
+kamorupor horiproxad aru sotanondo aaru bongalodexi	কামৰূপৰ হৰিপ্ৰসাদ আৰু সতানন্দ আৰু বঙ্গালদেশী
+jan bor udar aaru doialu prokritir manuho asilo	জন বৰ উদাৰ আৰু দয়ালু প্ৰকৃতিৰ মানুহ আছিল
+mur kumoleeyaa monotut teulukoro tikto bakykeitai toruwale aghaat	মোৰ কুমলীয়া মনটোত তেওঁলোকৰ তিক্ত বাক্যকেইটাই তৰোৱালে আঘাত
+aaru tintekiiashoklor majt kebol tintekiyaa xakhatuhe maakhun ravaasok	আৰু তিনতেকীয়াসকলৰ মাজত কেবল তিনতেকীয়া শাখাটোহে মাখোন ৰাভাসক
+tumar budhho khng uthiiei goisil atiia aaru taro xujueg	তোমাৰ বোধহয় খং উঠিয়েই গৈছিল এতিয়া আৰু তাৰ সুযোেগ
+moi boi akamil hoi paril aaru pasot drunpuba naasil	মই বৈ অকামিল হৈ পৰিল আৰু পাচত দ্ৰোণপোৱা নাছিল
+dhon aak kormma aaru xampadonr xomvaabonar daara ximaboddho	ধন আক কৰ্ম্মা আৰু সম্পাদনৰ সম্ভাৱনাৰ দ্বাৰা সীমাবদ্ধ
+maaribor paase nokat pelobore	মাৰিবৰ পাচে নকত পেলবৰে
+xoxombhrome radhaai bule kora niroopon	সসম্ভ্ৰমে ৰাধাই বুলে কৰা নিৰুপন
+nignie photafot taar junga datere jalkhn kooti dile	নিগনিয়ে ফটাফট তাৰ জোঙা দাঁতেৰে জালখন কুটি দিলে
+ghor rajo ghoror kam korisil	ঘৰ ৰাজ ঘৰৰ কাম কৰিছিল
+ghuri pas fale chai	ঘূৰি পাচ ফালে চাই
+chokur sonmukhte kharaang baanopanir lekheeya praakritik durjog othobaa	চকুৰ সন্মুখতে খৰাং বানপানীৰ লেখীয়া প্ৰাকৃতিক দুৰ্যোগ অথবা
+ishbor upaaxonaa dhormo nohoy onyay aaru oxot karyk prtirudh korahe prakrit dhorma	ঈশ্বৰ উপাসনা ধৰ্ম নহয় অন্য়ায় আৰু অসৎ কাৰ্যক প্ৰতিৰোধ কৰাহে প্ৰকৃত ধৰ্ম
+obosye xunopkhileeie ketiyaao muktilabh nokorile	অৱশ্যে সোণপখিলীয়ে কেতিয়াও মুক্তিলাভ নকৰিলে
+korar aagote ullikheet xulokhon dexoro bisoie pab pora tthyade	কৰাৰ আগতে উল্লিখিত ষোলখন দেশৰ বিষয়ে পাব পৰা তথ্যাদি
+peerar uprot bahi berhaa kahit bhaato	পীৰাৰ ওপৰত বহি বেঢ়া কাঁহীত ভাত
+ahute gopalar dangorotu puteke pai tak mortn kinee dichil khabloi mon thaakiu	আহোঁতে গোপালৰ ডাঙৰটো পুতেকে পাই তাক মৰ্টন কিনি দিছিল খাবলৈ মন থাকিও
+podumik sokut poraar dinareporaa bipinor podumeehotoro gaabloi	পদুমীক চকুত পৰাৰ দিনাৰেপৰা বিপিনৰ পদুমীহঁতৰ গাঁৱলৈ
+chetni aapuni more kixe aaghaat re	চেতনি আপুনি মৰে কিশে আঘাত ৰে
+zewa biswosingh kamrupe voil raajaa	যেৱে বিশ্বসিংহ কামৰূপে ভৈল ৰাজা
+okolxoreea nokoru buliyei nijar xaklo lah bilaah tyag kori kewol	অকলশৰীয়া নকৰো বুলিয়েই নিজৰ সকলো লাহ বিলাহ ত্যাগ কৰি কেৱল
+aye beedhaatar sirontan ritee	এয়ে বিধাতাৰ চিৰন্তন ৰীতি
+mrityur xamiot teur aekomatro xontan partho xenoko eri thoi jay	মৃত্যুৰ সময়ত তেওঁৰ একমাত্ৰ সন্তান পাৰ্থ সেনক এৰি থৈ যায়
+upzibu jai xbe loiy nij sokti	উপজিবো যাই সবে লৈয় নিজ শক্তি
+seibabe prothome daaktoror usoroloi ngoi benkaloi goisila	সেইবাবে প্ৰথমে ডাক্তৰৰ ওচৰলৈ নগৈ বেঙ্কলৈ গৈছিলা
+upror bongxolotat prosoran deka naamor purooxor ullakh nai	ওপৰৰ বংশলতাত প্ৰচৰণ ডেকা নামৰ পুৰুষৰ উল্লেখ নাই
+owxje iyar protixudh kolpe helae banaror aatmaar poriworte lukeek norkot rakhi thoi	অৱশ্যে ইয়াৰ প্ৰতিশোধ কল্পে হেলাই বেনাৰৰ আত্মাৰ পৰিৱৰ্তে লোকিক নৰকত ৰাখি থয়
+niyotir ai nirmmomo lila	নিয়তিৰ এই নিৰ্ম্মম লীলা
+hate hate dhoraadhorikoi xoral pati pepa	হাতে হাতে ধৰাধৰিকৈ সৰল পাতি পেপা
+ekogut brikhyo aasa goila xabe tara kaase	একগোট বৃক্ষ আছে গৈলা সবে তাৰ কাছে
+teu aatisee marlena namere parisito	তেওঁ আতিশী মাৰ্লেনা নামেৰে পৰিচিত
+aadorsomote sokoluwe ishworupoxna kore ortat nijak isborr	আদৰ্শমতে সকলোৱে ঈশ্বৰোপসনা কৰে অৰ্থাৎ নিজক ঈশ্বৰৰ
+mur likhoniyedi kako dukh dib bisora nai samalusonau korib bichora naai	মোৰ লিখনিয়েদি কাকো দুখ দিব বিচৰা নাই সমালোচনাও কৰিব বিচৰা নাই
+ram kotha xonxaror xara	ৰাম কথা সংসাৰৰ সাৰ
+teulok nijar nijar dhormmomot anux ei dinotu paln kore zate xomoohiya praarthna	তেওঁলোক নিজৰ নিজৰ ধৰ্ম্মমত অনুস এই দিনটো পালন কৰে যাতে সমূহীয়া প্ৰাৰ্থনা
+raaije jen onugrah kori nij gune khyoma kore	ৰাইজে যেন অনুগ্ৰহ কৰি নিজ গুণে ক্ষমা কৰে
+dudin dhori poddhoteetu kamot nohato rajiwe putekhotk logale	দুদিন ধৰি পদ্ধতিটো কামত নহাত ৰাজীৱে পুতেকহঁতক লগালে
+bikar maje xomoie hoy nischoyo	বিকাৰ মাজে সময়ে হয় নিশ্চয়
+poramaanondo gubordhon mohabali hri	পৰমানন্দ গোবৰ্ধন মহাবলি হৰি
+hen xuni durjyudhone dilonto uttor	হেন শুনি দুৰ্য্যোধনে দিলন্ত উত্তৰ
+bahire dekhat rajonoitik falor darei	বাহিৰে দেখাত ৰাজনৈতিক ফালৰ দৰেই
+teolukor prati kourbor irsa hol aaru teolukoro opokar koriboloi chexta karib dhorile	তেওঁলোকৰ প্ৰতি কৌৰবৰ ঈৰ্ষা হল আৰু তেওঁলোকৰ অপকাৰ কৰিবলৈ চেষ্টা কৰিব ধৰিলে
+pitri matri duyujnei prothma karobart boxoti sthapon korichil yodiu pasot sthanaantorit hoichil	পিতৃ মাতৃ দুয়োজনেই প্ৰথমে কাৰৱাৰত বসতি স্থাপন কৰিছিল যদিও পাছত স্থানান্তৰিত হৈছিল
+ilektronik xaahityaro sothik xonggya nirupn koratu kothin	ইলেক্ট্ৰনিক সাহিত্যৰ সঠিক সংজ্ঞা নিৰূপণ কৰাটো কঠিন
+teneholetu radha xakeek probudh dib nubarimo	তেনেহলেতো ৰাধা সখিক প্ৰবোধ দিব নোৱাৰিম
+thakibor thaai nthka hoba	থাকিবৰ ঠাই নথকা হোৱা
+moi mur jivnor bohut obheeggotar katha paatilue	মই মোৰ জীৱনৰ বহুত অভিজ্ঞতাৰ কথা পাতিলোে
+gaboloi badha dile karon teu anumaan krichil ze gan xuni	গাবলৈ বাধা দিলে কাৰণ তেওঁ অনুমান কৰিছিল যে গান শুনি
+owoshje kam xangkhjyake aei drisjyapotot aadipotya bistar korise	অৱশ্যে কম সংখ্যকে এই দৃশ্যপটত আধিপত্য বিস্তাৰ কৰিছে
+raajyor xaxonokaarjjok ami xoda nau baa jaahajor logat	ৰাজ্যৰ শাসনকাৰ্য্যক আমি সদায় নাও বা জাহাজৰ লগত
+akou brihottor hindoo somaajt ai asar iman	আকৌ বৃহত্তৰ হিন্দু সমাজত এই আচাৰ ইমান
+kebaa kethan kuna kote keheloi kotu	কেৱা কেঠেন কোণা কতি কেহেলৈ কতু
+pod gaai xoonai bhikhya magile maanuhe xontux pai teok	পদ গাই শুনাই ভিক্ষা মাগিলে মানুহে সন্তোষ পাই তেওঁক
+razhuwaa khyetroloiu i aatmoprokax koreese	ৰাজহুৱা ক্ষেত্ৰলৈও ই আত্মপ্ৰকাশ কৰিছে
+xutoan ja ba tar paasot urai thakile duiu mii	সুতরাং জ বা তাৰ পাচত উৰাই থাকিলে দুয়ো মিি
+noiro pora ji dre axongkhya sakha noi up noi aadi olaise seidore	নৈৰ পৰা যি দৰে অসংখ্য শাখা নৈ উপ নৈ আদি ওলাইছে সেইদৰে
+bharotloi ubhotee ahar peechot dhormmanondojiye bouddhodhormo xomondhe nije	ভাৰতলৈ উভতি অহাৰ পিচত ধৰ্ম্মানন্দজীয়ে বৌদ্ধধৰ্ম সম্বন্ধে নিজে
+teor ajon pootro dusyonto xing dulopuror zuworaz aaru lukaxobhar saribaarar xaangsod	তেওঁৰ এজন পুত্ৰ দুষ্যন্ত সিং ঢোলপুৰৰ যুৱৰাজ আৰু লোকসভাৰ চাৰিবাৰৰ সাংসদ
+bisex udyug koree sei bidruhee oxovyobilakok jothusit xaasti	বিশেষ উদ্যোগ কৰি সেই বিদ্ৰোহী অসভ্যবিলাকক যথোচিত শাস্তি
+kunae dhar kaaxaedi baariutha mongh	কোনাে ধাৰ কাষেদি বাঢ়িউঠা মঙ্গহ
+notoon xoilee xangjug korar prosesta aru bivinna dhararo git gubar babe xilpa prochar madhyomot jnaajat	নতুন শৈলী সংযোগ কৰাৰ প্ৰচেষ্টা আৰু বিভিন্ন ধাৰাৰ গীত গোৱাৰ বাবে শিল্পা প্ৰচাৰ মাধ্যমত জনাজাত
+teu bohu kaeita daatobjy xonsthak xohaaiu kori ahise	তেওঁ বহু কেইটা দাতব্য সংস্থাক সহায়ো কৰি আহিছে
+vank eri ki kaarne aanok buloy	ভাঙ্ক এৰি কি কাৰণে আনক বোলয়
+jimanei uscha nohok kuno aezon maanuhoro adaesor tolot	যিমানেই উচ্ছ নহক কোনো এজন মানুহৰ আদেশৰ তলত
+banmoma bijanu namerae ebidh bijanur pora ei bemaroro	বন্মমা বীজাণু নামেৰে এবিধ বীজাণুৰ পৰা এই বেমাৰৰ
+bura guhaik domon korai teor prodhan ichsa	বুঢ়া গোঁহাইক দমন কৰাই তেওঁৰ প্ৰধান ইচ্ছা
+bhal rochna likhar maulik neeti	ভাল ৰচনা লিখাৰ মৌলিক নীতি
+ene jikuno poriwortonor kothau usomanor razonoiteek birudhi aru hotjaakarie ulekh korileheten tothaapiu kunowei teur biruddhe ei obheezug utthapon kara nachil	এনে যিকোনো পৰিৱৰ্তনৰ কথাও উছমানৰ ৰাজনৈতিক বিৰোধী আৰু হত্যাকাৰীয়ে উল্লেখ কৰিলেহেঁতেন তথাপিও কোনোৱেই তেওঁৰ বিৰুদ্ধে এই অভিযোগ উত্থাপন কৰা নাছিল
+pathdanor babe tinimoholiya ata ghor bjowohar koraar logote prekhyagrihtuu byowohar kora ho	পাঠদানৰ বাবে তিনিমহলীয়া এটা ঘৰ ব্যৱহাৰ কৰাৰ লগতে প্ৰেক্ষাগৃহটোও ব্যৱহাৰ কৰা হয়
+koto diwoxok laagi diyuko melani	কতো দিৱসক লাগি দিয়োক মেলানি
+aahaa etiau aadha ghantaman xamoy achae aeta gat xikib paareebaa	আহাঁ এতিয়াও আধা ঘণ্টামান সময় আছে এটা গত শিকিব পাৰিবা
+sbaartha komi aahile bishwaxobur obixwax hy mitrobor xotru hoi	স্বাৰ্থ কমি আহিলে বিশ্বাসবোৰ অবিশ্বাস হয় মিত্ৰবোৰ শত্ৰু হয়
+ehimote jebe koila kothaa vebe	এহিমতে যেবে কৈলা কথা ভেবে
+manuhor chulire baa ghurar numore buwa komwol othba phesaar paakhire prostut kora chibor urisilu	মানুহৰ চুলিৰে বা ঘোঁৰাৰ নোমৰে বোৱা কম্বল অথবা ফেঁচাৰ পাখিৰে প্ৰস্তুত কৰা চীৱৰ উৰিছিলোঁ
+khat paathona kor anuraedh kor	খাট প্রার্থনা কৰ অনুৰােধ কৰ
+ze dushor pora obyahoti pab tene aaxa mur aedhaniu	যে দোষৰ পৰা অব্যাহতি পাব তেনে আশা মোৰ এধানিও
+pisat sinnasamiye konjya xontanr xoite jonm dexoloi ubhoti aahe bharotoro tamilonadur tirusirapollit boxati sthapn kore	পিছত চিন্নাছামীয়ে কন্যা সন্তানৰ সৈতে জন্ম দেশলৈ উভতি আহি ভাৰতৰ তামিলনাডুৰ তিৰুচিৰাপল্লীত বসতি স্থাপন কৰে
+aru swobhawor karne porinot hoy aaru sataro bhitrot kunuba ata	আৰু স্বভাৱৰ কাৰণে পৰিণত হয় আৰু ছটাৰ ভিতৰত কোনোবা এটা
+maobadixokla nepalar audyugik bikaxoro xetrata byaktigot aaru rajohuwa	মাওবাদীসকলে নেপালৰ ঔদ্যোগিক বিকাশৰ ক্ষেত্ৰত ব্যক্তিগত আৰু ৰাজহুৱা
+agot kiba aeta notoon puhor dekhisu	আগত কিবা এটা নতুন পোহৰ দেখিছোঁ
+aei dharmar onugameeskolor aadha xongkhyoke bartoman bharotot bax kore	এই ধৰ্মৰ অনুগামীসকলৰ আধা সংখ্যকে বৰ্তমান ভাৰতত বাস কৰে
+haramr joriiote labh koraa dhono sompottir dwara upokrit ba jiwon nirbah kora jikunu mumin teo papee	হাৰামৰ জৰিয়তে লাভ কৰা ধন সম্পত্তিৰ দ্বাৰা উপকৃত বা জীৱন নিৰ্বাহ কৰা যিকোনো মুমিন তেওঁ পাপী
+gondha senehloi kaawa kora aru porimahifi xami	গন্ধ চেনেহলৈ কাৱা কৰা আৰু পৰিমাহিফি সমি
+astadax nimese ak kastha hoy	অষ্টাদশ নিমেষে এক কাষ্ঠা হয়
+mur iman dinor osanti aluron xongkus xaklurae azi	মোৰ ইমান দিনৰ অশান্তি আলোড়ন সঙ্কোচ সকলোৰে আজি
+taat nemur rox aaru olop nimakh bhalodare mihlai xeujiya chatni proshtuto kara hai	তাত নেমুৰ ৰস আৰু অলপ নিমখ ভালদৰে মিহলাই সেউজীয়া চাটনি প্ৰস্তুত কৰা হয়
+borofeer utpattee hoiseel paarosyot aaru suros xotikat mugol rojaxakole vartot iak proworton korisil	বৰফিৰ উৎপত্তি হৈছিল পাৰস্যত আৰু ষোড়শ শতিকাত মোগল ৰজাসকলে ভাৰতত ইয়াক প্ৰৱৰ্তন কৰিছিল
+dhorile aaru kunuba rohosjyomayo xuduror nichan dekhar nisina anuvow	ধৰিলে আৰু কোনোবা ৰহস্যময় সুদূৰৰ নিচান দেখাৰ নিচিনা অনুভৱ
+krmat mar niiabloi dhorile	ক্ৰমাৎ মাৰ নিয়াবলৈ ধৰিলে
+kapur palkee aru an aan onek bostu fukne kinile	কাপোৰ পাল্কী আৰু আন আন অনেক বস্তু ফুকনে কিনিলে
+hotubaa kar dhonu hiloi marai xekhale	হতোৱাএ কাড় ধনু হিলৈ মৰাই শিখালে
+aadhjyatmik dixoxomuhor logote kobitar oporot rupor nirbhoroxeelotar bhumika xomporkeey budhogomyotar baabe ak storor xakhyorotar proyujon	আধ্যাত্মিক দিশসমূহৰ লগতে কবিতাৰ ওপৰত ৰূপৰ নিৰ্ভৰশীলতাৰ ভূমিকা সম্পৰ্কীয় বোধগম্যতাৰ বাবে এক স্তৰৰ সাক্ষৰতাৰ প্ৰয়োজন
+gotika bhartot lingg boisomyor ussa matrae mohilaasokolor swasthjor uprot netibachok probhab pelay	গতিকে ভাৰতত লিংগ বৈষম্যৰ উচ্চ মাত্ৰাই মহিলাসকলৰ স্বাস্থ্যৰ ওপৰত নেতিবাচক প্ৰভাৱ পেলায়
+bidhobak punor bibaah kriboloi deeya hoy aru bibaah bichchhed grohon kora hoy jodihe iar gur ponchayotar xonmoti thaake	বিধৱাক পুনৰ বিবাহ কৰিবলৈ দিয়া হয় আৰু বিবাহ বিচ্ছেদ গ্ৰহণ কৰা হয় যদিহে ইয়াৰ গোৰ পঞ্চায়তৰ সন্মতি থাকে
+zetiyaa manuhojonor kisu xikhya thake taene khyetrot tauluke odhik durotwor soite zorit byowostha kara dekhaatu odhik xaadhaaron hoi poreese	যেতিয়া মানুহজনৰ কিছু শিক্ষা থাকে তেনে ক্ষেত্ৰত তেওঁলোকে অধিক দূৰত্বৰ সৈতে জড়িত ব্যৱস্থা কৰা দেখাটো অধিক সাধাৰণ হৈ পৰিছে
+bone bne phuru onai bonai	বনে বনে ফুৰু অনাই বনাই
+nohay kibaa ata zang logai thoi zabloi je sesta nokorib tar ki maane ase	নহয় কিবা এটা জেং লগাই থৈ যাবলৈ যে চেষ্টা নকৰিব তাৰ কি মানে আছে
+sali goil probhu xkott sari	চলি গৈল প্ৰভু শকটত চড়ি
+kisoomaan suwaliyeu atistik sdrix lokhon jene xamajik jugaazug aaru jugazug herubar dare lokhyno prodarson kore	কিছুমান ছোৱালীয়েও অটিষ্টিক সদৃশ লক্ষণ যেনে সামাজিক যোগাযোগ আৰু যোগাযোগ হেৰুৱাৰ দৰে লক্ষণ প্ৰদৰ্শন কৰে
+bar fookne manobilakok ek prakar odheene rakhesil	বড় ফুকনে মানবিলাকক এক প্ৰকাৰ অধীনে ৰাখিছিল
+xoroxastrabixaarod xmpurn adorso manow sreekrisnoi xomvawe xikhya gyana	সৰ্বশাস্ত্ৰবিশাৰদ সম্পূৰ্ণ আদৰ্শ মানৱ শ্ৰীকৃষ্ণই সমভাৱে শিক্ষা জ্ঞান
+iar uporiu e hoise botaprapto onjotom gbexona aaru eke namere akhon gronthau prkaxo kora hoiche	ইয়াৰ উপৰিও ই হৈছে বঁটাপ্ৰাপ্ত অন্যতম গৱেষণা আৰু একে নামেৰে এখন গ্ৰন্থও প্ৰকাশ কৰা হৈছে
+konyadata nohale biyai nohy	কন্যাদাতা নহলে বিয়াই নহয়
+ami kora bhulor pap soudhjyo bosrot bole khondono yayogoi gawt sunaa ktha	আমি কৰা ভুলৰ পাপ চৌধ্য বছৰত বোলে খণ্ডন যায়গৈ গাঁৱত শুনা কথা
+daainee silpa aru vudur kola deerghodin dhari manuhr xoite xamparkit hoi ahiche	ডাইনী শিল্প আৰু ভুডুৰ কলা দীৰ্ঘদিন ধৰি মানুহৰ সৈতে সম্পৰ্কিত হৈ আহিছে
+dursor paani nuhubaat raayotr bilaair simaa nuhubaa hoisil	দুৰছৰ পানী নোহোৱাত ৰায়তৰ বিলাইৰ সীমা নোহোৱা হৈছিল
+aan keigrakiman neta aahee ntun dilleet uposthit hoisila	আন কেইগৰাকীমান নেতা আহি নতুন দিল্লীত উপস্থিত হৈছিল
+saturtho jug xoptom xtikaropraa bados xotikar majloike	চতুৰ্থ যুগ সপ্তম শতিকাৰপৰা বাদশ শতিকাৰ মাজলৈকে
+bidhiboddho koree taka xomogro jogatake manibloi badhyo kore aaru	বিধিবদ্ধ কৰি তাকে সমগ্ৰ জগতকে মানিবলৈ বাধ্য কৰে আৰু
+xame loree goi anduroroparaa nomaai gonesok matit sosorae tani	সামে লৰি গৈ এন্দুৰৰপৰা নমাই গণেশক মাটিত চোঁচৰাই টানি
+teu xukonanni ujaapaalir bixisto xilpi sondra kanto nath ujar netritwt ojapalee chorchaa aarombho kore	তেওঁ সুকনান্নী ওজাপালিৰ বিশিষ্ট শিল্পী চন্দ্ৰ কান্ত নাথ ওজাৰ নেতৃত্বত ওজাপালি চৰ্চা আৰম্ভ কৰে
+door xomporkiy alohi ejon paalehi	দূৰ সম্পৰ্কীয় আলহী এজন পালেহি
+teo akaaxobaani guwaahati aaru xonggit natak ekademir neeomiyaa silpi hichape ojapali pradorxon kori ahiche	তেওঁ আকাশবাণী গুৱাহাটী আৰু সংগীত নাটক একাডেমীৰ নিয়মীয়া শিল্পী হিচাপে ওজাপালি প্ৰদৰ্শন কৰি আহিছে
+rupya bostra taamwulak rachkok deen	ৰোপ্য বস্ত্ৰ তাম্বুলক ৰাচকক দিন
+dui soku moodi tente lobore bhiriya	দুই চকু মুদি তেন্তে লৱৰে ভিৰিয়া
+bhaat aadha xija hole namai panee kaarib lage	ভাত আধা সিজা হলে নমাই পানী কাৰিব লাগে
+bortamaan purbee shoikia benaarox hindu bisbobidyalyor xohozugi odhyapok hisapa kormort	বৰ্তমান পূৰবী শইকীয়া বেনাৰস হিন্দু বিশ্ববিদ্যালয়ৰ সহযোগী অধ্যাপক হিচাপে কৰ্মৰত
+asomiya galpo xongkoln tritii khondo xompa	অসমীয়া গল্প সংকলন তৃতীয় খণ্ড সম্পা
+onuxae mo sibilakoloi kaarjyo kisilu	অনুসারে ময় সিবিলাকলৈ কাৰ্য্য করিছিলো
+obhab dukh anuvow korib nobarakoi	অভাব দুঃখ অনুভৱ কৰিব নোৱাৰাকৈ
+sokalubae mili horidhboni kri mora xa xmoxaanoloi ni sita xajile	সকলোৱে মিলি হৰিধ্বনি কৰি মৰা শ শ্মশানলৈ নি চিতা সাজিলে
+bhagje aeo zeniba xustho huwaro pisot koi dile aachol kothatu	ভাগ্যে এওঁ যেনিবা সুস্থ হোৱাৰ পিছত কৈ দিলে আচল কথাটো
+jobahorolal nehru xanggrohaloy itanogoro razyor janojaatiy xonskriti pradorshonor baabe porisit	জৱাহৰলাল নেহৰু সংগ্ৰহালয় ইটানগৰঃ ৰাজ্যৰ জনজাতীয় সংস্কৃতি প্ৰদৰ্শনৰ বাবে পৰিচিত
+i mutzonan aaru medobohulota xomosyatae	ই মুত্রজনন আৰু মেদবহুলতা সমস্যাতাে
+debiye srikrisnor nati aniruddho kuborok sami boron kore	দেৱীয়ে শ্ৰীকৃষ্ণৰ নাতি অনিৰুদ্ধ কোঁৱৰক স্বামী বৰণ কৰে
+biloki jihubaru ansot hoka uts	বিলকি যিহোৱাৰু আঞ্চত হকার উৎস
+tothapitu xito jonebuliya furoy kene	তথাপিতো সিটো জনেবুলিয়া ফুৰয় কেনে
+konubaa porbbotor gohorot xinghotur bhorir	কোনোবা পৰ্ব্বতৰ গহ্বৰত সিংহটোৰ ভৰিৰ
+aru ei xutrate xeibur ancholor bhin bhin dhwoni aahi aeta	আৰু এই সূত্ৰতে সেইবোৰ অঞ্চলৰ ভিন ভিন ধ্বনি আহি এটা
+longko graph kunu kale ne dethaa je joy aay	লংক গ্ৰাফ কোনো কালে নে দেথা যে যয় আয়
+nighuni dekaboyoxor othas obibahito	নিঘুণি ডেকাবয়সৰ অথচ অবিবাহিত
+mohaatmai britees zaateer prote xohanoobhuti	মহাত্মাই বৃটিছ জাতিৰ প্ৰতি সহানুভূতি
+teu xomasti arthoniti moodra arthoniti rajohuwa bitto aantorastriy bitt unnoyan arthaniti aaru orthonoiteek modelingr bixexogyo asil	তেওঁ সমষ্টি অৰ্থনীতি মুদ্ৰা অৰ্থনীতি ৰাজহুৱা বিত্ত আন্তঃৰাষ্ট্ৰীয় বিত্ত উন্নয়ন অৰ্থনীতি আৰু অৰ্থনৈতিক মডেলিংৰ বিশেষজ্ঞ আছিল
+teoro purwaabhax bibhinn sorkaree xangsthaa biswo bengke bjyawoharo kora orthonoitik bixaiot xonbad maadhyomau xoghonaai uddhriti dichil aaru niyomiiakoi montobjokareeu aasil	তেওঁৰ পূৰ্বাভাস বিভিন্ন চৰকাৰী সংস্থা বিশ্ব বেংকে ব্যৱহাৰ কৰা অৰ্থনৈতিক বিষয়ত সংবাদ মাধ্যমেও সঘনাই উদ্ধৃতি দিছিল আৰু নিয়মীয়াকৈ মন্তব্যকাৰীও আছিল
+rel jahaj aru akasi	ৰেল জাহাজ আৰু আকাশী
+wikipidiyato moithili vasar prbondho dewonagoree lipire likhaa hay	ৱিকিপিডিয়াত মৈথিলী ভাষাৰ প্ৰবন্ধ দেৱনাগৰী লিপিৰে লিখা হয়
+nokarile jibon nisfol booli poono poonoh ukto koriche	নকৰিলে জীৱন নিষ্ফল বুলি পুনঃ পুনঃ উক্ত কৰিছে
+projaxokole zetiyaa soudhurir aagoloi jai tetiya konu bostu	প্ৰজাসকলে যেতিয়া চৌধুৰীৰ আগলৈ যায় তেতিয়া কোনো বস্তু
+tumaaluke kun neta baabu ritaa eloruk	তোমালোকে কোণ নেতা বাবু ৰিতা এলৰোক
+bohutu gan ba lukogeet pray xokluwe zaane aaroo bohoo bosar dhori soli aahiche	বহুতো গান বা লোকগীত প্ৰায় সকলোৱে জানে আৰু বহু বছৰ ধৰি চলি আহিছে
+ajupi kamenee gos aedalee lobongo lota ghoror xomukhot xewalee	এজুপি কামিনী গছ এডালি লবঙ্গ লতা ঘৰৰ সমুখত শেৱালী
+aenete adin xkoluwe hahakar logaai dile	এনেতে এদিন সকলোৱে হাহাকাৰ লগাই দিলে
+bartamano bisbobidjaalyokhonor upasaaryoro pd khali hoi aache	বৰ্তমান বিশ্ববিদ্যালয়খনৰ উপাচাৰ্যৰ পদ খালী হৈ আছে
+atiia jataxokolo oncholtur prodhan vushwaami	এতিয়া জাটসকল অঞ্চলটোৰ প্ৰধান ভূস্বামী
+horissondro upakhyan puthi khoni lop hubar xombhb dekhi md	হৰিশ্চন্দ্ৰ উপাখ্যান পুথি খনি লোপ হোৱাৰ সম্ভব দেখি মদ্
+eke xomoiote xindhi mucholmanxokle jhulelalo somporke nizakoi keengbodanti gorhi tulise	একে সময়তে সিন্ধী মুছলমানসকলে ঝুলেলাল সম্পৰ্কে নিজাকৈ কিংবদন্তি গঢ়ি তুলিছে
+i ak biprit bhaab buzuwaa byonggatmok dhemelia probson	ই এক বিপৰীত ভাব বুজোৱা ব্যংগাত্মক ধেমেলীয়া প্ৰবচন
+udisi hoise ek bharoteeyo dhropodee nritjyorup aru ei nrityo ureexa raajyor pora utponna hoise	ওডিচি হৈছে এক ভাৰতীয় ধ্ৰুপদী নৃত্যৰূপ আৰু এই নৃত্য ওড়িশা ৰাজ্যৰ পৰা উৎপন্ন হৈছে
+xeeman xomoy gawot soli thoka kutir xilpo aadee byowoxaay	সিমান সময় গাৱঁত চলি থকা কুটিৰ শিল্প আদি ব্যৱসায়
+tumar aadorxore jiwon pat korib bisra	তোমাৰ আদৰ্শৰে জীৱন পাত কৰিব বিচৰা
+zak sroddha koru sei	যাক শ্ৰদ্ধা কৰোঁ সেই
+karno khyudro sreni swaarthk jaateey swartho hisapa dekhuwaab nubaarilae daabi adaor baabe gon somorthan puwatu tan	কাৰণ ক্ষুদ্ৰ শ্ৰেণী স্বাৰ্থক জাতীয় স্বাৰ্থ হিছাপে দেখুৱাব নোৱাৰিলে দাবী আদায়ৰ বাবে গণ সমৰ্থন পোৱাটো টান
+teuro putror xee aatmake teu tumulaakr hridoyoloi pothai dile	তেওঁৰ পুত্ৰৰ সেই আত্মাকে তেওঁ তোমোলাকৰ হৃদয়লৈ পঠাই দিলে
+gotike ischhaai onichsai aji bhaleman bochoror para xeidore	গতিকে ইচ্ছাই অনিচ্ছাই আজি ভালেমান বছৰৰ পৰা সেইদৰে
+kori fola tomuk protejne opaan	কৰি ফলে তোমোক প্ৰতিজনে অপান
+dibar babae sestaa kora hoiche	দিবৰ বাবে চেষ্টা কৰা হৈছে
+xehteeyakoi i pet daansaroro majot oti zonopri hoi poriche	শেহতীয়াকৈ ই পেট ডান্সাৰৰ মাজত অতি জনপ্ৰিয় হৈ পৰিছে
+gopto poxu odhikar xongstha peta somrthok	গুপ্ত পশু অধিকাৰ সংস্থা পেটা সমৰ্থক
+tothaa hoit aafiyot kotoki ptror dwaraye purwoto nimnoy hoitese	তথা হৈত আফিয়ত কটকি পত্ৰৰ দ্বাৰায়ে পূৰ্বতো নিম্নয় হৈতেছে
+logt dirghoswor hraswo sorora lgot dontjyo so taalobyo xor logot porib	লগত দীৰ্ঘস্বৰ হ্ৰস্ব স্বৰৰ লগত দন্ত্য স তালব্য শৰ লগত পৰিব
+kebol teu boikunthor xastrabuli ekhon bhurjopotro likhit bhagwot xastro harideworo hatot disil	কেৱল তেওঁ বৈকুণ্ঠৰ শাস্ত্ৰবুলি এখন ভুৰ্জ্জপত্ৰ লিখিত ভাগৱত শাস্ত্ৰ হৰিদেৱৰ হাতত দিছিল
+yeebur dhatu xakolu kal aaru purushot bjobohar nohay xeibur dhatur	যিবোৰ ধাতু সকলো কাল আৰু পুৰুষত ব্যৱহাৰ নহয় সেইবোৰ ধাতুৰ
+esiyan ekademee ow philmo enda telibhisonar aantorastreey mohila solossitro mnchor sodosyou	এছিয়ান একাডেমী অৱ ফিল্ম এণ্ড টেলিভিছনৰ আন্তঃৰাষ্ট্ৰীয় মহিলা চলচ্চিত্ৰ মঞ্চৰ সদস্যও
+xohaayot bise vaagore dangib nubara dehatuk chubaaleejnir xoita tani tani ghon andharo banhoniro maze maje goi noir par	সহায়ত বিষে ভাগৰে দাঙিব নোৱাৰা দেহাটোক ছোৱালীজনীৰ সৈতে টানি টানি ঘন আন্ধাৰ বাঁহনীৰ মাজে মাজে গৈ নৈৰ পাৰ
+hindur probhabor bhitroloi ahi kus keot aadi mator bhitoruwa hoi	হিন্দুৰ প্ৰভাৱৰ ভিতৰলৈ আহি কোচ কেওট আদি মাতৰ ভিতৰুৱা হৈ
+teu bisalemloi rozak dekhaa koloi	তেওঁ বিচালেমলৈ ৰজাক দেখা কলৈ
+mur mon mohile kamini manurom	মোৰ মন মোহিলে কামিনি মনোৰম
+aji taeur naati dara kitaniye teur aestet kolekson porisalona kare	আজি তেওঁৰ নাতি দাৰা কিটানীয়ে তেওঁৰ এষ্টেট কলেকচন পৰিচালনা কৰে
+ingraji bhaxat vartiy lekharo rautolejo biswokush	ইংৰাজী ভাষাত ভাৰতীয় লেখাৰ ৰৌটলেজ বিশ্বকোষ
+debi lonjaare saauth bichor fala aagobarhil	দেৱী লঞ্জাৰে চাউথ বিচৰ ফালে আগবাঢ়িল
+dina xi rajaro aagoloi glot teu xudhile bule tay choon	দিনা সি ৰজাৰ আগলৈ গলত তেঁও সুধিলে বোলে তয় চুন
+bharotiy xongskriti aaru poribes xomporkae keibakhnu rastriy aru antorastreeio aaluchonaa chokra aaru xonmilonor aayujon koriche	ভাৰতীয় সংস্কৃতি আৰু পৰিৱেশ সম্পৰ্কে কেইবাখনো ৰাষ্ট্ৰীয় আৰু আন্তঃৰাষ্ট্ৰীয় আলোচনা চক্ৰ আৰু সন্মিলনৰ আয়োজন কৰিছে
+agyat taarikhat bni baahamaloi jaatra kare aru tar parai zoldosyujon rekhamor shoite sinaki ho	অজ্ঞাত তাৰিখত বনি বাহামালৈ যাত্ৰা কৰে আৰু তাৰ পৰাই জলদস্যুঁজন ৰেকহামৰ সৈতে চিনাকি হয়
+khaalida aru serkichiyani duyu aasil sudanor prathom mhila sikitxok	খালিদা আৰু চেৰকিছিয়ানি দুয়ো আছিল চুডানৰ প্ৰথম মহিলা চিকিৎসক
+aei sabikhnot prbortee kaalar hindi slossitror onyotom aagoxarir obhinetri joya vadurir pardaat prothom uposthiti asil	এই ছবিখনত পৰৱৰ্তী কালৰ হিন্দী চলচ্চিত্ৰৰ অন্যতম আগশাৰীৰ অভিনেত্ৰী জয়া ভাদুৰীৰ পৰ্দাত প্ৰথম উপস্থিতি আছিল
+songir hajorika bhobpuroku katile	চুঙ্গিৰ হাজৰিকা ভবপূৰকো কাটিলে
+chobi hoiche aaru onak xohpathi	ছবি হৈছে আৰু অনেক সহপাঠী
+xubax hoi biyopil soudixe	সুবাস হৈ বিয়পিল চৌদিশে
+thaapa agrakee ekak matri jaro ejon putro aaru ejoni dottk konyaa ase	থাপা এগৰাকী একক মাতৃ যাৰ এজন পুত্ৰ আৰু এজনী দত্তক কন্যা আছে
+mohatma gaandhir ghonisth sohojugi huwar babe shuxeela naayar taur bmhosoryo poreekhyashmuhot ongxogrhan korisil	মহাত্মা গান্ধীৰ ঘনিষ্ঠ সহযোগী হোৱাৰ বাবে সুশীলা নায়াৰ তেওঁৰ ব্রহ্মচৰ্য পৰীক্ষাসমূহত অংশগ্ৰহণ কৰিছিল
+elojibiti byoktixoklaeu notun samogrir aagotiyakoi grohon korar smbhawna besi	এলজিবিটি ব্যক্তিসকলেও নতুন সামগ্ৰীৰ আগতীয়াকৈ গ্ৰহণ কৰাৰ সম্ভাৱনা বেছি
+borothakur bi a aru protimar khonikar shroddhashpd xrijukto	বৰঠাকুৰ বি এ আৰু প্ৰতিমাৰ খনিকৰ শ্ৰদ্ধাস্পদ শ্ৰীযুক্ত
+ketiyaabaa teuk xapor rupot barnona kora hay	কেতিয়াবা তেওঁক সাপৰ ৰূপত বৰ্ণনা কৰা হয়
+aei biswaxotu pozazaranor ejni rajkumari bixoye thokaa lukkothar pora udbhab huwa buli bhaaba ho ziie kuxth rugoto akranto hoisilo	এই বিশ্বাসটো পজাজাৰানৰ এজনী ৰাজকুমাৰী বিষয়ে থকা লোককথাৰ পৰা উদ্ভৱ হোৱা বুলি ভাবা হয় যিয়ে কুষ্ঠ ৰোগত আক্ৰান্ত হৈছিল
+mohatma gandhir potnee hoio teo aachil nom beenoyi nirohonkaari	মহাত্মা গান্ধীৰ পত্নী হৈও তেওঁ আছিল নম্র বিনয়ী নিৰহঙ্কাৰী
+aji tomar vojon gusil	আজি তোমাৰ ভোজন গুচিল
+ghoreetur heruwa kata tinidaal	ঘড়ীটোৰ হেৰোৱা কাঁটা তিনিডাল
+bilaap koriya kande dewi komini	বিলাপ কৰিয়া কান্দে দেৱী কমিনী
+isworok xokolo sitte xoite prem koriba aau anku	ঈশ্বৰক সকলো চিত্তে সৈতে প্ৰেম কৰিবা আু আনকো
+ketiyabaa dou ahee kapur kani	কেতিয়াবা ঢৌ আহি কাপোৰ কানি
+kisumaan bhaairasor folot jwor vaagor mooror bixo aaru pexir bish dekhaa dib pare	কিছুমান ভাইৰাছৰ ফলত জ্বৰ ভাগৰ মূৰৰ বিষ আৰু পেশীৰ বিষ দেখা দিব পাৰে
+hepahat sihotor mukholoi sai thakil	হেঁপাহত সিহঁতৰ মুখলৈ চাই থাকিল
+mato xihotk dekhile kune marom nakorakoi	মাত সিহতক দেখিলে কোনে মৰম নকৰাকৈ
+ata folon sadharonote ba aadee akhorera sihnit kora hoy	এটা ফলন সাধাৰণতে বা আদি আখৰেৰে চিহ্নিত কৰা হয়
+kinu xoday aaxam basiye	কিয়নো সদায় আসাম বাসীয়ে
+vaianok jiiatu vugib laagibo	ভয়ানক জীয়াতু ভুগিব লাগিব
+banuwe xamosto brittanto koi kole sworgodawo xei dokaito ano keu nohoi	বানুৱে সমস্ত বৃত্তান্ত কৈ কলে স্বৰ্গদেৱ সেই ডকাইত আন কেওঁ নহয়
+eketheere kichubeli chai sei dehtur hat bhorikeikhon olop lor sor kora jen	একেথিৰে কিছুবেলি চাই সেই দেহটোৰ হাত ভৰিকেইখন অলপ লৰ চৰ কৰা যেন
+kothin hridoy goruk page ulukhle bondhon kayol	কঠিন হৃদয় গৰুক পাগে উলুখলে বন্ধন কয়ল
+nakhana sipor sana aamibol uma u nobab aj ju umor	নাখানা চিপৰ চানা আমিবল উমা ও নবাব আজ যোয় উমৰ
+getnikophe imanokoi daal lole ze obhechar kam istofa di teu	গেটনিকফে ইমানকৈ ঢাল ললে যে অভেছাৰ কাম ইস্তফা দি তেওঁ
+xikhona joulaao rashtriy udjyanur ei hatospotor angs hisaape gor loi uthise	শিখনা জৌলাও ৰাষ্ট্ৰীয় উদ্যানোৰ এই হটস্পটৰ অংশ হিচাপে গঢ় লৈ উঠিছে
+teu biswaax korisil je jihetoo briteina bibhaajon aaru xaaxnor niti anusran kori nijr xamrajyo akhyunno raakhib bisariche	তেওঁ বিশ্বাস কৰিছিল যে যিহেতু ব্ৰিটেইনে বিভাজন আৰু শাসনৰ নীতি অনুসৰণ কৰি নিজৰ সাম্ৰাজ্য অক্ষুণ্ণ ৰাখিব বিচাৰিছে
+iyak britis bharotot ontorbhukto karato bixuddh breetis uttoraadhikar hisape gonja koreesil	ইয়াক ব্ৰিটিছ ভাৰতত অন্তৰ্ভুক্ত কৰাটো বিশুদ্ধ ব্ৰিটিছ উত্তৰাধিকাৰ হিচাপে গণ্য কৰিছিল
+nu xune musune muxoone	নু শুনে মুশুনে মুশুনে
+ajne taor xamoniya ezonoko sonmaan korat	এজনে তেওঁৰ সমনীয়া এজনক সন্মান কৰাত
+xaanskritik bikaxor babe ataitkoi onukulo xamoochuwatu shthitawosthar xoite buddhijeewir xomporko osbostikoro howa dekhaa zaa	সাংস্কৃতিক বিকাশৰ বাবে আটাইতকৈ অনুকূল সময়ছোৱাতো স্থিতাৱস্থাৰ সৈতে বুদ্ধিজীৱীৰ সম্পৰ্ক অস্বস্তিকৰ হোৱা দেখা যায়
+bilakor makot luke kii koro	বিলাকৰ মাকত লোকে কিয় কৰ
+dwiteey porwo galateeyahotoloi polor kak	দ্বিতীয় পৰ্ব গালাতীয়াহঁতলৈ পলৰ কাক
+oxuk pathk sayaa kodomo aaru smitaa tamwei sobekhnor parso soritrt ovinoy korise	অশোক পাঠক ছায়া কদম আৰু স্মিতা তাম্বেই ছবিখনৰ পাৰ্শ্ব চৰিত্ৰত অভিনয় কৰিছে
+porixudh korat tekhetaxokle zi koxt paale xi purni kotha	পৰিশোধ কৰাত তেখেতসকলে যি কষ্ট পালে সি পুৰণি কথা
+tiraah obhizaanor xomoyt imperiel charbhisor oswaruhi bahiniye xongrokheet brigedaro ongx hisape gothon korichil	তিৰাহ অভিযানৰ সময়ত ইম্পেৰিয়েল চাৰ্ভিচৰ অশ্বাৰোহী বাহিনীয়ে সংৰক্ষিত ব্ৰিগেডৰ অংশ হিচাপে গঠন কৰিছিল
+bona bulu jano kunobai koy mo ghaxunaa	বনা বোলো জানো কোনোবায় কয় ময় ঘাশোনা
+konisth pootror proti otjyonto	কনিষ্ঠ পুত্ৰৰ প্ৰতি অত্যন্ত
+atijore pra prithibir buronjee chala dekhimok ze unnoti jokholar khaape	অতিজৰে পৰা পৃথিবীৰ বুৰঞ্জী চালে দেখিমক যে উন্নতি জখলাৰ খাপে
