@@ -1,0 +1,10 @@
+bho tokens: 1200125, distinct forms: 59512
+bho dropped (a letter of the script, but not a word): 2726 tokens, 1097 forms
+bho dropped top 20: कि॰मी॰ 454, बै॰ 91, 19वीं 72, ई॰ 63, 20वीं 54, 16वीं 39, 18वीं 37, 12वीं 35, 17वीं 28, 15वीं 27, 6वीं 25, 11वीं 22, 5वीं 21, 7वीं 21, 8वीं 20, किमी² 20, डॉ॰ 19, 14वीं 15, 21वीं 14, टी20 13
+next.fst pairs: 65606 bho, 149977 English
+bho.fst: 29200 keys, 334373 bytes
+next.fst: 215583 keys, 2783329 bytes
+bho top 20: के में आ से बा ई जाला सभ एगो बाटे पर एह गइल हवे रूप भारत ला की वाला भी
+romanised keys skipped: 0
+romanised.fst: 29197 keys, 483201 bytes
+bho text by source: bhwiki 1292999 words (100%)

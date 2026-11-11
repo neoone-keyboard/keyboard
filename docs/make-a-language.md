@@ -445,7 +445,14 @@ would find the word (`skeleton`, `prefix`).
   tables do on words nobody tuned for.
 
 Without Aksharantar data, copy the hand file to `romanisation-weights.json` and skip the
-fitting (gap G6).
+fitting (gap G6). Or, when a language with Aksharantar data is written in your script and
+typed with the same habits, borrow its pairs: put its code in your `lang.json`'s
+`aksharantar`. Bhojpuri (`data/langs/bho/`) names Hindi's, `hin`: its tables are fitted to
+Hindi's manual rows, and its transliterator would train on its own words spelled by those
+tables beside Hindi's mined rows. No tool needs a change. What you lose is the measurement:
+`data/eval/bho/translit-human.tsv` is then Hindi words, most of them not in a Bhojpuri lexicon,
+so step 11's numbers say how the pack spells same-script words, not how well it knows
+Bhojpuri. Say so in the pack's notes, and credit Aksharantar.
 
 **Few manual rows.** Assamese calibrates on 1,794 pairs. Tamil has 776 manual rows in `train`
 and none in `valid`, so it calibrates on a quarter of them: 200 pairs. Under 500 pairs the
