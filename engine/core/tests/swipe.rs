@@ -80,6 +80,28 @@ fn manglish_skeletons_give_malayalam_words() {
     }
 }
 
+/// ങ്ക is written nk (venamenkil, enkil, sankadam), so its skeleton has no g a finger would
+/// have to draw; a path through g instead of k (venamengil) still finds the word, k being
+/// drawn through g as well.
+#[test]
+fn a_word_with_nk_is_swiped_as_it_is_spelt() {
+    let engine = engine();
+    for (drawn, word) in [
+        ("venamenkil", "വേണമെങ്കിൽ"),
+        ("venamengil", "വേണമെങ്കിൽ"),
+        ("enkil", "എങ്കിൽ"),
+        ("enkilum", "എങ്കിലും"),
+        ("sankadam", "സങ്കടം"),
+    ] {
+        let found = swipe(&engine, drawn, "");
+        assert_eq!(
+            found.first().map(|(w, k)| (w.as_str(), *k)),
+            Some((word, Kind::Romanised)),
+            "{drawn}: {found:?}"
+        );
+    }
+}
+
 /// A word the user taught the keyboard is in no lexicon the beam walks, so it is fitted to
 /// the path on its own (`swipe::fit`): offered for a swipe through its letters, in the case
 /// it was learned in, and for no other swipe.

@@ -1,5 +1,5 @@
 //! Every pack's `romanisation.json`, loaded by the engine, gives the keys its romanised lexicon
-//! was built with, Malayalam's included (its keys came from the original `romanize.rs`). Slow (every
+//! was built with, Malayalam's included. Slow (every
 //! word of every pack), so `#[ignore]`: `make test-data` runs it.
 
 use std::path::{Path, PathBuf};
@@ -68,13 +68,12 @@ fn keys_match(id: &str, file: &str, base: u32) -> usize {
     n
 }
 
-/// `manglish.fst` was built by the engine's original Malayalam romaniser (`romanize.rs`, removed
-/// in M6 phase 2), so its keys hold that romaniser's skeleton of every word: the pack's tables
-/// must give the same. (Before removal, this test also compared `romanize` and typed-text
-/// skeletons word for word over all of `ml.fst`, and they were identical.)
+/// `manglish.fst` holds the pack's tables' skeleton of every word. They are the engine's
+/// original Malayalam romaniser (`romanize.rs`, removed in M6 phase 2) but for ങ്ക, now nk
+/// (`lexbuild-rekey` rebuilt the keys when that changed).
 #[test]
 #[ignore]
-fn malayalam_tables_reproduce_the_original_keys() {
+fn malayalam_keys_match_its_tables() {
     let n = keys_match("ml", "manglish.fst", 0x0D00);
     assert!(n > 100_000, "{n} keys");
     eprintln!("ml: {n} manglish.fst keys");
