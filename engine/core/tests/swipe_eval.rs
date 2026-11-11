@@ -10,6 +10,12 @@
 //! the decode time, and fails if a full run drops below `data/eval/baselines-swipe.json`.
 //! `SWIPE_WEIGHTS=align,shape,length` tries other weights, `SWIPE_NOISE=aim,shake,cut` other
 //! paths, `SWIPE_EVERY=n` every nth row, `SWIPE_SHOW=1` prints the misses.
+//!
+//! `swipe_eval_packs` does the same for the other packs (`SWIPE_PACKS`, default `hi as ta`):
+//! every Latin word of the pack's held-out set (`data/eval/<id>/translit-human.tsv`) drawn the
+//! same way with no text before it, on an engine with English and that pack, scored over all
+//! rows and over the words the pack's romanised lexicon has. A pack with no entry in the
+//! baselines file is only printed.
 
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -246,6 +252,10 @@ fn report(name: &str, key: &str, s: &mut Score, gate: bool) {
     if gate {
         let text = std::fs::read_to_string(root().join("data/eval/baselines-swipe.json")).unwrap();
         let base: serde_json::Value = serde_json::from_str(&text).unwrap();
+        if base.get(key).is_none() {
+            println!("{name:28} no baseline recorded ({key})");
+            return;
+        }
         for (metric, hits) in [("top1", s.top1), ("top3", s.top3)] {
             let now = hits as f64 / s.rows as f64;
             let was = base[key][metric].as_f64().unwrap();
@@ -304,6 +314,98 @@ fn swipe_eval() {
         &mut run(&engine, &known, 2, |a, b| a == b),
         gate,
     );
+}
+
+/// English and `pack` as shipped, without its transliterator (a swipe never asks it).
+fn pack_engine(pack: &mlengine_core::pack::Pack) -> Engine {
+    let en = root().join("apps/ios/KeyboardExtension/Lexicon/en.fst");
+    let mut paths = Paths::with_packs(Some(en), std::slice::from_ref(pack), None);
+    paths.packs[0].translit = None;
+    let mut engine = Engine::open(&paths);
+    if let Ok(w) = std::env::var("SWIPE_WEIGHTS") {
+        let v: Vec<f32> = w.split(',').map(|x| x.parse().unwrap()).collect();
+        engine.set_swipe_weights(Weights {
+            align: v[0],
+            shape: v[1],
+            length: v[2],
+            ..Weights::default()
+        });
+    }
+    engine
+}
+
+/// The pack's held-out pairs as rows: the Latin spelling drawn, the native word expected.
+fn pack_rows(id: &str) -> Vec<Row> {
+    let path = root().join("data/eval").join(id).join("translit-human.tsv");
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    text.lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| {
+            let f: Vec<&str> = l.split('\t').collect();
+            (f.len() >= 3 && letters(f[1]).len() >= 2).then(|| Row {
+                before: String::new(),
+                drawn: letters(f[1]),
+                expected: f[2].to_string(),
+            })
+        })
+        .collect()
+}
+
+/// A seed for the pack's paths from its id (FNV-1a): the same on every run, never zero.
+fn pack_seed(id: &str) -> u64 {
+    id.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+    }) | 1
+}
+
+/// Swipe accuracy for the packs in SWIPE_PACKS (default `hi as ta`), each on its own engine.
+#[test]
+#[ignore]
+fn swipe_eval_packs() {
+    let ids = std::env::var("SWIPE_PACKS").unwrap_or_else(|_| "hi as ta".into());
+    let every: usize = std::env::var("SWIPE_EVERY").map_or(1, |v| v.parse().unwrap());
+    let gate = every == 1
+        && std::env::var("SWIPE_WEIGHTS").is_err()
+        && std::env::var("SWIPE_NOISE").is_err();
+    for id in ids.split_whitespace() {
+        let pack = mlengine_core::pack::Pack::open(&root().join(format!("packs/{id}.neopack")))
+            .unwrap_or_else(|e| panic!("packs/{id}.neopack: {e}"));
+        let tables = mlengine_core::romanisation::Romanisation::load(
+            &pack.file("romanisation").expect("the pack's romanisation tables"),
+        )
+        .unwrap();
+        let romanised = mlengine_core::lexicon::Lexicon::open(
+            &pack.file("romanisedLexicon").expect("the pack's romanised lexicon"),
+        )
+        .unwrap();
+        let engine = pack_engine(&pack);
+        let rows: Vec<Row> = pack_rows(id).into_iter().step_by(every).collect();
+        let known: Vec<Row> = rows
+            .iter()
+            .filter(|r| {
+                mlengine_core::manglish::key(&tables, &r.expected)
+                    .is_some_and(|k| romanised.get(&k).is_some())
+            })
+            .map(|r| Row {
+                before: r.before.clone(),
+                drawn: r.drawn.clone(),
+                expected: r.expected.clone(),
+            })
+            .collect();
+        let seed = pack_seed(id);
+        report(
+            &format!("{id} (all)"),
+            id,
+            &mut run(&engine, &rows, seed, |a, b| a == b),
+            gate,
+        );
+        report(
+            &format!("{id} (in lexicon)"),
+            &format!("{id}_in_lexicon"),
+            &mut run(&engine, &known, seed, |a, b| a == b),
+            gate,
+        );
+    }
 }
 
 /// How often the expected Manglish word's skeleton is among the beam's finished words, and at
