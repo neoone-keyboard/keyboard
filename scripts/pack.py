@@ -79,7 +79,20 @@ def fields_engine(lang: dict | None) -> int:
     return level
 
 
-def lang_source(manifest: dict) -> Path:
+def is_fixture(pack: Path) -> bool:
+    """A pack folder in the repository but not in packs/ (engine/core/tests/fixtures/gu.neopack):
+    a test's own pack, which stands alone. Its id may be a real language's, whose
+    data/langs/<id>/ files are then not its sources."""
+    pack = pack.resolve()
+    return ROOT.resolve() in pack.parents and pack.parent != (ROOT / "packs").resolve()
+
+
+NO_SOURCE = Path("/nonexistent/neopack-fixture-has-no-source")
+
+
+def lang_source(manifest: dict, pack: Path | None = None) -> Path:
+    if pack is not None and is_fixture(pack):
+        return NO_SOURCE
     return ROOT / "data" / "langs" / manifest["id"] / "lang.json"
 
 
@@ -87,14 +100,16 @@ def lang_source(manifest: dict) -> Path:
 COPIED_ROLES = {"emojiWords": "emoji-words.txt", "emojiSearch": "emoji-search.txt"}
 
 
-def copied_source(manifest: dict, name: str) -> Path:
+def copied_source(manifest: dict, name: str, pack: Path | None = None) -> Path:
+    if pack is not None and is_fixture(pack):
+        return NO_SOURCE
     return ROOT / "data" / "langs" / manifest["id"] / name
 
 
 def add_copied(pack: Path, manifest: dict) -> None:
     """Each `COPIED_ROLES` file that data/langs/<id>/ has, copied into the pack with its role."""
     for role, name in COPIED_ROLES.items():
-        source = copied_source(manifest, name)
+        source = copied_source(manifest, name, pack)
         if source.is_file():
             (pack / manifest["files"].setdefault(role, name)).write_bytes(source.read_bytes())
 
@@ -103,7 +118,7 @@ def copied_problems(pack: Path, manifest: dict) -> list[str]:
     """The `COPIED_ROLES` files the pack lacks or holds another copy of, in words."""
     problems = []
     for role, name in COPIED_ROLES.items():
-        source = copied_source(manifest, name)
+        source = copied_source(manifest, name, pack)
         listed_as = manifest["files"].get(role)
         if not source.is_file():
             continue
@@ -133,7 +148,7 @@ def read_lang(path: Path) -> dict | None:
 def add_lang(pack: Path, manifest: dict) -> None:
     """lang.json from data/langs, the role, and the minEngine its script needs. Nothing for a
     pack in an embedded script that has no data/langs file, unless the manifest names one."""
-    source = lang_source(manifest)
+    source = lang_source(manifest, pack)
     script = manifest["script"]
     wanted = source.is_file() or script not in EMBEDDED or "lang" in manifest["files"]
     if not wanted:
@@ -152,7 +167,7 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     """Why the pack's script rules wouldn't load, in words; empty when they would."""
     script = manifest["script"]
     name = manifest["files"].get("lang")
-    source = lang_source(manifest)
+    source = lang_source(manifest, pack)
     if name is None:
         if source.is_file():
             return [f"the pack doesn't carry {source.relative_to(ROOT)} (the lang role); run --write"]
@@ -219,7 +234,7 @@ def script_ranges(pack: Path, manifest: dict) -> list[tuple[int, int]]:
     pack's copy, else data/langs/<id>/lang.json), else the embedded script's block. Empty when
     nothing says."""
     name = manifest["files"].get("lang")
-    for path in ([pack / name] if name else []) + [lang_source(manifest)]:
+    for path in ([pack / name] if name else []) + [lang_source(manifest, pack)]:
         if not path.is_file():
             continue
         try:
