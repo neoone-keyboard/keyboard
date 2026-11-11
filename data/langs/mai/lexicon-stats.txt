@@ -1,0 +1,10 @@
+mai tokens: 1062601, distinct forms: 98156
+mai dropped (a letter of the script, but not a word): 3279 tokens, 1725 forms
+mai dropped top 20: पं० 58, मं० 30, म० 30, ॐ 29, डॉ॰ 24, ई॰ 22, १९अम 20, के॰ 18, १९हम 18, २०६८क 18, कि॰मी॰ 16, ५अम 16, के॰जी॰बी॰ 15, १०अम 15, २०अम 15, पीएच॰डी॰ 14, १४हम 14, २००९मे 14, एम॰एससी॰ 13, एस॰एच॰ 13
+next.fst pairs: 87078 mai, 149977 English
+mai.fst: 39757 keys, 438024 bytes
+next.fst: 237055 keys, 3508345 bytes
+mai top 20: अछि आ छी एक के छल मे ई ओ सँ गेल विकास नेपालक भेल लेल क सन् जे कऽ सेहो
+romanised keys skipped: 0
+romanised.fst: 39756 keys, 673494 bytes
+mai text by source: maiwiki 1161628 words (100%)

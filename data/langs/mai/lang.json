@@ -1,0 +1,56 @@
+{
+  "id": "mai",
+  "name": "Maithili",
+  "script": "deva",
+  "block": ["0900", "097F"],
+  "notWord": [["0964", "0970"]],
+  "firstLetter": [
+    ["0904", "0914"],
+    ["0915", "0939"],
+    ["0958", "0961"],
+    ["0972", "097F"]
+  ],
+  "virama": "094D",
+  "signs": [
+    ["093A", "093B"],
+    ["093E", "094C"],
+    ["094E", "094F"],
+    ["0955", "0957"],
+    ["0962", "0963"],
+    ["094D", "094D"]
+  ],
+  "bases": [
+    ["0915", "0939"],
+    ["093C", "093C"],
+    ["0958", "095F"],
+    ["0978", "097F"]
+  ],
+  "apostrophe": false,
+  "replace": [
+    ["‍", ""],
+    ["‌", ""],
+    ["अा", "आ"],
+    ["अो", "ओ"],
+    ["अौ", "औ"],
+    ["एे", "ऐ"],
+    ["कs", "कऽ"],
+    ["मs", "मऽ"],
+    ["भs", "भऽ"],
+    ["पs", "पऽ"],
+    ["सs", "सऽ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 2,
+  "aksharantar": "mai",
+  "notes": {
+    "block": "Devanagari, U+0900-U+097F. Words are runs of these letters and signs. The avagraha ऽ (U+093D) is a letter here: Maithili writes it inside and at the end of words (कऽ, भऽ).",
+    "notWord": "Danda, double danda, digits ०-९ and the abbreviation sign are not word letters.",
+    "replace": "The normal form is NFC with every ZWJ and ZWNJ dropped (no \"joiners\" field), and the first two entries drop them before NFC as well. Mis-encoded independent vowels (अ + sign) are mended. The avagraha is often typed as a Latin s (कs for कऽ, 368 times in the Wikipedia text); the five commonest such words are mended.",
+    "phraseBreaks": "The danda । and double danda ॥ end a sentence.",
+    "signs": "A vowel sign or virama must follow a consonant or nukta. Anusvara, candrabindu and visarga may follow a vowel (Maithili सँ, केँ) and are not in this list.",
+    "translit": "The pack's translit.mlkbnn is, for now, the Hindi pack's (packs/hi.neopack 2026.11.12, byte for byte): the same script, and a spelling model the Maithili lexicon then filters. Its sources (Hindi Wikipedia and Wikisource, Dakshina, Aksharantar) are in the manifest's credits. Maithili's own is trained by `make pack-models PACK_LANG=mai` from this folder's tables and Aksharantar mai; when it replaces this one, take the three Hindi credits out and raise the version.",
+    "minCount": "2, not the usual 3: the only openly licensed Maithili text is its Wikipedia, far smaller than the other packs' text, and at 3 too many real words are lost."
+  }
+}

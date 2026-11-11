@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-mai",
+  "name": "Aksharantar (AI4Bharat), Maithili",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-06): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Maithili files have 75,257 Existing rows, which the filter in training/mlkb/langs/human.py drops (the tools keep only mined, Wikidata and manual rows). What is kept is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEF, AK-NEI, AK-Uni: CC BY).",
+  "used_for": "mai_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/mai.neopack, and to fit and check the romanised Maithili tables (data/langs/mai/romanisation.json). mai_valid.json manual rows (AK-Freq, AK-Uni) calibrate the tables and validate training. mai_test.json's manual rows (CC BY) are the held-out eval set: their words are left out of every training pair.",
+  "retrieved": "2026-11-11",
+  "notes": "Fetched 2026-11-11. Extract with: unzip mai.zip -d data/raw/aksharantar-mai/extracted (data/build-mai-text.sh does). mai_train.json has 282,639 rows: IndicCorp 201,471, Existing 75,257, AK-Freq 4,469, Wikidata 1,442. mai_valid.json has 3,790 rows: IndicCorp 1,962, AK-Freq 982, AK-Uni 809, Wikidata 37. mai_test.json has 5,449 rows: AK-Freq 3,471, AK-NEI 1,164, AK-NEF 814. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/mai.zip",
+      "sha256": "bef959e8b98c981d22c03c4a0e23cac25ca69b74c2cbc5bf8e5d0a2061ce3dfd",
+      "path": "mai.zip"
+    }
+  ],
+  "extracted": {
+    "mai_train.json": "1f9663b0e6a61883cf5845202f76bfd732abda58d47a5f4098609b5532a2b247",
+    "mai_valid.json": "d15da70a39a871013b8d5a0f4c8287b06508ea566d9996b987b7fe589ae4ac77",
+    "mai_test.json": "dc49841dc2f16561acb3c4b0cfef05179f6833fdf224cc71831d8ac80807b643"
+  },
+  "status": "in packs/mai.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}
