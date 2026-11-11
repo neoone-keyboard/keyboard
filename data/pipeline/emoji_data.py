@@ -47,7 +47,13 @@ PACK_FLAG_NAMES = {
         "കൊറിയ": "🇰🇷",
     },
 }
-STOP_WORDS = {"at", "do", "down", "got", "not", "off", "out", "over", "that", "this", "up"}
+STOP_WORDS = {
+    "at", "do", "down", "got", "not", "off", "out", "over", "that", "this", "up",
+    # The same grammar words in the pack languages: this, that, on, up.
+    "यह", "वह", "पर",  # hi
+    "हे", "ते", "वर",  # mr
+    "પર",  # gu
+}
 
 
 @dataclass

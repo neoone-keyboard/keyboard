@@ -21,8 +21,8 @@
     "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
-    "emoji-search.txt": "1115c05d09d01d59002d43fb4d4e966f0f2a7f56978787931fbd148b89146176",
-    "emoji-words.txt": "6a2c411168f401cf546339cab889ec8db042d654c78eaf7b81afa2ee62ff6a6e",
+    "emoji-search.txt": "9340b86f8ad32a94a0e8df7d32bc579cc766202c253354ea14aeaedf495db74d",
+    "emoji-words.txt": "e7dd622ffc60bcddb848a3ad38e082885d5e6f3ddb2a43afc80dd6747457f19e",
     "gu.fst": "ba4fbc675ca827ff753fa72ab2581765196048b3f4027378693b561c76ac1c27",
     "lang.json": "c80b3f361381b3a61d4ff0b0d883b792576188329ed97ac511ba82e2edd8443f",
     "layout.json": "64843506c0ada7fe2bb7090b8d9a4bd8f6ab966efd941e55bde03d0ac88a1fd4",
