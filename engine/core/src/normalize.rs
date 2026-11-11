@@ -1,6 +1,6 @@
 //! One normal form for every word the engine stores or looks up: NFC, the curly apostrophe
 //! (iOS smart punctuation, most corpus text) folded to `'`, and ZWJ and ZWNJ kept only where a
-//! script in use says they change a word (`Joiners`, from the script's `lang.json`).
+//! language's rules say they change a word (`Joiners`, from its pack's `lang.json`).
 //! `lexbuild` and the runtime both call `normalize`, so the two can never disagree about how a
 //! word is spelled.
 //!
@@ -36,9 +36,12 @@ impl Joiners {
     }
 }
 
-/// `normalize_with` the joiner rules of every script in use (`script::all`).
+/// `normalize_with` the joiner rules of each script in use: those of the first rule set in
+/// use for it (`script::firsts`). With two languages of one script loaded, the engine reads a
+/// word by its own language's instead (`Engine::read`, `script::plain`).
 pub fn normalize(text: &str) -> String {
-    let rules: Vec<&Joiners> = crate::script::all().filter_map(|r| r.joiners()).collect();
+    let scripts = crate::script::firsts();
+    let rules: Vec<&Joiners> = scripts.iter().filter_map(|r| r.joiners()).collect();
     normalize_with(text, &rules)
 }
 

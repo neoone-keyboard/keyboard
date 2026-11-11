@@ -17,13 +17,16 @@ const SHORTLIST: usize = 16;
 const ZWNJ: char = '\u{200C}';
 const ZWJ: char = '\u{200D}';
 
-/// The first code point of the script block `r`'s words are packed from (`pack`): its
-/// script's (U+0D00 for Malayalam, U+0900 for Devanagari). None when no script rules are in
-/// use for the tables' script: its words can't be packed or unpacked, so nothing is keyed or
+/// The first code point of the script block `r`'s words are packed from (`pack`; U+0D00 for
+/// Malayalam, U+0900 for Devanagari): the one its pack's own rules give
+/// (`Romanisation::packed_from`, set when the engine opens the pack), else, for tables with
+/// no pack (a builder's, a test's), that of the rules in use for the tables' script. None
+/// when there are neither: its words can't be packed or unpacked, so nothing is keyed or
 /// found. A pack never gets here so: the engine refuses one whose tables are for another
 /// script than its own (`Sources::open`).
 pub fn block_base(r: &Romanisation) -> Option<char> {
-    crate::script::rules(r.script()).map(|rules| *rules.block().start())
+    r.base()
+        .or_else(|| crate::script::rules(r.script()).map(|rules| *rules.block().start()))
 }
 
 /// One byte per character: the 128 code points of the script block from `base` become

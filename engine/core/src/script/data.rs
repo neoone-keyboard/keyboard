@@ -501,12 +501,7 @@ impl ScriptDef {
     /// use for its code, so a definition normalises the same installed or not (the builder
     /// never installs one).
     fn engine_normalize(&self, text: &str) -> String {
-        let rules: Vec<&crate::normalize::Joiners> = super::all()
-            .filter(|r| r.code() != self.code)
-            .filter_map(|r| r.joiners())
-            .chain(&self.joiners)
-            .collect();
-        crate::normalize::normalize_with(text, &rules)
+        super::plain_with(text, &self.code, self.joiners.as_ref())
     }
 
     /// The script's normal form of `text`: `replace`, the engine's `normalize`, `replace` again,

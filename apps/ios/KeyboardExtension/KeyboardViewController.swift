@@ -974,7 +974,8 @@ final class KeyboardViewController: UIInputViewController {
         state.limit = settings.suggestionCount
         let content = state.content { pack in
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
-            return try? nativeMarkBase(script: pack.script, contextBefore: context)
+            // By the pack's own rules: another active pack of the same script has its own.
+            return try? languageMarkBase(lang: pack.id, contextBefore: context)
         }
         if content.isForCurrentWord { barWord = state.straightWord }
         switch content {

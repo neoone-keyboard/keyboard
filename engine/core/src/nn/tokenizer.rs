@@ -10,6 +10,7 @@ use fst::{IntoStreamer, Map, MapBuilder, Streamer};
 
 use super::NnError;
 use crate::normalize::normalize;
+use crate::script::ScriptRules;
 
 /// Padding.
 pub const PAD: u32 = 0;
@@ -46,7 +47,17 @@ pub mod flag {
 /// The text form the LM is trained and run on: the engine's `normalize` (NFC, quote
 /// folding), ASCII lowercase, single spaces. Training text goes through this same function.
 pub fn lm_normalize(text: &str) -> String {
-    let normal = normalize(text);
+    lm_form(&normalize(text))
+}
+
+/// `lm_normalize` with `rules`' joiner rules for their script, whichever are in use for it
+/// (`script::plain`): the form for the LM of the pack whose rules they are.
+pub fn lm_normalize_as(text: &str, rules: &dyn ScriptRules) -> String {
+    lm_form(&crate::script::plain(text, rules))
+}
+
+/// `normal` lowercased, with single spaces.
+fn lm_form(normal: &str) -> String {
     let mut out = String::with_capacity(normal.len());
     for word in normal.split_whitespace() {
         if !out.is_empty() {
@@ -66,6 +77,8 @@ pub struct Tokenizer {
     index: Map<Vec<u8>>,
     bytes: [u32; 256],
     unk_score: f32,
+    /// The rules of the pack whose LM this is (`set_rules`): text is normalised by them.
+    rules: Option<&'static dyn ScriptRules>,
 }
 
 fn byte_of(piece: &str) -> Option<u8> {
@@ -138,6 +151,7 @@ impl Tokenizer {
             flags,
             index,
             bytes,
+            rules: None,
         })
     }
 
@@ -169,9 +183,26 @@ impl Tokenizer {
         self.flags[id as usize]
     }
 
-    /// Tokens of `text` after `lm_normalize`; every word starts with a `WORD_START` piece.
+    /// `set_native` with `rules`' block, and text is normalised by `rules` from now on
+    /// (`normal`): the rules of the pack whose LM this is, which another pack of the same
+    /// script may not share.
+    pub fn set_rules(&mut self, rules: &'static dyn ScriptRules) {
+        self.set_native(rules.block());
+        self.rules = Some(rules);
+    }
+
+    /// The text form this tokeniser reads: `lm_normalize`, by its pack's rules once set
+    /// (`set_rules`).
+    pub fn normal(&self, text: &str) -> String {
+        match self.rules {
+            Some(rules) => lm_normalize_as(text, rules),
+            None => lm_normalize(text),
+        }
+    }
+
+    /// Tokens of `text` after `normal`; every word starts with a `WORD_START` piece.
     pub fn encode(&self, text: &str) -> Vec<u32> {
-        let normal = lm_normalize(text);
+        let normal = self.normal(text);
         if normal.is_empty() {
             return Vec::new();
         }

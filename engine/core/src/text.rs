@@ -283,8 +283,8 @@ fn is_word_grapheme(g: &str) -> bool {
 pub enum Script {
     /// ASCII letters, optionally with apostrophes inside (don't).
     Latin,
-    /// Letters and signs of one registered native script (`script::rules`), by its ISO 15924
-    /// code, plus ZWJ and ZWNJ, and apostrophes inside the word where the script has them
+    /// Letters and signs of one native script in use (`script::all`, `is_word_of`), by its ISO
+    /// 15924 code, plus ZWJ and ZWNJ, and apostrophes inside the word where the script has them
     /// (`ScriptRules::inner_apostrophe`: Assamese হ'ল). For Malayalam: U+0D00–U+0D63 and
     /// U+0D7A–U+0D7F.
     Native(&'static str),
@@ -306,19 +306,22 @@ pub fn script(word: &str) -> Script {
     {
         return Script::Latin;
     }
-    for rules in crate::script::all() {
-        let letter = |c: char| rules.is_letter(c);
-        // An apostrophe inside the word, never first or last, where the script has them.
-        let inner = rules.inner_apostrophe() && !word.starts_with('\'') && !word.ends_with('\'');
-        if word
-            .chars()
-            .all(|c| letter(c) || c == '\u{200C}' || c == '\u{200D}' || (inner && c == '\''))
-            && word.chars().any(letter)
-        {
-            return Script::Native(rules.code());
-        }
-    }
-    Script::Other
+    // Any rule set in use: with two languages of one script, a word of either is in it.
+    crate::script::all()
+        .find(|rules| is_word_of(*rules, word))
+        .map_or(Script::Other, |rules| Script::Native(rules.code()))
+}
+
+/// Whether `word` is a word as `rules` make one: its letters and signs, ZWJ and ZWNJ, and
+/// apostrophes inside it where the rules have them. With two languages of one script this
+/// tells whose word a text can be (Assamese হ'ল and ৰ are no Bengali words).
+pub fn is_word_of(rules: &dyn crate::script::ScriptRules, word: &str) -> bool {
+    let letter = |c: char| rules.is_letter(c);
+    // An apostrophe inside the word, never first or last, where the script has them.
+    let inner = rules.inner_apostrophe() && !word.starts_with('\'') && !word.ends_with('\'');
+    word.chars()
+        .all(|c| letter(c) || c == '\u{200C}' || c == '\u{200D}' || (inner && c == '\''))
+        && word.chars().any(letter)
 }
 
 /// A char that can be part of a word when tokenising a corpus line. Cheaper

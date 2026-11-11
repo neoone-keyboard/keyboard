@@ -8,10 +8,22 @@
 //! their packs now carry), read through the same parser, for a pack in `mlym`, `deva` or `beng`
 //! that has no `lang` file. A pack's own file always wins.
 //!
-//! The engine serves one pack per script, so the rules in use for a script are global:
-//! `Sources::open` installs each pack's rules ([`install`]) before it reads the pack's files,
-//! and [`rules`], [`all`], [`normalize_word`] and `text::script` see them from then on. Before
-//! any pack is opened they are the embedded three.
+//! Rules belong to a language, not to a script: two packs may be written in one script and
+//! bring different files (Assamese folds a letter Bengali keeps), so each loaded pack holds
+//! its own (`PackSources::rules`) and the engine reads a word by the rules of the language it
+//! is a word of (`Engine::read`). What is kept here, for the code that has only text and no
+//! engine, is the set of rule sets in use, several of one script among them:
+//!
+//! - which characters make a word, where a phrase ends, and which script a word is in
+//!   (`text::script`, [`is_word_char`], [`ends_phrase`]) hold for any of them ([`all`]);
+//! - [`rules`], [`normalize_word`] and `normalize::normalize` answer by the first in use for a
+//!   script ([`firsts`]): right for a builder, which installs one language's;
+//! - [`of_language`] gives a language's own rules by its pack id, for a caller that knows the
+//!   language but has no engine (the keyboard's vowel-sign strip).
+//!
+//! A pack's rules are in use while the pack is loaded ([`in_use`], held by `PackSources`) or
+//! for good ([`install`]). The engine's own copy for a script stands in only while no pack's
+//! rules for that script are in use.
 
 pub mod data;
 
@@ -112,12 +124,20 @@ fn embedded_rules() -> &'static [&'static dyn ScriptRules] {
     })
 }
 
-/// The rules in use, once a pack has installed any (`install`); null means the embedded
-/// ones. Each table is leaked and only ever replaced, so a reader never sees one freed. A new
-/// table is made only when a pack brings rules other than those in use.
+/// The rule sets in use (`table`), once a pack has brought any; null means the embedded ones.
+/// Each table is leaked and only ever replaced, so a reader never sees one freed. A new table
+/// is made only when the rule sets in use change.
 static TABLE: AtomicPtr<Vec<&'static dyn ScriptRules>> = AtomicPtr::new(std::ptr::null_mut());
-static WRITER: Mutex<()> = Mutex::new(());
+/// The rule sets packs brought, each with how many users it has (`in_use`), in the order
+/// they were first used. `TABLE` is made from it.
+static USES: Mutex<Vec<(&'static dyn ScriptRules, usize)>> = Mutex::new(Vec::new());
+/// Each language's rules by its pack id (`set_language`), the latest for an id.
+static LANGUAGES: Mutex<Vec<(String, &'static dyn ScriptRules)>> = Mutex::new(Vec::new());
 
+/// The rule sets in use: for each script the engine has a copy of, the ones packs brought for
+/// it, or else that copy; then the ones packs brought for any other script. Several may share
+/// a script code (two languages of one script); two of different codes never share a
+/// character.
 fn table() -> &'static [&'static dyn ScriptRules] {
     let p = TABLE.load(Ordering::Acquire);
     if p.is_null() {
@@ -129,9 +149,57 @@ fn table() -> &'static [&'static dyn ScriptRules] {
     }
 }
 
-/// The rules for a script code: the ones a pack installed, else the embedded ones.
+/// Makes the table `uses` gives, unless it is the one in place.
+fn publish(uses: &[(&'static dyn ScriptRules, usize)]) {
+    let mut next: Vec<&'static dyn ScriptRules> = Vec::new();
+    for own in embedded_rules() {
+        let before = next.len();
+        next.extend(uses.iter().map(|(r, _)| *r).filter(|r| r.code() == own.code()));
+        if next.len() == before {
+            next.push(*own);
+        }
+    }
+    next.extend(uses.iter().map(|(r, _)| *r).filter(|r| embedded(r.code()).is_none()));
+    let current = table();
+    let same = current.len() == next.len()
+        && current.iter().zip(&next).all(|(a, b)| std::ptr::addr_eq(*a, *b));
+    if !same {
+        TABLE.store(Box::into_raw(Box::new(next)), Ordering::Release);
+    }
+}
+
+/// The rules for a script code: the first in use for it (`table`). With two languages of one
+/// script in use this is one of them: a caller that knows the language asks `of_language`, or
+/// the engine.
 pub fn rules(code: &str) -> Option<&'static dyn ScriptRules> {
     table().iter().copied().find(|r| r.code() == code)
+}
+
+/// One rule set for each script in use: the first (`rules`).
+pub fn firsts() -> Vec<&'static dyn ScriptRules> {
+    let mut found: Vec<&'static dyn ScriptRules> = Vec::new();
+    for r in table() {
+        if !found.iter().any(|f| f.code() == r.code()) {
+            found.push(*r);
+        }
+    }
+    found
+}
+
+/// The rules of the language `id` (a pack's id), once a pack of that id was loaded
+/// (`Sources::open`) or named (`set_language`). The latest for the id.
+pub fn of_language(id: &str) -> Option<&'static dyn ScriptRules> {
+    let languages = LANGUAGES.lock().unwrap_or_else(|e| e.into_inner());
+    languages.iter().find(|(l, _)| l == id).map(|(_, r)| *r)
+}
+
+/// Makes `rules` the ones `of_language` gives for the language `id` from now on.
+pub fn set_language(id: &str, rules: &'static dyn ScriptRules) {
+    let mut languages = LANGUAGES.lock().unwrap_or_else(|e| e.into_inner());
+    match languages.iter_mut().find(|(l, _)| l == id) {
+        Some(slot) => slot.1 = rules,
+        None => languages.push((id.to_string(), rules)),
+    }
 }
 
 /// The engine's own copy of the rules for a script code, whatever is installed.
@@ -145,20 +213,36 @@ pub fn supported() -> Vec<&'static str> {
     EMBEDDED.iter().map(|(code, _)| *code).collect()
 }
 
-/// Every script in use.
+/// Every rule set in use (`table`): two of one script when two such languages are loaded.
 pub fn all() -> impl Iterator<Item = &'static dyn ScriptRules> {
     table().iter().copied()
 }
 
-/// Makes `new` the rules for its script from now on, in place of the ones in use. Refused
-/// when its characters overlap another script's, as a word could then be in either.
-pub fn install(new: &'static dyn ScriptRules) -> Result<(), String> {
-    let _writer = WRITER.lock().unwrap_or_else(|e| e.into_inner());
-    let current = table();
-    if current.iter().any(|r| std::ptr::addr_eq(*r, new)) {
-        return Ok(());
+/// A rule set in use for as long as this is kept (`in_use`).
+#[derive(Debug)]
+pub struct InUse {
+    rules: &'static dyn ScriptRules,
+}
+
+impl Drop for InUse {
+    fn drop(&mut self) {
+        let mut uses = USES.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(at) = uses.iter().position(|(r, _)| std::ptr::addr_eq(*r, self.rules)) {
+            uses[at].1 -= 1;
+            if uses[at].1 == 0 {
+                uses.remove(at);
+                publish(&uses);
+            }
+        }
     }
-    if let Some(other) = current
+}
+
+/// Puts `new` among the rule sets in use until what is returned is dropped, beside any other
+/// in use for its script (another language's). Refused when its characters overlap another
+/// script's, as a word could then be in either.
+pub fn in_use(new: &'static dyn ScriptRules) -> Result<InUse, String> {
+    let mut uses = USES.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(other) = table()
         .iter()
         .find(|r| r.code() != new.code() && data::overlaps(**r, new))
     {
@@ -168,13 +252,43 @@ pub fn install(new: &'static dyn ScriptRules) -> Result<(), String> {
             other.code()
         ));
     }
-    let mut next: Vec<&'static dyn ScriptRules> = current.to_vec();
-    match next.iter_mut().find(|r| r.code() == new.code()) {
-        Some(slot) => *slot = new,
-        None => next.push(new),
+    match uses.iter_mut().find(|(r, _)| std::ptr::addr_eq(*r, new)) {
+        Some(found) => found.1 += 1,
+        None => {
+            uses.push((new, 1));
+            publish(&uses);
+        }
     }
-    TABLE.store(Box::into_raw(Box::new(next)), Ordering::Release);
-    Ok(())
+    Ok(InUse { rules: new })
+}
+
+/// `in_use`, for as long as the process runs: a builder's one language, or a pack the
+/// keyboard names before the engine opens.
+pub fn install(new: &'static dyn ScriptRules) -> Result<(), String> {
+    in_use(new).map(std::mem::forget)
+}
+
+/// The engine's normal form (`normalize::normalize_with`) of `text` with `own`'s joiner rules
+/// for its script, whichever rule sets are in use for it, and the first in use for every
+/// other script.
+pub fn plain(text: &str, own: &dyn ScriptRules) -> String {
+    plain_with(text, own.code(), own.joiners())
+}
+
+/// As `plain`, for rules given by their code and joiner rules.
+pub(crate) fn plain_with(
+    text: &str,
+    code: &str,
+    joiners: Option<&crate::normalize::Joiners>,
+) -> String {
+    let others = firsts();
+    let rules: Vec<&crate::normalize::Joiners> = others
+        .iter()
+        .filter(|r| r.code() != code)
+        .filter_map(|r| r.joiners())
+        .chain(joiners)
+        .collect();
+    crate::normalize::normalize_with(text, &rules)
 }
 
 /// The rules for a pack in `script`: the script its `lang` file defines, or, for a pack
@@ -225,9 +339,10 @@ pub fn ends_phrase(c: char) -> bool {
     table().iter().any(|r| r.ends_phrase(c))
 }
 
-/// A word's normal form: `normalize::normalize`, then, for a word of a native script
-/// (`text::script`), that script's own rules (`ScriptRules::normalize`), which are what built
-/// its pack's lexicon.
+/// A word's normal form without an engine: `normalize::normalize`, then, for a word of a
+/// native script (`text::script`), the rules in use for that script (`rules`: the first, when
+/// two languages of it are in use), which are what built its pack's lexicon. The engine reads
+/// a word by its language's (`Engine::read`).
 pub fn normalize_word(word: &str) -> String {
     let normal = crate::normalize::normalize(word);
     match crate::text::script(&normal) {
@@ -345,10 +460,63 @@ mod tests {
     }
 
     #[test]
+    fn two_languages_of_one_script_are_both_in_use_while_kept() {
+        // A private-use script, so no other test's rules are in the way.
+        let first = format!(
+            r#"{{"script": "qzzx", "letters": [["F1000", "F10FF"]], "replace": [["{}", "{}"]]}}"#,
+            '\u{F1001}', '\u{F1002}'
+        );
+        let first = DataScript::intern(ScriptDef::from_json(&first).unwrap());
+        let second = format!(
+            r#"{{"script": "qzzx", "letters": [["F1000", "F107F"]], "phraseBreaks": ["{}"]}}"#,
+            '\u{F1090}'
+        );
+        let second = DataScript::intern(ScriptDef::from_json(&second).unwrap());
+        assert!(rules("qzzx").is_none());
+        let a = in_use(first).unwrap();
+        let b = in_use(second).unwrap();
+        let again = in_use(second).unwrap();
+        let both: Vec<_> = all().filter(|r| r.code() == "qzzx").collect();
+        assert_eq!(both.len(), 2);
+        assert!(std::ptr::addr_eq(rules("qzzx").unwrap(), first), "the first in use");
+        assert_eq!(firsts().iter().filter(|r| r.code() == "qzzx").count(), 1);
+        // A word is in the script if either language makes it of its letters, and a phrase
+        // ends where either says.
+        assert_eq!(
+            crate::text::script("\u{F1081}"),
+            crate::text::Script::Native("qzzx"),
+            "a letter of the first alone"
+        );
+        assert!(ends_phrase('\u{F1090}'));
+        // Each keeps its own normal form.
+        assert_eq!(first.normalize("\u{F1001}"), "\u{F1002}");
+        assert_eq!(second.normalize("\u{F1001}"), "\u{F1001}");
+        drop(a);
+        assert!(std::ptr::addr_eq(rules("qzzx").unwrap(), second));
+        assert_eq!(crate::text::script("\u{F1081}"), crate::text::Script::Other);
+        drop(b);
+        assert!(rules("qzzx").is_some(), "still in use once more");
+        drop(again);
+        assert!(rules("qzzx").is_none());
+    }
+
+    #[test]
+    fn a_languages_rules_are_found_by_its_id() {
+        let file = lang_file(r#"{"script": "beng", "block": ["0980", "09FF"]}"#);
+        let plain = for_pack("beng", Some(file.path())).unwrap();
+        assert!(of_language("qq-test").is_none());
+        set_language("qq-test", plain);
+        assert!(std::ptr::addr_eq(of_language("qq-test").unwrap(), plain));
+        set_language("qq-test", embedded("beng").unwrap());
+        assert!(std::ptr::addr_eq(of_language("qq-test").unwrap(), embedded("beng").unwrap()));
+    }
+
+    #[test]
     fn blocks_do_not_overlap() {
         let scripts: Vec<_> = all().collect();
         for (i, a) in scripts.iter().enumerate() {
-            for b in &scripts[i + 1..] {
+            // Two languages of one script share its block.
+            for b in scripts[i + 1..].iter().filter(|b| b.code() != a.code()) {
                 let overlap =
                     a.block().start() <= b.block().end() && b.block().start() <= a.block().end();
                 assert!(!overlap, "{} and {}", a.code(), b.code());

@@ -271,6 +271,8 @@ pub struct Romanisation {
     swipe: crate::swipe::SkeletonRules,
     speller: crate::translit::Speller,
     script: String,
+    /// The first code point its pack's words are packed from (`packed_from`).
+    base: Option<char>,
     virama: Vec<char>,
     inherent: String,
     end_virama: String,
@@ -396,6 +398,7 @@ impl Romanisation {
             swipe,
             speller,
             script: raw.script,
+            base: None,
             virama: virama.chars().collect(),
             inherent: raw.inherent,
             end_virama: raw.at_word_end.virama,
@@ -413,6 +416,19 @@ impl Romanisation {
     /// The script the tables are for (ISO 15924, lower case).
     pub fn script(&self) -> &str {
         &self.script
+    }
+
+    /// These tables for a pack whose romanised lexicon packs each word from `base`
+    /// (`manglish::pack`): the first code point of the pack's own rules' block. Two packs of
+    /// one script may differ in it, so the engine sets each pack's from its own `lang.json`.
+    pub fn packed_from(mut self, base: char) -> Self {
+        self.base = Some(base);
+        self
+    }
+
+    /// The base `packed_from` set, if any.
+    pub fn base(&self) -> Option<char> {
+        self.base
     }
 
     /// Chars a native word may start with: the first char of a consonant, cluster or
