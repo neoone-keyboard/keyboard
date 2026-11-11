@@ -34,6 +34,11 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     /// the script's own block when the engine has rules for it (`embeddedScriptRanges`), else
     /// none.
     public let scriptRanges: [ClosedRange<UInt32>]
+    /// The pack's own emoji words, when it brings them (the optional `emojiWords` and
+    /// `emojiSearch` roles): its language's words for the bar's emoji and for the emoji
+    /// panel's search, in the formats of the app's emoji-words.txt and emoji-search.txt.
+    public let emojiWords: URL?
+    public let emojiSearch: URL?
 
     /// The blocks of the scripts the engine has its own rules for (`script::supported`: packs
     /// in them were published before packs carried `lang.json`), as `block` in
@@ -47,8 +52,10 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     public init(id: String, name: String, nativeName: String, script: String, romanisedName: String? = nil,
                 credits: [Credit] = [], layout: PackLayout?, folder: URL,
                 version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil,
-                scriptRanges: [ClosedRange<UInt32>]? = nil) {
+                scriptRanges: [ClosedRange<UInt32>]? = nil, emojiWords: URL? = nil, emojiSearch: URL? = nil) {
         self.scriptRanges = scriptRanges ?? Self.embeddedScriptRanges[script] ?? []
+        self.emojiWords = emojiWords
+        self.emojiSearch = emojiSearch
         self.id = id
         self.name = name
         self.nativeName = nativeName
@@ -86,6 +93,7 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
                 .flatMap { name in name.isEmpty || name.contains("/") || name.hasPrefix(".") ? nil : name }
                 .map { folder.appending(path: $0) }
         }
+        let isFile = { (url: URL) in FileManager.default.fileExists(atPath: url.path) }
         let layout = file("layout").flatMap { try? PackLayout.load($0) }
         let ranges = file("lang").flatMap { try? Data(contentsOf: $0) }
             .flatMap { try? JSONDecoder().decode(Lang.self, from: $0) }?.ranges
@@ -95,7 +103,9 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
             credits: manifest.credits?.map(\.credit) ?? [],
             layout: layout, folder: folder,
             version: manifest.version, minEngine: manifest.minEngine, englishFingerprint: manifest.englishFingerprint,
-            scriptRanges: ranges
+            scriptRanges: ranges,
+            emojiWords: file("emojiWords").flatMap { isFile($0) ? $0 : nil },
+            emojiSearch: file("emojiSearch").flatMap { isFile($0) ? $0 : nil }
         )
     }
 

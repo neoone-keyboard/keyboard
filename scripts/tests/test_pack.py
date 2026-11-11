@@ -54,6 +54,42 @@ class RomanisationRole(unittest.TestCase):
             self.assertEqual(pack.romanisation_problems(folder, manifest), [], folder.name)
 
 
+class EmojiRoles(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name) / "zz.neopack"
+        self.dir.mkdir()
+        self.root = pack.ROOT
+        pack.ROOT = Path(self.tmp.name) / "repo"
+        self.source = pack.ROOT / "data/langs/zz-test"
+        self.source.mkdir(parents=True)
+
+    def tearDown(self):
+        pack.ROOT = self.root
+        self.tmp.cleanup()
+
+    def test_a_language_without_emoji_words_has_no_roles(self):
+        m = manifest(lang=False)
+        pack.add_copied(self.dir, m)
+        self.assertEqual(m, manifest(lang=False))
+        self.assertEqual(pack.copied_problems(self.dir, m), [])
+
+    def test_the_pack_carries_its_languages_emoji_words(self):
+        (self.source / "emoji-words.txt").write_text("പൂച്ച\t🐈\n", encoding="utf-8")
+        (self.source / "emoji-search.txt").write_text("പൂച്ച\t🐈\n", encoding="utf-8")
+        m = manifest(lang=False)
+        self.assertIn("the emojiWords role", pack.copied_problems(self.dir, m)[0])
+        self.assertEqual(len(pack.copied_problems(self.dir, m)), 2)
+        pack.add_copied(self.dir, m)
+        self.assertEqual(m["files"]["emojiWords"], "emoji-words.txt")
+        self.assertEqual(m["files"]["emojiSearch"], "emoji-search.txt")
+        self.assertEqual(m["minEngine"], 4, "the roles don't raise it")
+        self.assertEqual((self.dir / "emoji-words.txt").read_text(encoding="utf-8"), "പൂച്ച\t🐈\n")
+        self.assertEqual(pack.copied_problems(self.dir, m), [])
+        (self.dir / "emoji-search.txt").write_text("other\n", encoding="utf-8")
+        self.assertIn("emoji-search.txt differs", pack.copied_problems(self.dir, m)[0])
+
+
 class LangRole(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

@@ -611,17 +611,32 @@ final class KeyboardViewController: UIInputViewController {
         .appending(path: "Emoji/history.json")
     /// Saves run in order, off the main thread.
     private static let emojiSaves = DispatchQueue(label: "me.jishnu.keyboard.emoji-history")
-    /// The word → emoji list, memory-mapped once per process; nil if missing from the bundle.
-    private static let emojiWords: EmojiWords? = Bundle.main
-        .url(forResource: "emoji-words", withExtension: "txt", subdirectory: "Emoji")
-        .flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
-        .map(EmojiWords.init)
+    /// The word → emoji lists, memory-mapped: the app's own file (English), then each active
+    /// pack's (`PackDescriptor.emojiWords`, `emojiSearch`). A pack published before packs
+    /// carried their emoji words gets the app's copy for its id, if the bundle has one
+    /// (`Emoji/packs/<id>/`: Malayalam's). Held until the active packs change; nil if the
+    /// app's file is missing from the bundle.
+    private static var emojiWordLists: [String: (packs: [String], words: EmojiWords?)] = [:]
 
-    /// The panel's search words, memory-mapped once per process; nil if missing from the bundle.
-    private static let emojiSearchWords: EmojiWords? = Bundle.main
-        .url(forResource: "emoji-search", withExtension: "txt", subdirectory: "Emoji")
-        .flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) }
-        .map(EmojiWords.init)
+    private static func emojiWordList(_ name: String, of pack: (PackDescriptor) -> URL?) -> EmojiWords? {
+        let packs = EngineSuggestionProvider.activePacks
+        let key = packs.map { "\($0.id) \($0.version)" }
+        if let held = emojiWordLists[name], held.packs == key { return held.words }
+        let mapped = { (url: URL?) in url.flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) } }
+        let own = mapped(Bundle.main.url(forResource: name, withExtension: "txt", subdirectory: "Emoji"))
+        let fromPacks = packs.compactMap { each in
+            mapped(pack(each) ?? Bundle.main.url(forResource: name, withExtension: "txt", subdirectory: "Emoji/packs/\(each.id)"))
+        }
+        let words = own.map { EmojiWords(files: [$0] + fromPacks) }
+        emojiWordLists[name] = (key, words)
+        return words
+    }
+
+    /// The bar's word → emoji list.
+    private static var emojiWords: EmojiWords? { emojiWordList("emoji-words", of: \.emojiWords) }
+
+    /// The panel's search words.
+    private static var emojiSearchWords: EmojiWords? { emojiWordList("emoji-search", of: \.emojiSearch) }
 
     /// Covers the keys and the top bar, with the catalog read from the bundle.
     private func showEmojiPanel() {

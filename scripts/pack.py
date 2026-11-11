@@ -25,6 +25,13 @@ The romanisation tables (the `romanisation` role). `--check` fails when the file
 read as the packs published before the field were, with Malayalam's habits (d for t, ee for i,
 oo for u), which is right only for those packs.
 
+Emoji words (the `emojiWords` and `emojiSearch` roles, optional). The words of the pack's
+language that suggest an emoji in the bar and find one in the emoji panel's search
+(`emoji-words.txt`, `emoji-search.txt`, built by data/pipeline/emoji_data.py into
+`data/langs/<id>/`). `--write` copies them in and adds the roles when `data/langs/<id>/` has
+them; `--check` fails when the pack lacks them or its copy differs. The engine ignores the
+roles, and an app from before them uses its own bundled words, so `minEngine` doesn't move.
+
 The layout (the `layout` role). `--check` also reads `layout.json` as the app does and fails on
 what the app would refuse (not format 1, no pages, an empty key, a strip entry that isn't one
 character), which otherwise shows only as a language that never appears on the phone; and on a
@@ -74,6 +81,37 @@ def fields_engine(lang: dict | None) -> int:
 
 def lang_source(manifest: dict) -> Path:
     return ROOT / "data" / "langs" / manifest["id"] / "lang.json"
+
+
+# Optional pack files that are copies of data/langs/<id>/<name>: role -> file name.
+COPIED_ROLES = {"emojiWords": "emoji-words.txt", "emojiSearch": "emoji-search.txt"}
+
+
+def copied_source(manifest: dict, name: str) -> Path:
+    return ROOT / "data" / "langs" / manifest["id"] / name
+
+
+def add_copied(pack: Path, manifest: dict) -> None:
+    """Each `COPIED_ROLES` file that data/langs/<id>/ has, copied into the pack with its role."""
+    for role, name in COPIED_ROLES.items():
+        source = copied_source(manifest, name)
+        if source.is_file():
+            (pack / manifest["files"].setdefault(role, name)).write_bytes(source.read_bytes())
+
+
+def copied_problems(pack: Path, manifest: dict) -> list[str]:
+    """The `COPIED_ROLES` files the pack lacks or holds another copy of, in words."""
+    problems = []
+    for role, name in COPIED_ROLES.items():
+        source = copied_source(manifest, name)
+        listed_as = manifest["files"].get(role)
+        if not source.is_file():
+            continue
+        if listed_as is None:
+            problems.append(f"the pack doesn't carry {source.relative_to(ROOT)} (the {role} role); run --write")
+        elif not (pack / listed_as).is_file() or (pack / listed_as).read_bytes() != source.read_bytes():
+            problems.append(f"{listed_as} differs from {source.relative_to(ROOT)}; run --write")
+    return problems
 
 
 def needed_engine(script: str, lang: dict | None) -> int:
@@ -330,6 +368,7 @@ def main() -> int:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if args.write:
         add_lang(args.pack, manifest)
+        add_copied(args.pack, manifest)
     current = listed(args.pack, manifest)
 
     if args.write:
@@ -353,7 +392,7 @@ def main() -> int:
                   f"run scripts/pack.py {args.pack} --write", file=sys.stderr)
             return 1
         problems = (lang_problems(args.pack, manifest) + romanisation_problems(args.pack, manifest)
-                    + layout_problems(args.pack, manifest))
+                    + copied_problems(args.pack, manifest) + layout_problems(args.pack, manifest))
         for problem in problems:
             print(f"{manifest_path}: {problem}", file=sys.stderr)
         return 1 if problems else 0

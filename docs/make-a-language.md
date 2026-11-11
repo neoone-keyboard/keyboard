@@ -69,6 +69,7 @@ packs/as.neopack/
 | `lang` | `lang.json` | The script's definition: `data/langs/xx/lang.json`, the file the lexicons were built with (step 2). `pack.py --write` copies it in. Engine 4. | **Yes.** `pack.py --check` fails without it. (The engine still reads an older `mlym`, `deva` or `beng` pack that lacks it.) |
 | `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a pack whose `lang.json` has `suffixJoins` uses it (Malayalam today; step 4b). | No |
 | `chatForms` | `chat-forms.tsv` | Hand-written chat spellings no rule reaches: `latin<TAB>native` per line. | No |
+| `emojiWords`, `emojiSearch` | `emoji-words.txt`, `emoji-search.txt` | Your language's words for emoji: the first suggests an emoji in the bar for a typed word, the second is the emoji panel's search. Built from Unicode CLDR's annotations for your locale (step 8b). Read by the app, not the engine. | No. Without them the bar and the search know English only. |
 
 Any missing optional file switches off only its feature.
 
@@ -832,6 +833,30 @@ Devanagari rules from the engine's copy of `data/langs/hi/lang.json` instead of 
 Step 7 already wrote `next.fst`: pairs of adjacent words from your text, plus the English
 pairs. Nothing more is needed for next-word suggestions. Sentences never span a
 `phraseBreaks` character.
+
+### 8b. Optional: emoji words
+
+The bar offers an emoji for a word (🍕 for `pizza`) and the emoji panel has a search. Both
+know English from the app, and your language from your pack. The words come from
+[Unicode CLDR](https://cldr.unicode.org/)'s emoji annotations, which exist for most locales
+(Unicode License v3, already credited by the app).
+
+1. Add your locale's two files to `data/manifests/cldr-annotations.json`, next to
+   Malayalam's: `common/annotations/xx.xml` as `xx.xml` and `common/annotationsDerived/xx.xml`
+   as `derived-xx.xml`, with their sha256 (`shasum -a 256`). CLDR's locale code must be your
+   pack id; the script takes every `<id>.xml` but English's as a pack language.
+2. `make emoji` writes `data/langs/xx/emoji-words.txt` and `emoji-search.txt`. It rewrites
+   the app's English files too, with the same bytes unless Unicode's data changed.
+3. `scripts/pack.py packs/xx.neopack --write` (step 10) copies the two files into the pack,
+   adds the `emojiWords` and `emojiSearch` roles and their checksums. `--check` fails when
+   the pack's copies differ from `data/langs/xx/`. `minEngine` doesn't move: the engine
+   doesn't read them, and an older app ignores them.
+4. Add a credit to the manifest, as Malayalam's has: id `cldr-annotations`, licence
+   `Unicode License v3`.
+
+Everyday names for flags that CLDR only spells out in full (`അമേരിക്ക` for 🇺🇸) are a short
+list per pack id in `data/pipeline/emoji_data.py` (`PACK_FLAG_NAMES`); that one is a code
+edit, and optional.
 
 ### 9. Train the transliterator
 

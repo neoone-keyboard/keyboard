@@ -7,7 +7,7 @@
   "attribution": "Copyright © 1991-2026 Unicode, Inc. Emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, common/annotations/ and common/annotationsDerived/ en.xml and ml.xml, distributed under the Unicode License v3.",
   "verdict": "use",
   "verdict_reason": "Permissive, like the Unicode emoji data: the CLDR data files are under the Unicode License v3, which allows modified copies with the notice, carried in the app's About screen.",
-  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into apps/ios/KeyboardExtension/Emoji/emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt, with the derived names (flags by country, keycaps, people by role and gender) from annotationsDerived. No Manglish: CLDR has no romanised Malayalam.",
+  "used_for": "Emoji suggestions in the bar: the one-word keywords and names (tts) of each emoji, lowercased, compiled by data/pipeline/emoji_data.py into emoji-words.txt; and the emoji panel's search: every word of each name and keyword, into emoji-search.txt, with the derived names (flags by country, keycaps, people by role and gender) from annotationsDerived. English's files are the app's (apps/ios/KeyboardExtension/Emoji/); a pack language's (ml.xml and derived-ml.xml here) go to data/langs/<id>/ and into its pack as the emojiWords and emojiSearch roles, and Malayalam's also to the app's Emoji/packs/ml/, for a Malayalam pack published before packs carried them. No Manglish: CLDR has no romanised Malayalam.",
   "retrieved": "2026-11-05",
   "files": [
     {

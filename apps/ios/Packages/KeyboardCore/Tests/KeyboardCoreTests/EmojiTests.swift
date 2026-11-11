@@ -162,12 +162,62 @@ private let wordsText = """
     let data = try Data(contentsOf: bundledEmoji.appending(path: "emoji-words.txt"))
     let words = EmojiWords(data: data)
     let lines = String(decoding: data, as: UTF8.self).split(separator: "\n").filter { !$0.hasPrefix("#") }
-    #expect(lines.count > 5000)
+    #expect(lines.count > 3000)
     for line in lines {
         let parts = line.split(separator: "\t")
         #expect(words.emoji(for: String(parts[0])) == parts[1].split(separator: " ").map(String.init), "\(parts[0])")
     }
     #expect(words.emoji(for: "pizza").first == "🍕")
+    // The app's own list is English: a pack's language comes with the pack.
+    #expect(!lines.contains { malayalamPack.writes(String($0)) })
+    #expect(words.emoji(for: "സ്നേഹം").isEmpty)
+}
+
+/// The Malayalam pack brings its own emoji words (the `emojiWords` role); with them after the
+/// app's, every Malayalam word finds its emoji, and English is as without the pack.
+@Test func aPacksEmojiWordsAreReadAfterTheApps() throws {
+    let own = try Data(contentsOf: bundledEmoji.appending(path: "emoji-words.txt"))
+    let url = try #require(malayalamPack.emojiWords)
+    let packs = try Data(contentsOf: url)
+    let words = EmojiWords(files: [own, packs])
+    let lines = String(decoding: packs, as: UTF8.self).split(separator: "\n").filter { !$0.hasPrefix("#") }
+    #expect(lines.count > 2500)
+    let alone = EmojiWords(data: own)
+    var inBoth = 0
+    for line in lines {
+        let parts = line.split(separator: "\t")
+        let word = String(parts[0])
+        let english = alone.emoji(for: word)
+        inBoth += english.isEmpty ? 0 : 1
+        let both = english + parts[1].split(separator: " ").map(String.init).filter { !english.contains($0) }
+        #expect(words.emoji(for: word) == Array(both.prefix(EmojiWords.maxPerWord)), "\(word)")
+    }
+    #expect(inBoth < 10, "a handful of Latin words are in both lists")
+    #expect(words.emoji(for: "പൂച്ച").first == "🐈")
+    #expect(words.emoji(for: "pizza") == alone.emoji(for: "pizza"))
+    #expect(pack("hi").emojiWords == nil, "a pack without the role brings none")
+    // The app's copy for a Malayalam pack published before the role is the same file.
+    let fallback = try Data(contentsOf: bundledEmoji.appending(path: "packs/ml/emoji-words.txt"))
+    #expect(fallback == packs)
+    let search = try Data(contentsOf: bundledEmoji.appending(path: "packs/ml/emoji-search.txt"))
+    #expect(try search == Data(contentsOf: #require(malayalamPack.emojiSearch)))
+}
+
+@Test func aWordInSeveralListsHasEachListsEmoji() {
+    let first = Data("cat\t🐈 🐱\nlove\t❤️\n".utf8)
+    let second = Data("cat\t🐱 😺\nപൂച്ച\t🐈\n".utf8)
+    let words = EmojiWords(files: [first, second])
+    #expect(words.emoji(for: "cat") == ["🐈", "🐱", "😺"])
+    #expect(words.emoji(for: "love") == ["❤️"])
+    #expect(words.emoji(for: "പൂച്ച") == ["🐈"])
+    #expect(words.emoji(for: "dog").isEmpty)
+    // Search rows: the emoji a word names, "|", those it is a keyword of.
+    let a = Data("heart\t❤️ | 😍\nheat\t| 🫠\n".utf8)
+    let b = Data("heart\t💘 | ❤️ 🥰\nhearts\t💕\n".utf8)
+    let found = EmojiWords(files: [a, b]).words(startingWith: "hea")
+    #expect(found.map(\.word) == ["heart", "heat", "hearts"])
+    #expect(found[0].emoji == ["❤️", "💘", "|", "😍", "🥰"])
+    #expect(found[1].emoji == ["|", "🫠"])
 }
 
 // MARK: The bar's emoji

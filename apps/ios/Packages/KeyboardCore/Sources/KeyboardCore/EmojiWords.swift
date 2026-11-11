@@ -1,16 +1,84 @@
 import Foundation
 
-/// Word → emoji, from the bundled emoji-words.txt for the bar or emoji-search.txt for the
-/// panel's search (data/pipeline/emoji_data.py): comment lines, then "word<TAB>emoji emoji…"
+/// Word → emoji, from emoji-words.txt files for the bar or emoji-search.txt files for the
+/// panel's search (data/pipeline/emoji_data.py): the app's own, which holds English, then
+/// one per active pack that brings its language's words (the pack's `emojiWords` and
+/// `emojiSearch` roles). A word's emoji are every file's, in that order.
+public struct EmojiWords: Sendable {
+    /// Most emoji for one word of the bar's lists, as each file holds at most
+    /// (emoji_data.py `MAX_EMOJI_PER_WORD`).
+    public static let maxPerWord = 6
+
+    private let files: [EmojiWordFile]
+
+    /// One file.
+    public init(data: Data) {
+        files = [EmojiWordFile(data: data)]
+    }
+
+    /// The app's file, then each pack's (memory-mapped by the caller).
+    public init(files: [Data]) {
+        self.files = files.map(EmojiWordFile.init)
+    }
+
+    /// The emoji for `word` (any case; ’ as '), best first; none for a word in no list. A
+    /// word in several files has each file's, the earlier file's first, `maxPerWord` at most.
+    public func emoji(for word: String) -> [String] {
+        guard files.count != 1 else { return files[0].emoji(for: word) }
+        var found: [String] = []
+        for file in files {
+            for emoji in file.emoji(for: word) where !found.contains(emoji) { found.append(emoji) }
+        }
+        return Array(found.prefix(Self.maxPerWord))
+    }
+
+    /// Every word that begins with `prefix` (any case; ’ as '), with its emoji. A search
+    /// word's emoji are those it names, then "|" and those it is only a keyword of; a word in
+    /// several files is one entry with both parts joined.
+    public func words(startingWith prefix: String) -> [(word: String, emoji: [String])] {
+        guard files.count != 1 else { return files[0].words(startingWith: prefix) }
+        var found: [(word: String, emoji: [String])] = []
+        var place: [String: Int] = [:]
+        for file in files {
+            for entry in file.words(startingWith: prefix) {
+                if let at = place[entry.word] {
+                    found[at].emoji = Self.joined(found[at].emoji, entry.emoji)
+                } else {
+                    place[entry.word] = found.count
+                    found.append(entry)
+                }
+            }
+        }
+        return found
+    }
+
+    /// Two files' rows for one search word as one: named, "|", keyword only.
+    private static func joined(_ a: [String], _ b: [String]) -> [String] {
+        func parts(_ row: [String]) -> (named: ArraySlice<String>, others: ArraySlice<String>) {
+            guard let bar = row.firstIndex(of: "|") else { return (row[...], []) }
+            return (row[..<bar], row[(bar + 1)...])
+        }
+        let (first, second) = (parts(a), parts(b))
+        var named: [String] = []
+        for emoji in Array(first.named) + Array(second.named) where !named.contains(emoji) { named.append(emoji) }
+        var others: [String] = []
+        for emoji in Array(first.others) + Array(second.others) where !named.contains(emoji) && !others.contains(emoji) {
+            others.append(emoji)
+        }
+        return named + (others.isEmpty ? [] : ["|"]) + others
+    }
+}
+
+/// One emoji-words.txt or emoji-search.txt: comment lines, then "word<TAB>emoji emoji…"
 /// lines sorted by UTF-8 bytes, best emoji first.
 /// Looked up by binary search on the file's bytes, so nothing is parsed or held but the
 /// file itself (memory-mapped by the caller); a lookup reads a dozen lines.
-public struct EmojiWords: Sendable {
+struct EmojiWordFile: Sendable {
     private let data: Data
     /// Where the first word line starts, after the comments.
     private let bodyStart: Int
 
-    public init(data: Data) {
+    init(data: Data) {
         self.data = data
         var start = 0
         data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
@@ -23,7 +91,7 @@ public struct EmojiWords: Sendable {
     }
 
     /// The emoji for `word` (any case; ’ as '), best first; none for a word not in the list.
-    public func emoji(for word: String) -> [String] {
+    func emoji(for word: String) -> [String] {
         let key = Array(word.lowercased().replacingOccurrences(of: "\u{2019}", with: "'").utf8)
         guard !key.isEmpty else { return [] }
         return data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [String] in
@@ -55,7 +123,7 @@ public struct EmojiWords: Sendable {
 
     /// Every word that begins with `prefix` (any case; ’ as '), with its emoji: the words in
     /// byte order, found by binary search for the first and read on from there.
-    public func words(startingWith prefix: String) -> [(word: String, emoji: [String])] {
+    func words(startingWith prefix: String) -> [(word: String, emoji: [String])] {
         let key = Array(prefix.lowercased().replacingOccurrences(of: "\u{2019}", with: "'").utf8)
         guard !key.isEmpty else { return [] }
         return data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [(word: String, emoji: [String])] in

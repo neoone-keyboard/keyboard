@@ -19,10 +19,14 @@
     "suffixes": "suffixes.tsv",
     "chatForms": "chat-forms.tsv",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
     "chat-forms.tsv": "084de0b02d1ffd7400f2f9d1838e9cc4d03199c02bb4624f4ca7706d7e25bccb",
+    "emoji-search.txt": "4bc5f0170ca07a907c365bb55f6c565413af2e9fc2e7de1a598b581e52553fb0",
+    "emoji-words.txt": "54a32b7b3ebc5bf3232dc8d1075a6893cc4c9890d7d0693e51f79e39ac6ed2d4",
     "lang.json": "8a8e85a19d05cb45e3f53bae8275bbb1ef3493e113b5da1c36052ff4e55cbea5",
     "layout.json": "8064b883c57346c01094f4e040c72bc22b090391b80b3be93eb155aba2accf6b",
     "lm.mlkbnn": "4cb54319258e5fbac340675786638418413be6c37c7138cd6bf39546197dde4c",
@@ -73,6 +77,14 @@
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
       "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "attribution": "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator and to find English loanwords for the language model. https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Malayalam emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Malayalam."
     },
     {
       "id": "enwiki",

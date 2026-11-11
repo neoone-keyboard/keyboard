@@ -3,11 +3,11 @@
 /// gives each key to `handle` instead of the input controller, and shows `results`.
 ///
 /// A query's words each match the start of a word of an emoji's name or keywords
-/// (emoji-search.txt, English and Malayalam): "hea" finds ❤️ by "heart", "red hea" finds it
+/// (emoji-search.txt: the app's English and each active pack's own): "hea" finds ❤️ by "heart", "red hea" finds it
 /// by both. Matches in the emoji's name ("red heart") come before matches in a keyword only
 /// ("heat" for 🫠); within each, a word that is the query (or its plural) before one it only
-/// begins, then the user's recents, then words that name more emoji, then the panel's order. No Manglish: CLDR has no romanised Malayalam, and
-/// the transliterator is the engine's, a hop away; Malayalam script from the Malayalam pages
+/// begins, then the user's recents, then words that name more emoji, then the panel's order. No romanised words: CLDR has none, and
+/// the transliterator is the engine's, a hop away; a pack's script typed on its own pages
 /// matches.
 public struct EmojiSearch: Sendable {
     /// What a key does while the search is open.
