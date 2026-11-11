@@ -11,14 +11,10 @@ were built with. `--write` copies that file in and adds the role, for every pack
 `--check` fails when the pack lacks the file though `data/langs/<id>/lang.json` exists, when the
 file doesn't define the manifest's script, or when it differs from `data/langs/<id>/lang.json`.
 
-What the file does to `minEngine`. The engine holds its own copy of the rules for mlym, deva
-and beng (`EMBEDDED`: Malayalam's, Hindi's and Assamese's files), and engines before 5 had
-those three scripts' rules in code, so a pack in one of them keeps its `minEngine`: an older
-engine ignores the role and reads the pack as before. A pack in any other script needs the
-file and `minEngine` 4, or the level that reads the newest field its file uses (`FIELDS`: 5
-for the suffix and loose-spelling fields, 6 for `joiners` and `zwjForms`). A Devanagari or
-Bengali pack that uses a newer field needs that level too.
-`--write` raises it; `--check` fails when it is too low.
+`minEngine` is not this script's: what a pack's files need of the engine (its script, its
+`lang.json` and `romanisation.json` fields, an LM) is decided in one place, the engine's
+`Pack::needs` (engine/core/src/pack.rs). `make pack-needs PACK_LANG=<id>` prints the level a
+pack needs and why; `make test-pack` and `make test-data` fail when its `minEngine` is lower.
 
 The romanisation tables (the `romanisation` role). `--check` fails when the file has no
 `looseSpelling` (which typed spellings spell a word out; `{}` for none): a file without it is
@@ -30,7 +26,7 @@ language that suggest an emoji in the bar and find one in the emoji panel's sear
 (`emoji-words.txt`, `emoji-search.txt`, built by data/pipeline/emoji_data.py into
 `data/langs/<id>/`). `--write` copies them in and adds the roles when `data/langs/<id>/` has
 them; `--check` fails when the pack lacks them or its copy differs. The engine ignores the
-roles, and an app from before them uses its own bundled words, so `minEngine` doesn't move.
+roles, and an app from before them uses its own bundled words.
 
 The layout (the `layout` role). `--check` also reads `layout.json` as the app does and fails on
 what the app would refuse (not format 1, no pages, an empty key, a strip entry that isn't one
@@ -56,27 +52,6 @@ ROOT = Path(__file__).resolve().parent.parent
 # Scripts the engine has its own copy of the rules for (engine/core/src/script/mod.rs
 # `EMBEDDED`, `script::supported`): a pack in one may lack the `lang` file.
 EMBEDDED = {"mlym", "deva", "beng"}
-# The engine level that reads the `lang` role (engine/core/src/pack.rs PACK_ENGINE).
-LANG_ENGINE = 4
-# lang.json fields by the engine level that reads them (engine/core/src/script/data.rs).
-# Malayalam's file uses them all, and older engines have what they say in code, so mlym is not
-# held to them.
-FIELDS = {
-    5: {"notLetter", "looseSigns", "finalPairs", "suffixJoins"},
-    6: {"joiners", "zwjForms"},
-}
-
-
-def fields_engine(lang: dict | None) -> int:
-    """The highest engine level a field of `lang` needs; 0 when it uses none of `FIELDS`. A
-    `suffixJoins.nasal` ending of several code points (Tamil's ம்) is read from engine 6."""
-    lang = lang or {}
-    level = max((level for level, names in FIELDS.items() if names & set(lang)), default=0)
-    joins = lang.get("suffixJoins")
-    nasal = joins.get("nasal") if isinstance(joins, dict) else None
-    if isinstance(nasal, list) and nasal and isinstance(nasal[0], str) and len(nasal[0].split()) > 1:
-        level = max(level, 6)
-    return level
 
 
 def is_fixture(pack: Path) -> bool:
@@ -129,25 +104,9 @@ def copied_problems(pack: Path, manifest: dict) -> list[str]:
     return problems
 
 
-def needed_engine(script: str, lang: dict | None) -> int:
-    """The lowest `minEngine` the pack's script rules allow: 0 for a script older engines have
-    in code, else the level that reads the `lang` role and the fields `lang` uses."""
-    if script in EMBEDDED and (script == "mlym" or not fields_engine(lang)):
-        return 0
-    return max(fields_engine(lang), LANG_ENGINE)
-
-
-def read_lang(path: Path) -> dict | None:
-    try:
-        lang = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, UnicodeDecodeError):
-        return None
-    return lang if isinstance(lang, dict) else None
-
-
 def add_lang(pack: Path, manifest: dict) -> None:
-    """lang.json from data/langs, the role, and the minEngine its script needs. Nothing for a
-    pack in an embedded script that has no data/langs file, unless the manifest names one."""
+    """lang.json from data/langs, and the role. Nothing for a pack in an embedded script that
+    has no data/langs file, unless the manifest names one."""
     source = lang_source(manifest, pack)
     script = manifest["script"]
     wanted = source.is_file() or script not in EMBEDDED or "lang" in manifest["files"]
@@ -156,11 +115,6 @@ def add_lang(pack: Path, manifest: dict) -> None:
     name = manifest["files"].setdefault("lang", "lang.json")
     if source.is_file():
         (pack / name).write_bytes(source.read_bytes())
-    needed = needed_engine(script, read_lang(pack / name))
-    if manifest.get("minEngine", 0) < needed:
-        print(f"  minEngine {manifest.get('minEngine')} -> {needed}: script {script} "
-              f"has its rules in lang.json")
-        manifest["minEngine"] = needed
 
 
 def lang_problems(pack: Path, manifest: dict) -> list[str]:
@@ -177,11 +131,7 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
                 f"(the lang role); run --write with {source}"]
     path = pack / name
     if not path.is_file():
-        problems = []
-        if manifest.get("minEngine", 0) < needed_engine(script, None):
-            problems.append(f"minEngine must be at least {LANG_ENGINE} for script {script}, "
-                            f"whose rules are in {name}")
-        return problems + [f"{name} (the lang role) is not in the pack"]
+        return [f"{name} (the lang role) is not in the pack"]
     try:
         lang = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, UnicodeDecodeError) as e:
@@ -189,12 +139,6 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     if not isinstance(lang, dict):
         return [f"{name}: not a JSON object"]
     problems = []
-    needed = needed_engine(script, lang)
-    if manifest.get("minEngine", 0) < needed:
-        uses = sorted(FIELDS.get(needed, set()) & set(lang))
-        why = f" and uses {', '.join(uses)}" if uses else ""
-        problems.append(f"minEngine must be at least {needed} for script {script}, "
-                        f"whose rules are in {name}{why}")
     if lang.get("script") != script:
         problems.append(f"{name} defines script {lang.get('script')!r}, the manifest says {script}")
     if not lang.get("block") and not lang.get("letters"):

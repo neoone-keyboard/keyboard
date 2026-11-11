@@ -1,4 +1,4 @@
-"""scripts/pack.py: the `lang` role (a script's rules as data, engine 4) and the layout check.
+"""scripts/pack.py: the `lang` role (a script's rules as data), the copied roles and the layout check.
 
     python3 -I -m unittest discover -s scripts/tests
 """
@@ -83,7 +83,7 @@ class EmojiRoles(unittest.TestCase):
         pack.add_copied(self.dir, m)
         self.assertEqual(m["files"]["emojiWords"], "emoji-words.txt")
         self.assertEqual(m["files"]["emojiSearch"], "emoji-search.txt")
-        self.assertEqual(m["minEngine"], 4, "the roles don't raise it")
+        self.assertEqual(m["minEngine"], 4, "pack.py never moves it")
         self.assertEqual((self.dir / "emoji-words.txt").read_text(encoding="utf-8"), "പൂച്ച\t🐈\n")
         self.assertEqual(pack.copied_problems(self.dir, m), [])
         (self.dir / "emoji-search.txt").write_text("other\n", encoding="utf-8")
@@ -115,7 +115,7 @@ class LangRole(unittest.TestCase):
         m = manifest("deva", 2, lang=False)
         self.assertIn("doesn't carry data/langs/zz-test/lang.json", pack.lang_problems(self.dir, m)[0])
         pack.add_lang(self.dir, m)
-        self.assertEqual(m, manifest("deva", 2))  # the role, and minEngine as it was
+        self.assertEqual(m, manifest("deva", 2))  # the role; minEngine is the engine's to check
         self.assertEqual((self.dir / "lang.json").read_bytes(), source.read_bytes())
         self.assertEqual(pack.lang_problems(self.dir, m), [])
         self.write_lang({**LANG, "script": "deva"})
@@ -143,49 +143,20 @@ class LangRole(unittest.TestCase):
         pack.add_lang(fixture, m)
         self.assertEqual(json.loads((fixture / "lang.json").read_text(encoding="utf-8")), LANG)
 
-    def test_the_newer_fields_need_engine_5_except_for_malayalam(self):
-        joins = {**LANG, "finalPairs": [["0ABE", "0ACD"]]}
-        self.write_lang(joins)
-        problems = pack.lang_problems(self.dir, manifest())
-        self.assertIn("minEngine must be at least 5", problems[0])
-        self.assertIn("uses finalPairs", problems[0])
-        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=5)), [])
-        m = manifest(min_engine=2)
-        pack.add_lang(self.dir, m)
-        self.assertEqual(m["minEngine"], 5)
-        # Engines before 5 have Malayalam's rules in code and ignore the fields.
-        self.write_lang({**joins, "script": "mlym", "block": ["0D00", "0D7F"]})
-        self.assertEqual(pack.lang_problems(self.dir, manifest("mlym", 1)), [])
-        # Devanagari's are in code there too, but not what the new fields say.
-        self.write_lang({**joins, "script": "deva", "block": ["0900", "097F"]})
-        self.assertIn("at least 5", pack.lang_problems(self.dir, manifest("deva", 2))[0])
-
-    def test_the_joiner_fields_need_engine_6_except_for_malayalam(self):
-        self.write_lang({**LANG, "virama": "0ACD", "joiners": "afterVirama"})
-        problems = pack.lang_problems(self.dir, manifest(min_engine=5))
-        self.assertIn("minEngine must be at least 6", problems[0])
-        self.assertIn("uses joiners", problems[0])
-        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
-        m = manifest(min_engine=4)
-        pack.add_lang(self.dir, m)
-        self.assertEqual(m["minEngine"], 6)
-        self.write_lang({**LANG, "script": "mlym", "block": ["0D00", "0D7F"], "zwjForms": [["0D28", "0D7B"]]})
-        self.assertEqual(pack.lang_problems(self.dir, manifest("mlym", 1)), [])
-
-    def test_a_nasal_ending_of_several_code_points_needs_engine_6(self):
-        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE", "0AAE"]}})
-        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=5)), [])
-        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE 0ACD", "0AAE"]}})
-        self.assertIn("at least 6", pack.lang_problems(self.dir, manifest(min_engine=5))[0])
-        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
-
-    def test_another_script_needs_the_file_and_engine_4(self):
+    def test_another_script_needs_the_file(self):
         problems = pack.lang_problems(self.dir, manifest(lang=False))
         self.assertIn("needs its lang.json", problems[0])
         self.write_lang(LANG)
         self.assertEqual(pack.lang_problems(self.dir, manifest()), [])
-        problems = pack.lang_problems(self.dir, manifest(min_engine=3))
-        self.assertIn("minEngine must be at least 4", problems[0])
+
+    def test_min_engine_is_left_to_the_engine(self):
+        # What a pack needs of the engine is Pack::needs's (engine/core/src/pack.rs), checked by
+        # make test-pack: pack.py neither checks nor moves minEngine, whatever the file uses.
+        self.write_lang({**LANG, "virama": "0ACD", "joiners": "afterVirama", "finalPairs": [["0ABE", "0ACD"]]})
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=1)), [])
+        m = manifest(min_engine=1)
+        pack.add_lang(self.dir, m)
+        self.assertEqual(m["minEngine"], 1)
 
     def test_the_file_must_define_the_manifest_script(self):
         self.write_lang({**LANG, "script": "taml"})
@@ -194,10 +165,9 @@ class LangRole(unittest.TestCase):
         self.assertIn("no characters", pack.lang_problems(self.dir, manifest())[0])
         self.assertIn("not in the pack", pack.lang_problems(self.dir / "nowhere", manifest())[-1])
 
-    def test_write_raises_min_engine_for_another_script(self):
+    def test_write_adds_the_role_for_another_script(self):
         m = manifest(min_engine=2, lang=False)
         pack.add_lang(self.dir, m)
-        self.assertEqual(m["minEngine"], 4)
         self.assertEqual(m["files"]["lang"], "lang.json")
 
     def test_write_leaves_an_embedded_script_without_a_file_alone(self):
