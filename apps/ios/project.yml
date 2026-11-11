@@ -32,7 +32,7 @@ targets:
         buildPhase: resources
         optional: true
     scheme:
-      testTargets: [KeyboardUITests]
+      testTargets: [KeyboardAppTests, KeyboardUITests]
     # Installed language packs (M6 phase 3) live in the App Group's Packs/: the app writes them,
     # the keyboard reads them (no Full Access needed for reading).
     entitlements:
@@ -145,12 +145,40 @@ targets:
     dependencies:
       - package: KeyboardCore
       - package: MLEngine
+  # Run inside the app on a simulator (`make test-app`): importing a language pack with real
+  # files, into the simulator's App Group and through the engine's check (the pack is the
+  # engine's small Gujarati test pack, a folder in the test bundle); and the keyboard's
+  # suggestion bar as a view, its source compiled into the test bundle.
+  KeyboardAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: KeyboardAppTests
+      - path: TestSupport
+      - path: ../../engine/core/tests/fixtures/gu.neopack
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/KeyboardApp.app/KeyboardApp
+        BUNDLE_LOADER: $(TEST_HOST)
+    dependencies:
+      - target: KeyboardApp
   # The app's screens and the keyboard's settings panel, on a simulator where NeoOne Keyboard
   # is added in Settings. SHOTS_DIR (TEST_RUNNER_SHOTS_DIR=… on xcodebuild) saves screenshots.
   KeyboardUITests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [KeyboardUITests]
+    sources:
+      - path: KeyboardUITests
+      # The test pack the import test saves in Files (TestSupport/TestPackFile.swift).
+      - path: TestSupport
+      - path: ../../engine/core/tests/fixtures/gu.neopack
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.jishnu.keyboard.uitests

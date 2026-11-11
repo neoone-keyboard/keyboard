@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -307,6 +307,13 @@ bench-hi:
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore
 	swift test --package-path apps/ios/Packages/MLEngine
+
+# The app's unit tests (apps/ios/KeyboardAppTests), run inside the app on the simulator: the
+# Languages screen's import with real pack files, and the keyboard's suggestion bar as a
+# view. Signed to run locally, so the simulator gives the app its App Group; never a device.
+test-app: tools project $(XCFRAMEWORK)
+	xcodebuild -project $(PROJECT) -scheme KeyboardApp -destination 'platform=iOS Simulator,name=$(SIM)' \
+	  ML_GIT_COMMIT=$(GIT_COMMIT) test -only-testing:KeyboardAppTests -quiet
 
 # The app icon and its in-app copy (apps/ios/KeyboardApp/Assets.xcassets), from
 # tools/icon/render.swift. Downloads the Space Grotesk font into build/icon/ to draw with.
