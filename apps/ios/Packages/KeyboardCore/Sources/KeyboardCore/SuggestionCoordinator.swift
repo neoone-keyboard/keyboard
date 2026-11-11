@@ -43,9 +43,13 @@ public final class SuggestionCoordinator {
     private var generation = 0
     private var inFlight: Task<Void, Never>?
 
+    /// How long the bar waits for a result. The engine's own cutoffs end before it
+    /// (`EngineDeadlines`).
+    public nonisolated static let defaultTimeout: Duration = .milliseconds(15)
+
     public init(
         provider: any SuggestionProvider,
-        timeout: Duration = .milliseconds(15),
+        timeout: Duration = SuggestionCoordinator.defaultTimeout,
         onUpdate: @escaping @MainActor (SuggestionResult) -> Void
     ) {
         self.provider = provider

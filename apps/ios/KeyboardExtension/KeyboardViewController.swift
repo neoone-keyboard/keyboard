@@ -56,11 +56,9 @@ final class KeyboardViewController: UIInputViewController {
     private var swipeFailed = false
     /// The return key's action as VoiceOver last said it (`returnTitle`).
     private var spokenReturnTitle = "return"
-    /// A swipe's words arriving later than this are dropped, and the bar asks for it again.
-    private static let swipeTimeout: Duration = .milliseconds(250)
 
     private lazy var output = ProxyTextOutput { [unowned self] in self.textDocumentProxy }
-    private lazy var input = InputController(output: output, languages: EngineSuggestionProvider.defaultLanguages)
+    private lazy var input = InputController(output: output, languages: EngineSuggestionProvider.packState.defaultLanguages)
 
     private lazy var suggestions = SuggestionCoordinator(provider: provider) { [weak self] result in
         guard let self else { return }
@@ -376,7 +374,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     /// The language key cycles the engine's layouts (its active languages). Until the engine
-    /// opens it cycles `EngineSuggestionProvider.defaultLanguages`, the same list by default,
+    /// opens it cycles `KeyboardPacks.defaultLanguages`, the same list by default,
     /// so this redraws only when the engine's list differs.
     private func applyLayouts(_ layouts: [InputLayout]) {
         applyLanguages(EngineSuggestionProvider.languages(for: layouts))
@@ -392,13 +390,13 @@ final class KeyboardViewController: UIInputViewController {
             if let layouts {
                 applyLayouts(layouts)
             } else {
-                applyLanguages(EngineSuggestionProvider.defaultLanguages)
+                applyLanguages(EngineSuggestionProvider.packState.defaultLanguages)
             }
         }
     }
 
     private func applyLanguages(_ languages: [Language]) {
-        input.activePacks = EngineSuggestionProvider.activePacks
+        input.activePacks = EngineSuggestionProvider.packState.activePacks
         guard !languages.isEmpty, languages != input.languages else { return }
         let before = input.language.id
         input.languages = languages
@@ -506,7 +504,8 @@ final class KeyboardViewController: UIInputViewController {
     /// bar. Without prediction, or with no word for the path, the bar asks for it again.
     private func swipe(_ points: [CGPoint]) {
         let generation = swipeGeneration
-        guard suggestions.isEnabled, input.language == .english, !input.secureTextEntry else {
+        guard SwipeRules.decodes(predictionOn: suggestions.isEnabled, language: input.language,
+                                 secure: input.secureTextEntry) else {
             showSwipeFailed()
             return
         }
@@ -515,22 +514,20 @@ final class KeyboardViewController: UIInputViewController {
             SwipeKey(letter: $0.letter, x: Float($0.rect.minX), y: Float($0.rect.minY),
                      width: Float($0.rect.width), height: Float($0.rect.height))
         }
-        // The word goes in after a space (`InputController.insertSwipe`).
-        var context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(64))
-        if let last = context.last, !last.isWhitespace { context += " " }
+        let context = SwipeRules.context(textBefore: textDocumentProxy.documentContextBeforeInput ?? "")
         let started = ContinuousClock.now
         Task { [weak self, provider] in
             let found = await provider.swipe(path, keys: keys, contextBefore: context)
             guard let self, generation == swipeGeneration else { return }
             let elapsed = ContinuousClock.now - started
-            guard let found, !found.isEmpty, elapsed <= Self.swipeTimeout else {
+            guard let words = SwipeRules.accepted(found, after: elapsed) else {
                 if found != nil { log.warning("Swipe dropped: its words came after \(Diagnostics.milliseconds(elapsed))") }
                 showSwipeFailed()
                 return
             }
             let shown = input.keysShown, shift = input.shift
             output.beginEdit()
-            input.insertSwipe(found)
+            input.insertSwipe(words)
             afterInput(keysBefore: shown, shiftBefore: shift)
         }
     }
@@ -571,13 +568,19 @@ final class KeyboardViewController: UIInputViewController {
     /// field that isn't for URLs, email addresses or web searches.
     private func updateAutocorrect() {
         let proxy = textDocumentProxy
-        let fieldAllows: Bool
-        switch proxy.keyboardType ?? .default {
-        case .URL, .emailAddress, .webSearch: fieldAllows = false
-        default: fieldAllows = proxy.autocorrectionType != .no
-        }
-        input.autocorrectEnabled = settings.autocorrect && fieldAllows
+        input.autocorrectEnabled = FieldRules.autocorrects(
+            setting: settings.autocorrect, field: fieldKind, fieldAllows: proxy.autocorrectionType != .no)
         input.secureTextEntry = proxy.isSecureTextEntry ?? false
+    }
+
+    /// What the host's field is for (`FieldRules`).
+    private var fieldKind: FieldKind {
+        switch textDocumentProxy.keyboardType ?? .default {
+        case .URL: .url
+        case .emailAddress: .email
+        case .webSearch: .webSearch
+        default: .text
+        }
     }
 
     private var autoCapitalization: AutoCapitalization {
@@ -595,8 +598,8 @@ final class KeyboardViewController: UIInputViewController {
     private func showSettings() {
         keyboardView.cancelAllTouches()
         topBar.cancelRemoval()
-        settingsPanel.show(settings, available: EngineSuggestionProvider.availableLanguages,
-                           active: EngineSuggestionProvider.activeChoice)
+        let packs = EngineSuggestionProvider.packState
+        settingsPanel.show(settings, available: packs.availableLanguages, active: packs.activeChoice)
         settingsPanel.apply(theme)
         settingsPanel.isHidden = false
     }
@@ -611,32 +614,20 @@ final class KeyboardViewController: UIInputViewController {
         .appending(path: "Emoji/history.json")
     /// Saves run in order, off the main thread.
     private static let emojiSaves = DispatchQueue(label: "me.jishnu.keyboard.emoji-history")
-    /// The word → emoji lists, memory-mapped: the app's own file (English), then each active
-    /// pack's (`PackDescriptor.emojiWords`, `emojiSearch`). A pack published before packs
-    /// carried their emoji words gets the app's copy for its id, if the bundle has one
-    /// (`Emoji/packs/<id>/`: Malayalam's). Held until the active packs change; nil if the
-    /// app's file is missing from the bundle.
-    private static var emojiWordLists: [String: (packs: [String], words: EmojiWords?)] = [:]
-
-    private static func emojiWordList(_ name: String, of pack: (PackDescriptor) -> URL?) -> EmojiWords? {
-        let packs = EngineSuggestionProvider.activePacks
-        let key = packs.map { "\($0.id) \($0.version)" }
-        if let held = emojiWordLists[name], held.packs == key { return held.words }
-        let mapped = { (url: URL?) in url.flatMap { try? Data(contentsOf: $0, options: .alwaysMapped) } }
-        let own = mapped(Bundle.main.url(forResource: name, withExtension: "txt", subdirectory: "Emoji"))
-        let fromPacks = packs.compactMap { each in
-            mapped(pack(each) ?? Bundle.main.url(forResource: name, withExtension: "txt", subdirectory: "Emoji/packs/\(each.id)"))
-        }
-        let words = own.map { EmojiWords(files: [$0] + fromPacks) }
-        emojiWordLists[name] = (key, words)
-        return words
-    }
+    /// The word → emoji lists for the active packs, from the bundle's `Emoji/` folder and the
+    /// packs (`EmojiWordLists`).
+    private static var emojiWordLists = EmojiWordLists(
+        folder: Bundle.main.resourceURL?.appending(path: "Emoji", directoryHint: .isDirectory))
 
     /// The bar's word → emoji list.
-    private static var emojiWords: EmojiWords? { emojiWordList("emoji-words", of: \.emojiWords) }
+    private static var emojiWords: EmojiWords? {
+        emojiWordLists.words(.bar, packs: EngineSuggestionProvider.packState.activePacks)
+    }
 
     /// The panel's search words.
-    private static var emojiSearchWords: EmojiWords? { emojiWordList("emoji-search", of: \.emojiSearch) }
+    private static var emojiSearchWords: EmojiWords? {
+        emojiWordLists.words(.search, packs: EngineSuggestionProvider.packState.activePacks)
+    }
 
     /// Covers the keys and the top bar, with the catalog read from the bundle.
     private func showEmojiPanel() {
@@ -781,8 +772,8 @@ final class KeyboardViewController: UIInputViewController {
     /// password, a URL or an email address, and the word has one.
     private func barEmoji() -> String? {
         let proxy = textDocumentProxy
-        guard settings.emojiSuggestions, !input.secureTextEntry, let words = Self.emojiWords,
-              proxy.keyboardType != .URL, proxy.keyboardType != .emailAddress,
+        guard FieldRules.offersEmoji(setting: settings.emojiSuggestions, field: fieldKind, secure: input.secureTextEntry),
+              let words = Self.emojiWords,
               let word = EmojiSuggestion.word(contextBefore: proxy.documentContextBeforeInput ?? "", currentWord: input.currentWord)
         else { return nil }
         return EmojiSuggestion.pick(words.emoji(for: word), history: emojiHistory)
@@ -971,41 +962,39 @@ final class KeyboardViewController: UIInputViewController {
     /// timeout arrives without a match, the strip falls back to aksharamala
     /// order and the slots go empty; typing is unaffected either way.
     private func refreshTopBar() {
-        if swipeFailed {
-            topBar.showMessage("Swipe again")
-            return
-        }
-        let word = Self.straight(input.currentWord)
-        if input.showsSwipe {
-            barWord = word
-            topBar.showSuggestions(SuggestionBar(input.suggestions, limit: settings.suggestionCount))
-            return
-        }
-        let current = latest.isFor(word: word) ? latest : nil
-        if case .pack(let pack) = input.language, let layout = pack.layout, !layout.vowelSignStrip.isEmpty {
+        var state = BarState()
+        state.swipeFailed = swipeFailed
+        state.word = input.currentWord
+        state.swipe = input.showsSwipe ? input.suggestions : nil
+        state.latest = latest
+        state.awaitingResult = awaitingResult
+        state.showsVowelSigns = topBar.showsVowelSigns
+        state.barWord = barWord
+        state.language = input.language
+        state.limit = settings.suggestionCount
+        let content = state.content { pack in
             let context = String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(8))
-            if let base = try? nativeMarkBase(script: pack.script, contextBefore: context) {
-                // Vowel signs apply to whatever consonant is there, so an older strip can stay.
-                if current == nil, awaitingResult, topBar.showsVowelSigns { return }
-                barWord = word
-                topBar.showVowelSigns(
-                    base: base,
-                    signs: layout.orderedStripSigns(preferred: current?.vowelSigns ?? []),
-                    completion: current?.candidates.first { $0.kind == .completion }
-                )
-                return
-            }
+            return try? nativeMarkBase(script: pack.script, contextBefore: context)
         }
-        if current == nil, awaitingResult, !topBar.showsVowelSigns, barWord == word { return }
-        barWord = word
-        let bar = SuggestionBar(current ?? .empty, limit: settings.suggestionCount)
-        topBar.showSuggestions(bar.withEmoji(barEmoji()))
-        noteBar(empty: bar.left == nil && bar.middle == nil && bar.right == nil, current: current)
+        if content.isForCurrentWord { barWord = state.straightWord }
+        switch content {
+        case .unchanged:
+            break
+        case .message(let text):
+            topBar.showMessage(text)
+        case .swipe(let bar):
+            topBar.showSuggestions(bar)
+        case .vowelSigns(let base, let signs, let completion):
+            topBar.showVowelSigns(base: base, signs: signs, completion: completion)
+        case .suggestions(let bar, let hasResult):
+            topBar.showSuggestions(bar.withEmoji(barEmoji()))
+            noteBar(empty: bar.left == nil && bar.middle == nil && bar.right == nil, hasResult: hasResult)
+        }
     }
 
     /// Logs why the bar is empty (once per reason and word length) and when it fills again.
     /// Not while a result is on its way: the bar is briefly empty on every new word.
-    private func noteBar(empty: Bool, current: SuggestionResult?) {
+    private func noteBar(empty: Bool, hasResult: Bool) {
         guard empty else {
             if loggedEmptyBar != nil { log.info("Bar filled again") }
             loggedEmptyBar = nil
@@ -1018,7 +1007,7 @@ final class KeyboardViewController: UIInputViewController {
         } else if let lastOutcome, !Self.isResult(lastOutcome.outcome) {
             // Before the next check: a timeout's `.empty` also "matches" an empty word.
             reason = "\(lastOutcome.outcome.rawValue) after \(Diagnostics.milliseconds(lastOutcome.elapsed))"
-        } else if current != nil {
+        } else if hasResult {
             reason = input.currentWord.isEmpty ? "no next words" : "no candidates"
         } else if lastRequest == nil {
             reason = "no request since the text changed"
@@ -1115,11 +1104,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func suggestionRequest(contextBefore: String) -> SuggestionRequest {
-        SuggestionRequest(
-            contextBefore: String(contextBefore.suffix(64)),
-            language: input.language,
-            autocorrect: input.autocorrectEnabled
-        )
+        SuggestionRequest(textBefore: contextBefore, language: input.language, autocorrect: input.autocorrectEnabled)
     }
 
     /// A finger is on a letter: the engine starts on the suggestions its key-up will ask for

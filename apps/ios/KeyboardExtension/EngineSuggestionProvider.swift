@@ -57,86 +57,37 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// process starts and again each time the keyboard appears (`reloadIfChanged`): iOS keeps
     /// the process alive across sessions and switching keyboards, so a choice made or a pack
     /// installed in the app meanwhile would otherwise wait for the process to end.
-    struct PackState: Equatable, Sendable {
-        /// Those in the extension bundle (`packs/`) and those the app installed in the App
-        /// Group (`PackLocations`, phase 3), one per id: an installed pack only replaces a
-        /// bundled one with a higher version. A pack the engine then can't load is left out
-        /// with a reported problem, and the keys follow the engine's layouts, so the keyboard
-        /// carries on with English and the packs that did load.
-        var packs: [PackDescriptor]
-        /// The active languages set when the engine opens: the user's latest choice, the newer
-        /// of the app's (App Group `active-languages.json`, dated by its modification date) and
-        /// the keyboard's own (made in its settings panel, `KeyboardLanguageChoice`), its ids
-        /// the keyboard has no pack for left out (`DatedLanguages.newer`); else a debug build's Info.plist `MLActiveLanguages` ("ml,hi", from
-        /// `make twopacks`); else nil, the engine's default.
-        var active: [String]?
-    }
-
-    static func readPackState() -> PackState {
-        let packs = PackDescriptor.merge(
-            bundled: Bundle.main.resourceURL
-                .map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? [],
-            installed: PackLocations.installedPacks().map(PackDescriptor.scan) ?? []
+    static func readPackState() -> KeyboardPacks {
+        let state = KeyboardPacks.read(
+            bundledPacks: Bundle.main.resourceURL?.appending(path: "packs", directoryHint: .isDirectory),
+            installedPacks: PackLocations.installedPacks(),
+            appChoice: PackLocations.activeLanguagesFile(),
+            keyboardChoice: KeyboardLanguageChoice.load(from: .standard),
+            debugList: Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? ""
         )
         // Each pack's script rules (its lang.json, or the engine's own copy) are what
         // `nativeMarkBase` answers with from the first key, before the engine has opened.
-        for pack in packs {
+        for pack in state.packs {
             _ = try? usePackScript(packDir: pack.folder.path)
         }
-        var active: [String]?
-        let fromApp = PackLocations.activeLanguagesFile().flatMap(DatedLanguages.read(from:))
-        let fromKeyboard = KeyboardLanguageChoice.load(from: .standard)
-        if let stored = DatedLanguages.newer(app: fromApp, keyboard: fromKeyboard),
-           let ids = stored.usable(packIDs: packs.map(\.id)) {
-            active = ids
-        } else {
-            let ids = (Bundle.main.object(forInfoDictionaryKey: "MLActiveLanguages") as? String ?? "")
-                .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-            active = ids.isEmpty ? nil : ids
-        }
-        return PackState(packs: packs, active: active)
+        return state
     }
 
     private static let state = OSAllocatedUnfairLock(initialState: readPackState())
 
-    static var packs: [PackDescriptor] { state.withLock { $0.packs } }
+    /// The packs and the choice as last read: the active packs, what the settings panel
+    /// offers and what the language key cycles before the engine has said (`KeyboardPacks`).
+    static var packState: KeyboardPacks { state.withLock { $0 } }
     static var configuredActive: [String]? { state.withLock { $0.active } }
-
-    /// The active languages as the settings panel shows them: the configured list, else the
-    /// engine's default.
-    static var activeChoice: ActiveLanguages {
-        configuredActive.map(ActiveLanguages.init) ?? ActiveLanguages.engineDefault(packIDs: packs.map(\.id))
-    }
-
-    /// The packs whose languages are on (`activeChoice`), with or without a keyboard: the
-    /// scripts autocorrect leaves alone (`InputController.activePacks`).
-    static var activePacks: [PackDescriptor] {
-        let choice = activeChoice
-        return packs.filter { choice.isOn($0.id) }
-    }
-
-    /// The languages the settings panel offers: English, then every pack, by native name.
-    static var availableLanguages: [(id: String, name: String)] {
-        [(ActiveLanguages.english, "English")] + packs.map { ($0.id, $0.nativeName) }
-    }
-
-    /// The languages the language key cycles before the engine has said (`layouts`): English,
-    /// then the first pack with a keyboard, as the engine's default active list has it (or the
-    /// configured list's packs with a keyboard).
-    static var defaultLanguages: [Language] {
-        guard let active = configuredActive else {
-            return [.english] + packs.prefix(1).filter { $0.layout != nil }.map(Language.pack)
-        }
-        return [.english] + active.compactMap { id in packs.first { $0.id == id && $0.layout != nil } }.map(Language.pack)
-    }
 
     /// The keyboard's languages for the engine's layouts, in order: Latin is English, a
     /// native layout its pack's language. A pack the keyboard can't draw is left out.
     static func languages(for layouts: [InputLayout]) -> [Language] {
-        layouts.compactMap { layout in
+        let state = packState
+        return layouts.compactMap { layout in
             switch layout {
             case .latin: return .english
-            case .native(let id): return packs.first { $0.id == id && $0.layout != nil }.map(Language.pack)
+            case .native(let id): return state.language(forPack: id)
             }
         }
     }
@@ -155,10 +106,12 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// missing from a pack disables only that source (without the transliterator, Manglish
     /// uses the lexicons alone; without the LM, ranking is M3a's).
     static func bundled() -> EngineSuggestionProvider {
-        EngineSuggestionProvider(config: config(packs: packs))
+        EngineSuggestionProvider(config: config(packs: packState.packs))
     }
 
     private static func config(packs: [PackDescriptor]) -> EngineConfig {
+        // The cutoffs of a suggest, all under the coordinator's timeout (`EngineDeadlines`).
+        let deadlines = EngineDeadlines.keyboard
         func lexicon(_ name: String) -> String? {
             Bundle.main.url(forResource: name, withExtension: "fst", subdirectory: "Lexicon")?.path
         }
@@ -169,32 +122,14 @@ actor EngineSuggestionProvider: SuggestionProvider {
             englishNext: lexicon("en-next"),
             userDir: userDir,
             packDirs: packs.map(\.folder.path),
-            modelDeadlineMs: modelDeadlineMs,
-            lmPrefillMs: lmPrefillMs,
-            lmAfterSpaceMs: lmAfterSpaceMs,
-            lmDeadlineMs: lmDeadlineMs,
-            lmPrepareMs: lmPrepareMs,
+            modelDeadlineMs: deadlines.model,
+            lmPrefillMs: deadlines.lmPrefill,
+            lmAfterSpaceMs: deadlines.lmAfterSpace,
+            lmDeadlineMs: deadlines.lm,
+            lmPrepareMs: deadlines.lmPrepare,
             maxSuggestions: UInt32(KeyboardSettings.load(from: .standard).suggestionCount)
         )
     }
-
-    /// Milliseconds into a suggest after which the transliterator stops and its finished
-    /// spellings are used (`EngineConfig.modelDeadlineMs`). Typing
-    /// leaves the CPU idle between keys, and a suggest that starts from idle runs 5–7× slower
-    /// than the same one back to back (iPhone 15 Pro Max, debug app's `-suggestCheck`): a
-    /// 4 ms suggest took 20–25 ms, past the coordinator's 15 ms, and the bar went empty. With
-    /// 8 ms, the slowest still end by about 11 ms.
-    static let modelDeadlineMs: UInt32 = 8
-
-    /// LM cutoffs, in milliseconds from the start of a suggest (design §4). Prefill while typing
-    /// stops at 3 ms, so the transliterator keeps most of its 8 ms. After a space nothing else
-    /// runs, so the LM may use 10 ms. Tier-1 rows stop at 11 ms, near where M3a's slowest
-    /// suggests already end, under the coordinator's 15 ms.
-    static let lmPrefillMs: UInt32 = 3
-    static let lmAfterSpaceMs: UInt32 = 10
-    static let lmDeadlineMs: UInt32 = 11
-    /// When the keyboard appears, before any key: the context is filled for up to 6 ms.
-    static let lmPrepareMs: UInt32 = 6
 
     func suggestions(for request: SuggestionRequest) async throws -> SuggestionResult {
         try Task.checkCancellation()
@@ -433,9 +368,10 @@ actor EngineSuggestionProvider: SuggestionProvider {
             state = fresh
             return old
         }
-        guard fresh != old else { return }
+        let change = fresh.change(from: old)
+        guard change != .none else { return }
         ahead = nil
-        if fresh.packs != old.packs {
+        if change == .packs {
             log.info("Packs changed (\(fresh.packs.map(\.id).joined(separator: ","))); the engine reopens")
             let count = config.maxSuggestions
             config = Self.config(packs: fresh.packs)
@@ -445,7 +381,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
             return
         }
         guard let engine else { return }
-        let active = fresh.active ?? ActiveLanguages.engineDefault(packIDs: fresh.packs.map(\.id)).languages
+        let active = fresh.engineLanguages
         do {
             try engine.setActiveLanguages(languages: active)
             log.info("Active languages now \(active.joined(separator: ","))")
@@ -460,8 +396,7 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// `defaultLanguages`, which follows the new choice).
     func choose(_ choice: ActiveLanguages) -> [InputLayout]? {
         store(choice)
-        let packIDs = Self.packs.map(\.id)
-        let active = choice.usable(packIDs: packIDs) ?? ActiveLanguages.engineDefault(packIDs: packIDs).languages
+        let active = Self.packState.engineLanguages(for: choice)
         Self.state.withLock { $0.active = active }
         ahead = nil
         guard let engine = try? loadedEngine() else { return nil }

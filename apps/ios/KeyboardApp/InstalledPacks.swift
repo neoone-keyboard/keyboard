@@ -58,7 +58,7 @@ enum InstalledPacks {
         return keyboardBundle.map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
     }
 
-    /// Every pack the keyboard loads, as it merges them (`EngineSuggestionProvider.packs`).
+    /// Every pack the keyboard loads, as it merges them (`KeyboardPacks.read`).
     static func all() -> [PackDescriptor] {
         PackDescriptor.merge(bundled: bundled(), installed: installed())
     }
