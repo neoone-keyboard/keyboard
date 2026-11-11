@@ -1,0 +1,37 @@
+# Chat spellings of common Hindi words that the tables don't reach: latin<TAB>hindi.
+# Hand-written for this repository from how people write Hindi in Latin letters, not taken
+# from any dataset; see data/manifests/chat-forms-hi.json. The Hindi pack's "chatForms" file,
+# read by the engine (engine/core/src/chat_forms.rs). A typed word matching a row (ignoring
+# case) offers its Hindi word as if the letters spelled it out; a swipe through a row's
+# letters offers it too.
+#
+# Only spellings that belong to one word go here. A habit that holds across words is for
+# romanisation.json: the final anusvara and chandrabindu left unwritten (nahi, hu, me, logo)
+# are its optionalFinals, so no row here is needed for them.
+#
+# क्यों (why) walks as kyon; it is said with a short, nasal o and written kyu or kyun far
+# more often than kyon or kyo. The same in क्योंकि (because).
+kyu	क्यों
+kyun	क्यों
+kyuki	क्योंकि
+kyunki	क्योंकि
+# यह (this) and वह (that) are spelled as they are said, yeh and woh; the walk gives yah and
+# vah. Without a row yeh reaches only ये, and woh no Hindi word at all.
+yeh	यह
+woh	वह
+# हम (we) and its forms: the short a is written u, as in English "hum". The walk gives ham.
+# Typed, any u between consonants may stand for that vowel (romanisation.json's
+# alsoBetweenConsonants), behind words with a real u; a swipe can't afford that for every
+# word, so the forms of this one, which are among the most written, are listed.
+hum	हम
+hume	हमें
+humein	हमें
+humse	हमसे
+humne	हमने
+humko	हमको
+humara	हमारा
+humari	हमारी
+humare	हमारे
+# बहुत (very): the a before h is said and written o. The walk gives bahut.
+bohot	बहुत
+bahot	बहुत

@@ -327,17 +327,32 @@ impl Lexicon {
 /// entries (see the module comment). The output depends only on the input
 /// multiset, never on its order.
 pub fn build(entries: impl IntoIterator<Item = (Vec<u8>, u64)>) -> Result<Vec<u8>, LexiconError> {
-    build_with(entries, SCAN_LIMIT)
+    build_with(entries, Vec::new(), SCAN_LIMIT)
+}
+
+/// `build`, with `aliases`: more keys for words `entries` hold already (a romanised word's
+/// second skeleton, `manglish::aliases`). They are stored and found like any key, but the
+/// total is that of `entries` alone, so every word's `log_prob` is what it is without them.
+pub fn build_with_aliases(
+    entries: impl IntoIterator<Item = (Vec<u8>, u64)>,
+    aliases: impl IntoIterator<Item = (Vec<u8>, u64)>,
+) -> Result<Vec<u8>, LexiconError> {
+    build_with(entries, aliases.into_iter().collect(), SCAN_LIMIT)
 }
 
 fn build_with(
     entries: impl IntoIterator<Item = (Vec<u8>, u64)>,
+    aliases: Vec<(Vec<u8>, u64)>,
     scan_limit: usize,
 ) -> Result<Vec<u8>, LexiconError> {
     let mut entries: Vec<(Vec<u8>, u64)> = entries
         .into_iter()
         .filter(|(k, _)| !is_reserved(k))
         .collect();
+    let total = entries
+        .iter()
+        .fold(0u64, |sum, (_, v)| sum.saturating_add(*v));
+    entries.extend(aliases.into_iter().filter(|(k, _)| !is_reserved(k)));
     entries.sort_by(|a, b| a.0.cmp(&b.0));
     let mut merged: Vec<(Vec<u8>, u64)> = Vec::with_capacity(entries.len());
     for (key, value) in entries {
@@ -346,9 +361,6 @@ fn build_with(
             _ => merged.push((key, value)),
         }
     }
-    let total = merged
-        .iter()
-        .fold(0u64, |sum, (_, v)| sum.saturating_add(*v));
     let mut reserved = precomputed_entries(&merged, scan_limit);
     reserved.sort_by(|a, b| a.0.cmp(&b.0));
     let mut builder = MapBuilder::memory();
@@ -571,6 +583,20 @@ mod tests {
     }
 
     #[test]
+    fn aliases_are_found_and_not_counted_in_the_total() {
+        let words = [(b"nhin\0x".to_vec(), 60), (b"din\0y".to_vec(), 40)];
+        let lex = Lexicon::from_bytes(
+            build_with_aliases(words.clone(), [(b"nhi\0x".to_vec(), 60)]).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(lex.get(b"nhin\0x"), Some(60));
+        assert_eq!(lex.get(b"nhi\0x"), Some(60));
+        assert_eq!(lex.total(), 100);
+        // Without aliases it is `build`, byte for byte.
+        assert_eq!(build_with_aliases(words.clone(), []).unwrap(), build(words).unwrap());
+    }
+
+    #[test]
     fn prefix_scan_folds_ascii_case() {
         let lex = lexicon(&[("London", 5), ("lonely", 3), ("long", 9), ("lost", 1)]);
         let mut got = Vec::new();
@@ -670,9 +696,10 @@ mod tests {
     fn precomputed_and_scanned_results_are_identical() {
         let entries = mixed();
         let scanned =
-            Lexicon::from_bytes(build_with(entries.clone(), usize::MAX).unwrap()).unwrap();
+            Lexicon::from_bytes(build_with(entries.clone(), Vec::new(), usize::MAX).unwrap()).unwrap();
         // A tiny limit precomputes almost every prefix.
-        let precomputed = Lexicon::from_bytes(build_with(entries.clone(), 2).unwrap()).unwrap();
+        let precomputed =
+            Lexicon::from_bytes(build_with(entries.clone(), Vec::new(), 2).unwrap()).unwrap();
         let mut heavy = 0;
         for prefix in prefixes(&entries) {
             if precomputed.is_precomputed(&prefix) {

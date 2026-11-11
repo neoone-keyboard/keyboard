@@ -20,12 +20,12 @@ enum InstalledPacks {
     }
 
     /// The installer for the App Group's `Packs/`; nil without the App Group. The engine opens
-    /// each pack before it is installed, so a pack it can't use (a bad `lang.json`) is refused
-    /// with its reason.
+    /// each pack before it is installed (`packOpenProblem`), so a pack it can't use (a bad
+    /// `lang.json`, a lexicon that isn't one) is refused with its reason.
     static var installer: PackInstaller? {
         PackLocations.installedPacks().map {
             PackInstaller(packsFolder: $0, support: support, engineCheck: { folder in
-                (try? MLEngine.packProblem(packDir: folder.path)) ?? nil
+                (try? MLEngine.packOpenProblem(packDir: folder.path)) ?? nil
             })
         }
     }
@@ -58,7 +58,7 @@ enum InstalledPacks {
         return keyboardBundle.map { PackDescriptor.scan($0.appending(path: "packs", directoryHint: .isDirectory)) } ?? []
     }
 
-    /// Every pack the keyboard loads, as it merges them (`EngineSuggestionProvider.packs`).
+    /// Every pack the keyboard loads, as it merges them (`KeyboardPacks.read`).
     static func all() -> [PackDescriptor] {
         PackDescriptor.merge(bundled: bundled(), installed: installed())
     }

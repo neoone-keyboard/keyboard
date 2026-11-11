@@ -510,16 +510,55 @@ published before the field, with Malayalam's three habits above. Measure a chang
 and the first slot from 24.8% to 25.0%; dropping the field's vowel folds cost Hindi a point of
 first slot.
 
+**A final sign people leave unwritten: `optionalFinals`.** Some signs at a word's end are
+written about half the time. Hindi's anusvara and chandrabindu are the case: नहीं is `nahin`
+and `nahi`, हूँ `hun` and `hu`, में `mein` and `me`. Don't drop the letter in the skeleton
+(`dropTrailing` `n` would also turn दिन, `din`, into दी), and don't give the sign an empty
+spelling in `finals` unless nobody writes it (Assamese's chandrabindu). List it instead:
+
+```json
+"optionalFinals": ["ं", "ँ"]
+```
+
+Each entry is a key of `finals`. A word that ends in one is then stored under two keys, the
+skeleton of its walk and the skeleton of its walk without that sign, and typing or swiping
+either spelling finds it and counts as spelling it out. A sign inside a word is always
+written, and so is one that follows a bare consonant (स्वयं). The field is in the pack's `romanisation.json` (and in the hand file, from which the
+export copies it); after adding it, rebuild the romanised lexicon from the tables
+(`lexbuild-rekey romanisation.json <id>.fst <romanised>.fst` does it without the corpus) and
+run `scripts/pack.py --write`. `lexbuild --lang` and `lexbuild-native --romanisation` write
+both keys; `mlkb.langs.romanised_keys` writes one, so a `data/langs` language that uses the
+field should rekey afterwards.
+
+**Two more for a skeleton that drops a vowel between consonants** (Hindi's
+`dropBetweenConsonants: "a"`), both optional:
+
+- `"alsoBetweenConsonants": "u"` in `skeleton`: a letter people write for the dropped vowel
+  (`hum`, `humse`, `humara` for हम, हमसे, हमारा, which walk with `a`). Typed letters with it
+  between two consonants are also looked up with it dropped, behind the words that really
+  have it (`kuch` is still कुछ first). It doesn't change the lexicon. For the few such words
+  people swipe most, add rows to `chat-forms.tsv`: a swipe doesn't use this field.
+- `"alsoKept": true` in `skeleton.dropTrailing`: a word that ends consonant, dropped vowel,
+  dropped trailing letter (जगह `jagah`: `jga`) gets a second key with the trailing letter
+  kept (`jgh`), so a swipe that goes j, g, h without returning to `a` finds it. It adds keys:
+  rebuild the romanised lexicon as for `optionalFinals`.
+
 **Swiping romanised words.** A swipe over the Latin keys is matched against the skeletons of
 your romanised lexicon, and the rules for that come from your skeleton, with nothing to write:
 a skeleton letter may be drawn through every letter the skeleton folds into it (Tamil's `k`
 through `g` and `q`, its `s` through `c` and `j`; Hindi's `t` only through `t`), the finger
 may pass through `h` after a letter that a pattern ending in `h` folds to (`th` to `t`), and it
 may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
-`dropFinalVowel`). If the derived lists are wrong for your language, a `swipe` section in
-`romanisation.json` overrides the last two: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
+`dropFinalVowel`, and any `singles` letter that becomes one of those vowels: Assamese drops a
+final `a` and reads `o` as `a`, so a swipe may end on `o`). If your skeleton has
+`dropBetweenConsonants`, the finger may also go to one of those letters between any two
+consonants of a skeleton: Hindi's `karne` is the skeleton `krne`, and a swipe through
+k-a-r-n-e finds it. If the derived lists are wrong for your language, a `swipe` section in
+`romanisation.json` overrides the aspirated and trailing letters: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
 (Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
-step 7 and run `scripts/pack.py --write` again.
+step 7 and run `scripts/pack.py --write` again. A swipe also fits the letters of each row of
+your `chat-forms.tsv` as they are written, so a chat spelling no skeleton holds (Hindi's
+`kyu` for क्यों) can be swiped as well as typed.
 
 **A spelled guess without a model: `fromLatin`.** When nothing else answers for typed
 letters (no lexicon word, and no transliterator, or one that wasn't asked because the letters
@@ -1033,6 +1072,26 @@ word is lost, with the model alone beside the engine (it needs torch, so
 The full evaluation (`python -m mlkb.eval`: transliteration, next words, English no-harm, with
 baselines and gates) has entries for Malayalam and Hindi only (gap G11).
 
+**Record your pack's suggestion bars.** An accuracy score says how many words changed, not
+which. Once the pack types the way you want, record the exact bar it gives for every prefix of
+a few hundred of your held-out words (and of the first sentences of any
+`data/eval/xx/next-*` file you have):
+
+```sh
+make golden-save-packs GOLDEN_PACKS=xx    # writes data/golden/packs/xx.tsv.gz; commit it
+make golden-check-packs GOLDEN_PACKS=xx   # prints "golden xx: identical", or the bars that moved
+```
+
+Run the first again whenever you change the pack's files on purpose (new lexicons, a new
+model): the recording is of the pack as it is, so any such change moves it. Without
+`GOLDEN_PACKS`, both cover every recorded pack. `engine/core/tests/golden_pack.rs` says what
+is typed.
+
+Swipe accuracy on the same held-out words, each drawn as a noisy path over QWERTY, is
+`make eval-swipe SWIPE_PACKS=xx`. It prints English and Malayalam first, then your pack over
+all rows and over the words your romanised lexicon has; a pack with no entry in
+`data/eval/baselines-swipe.json` is printed and not gated.
+
 ### 12. Optional: a neural language model
 
 Malayalam's pack has a bilingual language model trained on Malayalam, its romanised form and
@@ -1097,6 +1156,7 @@ Open a pull request with:
   `romanisation.json`, `lexicon-stats.txt`);
 - `data/build-xx-text.sh`;
 - `data/eval/xx/translit-human.tsv`;
+- `data/golden/packs/xx.tsv.gz`, the pack's recorded suggestion bars (step 11);
 - `packs/xx.neopack/` with every file and up-to-date checksums;
 - in the description: the calibrate report (where its calibration pairs came from, and the
   held-out test numbers you didn't tune on), the output of `python -m mlkb.eval.pack --lang xx`
@@ -1115,7 +1175,8 @@ make test-pack PACK_LANG=xx
 It checks the pack's checksums, script rules and layout (`pack.py --check`), that the engine
 opens the pack and loads every file the manifest lists, that every lexicon word is in your
 script's normal form, and that every romanised key is the one your tables give
-(`engine/core/tests/pack_check.rs`); then the checks that cover all packs. It ends with
+(`engine/core/tests/pack_check.rs`); then the checks that cover all packs; then, when you
+have recorded them, that the pack's suggestion bars are the recorded ones. It ends with
 `test-pack: packs/xx.neopack passes`. Also run `make test-engine` and `make golden-check`,
 which must print `golden: identical` and `golden ml-only: identical`: a new pack changes
 nothing for the others.

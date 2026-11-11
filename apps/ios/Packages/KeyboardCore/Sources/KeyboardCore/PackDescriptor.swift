@@ -74,9 +74,25 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         text.unicodeScalars.contains { scalar in scriptRanges.contains { $0.contains(scalar.value) } }
     }
 
-    /// One pack per language id.
+    /// One pack per language id: a pack is the same language whatever its version, so the
+    /// language key's list and the current language (`Language.pack`) don't change when a
+    /// pack is updated. Whether its files changed is `files`.
     public static func == (lhs: PackDescriptor, rhs: PackDescriptor) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
+    /// What identifies the files the engine opens for a pack: its id, its version and where
+    /// it is (the extension bundle's copy or the App Group's). An update, or an installed copy
+    /// taking over from the bundled one, changes it (`KeyboardPacks.change`).
+    public struct Files: Hashable, Sendable {
+        public let id: String
+        public let version: String
+        /// The pack folder's path.
+        public let folder: String
+    }
+
+    public var files: Files {
+        Files(id: id, version: version, folder: folder.standardizedFileURL.path)
+    }
 
     public struct Refused: Error, CustomStringConvertible {
         public let description: String

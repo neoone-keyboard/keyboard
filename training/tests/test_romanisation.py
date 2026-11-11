@@ -33,6 +33,31 @@ def test_walk_follows_the_format_spec():
     assert r.skeleton("mein") != r.skeleton("main")
 
 
+def test_an_optional_final_gives_a_second_key():
+    """As `engine/core/src/romanisation.rs` (`word_skeletons`): the pack's `optionalFinals`."""
+    r = Romanisation.load(HINDI)
+    assert r.optional_finals == ["ं", "ँ"]
+    for word, short, keys in [
+        ("नहीं", "nahi", ["nhin", "nhi"]),
+        ("हूँ", "hu", ["hun", "hu"]),
+        ("लोगों", "logo", ["logon", "logo"]),
+        ("दिन", None, ["din"]),
+        ("स्वयं", None, ["svyn"]),
+        ("हिंदी", None, ["hindi"]),
+        ("नही", None, ["nhi"]),
+        ("जगह", None, ["jga", "jgh"]),
+        ("कह", None, ["ka"]),
+        ("तेरह", None, ["tera", "terh"]),
+        ("वाह", None, ["va"]),
+    ]:
+        assert r.canonical_short(word) == short, word
+        assert r.keys(word) == keys, word
+        assert r.keys(word)[0] == r.key(word)
+    assert r.keys("्") == []
+    plain = Romanisation({**r.raw, "optionalFinals": []})
+    assert plain.keys("नहीं") == ["nhin"]
+
+
 def test_spelling_table_keeps_schwa_deletion():
     t = Table.load(SPELLING)
     for word, latin in [("कमरा", "kamra"), ("समझना", "samajhna"), ("मित्र", "mitra"), ("में", "mein")]:

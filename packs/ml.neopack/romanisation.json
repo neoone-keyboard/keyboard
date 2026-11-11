@@ -28,7 +28,8 @@
     "ൺ": "n", "ൻ": "n", "ർ": "r", "ൽ": "l", "ൾ": "l", "ൿ": "k", "ം": "m", "ഃ": "h"
   },
   "clusters": {
-    "ന്റ": "nt", "റ്റ": "tt", "ങ്ങ": "ng", "ഞ്ഞ": "nj", "ക്ഷ": "ksh"
+    "ന്റ": "nt", "റ്റ": "tt", "ങ്ങ": "ng", "ഞ്ഞ": "nj", "ക്ഷ": "ksh",
+    "ങ്ക": "nk"
   },
   "skeleton": {
     "dropTrailing": { "letters": "yh", "afterVowel": true, "minLength": 3 },
@@ -63,5 +64,5 @@
     "betweenVowels": [["ch", "ച്ച"]],
     "beforeConsonant": [{ "consonant": "r", "native": "ർ", "notBefore": ["ര", "യ"] }]
   },
-  "notes": "Malayalam to Manglish. Reproduces the engine's original romanize.rs exactly (checked over every word of ml.fst). gh folds to k, not g: people write ഖ as gh as often as kh (sugham, mugham), and ഖ is far commoner than ഘ. A final -a is never dropped: it tells words apart (എന്താ / എന്ത്, അമ്മ / അമ്മു)."
+  "notes": "Malayalam to Manglish. The engine's original romanize.rs, but for ങ്ക, which is nk as people write it (enkil, venamenkil, sankadam), not ngk. gh folds to k, not g: people write ഖ as gh as often as kh (sugham, mugham), and ഖ is far commoner than ഘ. A final -a is never dropped: it tells words apart (എന്താ / എന്ത്, അമ്മ / അമ്മു)."
 }
