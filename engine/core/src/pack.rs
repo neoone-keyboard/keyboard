@@ -25,17 +25,40 @@ pub const FORMAT: u32 = 1;
 /// the pack's script as data (`script::data`), so a pack may be in any script. Only a pack
 /// whose script the engine has no copy of (`script::supported`) needs 4: a pack in mlym, deva
 /// or beng may carry the file and keep a lower `minEngine`, as older engines ignore the role
-/// and have those scripts' rules in code. 5: `lang.json`'s `notLetter`, `looseSigns`,
-/// `finalPairs` and `suffixJoins`, with which every script's rules are data (Malayalam's too:
-/// the engine's own copies of the mlym, deva and beng files replace the coded plug-ins). Only
-/// a pack in another script that uses one of those fields needs 5; Malayalam's pack doesn't,
-/// as engines before 5 have its rules in code and ignore the fields. 6: `lang.json`'s `joiners`
-/// and `zwjForms` (the normal form's joiner rules, which were Malayalam's in code for every
-/// script). A pack whose lexicon was built with them needs 6, as an older engine would drop
-/// its joiners and miss its words; Malayalam's doesn't, as older engines have its rules in
-/// code. 6 also reads what older engines ignore and replace with Malayalam's:
-/// `romanisation.json`'s `looseSpelling` and `swipe`.
-pub const PACK_ENGINE: u32 = 6;
+/// and have those scripts' rules in code. (4 is also the first level all of whose engines
+/// decode a `translit` model in its pack's script; the fix came after 3 was defined, so a
+/// `translit` in a pack whose script isn't Malayalam's needs 4.) 5: `lang.json`'s `notLetter`,
+/// `looseSigns`, `finalPairs` and `suffixJoins`, with which every script's rules are data
+/// (Malayalam's too: the engine's own copies of the mlym, deva and beng files replace the coded
+/// plug-ins). Only a pack in another script that uses one of those fields needs 5; Malayalam's
+/// pack doesn't, as engines before 5 have its rules in code and ignore the fields. 6:
+/// `lang.json`'s `joiners` and `zwjForms` (the normal form's joiner rules, which were
+/// Malayalam's in code for every script), and a `suffixJoins.nasal` ending of several code
+/// points (Tamil's ம்). A pack whose lexicon was built with them needs 6, as an older engine
+/// would drop its joiners and miss its words; Malayalam's doesn't, as older engines have its
+/// rules in code. 6 also reads what older engines ignore and replace with Malayalam's:
+/// `romanisation.json`'s `looseSpelling`, `swipe` and `fromLatin` (the rule-based speller), so
+/// a pack in another script with any of them needs 6.
+/// 7: what makes typed and swiped Hinglish reach its words (Hindi 2026.11.13 and .14), all in
+/// `romanisation.json` and read for a pack in any script, Malayalam's too, as no older engine
+/// has them in code: `optionalFinals` (a word ending in one of those letters has a second key
+/// without it, `lexicon::build_with_aliases`, found once and counted once; a swipe takes
+/// `swipe::Weights::second` from it), `skeleton.dropTrailing.alsoKept` (a dropped final letter
+/// also kept, a second key), `skeleton.alsoBetweenConsonants` (typed letters also read with
+/// those letters between consonants dropped) and `skeleton.alsoBesideConsonant` (a letter
+/// written for the dropped vowel beside the consonants named; a swipe fitted so gives up
+/// `swipe::Weights::stand_in`). An older engine loads such a pack and ignores the fields, so
+/// typed nahi, mai or kehte miss their words. 7 also gives each language its own rules where
+/// two packs share a script (before it, the pack loaded last gave both its `lang.json`), so a
+/// pack in mlym, deva or beng whose `lang.json` isn't the engine's own copy of that script's
+/// (Marathi's, Bengali's: engines before 4 read it by the copy, 4 to 6 by whichever pack of
+/// the script loaded last) needs 7. Engine behaviour that came with 7 but needs no level: a
+/// swipe fits each `chatForms` row too (older engines still offer the rows when typed).
+///
+/// Adding a pack feature an older engine would ignore or misread: raise this, say here what
+/// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's
+/// contents to the level they need (`tests/pack_check.rs` holds every pack in `packs/` to it).
+pub const PACK_ENGINE: u32 = 7;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -190,6 +213,269 @@ impl Paths {
     }
 }
 
+/// One reason a pack needs an engine level: the level, and what in the pack needs it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Need {
+    pub level: u32,
+    pub what: String,
+}
+
+impl fmt::Display for Need {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.level, self.what)
+    }
+}
+
+/// How a key of a pack's `lang.json` or `romanisation.json` counts towards the level the pack
+/// needs (`PACK_ENGINE`'s history). Every key the files may have is in `LANG_KEYS` or
+/// `ROMANISATION_KEYS`: one that isn't is refused, so a new field can't ship without its level.
+#[derive(Debug, Clone, Copy)]
+enum Key {
+    /// Read by every engine that reads the file, or by none (notes, the builder's keys).
+    Base,
+    /// An object whose own keys are in the table too, as `key.inner`.
+    Fields,
+    /// Read from this level. Counts when present, even empty, for a pack in a script other
+    /// than Malayalam's: an older engine puts Malayalam's rules in its place. Malayalam's own
+    /// file says what older engines have in code, so for mlym it doesn't count.
+    NotMalayalam(u32),
+    /// Read from this level for a pack in any script; counts when set (not false, 0, empty or
+    /// null), as an older engine would ignore it.
+    Set(u32),
+}
+
+/// `lang.json`'s keys (`script::data`). The script's definition itself is the `lang` role's,
+/// whose level `Pack::needs` decides from the script.
+const LANG_KEYS: &[(&str, Key)] = &[
+    ("id", Key::Base),
+    ("name", Key::Base),
+    ("notes", Key::Base),
+    ("reference", Key::Base),
+    ("aksharantar", Key::Base),
+    ("firstLetter", Key::Base),
+    ("maxChars", Key::Base),
+    ("maxWords", Key::Base),
+    ("minCount", Key::Base),
+    ("script", Key::Base),
+    ("block", Key::Base),
+    ("letters", Key::Base),
+    ("notWord", Key::Base),
+    ("virama", Key::Base),
+    ("signs", Key::Base),
+    ("bases", Key::Base),
+    ("apostrophe", Key::Base),
+    ("replace", Key::Base),
+    ("phraseBreaks", Key::Base),
+    ("notLetter", Key::NotMalayalam(5)),
+    ("looseSigns", Key::NotMalayalam(5)),
+    ("finalPairs", Key::NotMalayalam(5)),
+    ("suffixJoins", Key::NotMalayalam(5)),
+    ("joiners", Key::NotMalayalam(6)),
+    ("zwjForms", Key::NotMalayalam(6)),
+];
+
+/// `romanisation.json`'s keys (`romanisation::Raw`), an object's inner keys after a dot.
+const ROMANISATION_KEYS: &[(&str, Key)] = &[
+    ("format", Key::Base),
+    ("script", Key::Base),
+    ("notes", Key::Base),
+    ("virama", Key::Base),
+    ("inherent", Key::Base),
+    ("atWordEnd", Key::Base),
+    ("independentVowels", Key::Base),
+    ("vowelSigns", Key::Base),
+    ("consonants", Key::Base),
+    ("finals", Key::Base),
+    ("clusters", Key::Base),
+    ("skeleton", Key::Fields),
+    ("skeleton.pairs", Key::Base),
+    ("skeleton.singles", Key::Base),
+    ("skeleton.collapseDoubles", Key::Base),
+    ("skeleton.dropBetweenConsonants", Key::Base),
+    ("skeleton.dropFinalVowel", Key::Base),
+    ("skeleton.dropTrailing", Key::Fields),
+    ("skeleton.dropTrailing.letters", Key::Base),
+    ("skeleton.dropTrailing.afterVowel", Key::Base),
+    ("skeleton.dropTrailing.minLength", Key::Base),
+    ("skeleton.dropTrailing.alsoKept", Key::Set(7)),
+    ("skeleton.alsoBetweenConsonants", Key::Set(7)),
+    ("skeleton.alsoBesideConsonant", Key::Set(7)),
+    ("looseSpelling", Key::NotMalayalam(6)),
+    ("swipe", Key::NotMalayalam(6)),
+    ("fromLatin", Key::NotMalayalam(6)),
+    ("optionalFinals", Key::Set(7)),
+];
+
+/// The manifest's roles the engine reads. A pack in Malayalam's script needs no more than 1
+/// for any of them (engine 1 has Malayalam's tables, suffixes and chat forms in code); in
+/// another script every role needs 2 (the script does), `lm` 3, `translit` 4 and `lang` what
+/// `Pack::needs` says.
+const ENGINE_ROLES: &[&str] = &[
+    "lexicon",
+    "romanisedLexicon",
+    "nextWords",
+    "translit",
+    "lm",
+    "romanisation",
+    "suffixes",
+    "chatForms",
+    "layout",
+    "lang",
+];
+
+/// Roles the app reads, never the engine: an older app ignores them and reads the pack as
+/// before. An app from before them has Malayalam's emoji words bundled, the same words
+/// Malayalam's pack brings; any other language's pack is only without its emoji words there.
+const APP_ROLES: &[&str] = &["emojiWords", "emojiSearch"];
+
+/// True when `value` says something: not null, false, 0, "" or an empty list or object.
+fn is_set(value: &serde_json::Value) -> bool {
+    use serde_json::Value;
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+
+/// What a pack's JSON file needs, by its keys and `table`.
+struct KeyNeeds<'a> {
+    file: &'a str,
+    table: &'a [(&'a str, Key)],
+    malayalam: bool,
+}
+
+impl KeyNeeds<'_> {
+    /// The needs of `object`'s keys, `prefix` naming where it is (`"skeleton."`).
+    fn of(
+        &self,
+        object: &serde_json::Map<String, serde_json::Value>,
+        prefix: &str,
+        needs: &mut Vec<Need>,
+    ) -> Result<(), String> {
+        let file = self.file;
+        for (name, value) in object {
+            let path = format!("{prefix}{name}");
+            let Some(&(_, key)) = self.table.iter().find(|(k, _)| *k == path) else {
+                return Err(format!(
+                    "{file} has {path}, which no engine level is known to read: give it one in \
+                     pack.rs (PACK_ENGINE, Pack::needs)"
+                ));
+            };
+            match key {
+                Key::Base => {}
+                Key::Fields => {
+                    let inner = value
+                        .as_object()
+                        .ok_or_else(|| format!("{file}: {path} is not an object"))?;
+                    self.of(inner, &format!("{path}."), needs)?;
+                }
+                Key::NotMalayalam(level) if !self.malayalam => needs.push(Need {
+                    level,
+                    what: format!("{file} has {path}"),
+                }),
+                Key::Set(level) if is_set(value) => needs.push(Need {
+                    level,
+                    what: format!("{file} sets {path}"),
+                }),
+                Key::NotMalayalam(_) | Key::Set(_) => {}
+            }
+        }
+        Ok(())
+    }
+
+    fn of_file(&self, path: &Path, needs: &mut Vec<Need>) -> Result<(), String> {
+        let text =
+            std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        match serde_json::from_str(&text) {
+            Ok(serde_json::Value::Object(object)) => self.of(&object, "", needs),
+            Ok(_) => Err(format!("{}: not a JSON object", path.display())),
+            Err(e) => Err(format!("{}: {e}", path.display())),
+        }
+    }
+}
+
+impl Pack {
+    /// Everything in the pack that needs an engine level above 1, each with the level that
+    /// first reads it right, the highest first. The single place that maps a pack's contents
+    /// to `PACK_ENGINE`'s levels: whoever adds a pack feature an older engine would ignore or
+    /// misread raises `PACK_ENGINE`, documents the level there and adds its rule here.
+    ///
+    /// An error, in words, when a file can't be read, or the pack names a role or has a field
+    /// no level is known for.
+    pub fn needs(&self) -> Result<Vec<Need>, String> {
+        let script = self.manifest.script.as_str();
+        let malayalam = script == "mlym";
+        let mut needs = Vec::new();
+        for role in self.manifest.files.keys() {
+            if !ENGINE_ROLES.contains(&role.as_str()) && !APP_ROLES.contains(&role.as_str()) {
+                return Err(format!(
+                    "the manifest names role {role}, which no engine level is known to read: \
+                     give it one in pack.rs (PACK_ENGINE, Pack::needs)"
+                ));
+            }
+        }
+        let mut need = |level, what: String| needs.push(Need { level, what });
+        let has = |role: &str| self.manifest.files.contains_key(role);
+        if !malayalam {
+            need(2, format!("script {script}, not Malayalam's"));
+            if has("lm") {
+                need(3, format!("an lm in script {script}, whose native pieces are its own"));
+            }
+            if has("translit") {
+                need(4, format!("a translit in script {script}, decoded in its own block"));
+            }
+        }
+        let embedded = crate::script::embedded_def(script);
+        if embedded.is_none() {
+            need(
+                4,
+                format!("script {script}, which the engine has no copy of: its rules are the lang file"),
+            );
+        }
+        let lang = self.file("lang");
+        if let Some(path) = &lang {
+            let def = crate::script::data::ScriptDef::open(path)?;
+            if embedded.as_ref().is_some_and(|own| *own != def) {
+                need(
+                    7,
+                    format!(
+                        "lang.json isn't the engine's own copy of {script}'s rules: older engines \
+                         read the pack by that copy, or by another {script} pack's file"
+                    ),
+                );
+            }
+            let several = def
+                .joins
+                .as_ref()
+                .and_then(|j| j.nasal.as_ref())
+                .is_some_and(|(ending, _)| ending.chars().count() > 1);
+            if several && !malayalam {
+                need(6, "lang.json's suffixJoins.nasal ending is several code points".into());
+            }
+        }
+        if let Some(path) = &lang {
+            let keys = KeyNeeds { file: "lang.json", table: LANG_KEYS, malayalam };
+            keys.of_file(path, &mut needs)?;
+        }
+        if let Some(path) = self.file("romanisation") {
+            let keys = KeyNeeds { file: "romanisation.json", table: ROMANISATION_KEYS, malayalam };
+            keys.of_file(&path, &mut needs)?;
+        }
+        needs.sort_by(|a, b| b.level.cmp(&a.level).then_with(|| a.what.cmp(&b.what)));
+        Ok(needs)
+    }
+
+    /// The lowest engine level that reads everything in the pack right: the `minEngine` it
+    /// needs at least (`needs` says why).
+    pub fn needed_engine(&self) -> Result<u32, String> {
+        Ok(self.needs()?.first().map_or(1, |n| n.level))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -291,5 +577,187 @@ mod tests {
         assert_eq!(ml.next_words, Some(dir.path().join("next.fst")));
         assert_eq!(ml.translit, Some(dir.path().join("translit.mlkbnn")));
         assert_eq!(ml.lm, Some(dir.path().join("lm.mlkbnn")));
+    }
+
+    /// A pack in `script` with `files` (role, file name, contents); its lexicon is "x".
+    fn pack_of(script: &str, files: &[(&str, &str, &str)]) -> (tempfile::TempDir, Pack) {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("x.fst"), b"x").unwrap();
+        let mut roles = vec![r#""lexicon": "x.fst""#.to_string()];
+        for (role, name, text) in files {
+            fs::write(dir.path().join(name), text).unwrap();
+            roles.push(format!(r#""{role}": "{name}""#));
+        }
+        let manifest = format!(
+            r#"{{"format": 1, "id": "xx", "version": "1", "name": "X", "nativeName": "X",
+                "script": "{script}", "minEngine": 1, "files": {{{}}}}}"#,
+            roles.join(", ")
+        );
+        fs::write(dir.path().join("manifest.json"), manifest).unwrap();
+        let pack = Pack::open(dir.path()).unwrap();
+        (dir, pack)
+    }
+
+    fn level(script: &str, files: &[(&str, &str, &str)]) -> u32 {
+        pack_of(script, files).1.needed_engine().unwrap()
+    }
+
+    /// The engine's own copy of a script's lang.json (data/langs/<id>/lang.json).
+    fn own_lang(id: &str) -> String {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../data/langs");
+        fs::read_to_string(root.join(id).join("lang.json")).unwrap()
+    }
+
+    /// `lang` with `field` set to `value` (JSON).
+    fn with_field(lang: &str, field: &str, value: &str) -> String {
+        let mut lang: serde_json::Value = serde_json::from_str(lang).unwrap();
+        lang[field] = serde_json::from_str(value).unwrap();
+        lang.to_string()
+    }
+
+    const GUJR: &str = r#"{"script": "gujr", "block": ["0A80", "0AFF"], "virama": "0ACD"}"#;
+
+    /// A romanisation.json's walk tables (what every engine from 2 reads), plus keys of its
+    /// top level, of `skeleton` and of `skeleton.dropTrailing`, each starting with a comma.
+    fn tables(top: &str, skeleton: &str, trailing: &str) -> String {
+        format!(
+            r#"{{"format": 1, "script": "deva", "virama": "094D", "inherent": "a",
+                "atWordEnd": {{"virama": "", "inherent": ""}}, "independentVowels": {{}},
+                "vowelSigns": {{}}, "consonants": {{}}, "finals": {{}}, "clusters": {{}},
+                "skeleton": {{"dropTrailing": {{"letters": "a", "afterVowel": false,
+                  "minLength": 3{trailing}}}, "pairs": [], "singles": {{}}, "collapseDoubles": true,
+                  "dropFinalVowel": {{"vowels": "", "afterConsonant": true, "minLength": 3}}{skeleton}}}
+                {top}}}"#
+        )
+    }
+
+    #[test]
+    fn needs_level_1_for_malayalam_whatever_its_roles() {
+        let dir = pack_dir(FULL, &["ml.fst", "manglish.fst", "next.fst", "translit.mlkbnn", "lm.mlkbnn"]);
+        let pack = Pack::open(dir.path()).unwrap();
+        assert_eq!(pack.needs().unwrap(), []);
+        assert_eq!(pack.needed_engine().unwrap(), 1);
+        // Its own lang.json and tables with Malayalam's habits: engine 1 has them in code.
+        let ml = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack");
+        let lang = own_lang("ml");
+        let romanisation = fs::read_to_string(ml.join("romanisation.json")).unwrap();
+        let files = [
+            ("lang", "lang.json", lang.as_str()),
+            ("romanisation", "r.json", romanisation.as_str()),
+            ("suffixes", "s.tsv", "x"),
+            ("chatForms", "c.tsv", "x"),
+            ("layout", "l.json", "x"),
+            ("emojiWords", "e.txt", "x"),
+            ("emojiSearch", "f.txt", "x"),
+        ];
+        assert_eq!(level("mlym", &files), 1);
+    }
+
+    #[test]
+    fn needs_level_2_for_another_script() {
+        let (_dir, pack) = pack_of("deva", &[("chatForms", "c.tsv", "x"), ("layout", "l.json", "x")]);
+        assert_eq!(pack.needed_engine().unwrap(), 2);
+        assert_eq!(pack.needs().unwrap()[0].what, "script deva, not Malayalam's");
+        assert_eq!(level("deva", &[("romanisation", "r.json", &tables("", "", ""))]), 2);
+        assert_eq!(level("beng", &[("lang", "lang.json", &own_lang("as"))]), 2, "the engine's own copy");
+    }
+
+    #[test]
+    fn needs_level_3_for_an_lm_in_another_script() {
+        assert_eq!(level("deva", &[("lm", "lm.mlkbnn", "x")]), 3);
+        assert_eq!(level("mlym", &[("lm", "lm.mlkbnn", "x")]), 1);
+    }
+
+    #[test]
+    fn needs_level_4_for_a_script_without_a_copy_or_a_translit_in_another_script() {
+        assert_eq!(level("gujr", &[("lang", "lang.json", GUJR)]), 4);
+        assert_eq!(level("deva", &[("translit", "t.mlkbnn", "x")]), 4);
+        assert_eq!(level("mlym", &[("translit", "t.mlkbnn", "x")]), 1);
+    }
+
+    #[test]
+    fn needs_level_5_for_the_rules_fields() {
+        for field in ["notLetter", "looseSigns", "finalPairs"] {
+            let lang = with_field(GUJR, field, r#"[["0A81", "0A83"]]"#);
+            assert_eq!(level("gujr", &[("lang", "lang.json", &lang)]), 5, "{field}");
+        }
+        let joins = r#"{"vowelSigns": [["0A85", ""]], "nasal": ["0A82", "0AAE"]}"#;
+        let lang = with_field(GUJR, "suffixJoins", joins);
+        assert_eq!(level("gujr", &[("lang", "lang.json", &lang)]), 5);
+    }
+
+    #[test]
+    fn needs_level_6_for_joiners_and_another_scripts_tables_habits() {
+        let lang = with_field(GUJR, "joiners", r#""afterVirama""#);
+        assert_eq!(level("gujr", &[("lang", "lang.json", &lang)]), 6);
+        let lang = with_field(GUJR, "zwjForms", "[]");
+        assert_eq!(level("gujr", &[("lang", "lang.json", &lang)]), 6, "present, even empty");
+        let tamil = crate::script::data::TAMIL;
+        assert_eq!(level("taml", &[("lang", "lang.json", tamil)]), 6, "ம் as a nasal");
+        for top in [r#", "looseSpelling": {}"#, r#", "swipe": {}"#, r#", "fromLatin": {}"#] {
+            let r = tables(top, "", "");
+            assert_eq!(level("deva", &[("romanisation", "r.json", &r)]), 6, "{top}");
+            assert_eq!(level("mlym", &[("romanisation", "r.json", &r)]), 1, "Malayalam's: {top}");
+        }
+    }
+
+    #[test]
+    fn needs_level_7_for_hinglish_habits_in_any_script() {
+        let cases = [
+            (r#", "optionalFinals": ["0902"]"#, "", ""),
+            ("", r#", "alsoBetweenConsonants": "u""#, ""),
+            ("", r#", "alsoBesideConsonant": {"e": "h"}"#, ""),
+            ("", "", r#", "alsoKept": true"#),
+        ];
+        for (top, skeleton, trailing) in cases {
+            let r = tables(top, skeleton, trailing);
+            let what = format!("{top}{skeleton}{trailing}");
+            assert_eq!(level("deva", &[("romanisation", "r.json", &r)]), 7, "{what}");
+            assert_eq!(level("mlym", &[("romanisation", "r.json", &r)]), 7, "{what}");
+        }
+        // Empty or false, they say nothing an older engine misses.
+        let r = tables(
+            r#", "optionalFinals": []"#,
+            r#", "alsoBetweenConsonants": """#,
+            r#", "alsoKept": false"#,
+        );
+        assert_eq!(level("deva", &[("romanisation", "r.json", &r)]), 2);
+    }
+
+    #[test]
+    fn needs_level_7_for_a_languages_own_rules_in_a_script_the_engine_has() {
+        let lang = with_field(&own_lang("hi"), "replace", r#"[["अा", "आ"]]"#);
+        let (_dir, pack) = pack_of("deva", &[("lang", "lang.json", &lang)]);
+        assert_eq!(pack.needed_engine().unwrap(), 7);
+        assert!(pack.needs().unwrap()[0].what.contains("own copy of deva's rules"));
+        // The builder's keys and notes aren't rules.
+        let lang = with_field(&own_lang("hi"), "maxWords", "300000");
+        assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 2);
+        let lang = with_field(&own_lang("ml"), "notes", r#""another note""#);
+        assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 1, "the same rules");
+    }
+
+    #[test]
+    fn needs_refuses_what_it_has_no_level_for() {
+        let (_dir, pack) = pack_of("deva", &[("sounds", "s.bin", "x")]);
+        assert!(pack.needs().unwrap_err().contains("role sounds"));
+        let r = tables(r#", "newHabit": true"#, "", "");
+        let (_dir, pack) = pack_of("deva", &[("romanisation", "r.json", &r)]);
+        assert!(pack.needs().unwrap_err().contains("newHabit"));
+        let r = tables("", r#", "newSkeletonRule": 1"#, "");
+        let (_dir, pack) = pack_of("deva", &[("romanisation", "r.json", &r)]);
+        assert!(pack.needs().unwrap_err().contains("skeleton.newSkeletonRule"));
+        let lang = with_field(GUJR, "newRule", "1");
+        let (_dir, pack) = pack_of("gujr", &[("lang", "lang.json", &lang)]);
+        assert!(pack.needs().unwrap_err().contains("newRule"));
+    }
+
+    #[test]
+    fn no_committed_pack_needs_more_than_this_engine() {
+        let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
+        for entry in fs::read_dir(packs).unwrap() {
+            let pack = Pack::open(&entry.unwrap().path()).unwrap();
+            assert!(pack.needed_engine().unwrap() <= PACK_ENGINE, "{}", pack.manifest.id);
+        }
     }
 }

@@ -207,6 +207,14 @@ pub fn embedded(code: &str) -> Option<&'static dyn ScriptRules> {
     embedded_rules().iter().copied().find(|r| r.code() == code)
 }
 
+/// The engine's own copy of a script's definition, parsed afresh: what a pack's `lang` file is
+/// compared with to tell whether an older engine, which reads the pack by this copy (or by
+/// the code it replaced), reads it right (`Pack::needs`).
+pub fn embedded_def(code: &str) -> Option<ScriptDef> {
+    let (_, json) = EMBEDDED.iter().find(|(c, _)| *c == code)?;
+    Some(ScriptDef::from_json(json).unwrap_or_else(|e| panic!("the engine's lang.json for {code}: {e}")))
+}
+
 /// The scripts a pack may be in without a `lang` file. A pack in any other script brings its
 /// own.
 pub fn supported() -> Vec<&'static str> {

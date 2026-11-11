@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -128,6 +128,14 @@ test-pack:
 	$(PACK_CHECKS)
 	@if [ -f data/golden/packs/$(PACK_LANG).tsv.gz ]; then $(MAKE) --no-print-directory golden-check-packs GOLDEN_PACKS=$(PACK_LANG); fi
 	@echo "test-pack: packs/$(PACK_LANG).neopack passes"
+
+# The engine level a pack needs and why (engine/core/src/pack.rs Pack::needs, the one place
+# that knows the levels): its minEngine must be at least that. PACK_LANG is an id in packs/,
+# or PACK_DIR any pack folder. Fails when minEngine is too low.
+#   make pack-needs PACK_LANG=hi
+pack-needs:
+	cd engine && $(CARGO) run -q -p mlengine-core --example pack_needs -- \
+	  $(abspath $(or $(PACK_DIR),packs/$(PACK_LANG).neopack))
 
 # The eval harness, through the engine's Python bindings (engine/py, never shipped), and the
 # transliterator model tests, which need torch from the `train` group.
