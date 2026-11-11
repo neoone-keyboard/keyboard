@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ta",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Tamil",
   "nativeName": "தமிழ்",
   "script": "taml",
@@ -14,6 +14,7 @@
     "romanisedLexicon": "romanised.fst",
     "nextWords": "next.fst",
     "translit": "translit.mlkbnn",
+    "lm": "lm.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
     "lang": "lang.json"
@@ -21,6 +22,7 @@
   "sha256": {
     "lang.json": "921de21419e75521bd4a3432f41b24958fd24633c2db0593c2ab8c6d83c7e2a8",
     "layout.json": "c630694441dc112d55d5b3010f9827cf4e0323db7f5ce5f580c2a634da7ff7e7",
+    "lm.mlkbnn": "7f5039e7485d46c8cf5a2e2fbe1037e3caf996820716e49c652bf971018d7171",
     "next.fst": "e7b834bbc3fbb57a07190cc92a0b5b0af989b504401ba33e7b00bbfe342c1ee0",
     "romanisation.json": "f7a75a7fc61c281fef3dafae4fd31f02140abc896244ff5f933a202b0ed91af3",
     "romanised.fst": "266a6b080f4ff1c7d872c1b643d208166238ff288382e098318db398fe677e7f",
