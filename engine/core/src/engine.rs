@@ -1333,7 +1333,11 @@ impl Engine {
                 let Ok(skeleton) = std::str::from_utf8(&f.key) else {
                     continue;
                 };
-                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key, rules));
+                let drawing = swipe::drawn(&map, &path, &f.key, rules);
+                // A letter read as the vowel the skeleton drops (`alsoBesideConsonant`: the
+                // e of `kehte` for कहते) is as often the letter itself (चेहरा, `chehra`).
+                let stood_in = if rules.stood_in(&f.key, &drawing) { w.stand_in } else { 0.0 };
+                let shape = fit(f.cost, &drawing) - stood_in;
                 for (text, count) in manglish::same_skeleton(mg, skeleton, base)
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)

@@ -120,8 +120,9 @@ pub struct Match {
     /// the same (Malayalam: vowel length and t/d, `nale` for നാളെ, romanised `naale`).
     /// `distance` is then 0.
     pub spelled: bool,
-    /// Found by the typed letters' other reading (`Romanisation::skeleton_respelt`: `humse`
-    /// read as `hamse`), not by the letters as written: a side slot, never the middle.
+    /// Found by another reading of the typed letters (`Romanisation::respellings`: `humse`
+    /// read as `hamse`, `kehte` as `kahte`), not by the letters as written: a side slot,
+    /// never the middle.
     pub other_reading: bool,
 }
 
@@ -138,15 +139,15 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     // The second list can repeat words of the first; `seen` drops them.
     let mut keys = lexicon.top_completions(&exact_prefix, TOP_K);
     keys.extend(lexicon.top_completions(typed_skeleton.as_bytes(), TOP_K));
-    // The words of the typed letters' other reading (`Romanisation::skeleton_respelt`:
-    // `humse` read as `hamse`), whole words only, after the rest.
+    // The words of the typed letters' other readings (`Romanisation::respellings`: `humse`
+    // read as `hamse`), whole words only, after the rest.
     let respelt_from = keys.len();
-    let respelt = r.skeleton_respelt(typed).map(|skeleton| {
-        let mut prefix = skeleton.into_bytes();
+    let respelt = r.respellings(typed);
+    for (skeleton, _) in &respelt {
+        let mut prefix = skeleton.clone().into_bytes();
         prefix.push(SEPARATOR);
         keys.extend(lexicon.top_completions(&prefix, TOP_K));
-        (prefix.len() - 1, r.respelt(typed))
-    });
+    }
 
     let mut shortlist: Vec<(f32, Match)> = Vec::with_capacity(keys.len());
     let mut seen = std::collections::HashSet::new();
@@ -212,13 +213,17 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     shortlist
         .into_iter()
         .map(|(_, mut m)| {
-            match &respelt {
-                // Never spelled out: one more than the distance of the letters as it reads
-                // them, for the letter that was read as another.
-                Some((_, written)) if m.other_reading => {
-                    m.distance = 1 + fit(r, written, &m.word, false).1;
-                }
-                _ => (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0),
+            if m.other_reading {
+                // Never spelled out: one more than the distance of the letters as the nearest
+                // reading has them, for the letter that was read as another.
+                let nearest = respelt
+                    .iter()
+                    .map(|(_, written)| fit(r, written, &m.word, false).1)
+                    .min()
+                    .unwrap_or(0);
+                m.distance = 1 + nearest;
+            } else {
+                (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0);
             }
             m
         })
@@ -466,6 +471,52 @@ mod tests {
         // Malayalam's tables name no such letter: a u is a u.
         let ml_lex = lexicon(&[("കമ്മി", 10)]);
         assert!(lookup(ml(), &ml_lex, "kummi").is_empty());
+    }
+
+    /// Hindi writes the short vowel before ह as `e` (`kehte`, `behen`): the tables'
+    /// `alsoBesideConsonant`. A word with a real े comes first for its own letters.
+    #[test]
+    fn an_e_written_beside_h_for_the_dropped_vowel_finds_the_word_behind_exact_matches() {
+        use crate::romanisation::hi;
+        let vocab: Vec<(String, u64)> =
+[
+            ("कहते", 100),
+            ("बहन", 100),
+            ("मेहनत", 10),
+            ("महनत", 400),
+            ("हर", 100),
+            ("खत", 100),
+            ("महसूस", 100),
+            ("महसस", 100),
+        ]
+                .iter()
+                .map(|(w, c)| (w.to_string(), *c))
+                .collect();
+        let lex = Lexicon::from_bytes(build(entries(hi(), &vocab)).unwrap()).unwrap();
+        let found = |typed: &str| -> Vec<(String, bool, usize)> {
+            lookup(hi(), &lex, typed)
+                .into_iter()
+                .map(|m| (m.word, m.other_reading, m.distance))
+                .collect()
+        };
+        // `kahte` against `kahate` is one letter, and one more for the e.
+        assert_eq!(found("kehte"), [("कहते".to_string(), true, 2)]);
+        assert_eq!(found("behen"), [("बहन".to_string(), true, 1)]);
+        assert_eq!(found("bahen"), [("बहन".to_string(), true, 1)]);
+        // The word with the e first, though the other is forty times as frequent.
+        let both = lookup(hi(), &lex, "mehnat");
+        assert_eq!((both[0].word.as_str(), both[0].other_reading, both[0].spelled), ("मेहनत", false, false));
+        assert_eq!((both[1].word.as_str(), both[1].other_reading), ("महनत", true));
+        // With a u too: the word that has the u, then the one it would stand in for as well.
+        assert_eq!(
+            found("mehsoos"),
+            [("महसूस".to_string(), true, 4), ("महसस".to_string(), true, 4)]
+        );
+        // An e that is not beside an h, or follows the word's first h, is an e.
+        assert!(found("her").is_empty());
+        assert!(found("khet").is_empty());
+        // Typed with the a, the word is found as it always was.
+        assert_eq!(found("kahte"), [("कहते".to_string(), false, 1)]);
     }
 
     #[test]

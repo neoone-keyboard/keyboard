@@ -154,6 +154,52 @@ fn a_u_written_for_the_short_vowel_finds_the_word() {
     }
 }
 
+/// The short vowel before ह is said and written `e` (`kehte` for कहते, `behen` for बहन, which
+/// walk as `kahte` and `bahan`). The words written so most are rows of the pack's
+/// `chat-forms.tsv` and take the middle; any other is offered beside the typed letters by the
+/// pack's `alsoBesideConsonant`. A word with a real े still comes first for its own letters,
+/// and the spellings with the a are found as before.
+#[test]
+fn an_e_written_for_the_short_vowel_before_h_finds_the_word() {
+    let e = engine(&["hi"]);
+    for (typed, want) in [
+        // Rows of chat-forms.tsv.
+        ("kehte", "कहते"),
+        ("behen", "बहन"),
+        ("shehar", "शहर"),
+        ("rehta", "रहता"),
+        ("pehle", "पहले"),
+        ("kehna", "कहना"),
+        // A real े.
+        ("mehnat", "मेहनत"),
+        ("chehra", "चेहरा"),
+        ("mehman", "मेहमान"),
+        ("behtar", "बेहतर"),
+        // With the a.
+        ("kahte", "कहते"),
+        ("bahan", "बहन"),
+        ("shahar", "शहर"),
+        ("rahta", "रहता"),
+        ("pahle", "पहले"),
+    ] {
+        let s = e.suggest(typed, Layout::Latin, true);
+        assert_eq!(texts(&s)[0], want, "{typed}: {}", show(&e, &s));
+    }
+    // No row: the rule alone, in the first slot beside the typed letters, which keep the
+    // middle unless the transliterator reads them as the word too (`kehlata`).
+    for (typed, want) in [("lehar", "लहर"), ("kehlata", "कहलाता"), ("rehne", "रहने"), ("sheharon", "शहरों")] {
+        let s = e.suggest(typed, Layout::Latin, true);
+        assert!(texts(&s)[..2].contains(&want), "{typed}: {}", show(&e, &s));
+    }
+    let s = e.suggest("lehar", Layout::Latin, true);
+    assert_eq!(texts(&s)[..2], ["lehar", "लहर"], "lehar: {}", show(&e, &s));
+    // An e away from an h is an e: `her` is not हर, `khet` is खेत.
+    let s = e.suggest("her", Layout::Latin, true);
+    assert!(!texts(&s).contains(&"हर"), "her: {}", show(&e, &s));
+    let s = e.suggest("khet", Layout::Latin, true);
+    assert_eq!(texts(&s)[0], "खेत", "khet: {}", show(&e, &s));
+}
+
 /// Spellings no rule reaches, from the pack's hand-written `chat-forms.tsv`: क्यों walks as
 /// `kyon`, and is written `kyu` and `kyun`.
 #[test]

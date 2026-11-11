@@ -24,7 +24,7 @@
     "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
-    "chat-forms.tsv": "d71ff5431325c1b53a7b2bde43a569253af85181006812f2dc3052d6942a441f",
+    "chat-forms.tsv": "417ea38b10ada5df3f8ec760e392f46aa6b109bf25ab96c2b9ab878b76b8a152",
     "emoji-search.txt": "a97a108ca5a0be449d743727fdc79392cc1dacb68db0af57b0b6068dbe7bce6b",
     "emoji-words.txt": "6f1a5cb07f89170e78fde9469d793145756a6dfbd8283c4638f6b4dcaea3043a",
     "hi.fst": "1fa9ba05a26839017e585fc919e1c61c5a9de2acbca775ed6c6659a31b0b4326",
@@ -33,7 +33,7 @@
     "layout.json": "61d03b93eb91ff250fa3f2f1f82710044ded0d3e1f5e12a09a8721a4ab7c359d",
     "lm.mlkbnn": "7b3e8327b8c0e8c6393cc99906227c55cecf182e1cbf2234b9ac16b5eefb0da4",
     "next.fst": "85e761bd0eef7bc142ad7f1e76233d2d911b4a91000a0628d0b7d127bc94ee2f",
-    "romanisation.json": "34e97313fbae332c4370ee32f3d208fd0d16c8ac5ef15457f44b1dd347962d90",
+    "romanisation.json": "61ab3436e13ebb56952ccc9249bccc801c5c5c26836db6bf80b4a74e429883f0",
     "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
   },
   "credits": [

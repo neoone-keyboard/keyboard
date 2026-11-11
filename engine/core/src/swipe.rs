@@ -284,6 +284,10 @@ pub struct SkeletonRules {
     /// The letters a skeleton drops between two consonants (Hindi's `a`: `namaste` is `nmste`,
     /// `karne` is `krne`): the path may draw one between any two consonants of a skeleton.
     between: Vec<u8>,
+    /// Letters people write for that dropped vowel beside one consonant (Hindi's `e` beside
+    /// `h`: `kehte` for `khte`, `behen` for `bhn`), each with its consonants: the path may
+    /// draw one where `may_stand_in` says.
+    beside: Vec<(u8, Vec<u8>)>,
 }
 
 impl Default for SkeletonRules {
@@ -311,6 +315,7 @@ impl SkeletonRules {
             aspirated: distinct_letters(aspirated),
             trail: distinct_letters(trail),
             between: Vec::new(),
+            beside: Vec::new(),
         }
     }
 
@@ -319,6 +324,26 @@ impl SkeletonRules {
     pub fn dropping_between(mut self, letters: &[u8]) -> Self {
         self.between = distinct_letters(letters);
         self
+    }
+
+    /// The same rules with `letters` (`alsoBesideConsonant`): each a letter written for the
+    /// dropped vowel, and the consonants it is written beside.
+    pub fn also_beside(mut self, letters: &[(u8, Vec<u8>)]) -> Self {
+        self.beside = letters
+            .iter()
+            .filter(|(letter, _)| letter.is_ascii_lowercase())
+            .map(|(letter, consonants)| (*letter, distinct_letters(consonants)))
+            .collect();
+        self
+    }
+
+    /// Whether `drawing` (`drawn`) has a letter written for a dropped one (`also_beside`) that
+    /// `skeleton` does not: the path was read as going by way of it.
+    pub fn stood_in(&self, skeleton: &[u8], drawing: &[u8]) -> bool {
+        let count = |letters: &[u8], l: u8| letters.iter().filter(|&&b| b == l).count();
+        self.beside
+            .iter()
+            .any(|(letter, _)| count(drawing, *letter) > count(skeleton, *letter))
     }
 
     /// The keys a skeleton letter (a–z) may be drawn through.
@@ -338,6 +363,14 @@ fn distinct_letters(s: &[u8]) -> Vec<u8> {
         }
     }
     out
+}
+
+/// Whether a letter written beside `consonants` for the dropped vowel may be drawn between
+/// the skeleton's consonants `prev` and `next`: `next` is one of them (`k`, e, `h` of `khte`),
+/// or `prev` is and the letter before it, `before`, is a consonant too, the vowel between
+/// them dropped (`h`, e, `n` of `bhn`; not `h`, e, `r` of `hr`, nor of `mohr`).
+fn may_stand_in(consonants: &[u8], before: Option<u8>, prev: u8, next: u8) -> bool {
+    consonants.contains(&next) || (consonants.contains(&prev) && before.is_some_and(is_consonant))
 }
 
 fn is_consonant(b: u8) -> bool {
@@ -364,7 +397,7 @@ fn nearest_key(keys: &KeyMap, path: &[(f32, f32)], letter: u8, rules: &SkeletonR
 /// A step of a skeleton's drawing (`drawn`): the keys it may be drawn through, whether the
 /// path may leave it out, and whether it counts as part of the drawing.
 struct Stroke<'a> {
-    keys: &'a [u8],
+    keys: std::borrow::Cow<'a, [u8]>,
     optional: bool,
     shown: bool,
 }
@@ -386,20 +419,27 @@ pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &Skelet
     let mut strokes: Vec<Stroke<'_>> = Vec::new();
     for (i, l) in skeleton.iter().enumerate() {
         if i > 0 && !between.is_empty() && is_consonant(skeleton[i - 1]) && is_consonant(*l) {
+            let before = i.checked_sub(2).map(|k| skeleton[k]);
+            let mut keys = std::borrow::Cow::Borrowed(&between[..]);
+            for (letter, consonants) in &rules.beside {
+                if may_stand_in(consonants, before, skeleton[i - 1], *l) && !keys.contains(letter) {
+                    keys.to_mut().push(*letter);
+                }
+            }
             strokes.push(Stroke {
-                keys: between,
+                keys,
                 optional: true,
                 shown: true,
             });
         }
         strokes.push(Stroke {
-            keys: std::slice::from_ref(l),
+            keys: std::slice::from_ref(l).into(),
             optional: false,
             shown: true,
         });
         if rules.aspirated.contains(l) {
             strokes.push(Stroke {
-                keys: b"h",
+                keys: b"h"[..].into(),
                 optional: true,
                 shown: false,
             });
@@ -418,7 +458,7 @@ pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &Skelet
     for stroke in &strokes {
         let mut row = vec![f32::INFINITY; n];
         let mut key = vec![0u8; n];
-        for &k in stroke.keys {
+        for &k in stroke.keys.iter() {
             // A skeleton letter is fitted through any of its keys, as the beam fits it.
             let through: &[u8] = if stroke.shown && k.is_ascii_lowercase() {
                 rules.keys(k)
@@ -575,11 +615,26 @@ pub fn decode(
             })
         })
         .collect();
+    let beside: Vec<(Between<'_>, &[u8])> = rules
+        .beside
+        .iter()
+        .filter(|_| !between.is_empty())
+        .filter_map(|(b, consonants)| {
+            Some((
+                Between {
+                    row: costs[usize::from(b - b'a')].as_ref()?,
+                    centre: keys.centre(nearest_key(keys, path, *b, rules))?,
+                },
+                &consonants[..],
+            ))
+        })
+        .collect();
     let skeleton = Skeleton {
         trail: &trail,
         h: plain[usize::from(b'h' - b'a')].as_ref(),
         aspirated: &rules.aspirated,
         between: &between,
+        beside: &beside,
     };
     walk(lexicon.raw(), &costs, &track, Some(&skeleton))
 }
@@ -610,6 +665,8 @@ struct Skeleton<'a> {
     h: Option<&'a Vec<f32>>,
     aspirated: &'a [u8],
     between: &'a [Between<'a>],
+    /// The letters written for a dropped one beside the consonants named (`may_stand_in`).
+    beside: &'a [(Between<'a>, &'a [u8])],
 }
 
 /// A letter the skeleton drops between two consonants: its cost per path point and the centre
@@ -658,6 +715,12 @@ fn walk<D: AsRef<[u8]>>(
                 .filter(|_| hyp.key.last().is_some_and(|&b| is_consonant(b)))
                 .unwrap_or_default();
             let mut through: Option<Vec<Fit>> = None;
+            // The same for a letter written for a dropped one beside some consonants.
+            let beside = skeleton
+                .map(|s| s.beside)
+                .filter(|_| hyp.key.last().is_some_and(|&b| is_consonant(b)))
+                .unwrap_or_default();
+            let mut through_beside: Vec<Option<Fit>> = vec![None; beside.len()];
             for t in node.transitions() {
                 if hyp.key.is_empty() && t.inp < FIRST_WORD_BYTE {
                     continue;
@@ -692,6 +755,23 @@ fn walk<D: AsRef<[u8]>>(
                                 dropped.iter().map(|d| hyp.fit.then(d.row, bends)).collect()
                             });
                             for (d, via) in dropped.iter().zip(through.iter()) {
+                                let extra = reach(hyp.last, Some(d.centre))
+                                    + reach(Some(d.centre), centre)
+                                    - reach(hyp.last, centre);
+                                fit = fit.or(&place(via).by_way(extra));
+                            }
+                        }
+                        if !beside.is_empty() && is_consonant(t.inp) {
+                            let (prev, before) = match hyp.key[..] {
+                                [.., before, prev] => (prev, Some(before)),
+                                [prev] => (prev, None),
+                                [] => unreachable!("beside is empty before the first letter"),
+                            };
+                            for ((d, consonants), via) in beside.iter().zip(&mut through_beside) {
+                                if !may_stand_in(consonants, before, prev, t.inp) {
+                                    continue;
+                                }
+                                let via = via.get_or_insert_with(|| hyp.fit.then(d.row, bends));
                                 let extra = reach(hyp.last, Some(d.centre))
                                     + reach(Some(d.centre), centre)
                                     - reach(hyp.last, centre);
@@ -875,6 +955,13 @@ pub struct Weights {
     /// drawn as `nahi`): it is drawn that way only some of the time, and without this the
     /// second keys cost Hindi's English swipes 8 firsts in 1,789 (5 with it).
     pub second: f32,
+    /// Taken from a skeleton the path fits by way of a letter written for a dropped one
+    /// (`SkeletonRules::stood_in`: Hindi's `khte` drawn k-e-h-t-e): the letter is as often
+    /// itself. Over 200 wobbly swipes each of Hindi words without a chat-forms row, at 0, 2
+    /// and 4: `lehar` gave लहर 189, 152 and 29 times and `behas` बहस 170, 115 and 38, while
+    /// `behtar` gave बेहतर 30, 137 and 159 times and `sehat` सेहत 9, 63 and 79 (59 and 56
+    /// before the rule). `chehra` stays behind कहा (चेहरा 13, 19 and 64; 73 before).
+    pub stand_in: f32,
 }
 
 impl Default for Weights {
@@ -886,6 +973,7 @@ impl Default for Weights {
             uses: 0.5,
             learned: -12.0,
             second: 1.0,
+            stand_in: 2.0,
         }
     }
 }
@@ -1155,6 +1243,7 @@ mod tests {
         assert!(cost(&only_a) > cost(as_.swipe_rules()) + 2.0);
         // Only Hindi drops a letter inside a word.
         assert_eq!(hi.swipe_rules().between, b"a");
+        assert_eq!(hi.swipe_rules().beside, [(b'e', b"h".to_vec())]);
         for other in [ta.swipe_rules(), as_.swipe_rules(), crate::romanisation::ml().swipe_rules()] {
             assert!(other.between.is_empty());
         }
@@ -1242,6 +1331,57 @@ mod tests {
         // Without the rule nothing is added.
         assert_eq!(drawn(&keys, &path("karne"), b"krne", &SkeletonRules::default()), b"krne");
         assert_eq!(drawn(&keys, &[], b"krne", &dropping), b"krne");
+    }
+
+    /// A letter written for the dropped vowel beside one consonant (Hindi's `e` beside `h`)
+    /// may be drawn there, and nowhere else.
+    #[test]
+    fn a_letter_written_beside_a_consonant_for_the_dropped_one_may_be_drawn() {
+        let lexicon = lex(&[
+            ("khte\0x", 1),
+            ("bhn\0x", 1),
+            ("hr\0x", 1),
+            ("mohn\0x", 1),
+            ("krne\0x", 1),
+            ("kehte\0x", 1),
+            ("behen\0x", 1),
+            ("her\0x", 1),
+            ("mohen\0x", 1),
+            ("kerne\0x", 1),
+        ]);
+        let keys = keymap();
+        let dropping = SkeletonRules::default().dropping_between(b"a");
+        let beside = dropping.clone().also_beside(&[(b'e', b"h".to_vec())]);
+        let cost = |rules: &SkeletonRules, drawn: &str, skeleton: &[u8]| {
+            let path = resample(&ideal_path(&keys, drawn, 4.0), STEP, MAX_POINTS);
+            let found = decode(&lexicon, &keys, &path, Some(rules));
+            found.into_iter().find(|f| f.key == skeleton).map_or(f32::INFINITY, |f| f.cost)
+        };
+        let path = |spelt: &str| resample(&ideal_path(&keys, spelt, 4.0), STEP, MAX_POINTS);
+        // Before the h, and after it when the vowel before it is dropped too.
+        for (spelt, skeleton) in [("kehte", &b"khte"[..]), ("behen", b"bhn"), ("bahen", b"bhn")] {
+            let with = cost(&beside, spelt, skeleton);
+            assert!(with <= cost(&beside, spelt, spelt.as_bytes()) + 0.01, "{spelt}: {with}");
+            assert!(cost(&dropping, spelt, skeleton) > with + 2.0, "{spelt}: {with}");
+            assert_eq!(drawn(&keys, &path(spelt), skeleton, &beside), spelt.as_bytes(), "{spelt}");
+            assert!(beside.stood_in(skeleton, spelt.as_bytes()));
+        }
+        // Not after an h that begins the word or follows a vowel, nor away from an h: the
+        // skeleton fits the path no better than without the rule, and its drawing is itself.
+        for (spelt, skeleton) in [("her", &b"hr"[..]), ("mohen", b"mohn"), ("kerne", b"krne")] {
+            assert_eq!(cost(&beside, spelt, skeleton), cost(&dropping, spelt, skeleton), "{spelt}");
+            let drawing = drawn(&keys, &path(spelt), skeleton, &beside);
+            assert_eq!(drawing, skeleton, "{spelt}");
+            assert!(!beside.stood_in(skeleton, &drawing));
+        }
+        // The dropped letter itself is drawn as before, and is no stand-in.
+        assert_eq!(drawn(&keys, &path("kahte"), b"khte", &beside), b"kahte");
+        assert!(!beside.stood_in(b"khte", b"kahte"));
+        assert!(may_stand_in(b"h", None, b'k', b'h'));
+        assert!(may_stand_in(b"h", Some(b'b'), b'h', b'n'));
+        assert!(!may_stand_in(b"h", None, b'h', b'r'));
+        assert!(!may_stand_in(b"h", Some(b'o'), b'h', b'n'));
+        assert!(!may_stand_in(b"h", Some(b'k'), b'r', b'n'));
     }
 
     #[test]

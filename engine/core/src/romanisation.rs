@@ -77,6 +77,8 @@ struct RawSkeleton {
     drop_between_consonants: String,
     #[serde(default)]
     also_between_consonants: String,
+    #[serde(default)]
+    also_beside_consonant: HashMap<char, String>,
     drop_final_vowel: DropFinalVowel,
 }
 
@@ -142,9 +144,42 @@ struct Skeleton {
     /// `alsoBetweenConsonants`: letters people write between two consonants for the vowel
     /// `between` drops there (Hindi's `u`: `hum` for हम, `ham`).
     between_also: Vec<u8>,
+    /// `alsoBesideConsonant`: a letter people write for that vowel only beside one of the
+    /// consonants named (Hindi's `e` beside `h`: `kehna` for कहना, `behen` for बहन), sorted
+    /// by letter. See `Skeleton::stands_in`.
+    between_beside: Vec<(u8, Vec<u8>)>,
     final_vowels: Vec<u8>,
     final_after_consonant: bool,
     final_min: usize,
+}
+
+impl Skeleton {
+    /// Which letters of `s` (a skeleton, or typed letters) may stand for the vowel `between`
+    /// drops: an `alsoBesideConsonant` letter between two consonants when the one after it is
+    /// one of its own (`kehte`, `rehna`), or the one before it is and the vowel before that
+    /// one is dropped or stands for the dropped vowel too (`behen`, `bahen`, `sheher`; not
+    /// `her`, whose h begins the word, nor `mohen`); and, with `anywhere`, an
+    /// `alsoBetweenConsonants` letter between any two consonants (`humse`).
+    fn stands_in(&self, s: &[u8], anywhere: bool) -> Vec<bool> {
+        let mut out = vec![false; s.len()];
+        for k in 1..s.len().saturating_sub(1) {
+            if is_vowel(s[k - 1]) || is_vowel(s[k + 1]) {
+                continue;
+            }
+            if self.between_also.contains(&s[k]) {
+                out[k] = anywhere;
+            } else if let Some((_, beside)) = self.between_beside.iter().find(|(l, _)| *l == s[k]) {
+                // The letter two back: a consonant (the vowel between was dropped from the
+                // skeleton), that vowel still written (typed letters), or a stand-in for it.
+                let dropped_before = k >= 2
+                    && (out[k - 2]
+                        || !is_vowel(s[k - 2])
+                        || (self.between.contains(&s[k - 2]) && k >= 3 && !is_vowel(s[k - 3])));
+                out[k] = beside.contains(&s[k + 1]) || (beside.contains(&s[k - 1]) && dropped_before);
+            }
+        }
+        out
+    }
 }
 
 /// `looseSpelling`: the Latin spellings that count as one when the engine asks whether the
@@ -257,11 +292,15 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
     if let Some(said) = said_trail {
         trail = ascii_letters(&said, "swipe trail")?;
     }
-    // Only the dropped letters themselves: the ones written for them
-    // (`alsoBetweenConsonants`, Hindi's `u`) are for typed letters. Drawn at no cost between
-    // any two consonants, a `u` let every skeleton stand for its words with a real u too, and
-    // Hindi's held-out swipes fell from 17.7% to 15.7% first.
-    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail).dropping_between(&skeleton.between))
+    // The dropped letters themselves, and the ones written for them beside one consonant
+    // (`alsoBesideConsonant`, Hindi's `e` beside `h`), which few skeletons have a place for.
+    // Not the ones written for them anywhere (`alsoBetweenConsonants`, Hindi's `u`): those
+    // are for typed letters. Drawn at no cost between any two consonants, a `u` let every
+    // skeleton stand for its words with a real u too, and Hindi's held-out swipes fell from
+    // 17.7% to 15.7% first.
+    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail)
+        .dropping_between(&skeleton.between)
+        .also_beside(&skeleton.between_beside))
 }
 
 /// A loaded `romanisation.json`.
@@ -343,6 +382,23 @@ impl Romanisation {
             collapse_doubles: s.collapse_doubles,
             between: ascii_letters(&s.drop_between_consonants, "dropBetweenConsonants")?,
             between_also: ascii_letters(&s.also_between_consonants, "alsoBetweenConsonants")?,
+            between_beside: {
+                let mut beside = s
+                    .also_beside_consonant
+                    .into_iter()
+                    .map(|(letter, consonants)| {
+                        let consonants = ascii_letters(&consonants, "alsoBesideConsonant")?;
+                        if !letter.is_ascii_lowercase() || consonants.iter().any(|&c| is_vowel(c)) {
+                            return Err(format!(
+                                "alsoBesideConsonant {letter:?}: a lower-case letter and the consonants it is written beside"
+                            ));
+                        }
+                        Ok((letter as u8, consonants))
+                    })
+                    .collect::<Result<Vec<_>, String>>()?;
+                beside.sort();
+                beside
+            },
             final_vowels: ascii_letters(&s.drop_final_vowel.vowels, "dropFinalVowel")?,
             final_after_consonant: s.drop_final_vowel.after_consonant,
             final_min: s.drop_final_vowel.min_length,
@@ -597,55 +653,48 @@ impl Romanisation {
         String::from_utf8(out).unwrap_or_default()
     }
 
-    /// The skeleton of typed letters read the other way the pack's `alsoBetweenConsonants`
-    /// allows: each such letter between two consonants taken for the vowel
-    /// `dropBetweenConsonants` drops there, so dropped too (Hindi: `humse` is `humse`, and
-    /// read so `hmse`, हमसे's). None when the tables name no such letter or the typed letters
-    /// have none there: there is then only `skeleton`.
-    pub fn skeleton_respelt(&self, latin: &str) -> Option<String> {
+    /// The other ways the pack's `alsoBesideConsonant` and `alsoBetweenConsonants` let typed
+    /// letters be read: each such letter taken for the vowel `dropBetweenConsonants` drops
+    /// there (`Skeleton::stands_in`). Each reading is its skeleton, with those letters dropped
+    /// too, and the letters written out with the vowel in their place, to measure against a
+    /// word's romanisation (Hindi: `humse` is `hmse`, हमसे's, written `hamse`; `kehte` is
+    /// `khte`, कहते's, written `kahte`). First with only the letters written beside a
+    /// consonant read so, then with the others as well (`mehsoos`: `mhsus`, महसूस's, then
+    /// `mhss`), when that is another reading. Empty when the tables name no such letter or
+    /// the typed letters have none there: there is then only `skeleton`.
+    pub fn respellings(&self, latin: &str) -> Vec<(String, String)> {
         let rules = &self.skeleton;
-        if rules.between.is_empty() || rules.between_also.is_empty() {
-            return None;
-        }
+        let Some(&vowel) = rules.between.first() else {
+            return Vec::new();
+        };
         let whole = self.skeleton(latin).into_bytes();
-        let kept: Vec<u8> = (0..whole.len())
-            .filter(|&k| {
-                !(rules.between_also.contains(&whole[k])
-                    && k > 0
-                    && k + 1 < whole.len()
-                    && !is_vowel(whole[k - 1])
-                    && !is_vowel(whole[k + 1]))
-            })
-            .map(|k| whole[k])
-            .collect();
-        (kept.len() < whole.len() && !kept.is_empty())
-            .then(|| String::from_utf8(kept).unwrap_or_default())
-    }
-
-    /// The typed letters as `skeleton_respelt` reads them, written out: each
-    /// `alsoBetweenConsonants` letter between two consonants replaced by the vowel it stands
-    /// for (`humse` → `hamse`), to measure against a word's romanisation.
-    pub fn respelt(&self, latin: &str) -> String {
-        let rules = &self.skeleton;
         let letters: Vec<u8> = latin
             .bytes()
             .filter(u8::is_ascii_alphabetic)
             .map(|b| b.to_ascii_lowercase())
             .collect();
-        let Some(&vowel) = rules.between.first() else {
-            return String::from_utf8(letters).unwrap_or_default();
-        };
-        let out: Vec<u8> = (0..letters.len())
-            .map(|k| {
-                let stands_in = rules.between_also.contains(&letters[k])
-                    && k > 0
-                    && k + 1 < letters.len()
-                    && !is_vowel(letters[k - 1])
-                    && !is_vowel(letters[k + 1]);
-                if stands_in { vowel } else { letters[k] }
-            })
-            .collect();
-        String::from_utf8(out).unwrap_or_default()
+        let text = |bytes: Vec<u8>| String::from_utf8(bytes).unwrap_or_default();
+        let mut out: Vec<(String, String)> = Vec::new();
+        for anywhere in [false, true] {
+            let kept: Vec<u8> = whole
+                .iter()
+                .zip(rules.stands_in(&whole, anywhere))
+                .filter_map(|(&b, dropped)| (!dropped).then_some(b))
+                .collect();
+            if kept.len() == whole.len() || kept.is_empty() {
+                continue;
+            }
+            let skeleton = text(kept);
+            if out.iter().all(|(seen, _)| *seen != skeleton) {
+                let written = letters
+                    .iter()
+                    .zip(rules.stands_in(&letters, anywhere))
+                    .map(|(&b, stands_in)| if stands_in { vowel } else { b })
+                    .collect();
+                out.push((skeleton, text(written)));
+            }
+        }
+        out
     }
 
     /// The Latin a consonant of the tables is spelled with, without a vowel (യ → `y`).
@@ -894,25 +943,86 @@ mod tests {
     #[test]
     fn a_letter_written_for_the_dropped_vowel_gives_a_second_reading() {
         let hi = pack("hi");
-        for (typed, skeleton, respelt, written) in [
-            ("humse", "humse", Some("hmse"), "hamse"),
-            ("hum", "hum", Some("hm"), "ham"),
-            ("humara", "humra", Some("hmra"), "hamara"),
-            ("kuch", "kuc", Some("kc"), "kach"),
-            ("hamse", "hmse", None, "hamse"),
-            ("tu", "tu", None, "tu"),
-            ("uttar", "utr", None, "uttar"),
-            ("hui", "hui", None, "hui"),
+        let readings = |typed: &str| hi.respellings(typed);
+        let pairs = |list: &[(&str, &str)]| -> Vec<(String, String)> {
+            list.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect()
+        };
+        for (typed, skeleton, respelt) in [
+            ("humse", "humse", &[("hmse", "hamse")][..]),
+            ("hum", "hum", &[("hm", "ham")]),
+            ("humara", "humra", &[("hmra", "hamara")]),
+            ("kuch", "kuc", &[("kc", "kach")]),
+            ("hamse", "hmse", &[]),
+            ("tu", "tu", &[]),
+            ("uttar", "utr", &[]),
+            ("hui", "hui", &[]),
         ] {
             assert_eq!(hi.skeleton(typed), skeleton, "{typed}");
-            assert_eq!(hi.skeleton_respelt(typed).as_deref(), respelt, "{typed}");
-            assert_eq!(hi.respelt(typed), written, "{typed}");
+            assert_eq!(readings(typed), pairs(respelt), "{typed}");
         }
-        assert_eq!(hi.skeleton_respelt("humse").unwrap(), hi.word_skeleton("हमसे"));
+        assert_eq!(readings("humse")[0].0, hi.word_skeleton("हमसे"));
+        // `alsoBesideConsonant`: an e stands for the dropped vowel only beside an h.
+        for (typed, skeleton, respelt, written, word) in [
+            ("kehte", "kehte", "khte", "kahte", "कहते"),
+            ("rehna", "rehna", "rhna", "rahna", "रहना"),
+            ("shehar", "sehr", "shr", "shahar", "शहर"),
+            // After the h too, when the vowel before the h is the dropped one.
+            ("behen", "behen", "bhn", "bahan", "बहन"),
+            ("bahen", "bhen", "bhn", "bahan", "बहन"),
+            ("sheher", "seher", "shr", "shahar", "शहर"),
+            ("zeher", "jeher", "jhr", "zahar", "ज़हर"),
+            ("pehchan", "pehcn", "phcn", "pahchan", "पहचान"),
+        ] {
+            assert_eq!(hi.skeleton(typed), skeleton, "{typed}");
+            assert_eq!(readings(typed), pairs(&[(respelt, written)]), "{typed}");
+            assert_eq!(respelt, hi.word_skeleton(word), "{typed}");
+        }
+        // With a u elsewhere: the e alone read so, then both.
+        assert_eq!(readings("mehsoos"), pairs(&[("mhsus", "mahsoos"), ("mhss", "mahsoos")]));
+        assert_eq!(readings("mehsus"), pairs(&[("mhsus", "mahsus"), ("mhss", "mahsas")]));
+        assert_eq!(readings("mehsoos")[0].0, hi.word_skeleton("महसूस"));
+        assert_eq!(readings("pehunch"), pairs(&[("phunc", "pahunch"), ("phnc", "pahanch")]));
+        // Not an e away from an h, one whose h begins the word or follows a kept vowel, an
+        // h that is the second letter of a pair (`khet`, `sher`), or an e at an end.
+        for typed in ["her", "hello", "mohen", "khet", "sher", "leke", "dekh", "yeh", "ehsan", "pet"] {
+            assert!(readings(typed).is_empty(), "{typed}");
+        }
+        // A word with a real े keeps its own skeleton; the other reading is beside it.
+        assert_eq!(hi.word_skeleton("मेहनत"), hi.skeleton("mehnat"));
+        assert_eq!(readings("mehnat"), pairs(&[("mhnt", "mahnat")]));
         // Tables that name no such letter read typed letters one way.
         let ml = pack("ml");
-        assert_eq!(ml.skeleton_respelt("humse"), None);
-        assert_eq!(ml.respelt("Humse"), "humse");
+        assert!(ml.respellings("humse").is_empty());
+    }
+
+    #[test]
+    fn a_letter_beside_a_consonant_is_a_letter_and_consonants() {
+        let hi = std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/hi.neopack/romanisation.json"),
+        )
+        .unwrap();
+        let with = |beside: &str| {
+            let mut file: serde_json::Value = serde_json::from_str(&hi).unwrap();
+            file["skeleton"]
+                .as_object_mut()
+                .unwrap()
+                .insert("alsoBesideConsonant".into(), serde_json::from_str(beside).unwrap());
+            Romanisation::parse(&file.to_string())
+        };
+        let reading = |r: Romanisation, typed: &str| r.respellings(typed).into_iter().map(|(s, _)| s).collect::<Vec<_>>();
+        assert_eq!(reading(with(r#"{"e": "h"}"#).unwrap(), "kehte"), ["khte"]);
+        assert_eq!(reading(with(r#"{"e": "hy"}"#).unwrap(), "keyte"), ["kyte"]);
+        // Without it only the u is read the other way.
+        assert!(reading(with("{}").unwrap(), "kehte").is_empty());
+        assert_eq!(reading(with("{}").unwrap(), "humse"), ["hmse"]);
+        assert!(with(r#"{"E": "h"}"#).unwrap_err().contains("alsoBesideConsonant"));
+        assert!(with(r#"{"e": "a"}"#).unwrap_err().contains("alsoBesideConsonant"));
+        assert!(with(r#"{"e": "H"}"#).unwrap_err().contains("alsoBesideConsonant"));
+        // A swipe may draw the letter there too (`swipe::SkeletonRules::also_beside`).
+        let rules = with(r#"{"e": "h"}"#).unwrap();
+        assert!(rules.swipe_rules().stood_in(b"khte", b"kehte"));
+        assert!(!rules.swipe_rules().stood_in(b"kehte", b"kehte"));
+        assert!(!with("{}").unwrap().swipe_rules().stood_in(b"khte", b"kehte"));
     }
 
     #[test]

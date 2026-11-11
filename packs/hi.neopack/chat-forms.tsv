@@ -35,3 +35,26 @@ humare	हमारे
 # बहुत (very): the a before h is said and written o. The walk gives bahut.
 bohot	बहुत
 bahot	बहुत
+# The short a before ह is said and written e: kehna for कहना, rehna for रहना, behen for बहन.
+# The walk gives kahna, rahna, bahan. Typed or swiped, an e beside an h may stand for that
+# vowel (romanisation.json's alsoBesideConsonant), beside what the letters say as written
+# and behind words with a real े (मेहनत, चेहरा); the words written this way most are listed,
+# so they take the middle as the forms of hum do.
+kehna	कहना
+kehta	कहता
+kehte	कहते
+kehti	कहती
+kehkar	कहकर
+rehna	रहना
+rehta	रहता
+rehte	रहते
+rehti	रहती
+rehkar	रहकर
+pehle	पहले
+pehla	पहला
+pehli	पहली
+pehchan	पहचान
+behen	बहन
+shehar	शहर
+sheher	शहर
+mehsoos	महसूस
