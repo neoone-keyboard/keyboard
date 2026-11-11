@@ -51,6 +51,18 @@ def test_next_sets_align_and_split_disjointly():
     assert len(gate) == len(tune) == 20 and not set(gate) & set(tune)
 
 
+def test_synthetic_romanised_rows_are_word_aligned_latin():
+    import random
+
+    from mlkb.eval import next_sets
+
+    def spell(word, rng):
+        return [] if word == "ক" else ["x" * len(word)]
+
+    rows = next_sets.synthetic_rows(["মই ঘৰত আহিম।", "মই ক", "১২ মই", "অকল"], spell, random.Random(0), 5)
+    assert rows == [("xx xxx xxxx", "মই ঘৰত আহিম")]
+
+
 def test_the_danda_is_punctuation():
     from mlkb.eval.nextword import plain
 

@@ -24,6 +24,10 @@ transliteration set `data/eval/hi/translit-human.tsv`, and next words in English
 `data/eval/hi/baselines.json`; `--record-nolm` records the run without an LM to
 `hi/baselines-nolm.json`, and `--gate lm` checks the LM's ship gates against that record (as
 `--gate m3b` does against M3a's for Malayalam).
+
+`--lang as` and `--lang ta` run those packs the same way (`_pack_lang`), on
+`data/eval/<id>/`: next words in the script (`next-<id>.heldout.txt`) and romanised
+(`as/next-romanised.tsv`, `ta/next-tanglish.tsv`; `mlkb.eval.next_sets` says where each is from).
 """
 
 import argparse
@@ -96,6 +100,27 @@ LANGS = {
 }
 
 
+def _pack_lang(lang: str, script: str, romanised: str) -> EvalLang:
+    """A pack of `data/langs/<id>/` with English: Hindi's sets, with the pack's own next-word
+    files (`<id>/next-<id>.heldout.txt` from `mlkb.lm.corpus --lang <id>`, and the romanised
+    rows `<id>/next-<romanised>.tsv` from `mlkb.eval.next_sets --lang <id>`)."""
+    return EvalLang(
+        lang, ROOT / f"packs/{lang}.neopack", script,
+        {
+            "next_en": (("english-sentences.txt",), "next-en.tune.txt", "latin"),
+            f"next_{lang}": ((f"{lang}/next-{lang}.heldout.txt",), f"{lang}/next-{lang}.tune.txt", "native"),
+            f"next_{romanised}": ((f"{lang}/next-{romanised}.tsv",), f"{lang}/next-{romanised}.tune.tsv", "latin"),
+        },
+        {"english_typos_context": CONTEXT_SETS["english_typos_context"]},
+        EVAL / f"{lang}/translit-human.tsv", False, EVAL / f"{lang}/baselines.json",
+        EVAL / f"{lang}/baselines-nolm.json", "baseline",
+    )
+
+
+LANGS["as"] = _pack_lang("as", "beng", "romanised")
+LANGS["ta"] = _pack_lang("ta", "taml", "tanglish")
+
+
 def load_engine(translit_model: str | None, lm_model: str | None = None, lang: str = "ml"):
     """The engine on the committed bundle, plus the transliterator and the LM when given."""
     if lang != "ml":
@@ -109,6 +134,7 @@ def load_engine(translit_model: str | None, lm_model: str | None = None, lang: s
             romanisation=str(pack / files["romanisation"]),
             layout=str(pack / files["layout"]),
             next_words=str(pack / files["nextWords"]),
+            lang=str(pack / files["lang"]) if "lang" in files else None,
             translit=translit_model,
             lm=lm_model,
             pack=lang,
