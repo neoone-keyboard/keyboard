@@ -147,12 +147,14 @@ pub struct Finished {
     pub cost: f32,
 }
 
+// See `Fit`: a `Hyp` no larger than this is cut as it was before `Fit` had detours.
+const _: () = assert!(std::mem::size_of::<Hyp>() <= 96);
+
 struct Hyp {
     addr: usize,
     out: Output,
     key: Vec<u8>,
-    /// Per path point: the cheapest fit with the last letter there.
-    cost: Vec<f32>,
+    fit: Fit,
     /// Length of the line through the word's keys so far, and its last key's centre.
     line: f32,
     last: Option<(f32, f32)>,
@@ -160,17 +162,91 @@ struct Hyp {
     best: f32,
 }
 
+/// How a partial word fits the path. Per path point: the cheapest fit with the last letter
+/// there and, for that fit, how much longer the dropped letters it draws inside the word
+/// (`SkeletonRules::between`) make the line through the word's keys. The second is None while
+/// no point's fit draws one, as it always is for a lexicon whose keys drop nothing.
+///
+/// The detours are boxed to keep a `Hyp` small: the beam is cut with an unstable selection,
+/// and which of several equally ranked partial words it keeps follows from how std moves the
+/// values, which it chooses by their size.
+#[derive(Clone, Default)]
+struct Fit {
+    cost: Vec<f32>,
+    #[allow(clippy::box_collection)]
+    detour: Option<Box<Vec<f32>>>,
+}
+
+impl Fit {
+    /// The fit after one more letter whose cost per point is `row` (`extend`), each point
+    /// keeping the detours of the fit it goes on from.
+    fn then(&self, row: &[f32], bends: &[f32]) -> Fit {
+        let Some(detour) = &self.detour else {
+            return Fit {
+                cost: extend(&self.cost, row, bends),
+                detour: None,
+            };
+        };
+        let (cost, from) = extend_from(&self.cost, row, bends);
+        Fit {
+            cost,
+            detour: Some(Box::new(from.iter().map(|&k| detour[k]).collect())),
+        }
+    }
+
+    /// At each point, the cheaper of this fit and `other`.
+    fn or(mut self, other: &Fit) -> Fit {
+        if !self.cost.iter().zip(&other.cost).any(|(a, b)| b < a) {
+            return self;
+        }
+        if self.detour.is_none() && other.detour.is_none() {
+            return Fit {
+                cost: self.cost.iter().zip(&other.cost).map(|(a, b)| a.min(*b)).collect(),
+                detour: None,
+            };
+        }
+        let n = self.cost.len();
+        let detour = self.detour.get_or_insert_with(|| Box::new(vec![0.0; n]));
+        for j in 0..n {
+            if other.cost[j] < self.cost[j] {
+                self.cost[j] = other.cost[j];
+                detour[j] = other.detour.as_ref().map_or(0.0, |d| d[j]);
+            }
+        }
+        self
+    }
+
+    /// The same fit of a drawing that went by way of a dropped letter, `extra` longer.
+    fn by_way(mut self, extra: f32) -> Fit {
+        let n = self.cost.len();
+        let detour = self.detour.get_or_insert_with(|| Box::new(vec![0.0; n]));
+        detour.iter_mut().for_each(|d| *d += extra);
+        self
+    }
+}
+
 /// Per key width between the line through a partial word's keys and the path up to its
 /// best point (`rank`).
 const PROGRESS: f32 = 1.0;
 
 /// Ranks a partial word in the beam: its fit at the point where it fits best, plus how far the
-/// line through its keys is from the path's length up to that point. Without the second term,
-/// prefixes that jump ahead along the path look as good as ones that follow it.
-fn rank(cost: &[f32], arc: &[f32], line: f32) -> f32 {
-    cost.iter()
+/// line through its keys (and the dropped letters that fit draws) is from the path's length up
+/// to that point. Without the second term, prefixes that jump ahead along the path look as
+/// good as ones that follow it.
+fn rank(fit: &Fit, arc: &[f32], line: f32) -> f32 {
+    let Some(detour) = &fit.detour else {
+        return fit
+            .cost
+            .iter()
+            .zip(arc)
+            .map(|(&c, &a)| c + PROGRESS * (a - line).abs())
+            .fold(f32::INFINITY, f32::min);
+    };
+    fit.cost
+        .iter()
+        .zip(detour.iter())
         .zip(arc)
-        .map(|(&c, &a)| c + PROGRESS * (a - line).abs())
+        .map(|((&c, &d), &a)| c + PROGRESS * (a - line - d).abs())
         .fold(f32::INFINITY, f32::min)
 }
 
@@ -205,6 +281,9 @@ pub struct SkeletonRules {
     /// The letters a skeleton drops from a word's end (`veedu` → `veed`, `entey` → `ent`): the
     /// path may still draw up to `TRAILING` of them after the skeleton's last letter.
     trail: Vec<u8>,
+    /// The letters a skeleton drops between two consonants (Hindi's `a`: `namaste` is `nmste`,
+    /// `karne` is `krne`): the path may draw one between any two consonants of a skeleton.
+    between: Vec<u8>,
 }
 
 impl Default for SkeletonRules {
@@ -227,20 +306,19 @@ impl SkeletonRules {
                 }
             }
         }
-        let letters = |s: &[u8]| -> Vec<u8> {
-            let mut out: Vec<u8> = Vec::new();
-            for &b in s {
-                if b.is_ascii_lowercase() && !out.contains(&b) {
-                    out.push(b);
-                }
-            }
-            out
-        };
         Self {
             keys,
-            aspirated: letters(aspirated),
-            trail: letters(trail),
+            aspirated: distinct_letters(aspirated),
+            trail: distinct_letters(trail),
+            between: Vec::new(),
         }
+    }
+
+    /// The same rules for a skeleton that drops `letters` between two consonants
+    /// (`dropBetweenConsonants`).
+    pub fn dropping_between(mut self, letters: &[u8]) -> Self {
+        self.between = distinct_letters(letters);
+        self
     }
 
     /// The keys a skeleton letter (a–z) may be drawn through.
@@ -251,9 +329,23 @@ impl SkeletonRules {
 
 const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
 
-/// The keys a skeleton was most likely drawn through: each letter's key (`skeleton_keys`)
-/// nearest the path. For `shape_cost` and `length_cost`, which compare a drawing with the path.
-pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &SkeletonRules) -> Vec<u8> {
+/// The a–z of `s`, each once, in order.
+fn distinct_letters(s: &[u8]) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::new();
+    for &b in s {
+        if b.is_ascii_lowercase() && !out.contains(&b) {
+            out.push(b);
+        }
+    }
+    out
+}
+
+fn is_consonant(b: u8) -> bool {
+    b.is_ascii_lowercase() && !matches!(b, b'a' | b'e' | b'i' | b'o' | b'u')
+}
+
+/// The key of a skeleton letter (a–z) nearest the path: one of `SkeletonRules::keys`.
+fn nearest_key(keys: &KeyMap, path: &[(f32, f32)], letter: u8, rules: &SkeletonRules) -> u8 {
     let near = |k: u8| {
         keys.centre(k).map_or(f32::INFINITY, |c| {
             path.iter()
@@ -261,20 +353,121 @@ pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &Skelet
                 .fold(f32::INFINITY, f32::min)
         })
     };
-    skeleton
+    rules
+        .keys(letter)
         .iter()
-        .map(|&l| {
-            if !l.is_ascii_lowercase() {
-                return l;
+        .copied()
+        .min_by(|&a, &b| near(a).total_cmp(&near(b)))
+        .unwrap_or(letter)
+}
+
+/// A step of a skeleton's drawing (`drawn`): the keys it may be drawn through, whether the
+/// path may leave it out, and whether it counts as part of the drawing.
+struct Stroke<'a> {
+    keys: &'a [u8],
+    optional: bool,
+    shown: bool,
+}
+
+/// The keys a skeleton was most likely drawn through, for `shape_cost` and `length_cost`, which
+/// compare a drawing with the path: the skeleton's cheapest drawing by the beam's own measure,
+/// with the letters it drops between consonants (`SkeletonRules::between`) where the path went
+/// to one. Each letter is drawn through the key of its own (`SkeletonRules::keys`) nearest the
+/// path. An `h` after a letter is fitted, as the beam fits it, but is not part of the drawing.
+pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &SkeletonRules) -> Vec<u8> {
+    let plain = |l: u8| {
+        if l.is_ascii_lowercase() {
+            nearest_key(keys, path, l, rules)
+        } else {
+            l
+        }
+    };
+    let between = &rules.between;
+    let mut strokes: Vec<Stroke<'_>> = Vec::new();
+    for (i, l) in skeleton.iter().enumerate() {
+        if i > 0 && !between.is_empty() && is_consonant(skeleton[i - 1]) && is_consonant(*l) {
+            strokes.push(Stroke {
+                keys: between,
+                optional: true,
+                shown: true,
+            });
+        }
+        strokes.push(Stroke {
+            keys: std::slice::from_ref(l),
+            optional: false,
+            shown: true,
+        });
+        if rules.aspirated.contains(l) {
+            strokes.push(Stroke {
+                keys: b"h",
+                optional: true,
+                shown: false,
+            });
+        }
+    }
+    let straight = || skeleton.iter().map(|&l| plain(l)).collect::<Vec<u8>>();
+    if between.is_empty() || path.is_empty() {
+        return straight();
+    }
+    // The beam's walk for this one skeleton, remembering for each stroke and point which key
+    // was drawn there (None: the stroke was left out) and the point the fit goes on from.
+    let bends = bends(path);
+    let n = path.len();
+    let mut cost: Vec<f32> = Vec::new();
+    let mut steps: Vec<Vec<(Option<u8>, usize)>> = Vec::with_capacity(strokes.len());
+    for stroke in &strokes {
+        let mut row = vec![f32::INFINITY; n];
+        let mut key = vec![0u8; n];
+        for &k in stroke.keys {
+            // A skeleton letter is fitted through any of its keys, as the beam fits it.
+            let through: &[u8] = if stroke.shown && k.is_ascii_lowercase() {
+                rules.keys(k)
+            } else {
+                std::slice::from_ref(&k)
+            };
+            for centre in through.iter().filter_map(|&t| keys.centre(t)) {
+                for (j, &p) in path.iter().enumerate() {
+                    let c = dist2(p, centre) / SPREAD;
+                    if c < row[j] {
+                        (row[j], key[j]) = (c, k);
+                    }
+                }
             }
-            rules
-                .keys(l)
-                .iter()
-                .copied()
-                .min_by(|&a, &b| near(a).total_cmp(&near(b)))
-                .unwrap_or(l)
+        }
+        let (mut next, from) = extend_from(&cost, &row, &bends);
+        let mut step: Vec<(Option<u8>, usize)> =
+            key.iter().zip(from).map(|(&k, from)| (Some(k), from)).collect();
+        if stroke.optional {
+            for j in 0..n {
+                if cost[j] <= next[j] {
+                    (next[j], step[j]) = (cost[j], (None, j));
+                }
+            }
+        }
+        cost = next;
+        steps.push(step);
+    }
+    // The word ends where it fits best, later points first when the fit is as good.
+    let Some(mut at) = (0..n)
+        .rev()
+        .min_by(|&a, &b| {
+            let end = |j: usize| cost[j] + END_SKIP * (n - 1 - j) as f32;
+            end(a).total_cmp(&end(b))
         })
-        .collect()
+        .filter(|&j| cost[j].is_finite())
+    else {
+        return straight();
+    };
+    let mut out: Vec<u8> = Vec::with_capacity(strokes.len());
+    for (stroke, step) in strokes.iter().zip(&steps).rev() {
+        let (key, from) = step[at];
+        if let Some(key) = key.filter(|_| stroke.shown) {
+            out.push(plain(key));
+        }
+        at = from;
+    }
+    out.reverse();
+    out
 }
 
 /// Most dropped letters (`SkeletonRules::trail`) the path may draw after a skeleton's last.
@@ -371,10 +564,22 @@ pub fn decode(
         .iter()
         .filter_map(|&t| plain[usize::from(t - b'a')].as_ref())
         .collect();
+    // A dropped letter is drawn through the key of its own that is nearest the path.
+    let between: Vec<Between<'_>> = rules
+        .between
+        .iter()
+        .filter_map(|&b| {
+            Some(Between {
+                row: costs[usize::from(b - b'a')].as_ref()?,
+                centre: keys.centre(nearest_key(keys, path, b, rules))?,
+            })
+        })
+        .collect();
     let skeleton = Skeleton {
         trail: &trail,
         h: plain[usize::from(b'h' - b'a')].as_ref(),
         aspirated: &rules.aspirated,
+        between: &between,
     };
     walk(lexicon.raw(), &costs, &track, Some(&skeleton))
 }
@@ -398,12 +603,29 @@ fn end_with_trail(cost: &[f32], bends: &[f32], trail: &[&Vec<f32>]) -> f32 {
     best
 }
 
-/// What a skeleton lexicon's walk adds: the cost rows of the trailing letters and of `h`, and
-/// the letters an `h` may follow.
+/// What a skeleton lexicon's walk adds: the cost rows of the trailing letters and of `h`, the
+/// letters an `h` may follow, and the letters dropped between consonants.
 struct Skeleton<'a> {
     trail: &'a [&'a Vec<f32>],
     h: Option<&'a Vec<f32>>,
     aspirated: &'a [u8],
+    between: &'a [Between<'a>],
+}
+
+/// A letter the skeleton drops between two consonants: its cost per path point and the centre
+/// of the key it is drawn through.
+struct Between<'a> {
+    row: &'a Vec<f32>,
+    centre: (f32, f32),
+}
+
+/// The length of the line from one key's centre to the next; nothing before the first key or
+/// for a mark that has none.
+fn reach(from: Option<(f32, f32)>, to: Option<(f32, f32)>) -> f32 {
+    match (from, to) {
+        (Some(a), Some(b)) => dist2(a, b).sqrt(),
+        _ => 0.0,
+    }
 }
 
 /// `skeleton`: Some for a skeleton lexicon.
@@ -419,7 +641,7 @@ fn walk<D: AsRef<[u8]>>(
         addr: root.addr(),
         out: Output::zero(),
         key: Vec::new(),
-        cost: Vec::new(),
+        fit: Fit::default(),
         line: 0.0,
         last: None,
         best: 0.0,
@@ -429,34 +651,58 @@ fn walk<D: AsRef<[u8]>>(
         let mut next: Vec<Hyp> = Vec::new();
         for hyp in &beam {
             let node = fst.node(hyp.addr);
+            // After a consonant, the letters the skeleton drops before another one: the costs
+            // with each drawn after the word so far, worked out when a consonant follows.
+            let dropped = skeleton
+                .map(|s| s.between)
+                .filter(|_| hyp.key.last().is_some_and(|&b| is_consonant(b)))
+                .unwrap_or_default();
+            let mut through: Option<Vec<Fit>> = None;
             for t in node.transitions() {
                 if hyp.key.is_empty() && t.inp < FIRST_WORD_BYTE {
                     continue;
                 }
-                let (cost, centre) = match step_for(t.inp) {
+                let (fit, centre) = match step_for(t.inp) {
                     Step::Skip => continue,
                     // A word can't start with a silent mark.
-                    Step::Silent if hyp.cost.is_empty() => continue,
-                    Step::Silent => (hyp.cost.clone(), None),
+                    Step::Silent if hyp.fit.cost.is_empty() => continue,
+                    Step::Silent => (hyp.fit.clone(), None),
                     Step::Letter(l) => {
                         let Some(row) = &costs[l] else { continue };
-                        let cost = extend(&hyp.cost, row, bends);
-                        let cost = match skeleton.and_then(|s| Some((s.h?, s.aspirated))) {
-                            // With or without a drawn h after it, whichever fits each point.
-                            Some((h, aspirated)) if aspirated.contains(&t.inp) => {
-                                let with_h = extend(&cost, h, bends);
-                                cost.iter().zip(&with_h).map(|(a, b)| a.min(*b)).collect()
+                        let h = skeleton
+                            .and_then(|s| Some((s.h?, s.aspirated)))
+                            .and_then(|(h, aspirated)| aspirated.contains(&t.inp).then_some(h));
+                        let place = |from: &Fit| {
+                            let fit = from.then(row, bends);
+                            match h {
+                                // With or without a drawn h after it, whichever fits each point.
+                                Some(h) => {
+                                    let with_h = fit.then(h, bends);
+                                    fit.or(&with_h)
+                                }
+                                None => fit,
                             }
-                            _ => cost,
                         };
-                        (cost, track.keys.centre(t.inp))
+                        let centre = track.keys.centre(t.inp);
+                        let mut fit = place(&hyp.fit);
+                        // Straight to this consonant or by way of a dropped letter, whichever
+                        // fits each point.
+                        if !dropped.is_empty() && is_consonant(t.inp) {
+                            let through = through.get_or_insert_with(|| {
+                                dropped.iter().map(|d| hyp.fit.then(d.row, bends)).collect()
+                            });
+                            for (d, via) in dropped.iter().zip(through.iter()) {
+                                let extra = reach(hyp.last, Some(d.centre))
+                                    + reach(Some(d.centre), centre)
+                                    - reach(hyp.last, centre);
+                                fit = fit.or(&place(via).by_way(extra));
+                            }
+                        }
+                        (fit, centre)
                     }
                 };
-                let line = match (hyp.last, centre) {
-                    (Some(a), Some(b)) => hyp.line + dist2(a, b).sqrt(),
-                    _ => hyp.line,
-                };
-                let best = rank(&cost, &track.arc, line);
+                let line = hyp.line + reach(hyp.last, centre);
+                let best = rank(&fit, &track.arc, line);
                 if !best.is_finite() {
                     continue;
                 }
@@ -466,7 +712,7 @@ fn walk<D: AsRef<[u8]>>(
                 let child = fst.node(t.addr);
                 if let Some(skeleton) = skeleton {
                     if child.find_input(SEPARATOR).is_some() {
-                        let end = end_with_trail(&cost, bends, skeleton.trail);
+                        let end = end_with_trail(&fit.cost, bends, skeleton.trail);
                         if end.is_finite() {
                             finished.push(Finished {
                                 key: key.clone(),
@@ -476,7 +722,7 @@ fn walk<D: AsRef<[u8]>>(
                         }
                     }
                 } else if child.is_final() {
-                    let end = end_cost(&cost, n);
+                    let end = end_cost(&fit.cost, n);
                     if end.is_finite() {
                         let count = out.cat(child.final_output()).value();
                         finished.push(Finished {
@@ -490,7 +736,7 @@ fn walk<D: AsRef<[u8]>>(
                     addr: t.addr,
                     out,
                     key,
-                    cost,
+                    fit,
                     line,
                     last: centre.or(hyp.last),
                     best,
@@ -550,6 +796,29 @@ fn extend(prev: &[f32], row: &[f32], bends: &[f32]) -> Vec<f32> {
             here
         })
         .collect()
+}
+
+/// `extend`, and for each point the earlier point (or itself) its fit goes on from.
+fn extend_from(prev: &[f32], row: &[f32], bends: &[f32]) -> (Vec<f32>, Vec<usize>) {
+    if prev.is_empty() {
+        return (extend(prev, row, bends), (0..row.len()).collect());
+    }
+    let (mut running, mut running_at) = (f32::INFINITY, 0);
+    (0..prev.len())
+        .map(|j| {
+            let skip = if j > 0 {
+                running + bends[j - 1]
+            } else {
+                f32::INFINITY
+            };
+            let from = if skip < prev[j] { running_at } else { j };
+            let here = prev[j].min(skip) + row[j];
+            if prev[j] - bends[j] < running {
+                (running, running_at) = (prev[j] - bends[j], j);
+            }
+            (here, from)
+        })
+        .unzip()
 }
 
 /// The cost of a word whose last letter is placed: it must be near the end of the path.
@@ -868,6 +1137,22 @@ mod tests {
         assert_eq!(rules.keys(b'k'), b"kgq");
         assert_eq!(rules.keys(b's'), b"scj");
         assert!(rules.trail.is_empty(), "Tamil's skeleton drops nothing from the end");
+        // Assamese drops a final a, and its o is an a: either may be drawn after the end.
+        let as_ = pack("as");
+        assert_eq!(as_.swipe_rules().trail, b"ao");
+        assert_eq!(as_.swipe_rules().keys(b'a'), b"ao");
+        // So a swipe of `bhalo` ends on o at no cost to the skeleton `bal`; with only the a
+        // allowed after the end, the stretch to o is a word that stops short.
+        let lexicon = lex(&[("bal\0x", 1)]);
+        let path = resample(&ideal_path(&keymap(), "bhalo", 4.0), STEP, MAX_POINTS);
+        let cost = |rules: &SkeletonRules| decode(&lexicon, &keymap(), &path, Some(rules))[0].cost;
+        let only_a = SkeletonRules::new(&[(b'a', b'o')], b"b", b"a");
+        assert!(cost(&only_a) > cost(as_.swipe_rules()) + 2.0);
+        // Only Hindi drops a letter inside a word.
+        assert_eq!(hi.swipe_rules().between, b"a");
+        for other in [ta.swipe_rules(), as_.swipe_rules(), crate::romanisation::ml().swipe_rules()] {
+            assert!(other.between.is_empty());
+        }
         // A path through d-a-l is Hindi's `dal`, and its `tal` only at the cost of the t key's
         // distance; under Malayalam's rules the same path draws either as well.
         let lexicon = lex(&[("dal\0x", 1), ("tal\0y", 1)]);
@@ -880,6 +1165,78 @@ mod tests {
         let (hi, ml) = (hi.swipe_rules(), crate::romanisation::ml().swipe_rules());
         assert!(cost(hi, b"tal") > cost(hi, b"dal") + 4.0);
         assert_eq!(cost(ml, b"tal"), cost(ml, b"dal"));
+    }
+
+    /// A skeleton that drops `a` between consonants (Hindi's): the path still goes to the `a`
+    /// key there, and the skeleton fits it as well as one that keeps the letter.
+    #[test]
+    fn a_letter_dropped_between_consonants_may_be_drawn() {
+        let lexicon = lex(&[
+            ("pyr\0x", 1),
+            ("nmste\0x", 1),
+            ("krne\0x", 1),
+            ("srkr\0x", 1),
+            ("pyar\0x", 1),
+            ("namaste\0x", 1),
+            ("karne\0x", 1),
+            ("sarkar\0x", 1),
+        ]);
+        let keys = keymap();
+        let dropping = SkeletonRules::default().dropping_between(b"a");
+        let find = |rules: &SkeletonRules, drawn: &str, skeleton: &[u8]| {
+            let path = resample(&ideal_path(&keys, drawn, 4.0), STEP, MAX_POINTS);
+            let found = decode(&lexicon, &keys, &path, Some(rules));
+            found.into_iter().find(|f| f.key == skeleton)
+        };
+        for (spelt, skeleton) in [
+            ("pyar", &b"pyr"[..]),
+            ("namaste", b"nmste"),
+            ("karne", b"krne"),
+            ("sarkar", b"srkr"),
+        ] {
+            let with = find(&dropping, spelt, skeleton).unwrap_or_else(|| panic!("{spelt}: not found"));
+            let kept = find(&dropping, spelt, spelt.as_bytes()).unwrap();
+            assert!(with.cost <= kept.cost + 0.01, "{spelt}: {} and {}", with.cost, kept.cost);
+            // Without the rule the detour is a bend the skeleton leaves unmatched.
+            let without = find(&SkeletonRules::default(), spelt, skeleton)
+                .map_or(f32::INFINITY, |f| f.cost);
+            assert!(without > with.cost + 2.0, "{spelt}: {without} without the rule");
+        }
+    }
+
+    /// The drawing compared with the path has the dropped letters the path went to, and only
+    /// those.
+    #[test]
+    fn the_drawing_of_a_skeleton_has_the_dropped_letters_drawn() {
+        let keys = keymap();
+        let dropping = SkeletonRules::default().dropping_between(b"a");
+        let path = |spelt: &str| resample(&ideal_path(&keys, spelt, 4.0), STEP, MAX_POINTS);
+        for (spelt, skeleton) in [
+            ("pyar", &b"pyr"[..]),
+            ("namaste", b"nmste"),
+            ("karne", b"krne"),
+            ("sarkar", b"srkr"),
+            ("dhanyavad", b"dnyvd"),
+            // No letter dropped, or none drawn: the drawing is the skeleton.
+            ("hindi", b"hindi"),
+            ("krne", b"krne"),
+            ("dost", b"dost"),
+        ] {
+            let drawing = drawn(&keys, &path(spelt), skeleton, &dropping);
+            let spelt_without_h: Vec<u8> = spelt.bytes().filter(|&b| b != b'h' || skeleton.contains(&b)).collect();
+            assert_eq!(
+                String::from_utf8(drawing).unwrap(),
+                String::from_utf8(spelt_without_h).unwrap(),
+                "{spelt}"
+            );
+        }
+        // A skeleton letter is drawn through the key of its own nearest the path, as before.
+        let folding = SkeletonRules::new(&[(b'k', b'c')], b"", b"");
+        assert_eq!(drawn(&keys, &path("carne"), b"krne", &folding), b"crne");
+        assert_eq!(drawn(&keys, &path("carne"), b"krne", &folding.dropping_between(b"a")), b"carne");
+        // Without the rule nothing is added.
+        assert_eq!(drawn(&keys, &path("karne"), b"krne", &SkeletonRules::default()), b"krne");
+        assert_eq!(drawn(&keys, &[], b"krne", &dropping), b"krne");
     }
 
     #[test]

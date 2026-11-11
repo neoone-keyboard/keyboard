@@ -206,7 +206,10 @@ const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
 /// letter of a `pairs` pattern that does (`gh` → `k`: the finger starts on `g`). Unless the
 /// file's `swipe` section says otherwise, the letters an `h` may follow are those a pattern
 /// ending in `h` becomes (`th` → `t`), and the letters drawn after the skeleton's end are the
-/// ones it drops there (`dropTrailing.letters` and `dropFinalVowel.vowels`).
+/// ones it drops there: `dropTrailing.letters`, `dropFinalVowel.vowels`, and each `singles`
+/// letter that becomes one of those vowels (Assamese drops a final `a`, and reads `o` as `a`:
+/// the `o` of `bhalo` is dropped too). The letters a path may draw between two consonants are
+/// the skeleton's `dropBetweenConsonants`.
 fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swipe::SkeletonRules, String> {
     let mut also: Vec<(u8, u8)> = Vec::new();
     for (typed, symbol) in LETTERS.iter().zip(&skeleton.singles) {
@@ -227,7 +230,14 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
         }
     }
     let mut trail = skeleton.trailing.clone();
-    trail.extend(&skeleton.final_vowels);
+    for vowel in &skeleton.final_vowels {
+        trail.push(*vowel);
+        for (typed, symbol) in LETTERS.iter().zip(&skeleton.singles) {
+            if symbol.as_deref() == Some(std::slice::from_ref(vowel)) {
+                trail.push(*typed);
+            }
+        }
+    }
     let (said_aspirated, said_trail) = raw.map_or((None, None), |r| (r.aspirated, r.trail));
     if let Some(said) = said_aspirated {
         aspirated = ascii_letters(&said, "swipe aspirated")?;
@@ -235,7 +245,7 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
     if let Some(said) = said_trail {
         trail = ascii_letters(&said, "swipe trail")?;
     }
-    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail))
+    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail).dropping_between(&skeleton.between))
 }
 
 /// A loaded `romanisation.json`.

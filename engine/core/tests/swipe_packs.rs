@@ -85,6 +85,10 @@ const HINDI_INHERENT_A: &[(&str, &str)] = &[
     ("pyar", "प्यार"),
     ("ghar", "घर"),
     ("dhanyavad", "धन्यवाद"),
+    ("karne", "करने"),
+    ("kab", "कब"),
+    ("samajh", "समझ"),
+    ("matlab", "मतलब"),
 ];
 
 const ASSAMESE: &[(&str, &str)] = &[
@@ -106,15 +110,10 @@ fn a_hindi_swipe_gives_the_hindi_word() {
     assert_native("hi", HINDI);
 }
 
-/// Fails: a swipe cannot give a Hindi word spelt with an `a` between consonants. The finger
-/// passes through `a`, but the skeleton has no letter there, and the swipe rules built from a
-/// pack's tables (`romanisation::swipe_rules`: other keys for a letter, an `h` after it,
-/// letters after the end) say nothing of a letter dropped inside the word, so `swipe::decode`
-/// pays for the detour as a miss. On a clean path the word's skeleton is not among those the
-/// decoder finishes for any of these six, so the word is missing with English off too.
-/// Malayalam, Assamese and Tamil keep the vowel in the skeleton and don't have this.
+/// The finger passes through `a` where the skeleton has no letter: the swipe rules built from
+/// the pack's tables (`romanisation::swipe_rules`) let a path draw a letter of
+/// `dropBetweenConsonants` between two consonants of a skeleton.
 #[test]
-#[ignore = "known bug: Hindi's skeleton drops the a between consonants and the swipe decoder doesn't allow for it"]
 fn a_hindi_swipe_through_a_dropped_a_gives_the_hindi_word() {
     assert_native("hi", HINDI_INHERENT_A);
 }
@@ -132,6 +131,7 @@ fn a_tamil_swipe_gives_the_tamil_word() {
 #[test]
 fn with_english_off_a_pack_swipe_gives_only_its_words() {
     assert_native_alone("hi", HINDI);
+    assert_native_alone("hi", HINDI_INHERENT_A);
     assert_native_alone("as", ASSAMESE);
     assert_native_alone("ta", TAMIL);
 }
