@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "id": "kn",
+  "version": "2026.11.12",
+  "name": "Kannada",
+  "nativeName": "ಕನ್ನಡ",
+  "script": "knda",
+  "romanised": {
+    "name": "Kanglish"
+  },
+  "minEngine": 4,
+  "files": {
+    "lexicon": "kn.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "kn.fst": "d98fa81e4afd7b1f5d52b80665ae0c33a926529d667e661da890c78836d5b6ee",
+    "lang.json": "b254c2259974381d3d1f76b0a64e40bc8ad805c6f426d04b36e7e94c1351ac3b",
+    "layout.json": "e31a3ca54d46598cc161a4c78cbdfbaf19a9eb7cfc2d4f5518bbc97648c654b8",
+    "next.fst": "5ee79d58745b92fa077696c35aed337cc0d7c21b3e61f03a3a0687912734ee97",
+    "romanisation.json": "52b8d7810c0378c7656fc9476a626200a1140269fa5d0617ef3d06602b3ee6c6",
+    "romanised.fst": "6b96c1168b0dfcc80c0c4615701b122438af5544c2967b46a6f85067c9ace08f",
+    "translit.mlkbnn": "71a5bb674da9024722d017dbaf849faef516ae6a361a9db8ca7e796bb9c6851f"
+  },
+  "credits": [
+    {
+      "name": "Kannada Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://kn.wikipedia.org/"
+    },
+    {
+      "name": "Kannada Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://kn.wikisource.org/"
+    },
+    {
+      "name": "Kannada Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://kn.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}
