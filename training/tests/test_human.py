@@ -89,3 +89,26 @@ def test_human_eval_set_shape():
     assert len(rows) == human.HUMAN_EVAL_ROWS
     assert all(r.context == "" and r.latin.isascii() and r.latin.isalpha() for r in rows)
     assert all(human.normalize(r.malayalam) == r.malayalam for r in rows)
+
+
+def test_joiner_rules_are_each_scripts_own():
+    """`engine/core/src/normalize.rs` `normalize_with`: the same cases as its unit tests."""
+    import json
+
+    from mlkb.langs import human as langs_human
+
+    deva = human.Joiners("\u094d", (("\u0900", "\u097f"),), keep=True)
+    half = "क\u094d\u200dष"
+    assert human.normalize(half) == "क्ष"  # Malayalam's rules alone keep no Devanagari joiner
+    assert human.normalize(half, (human.MALAYALAM, deva)) == half
+    assert human.normalize("क\u094d\u200d", (deva,)) == "क\u094d"
+    assert human.normalize("അവന\u0d4d\u200d", ()) == "അവന\u0d4d"  # no rules, no chillu
+    # A lang.json states its script's rules; Malayalam's file states what the code did.
+    ml = json.loads((langs_human.LANGS / "ml" / "lang.json").read_text(encoding="utf-8"))
+    assert human.Joiners.of(ml) == human.MALAYALAM
+    assert langs_human.Lang(ml)._joiners == (human.MALAYALAM,)
+    for lang in ("as", "ta"):
+        assert langs_human.load(lang)._joiners == (human.MALAYALAM,)
+        assert langs_human.load(lang).normalize("ক\u09cd\u200cষ") == "ক্ষ"
+    asked = {"script": "deva", "block": ["0900", "097F"], "virama": "094D", "joiners": "afterVirama"}
+    assert langs_human.Lang(asked).normalize(half) == half

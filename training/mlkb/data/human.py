@@ -52,31 +52,65 @@ VIRAMA, ZWJ, ZWNJ = "്", "‍", "‌"
 CHILLUS = {"ണ": "ൺ", "ന": "ൻ", "ര": "ർ", "ല": "ൽ", "ള": "ൾ", "ക": "ൿ"}
 
 
-def normalize(text: str) -> str:
-    """The engine's normal form: NFC, atomic chillus, joiners only after a virama inside a word.
+@dataclass(frozen=True)
+class Joiners:
+    """What one script does with ZWJ and ZWNJ (`engine/core/src/normalize.rs` `Joiners`; a
+    lang.json's `virama`, `joiners` and `zwjForms`)."""
+
+    virama: str
+    ranges: tuple[tuple[str, str], ...]
+    keep: bool
+    forms: tuple[tuple[str, str], ...] = ()
+
+    def has(self, c: str) -> bool:
+        return any(a <= c <= b for a, b in self.ranges)
+
+    @classmethod
+    def of(cls, lang: dict) -> "Joiners | None":
+        """The rules a lang.json states; None when it keeps no joiner and has no forms."""
+        keep = lang.get("joiners") == "afterVirama"
+        forms = tuple((chr(int(a, 16)), chr(int(b, 16))) for a, b in lang.get("zwjForms", []))
+        if not keep and not forms:
+            return None
+        pairs = ([lang["block"]] if lang.get("block") else []) + list(lang.get("letters", []))
+        ranges = tuple((chr(int(a, 16)), chr(int(b, 16))) for a, b in pairs)
+        return cls(chr(int(lang["virama"], 16)), ranges, keep, forms)
+
+
+# Malayalam's rules, as data/langs/ml/lang.json states them and the engine embeds them.
+MALAYALAM = Joiners(VIRAMA, (("ഀ", "ൿ"),), True, tuple(CHILLUS.items()))
+
+
+def normalize(text: str, rules: tuple[Joiners, ...] = (MALAYALAM,)) -> str:
+    """The engine's normal form: NFC, `’` to `'`, and the joiner rules of the scripts in use
+    (Malayalam's by default, as in an engine that has opened no other pack): a consonant +
+    virama + ZWJ with an atomic form becomes it, and a joiner stays only between a virama and a
+    character of a script that keeps joiners there.
 
     Like the engine, the pass repeats until nothing changes: a dropped joiner can leave text
     that one more pass would change (vowel sign halves to compose, an old-style chillu).
     """
-    out = _pass(text)
-    while (nxt := _pass(out)) != out:
+    out = _pass(text, rules)
+    while (nxt := _pass(out, rules)) != out:
         out = nxt
     return out
 
 
-def _pass(text: str) -> str:
+def _pass(text: str, rules: tuple[Joiners, ...]) -> str:
     nfc = unicodedata.normalize("NFC", text).replace("’", "'")
     out: list[str] = []
     i = 0
     while i < len(nfc):
         c = nfc[i]
-        if nfc[i + 1 : i + 3] == VIRAMA + ZWJ and c in CHILLUS:
-            out.append(CHILLUS[c])
-            i += 3
-            continue
+        if nfc[i + 2 : i + 3] == ZWJ:
+            form = next((f for r in rules if nfc[i + 1] == r.virama for a, f in r.forms if a == c), None)
+            if form is not None:
+                out.append(form)
+                i += 3
+                continue
         if c in (ZWJ, ZWNJ):
             nxt = nfc[i + 1] if i + 1 < len(nfc) else ""
-            if not (out and out[-1] == VIRAMA and "ഀ" <= nxt <= "ൿ"):
+            if not any(r.keep and out and out[-1] == r.virama and nxt and r.has(nxt) for r in rules):
                 i += 1
                 continue
         out.append(c)

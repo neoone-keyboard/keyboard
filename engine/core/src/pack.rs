@@ -29,8 +29,13 @@ pub const FORMAT: u32 = 1;
 /// `finalPairs` and `suffixJoins`, with which every script's rules are data (Malayalam's too:
 /// the engine's own copies of the mlym, deva and beng files replace the coded plug-ins). Only
 /// a pack in another script that uses one of those fields needs 5; Malayalam's pack doesn't,
-/// as engines before 5 have its rules in code and ignore the fields.
-pub const PACK_ENGINE: u32 = 5;
+/// as engines before 5 have its rules in code and ignore the fields. 6: `lang.json`'s `joiners`
+/// and `zwjForms` (the normal form's joiner rules, which were Malayalam's in code for every
+/// script). A pack whose lexicon was built with them needs 6, as an older engine would drop
+/// its joiners and miss its words; Malayalam's doesn't, as older engines have its rules in
+/// code. 6 also reads what older engines ignore and replace with Malayalam's:
+/// `romanisation.json`'s `looseSpelling` and `swipe`.
+pub const PACK_ENGINE: u32 = 6;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -241,7 +246,7 @@ mod tests {
         let cases = [
             (FULL.replace("\"format\": 1", "\"format\": 2"), "Format"),
             (FULL.replace("\"mlym\"", "\"taml\""), "Script"),
-            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 6"), "Engine"),
+            (FULL.replace("\"minEngine\": 1", "\"minEngine\": 99"), "Engine"),
         ];
         for (manifest, want) in cases {
             let dir = pack_dir(&manifest, &["ml.fst"]);

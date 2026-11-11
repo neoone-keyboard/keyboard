@@ -243,6 +243,8 @@ engine the same: one definition for both. The engine's parser is
 | `looseSigns` | Vowel signs that loose spelling inserts between consonants (Malayalam ആവിശ്യം for ആവശ്യം). A typed word that reads as a rare word is also tried without one such sign before a consonant. Optional. Engine 5. |
 | `finalPairs` | `[["a", "b"]]`, code points in hex: a word ending in a consonant and one of the two is also written with the other (Malayalam's final ു and ്). Optional. Engine 5. |
 | `suffixJoins` | How a stem and a suffix of `suffixes.tsv` fuse: the vowel signs, glides and final forms of the script's sandhi. See `data/langs/ml/lang.json` and `Joins` in `engine/core/src/script/data.rs`. Without it the pack is never split into stem and suffix. Optional. Engine 5. |
+| `joiners` | `"afterVirama"`: a ZWJ or ZWNJ between the `virama` and a character of the script is part of the word, because it changes how the cluster is drawn (Malayalam ഗ്‍ക; Devanagari's half form क्‍ष and explicit halant क्‌ष; Bengali's য-ফলা forms). `"drop"`, the default: every joiner is dropped. Decide before you build the lexicon (see below). Optional. Engine 6. |
+| `zwjForms` | `[["consonant", "letter"]]`, code points in hex: the consonant + `virama` + ZWJ is an older encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ). Optional. Engine 6. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
 
@@ -251,10 +253,24 @@ did, so typed words meet stored ones. Only `script`, and `block` or `letters`, a
 the engine; the other script fields are optional, and the builder's (`maxChars`, `maxWords`,
 `minCount`, `aksharantar`, `notes`) are ignored by it.
 
-The engine's normal form always includes NFC and drops every ZWJ and ZWNJ (only the Malayalam
-virama keeps one), so a Devanagari `lang.json` should drop them too, with the first two
-`replace` entries below, so the builder's words carry none. There is no test for a new pack
-yet (gap G9).
+**Joiners.** The engine's normal form is NFC plus what each script's `lang.json` says about
+ZWJ and ZWNJ. By default every joiner is dropped. With `"joiners": "afterVirama"` one that
+follows the script's virama, before another character of the script, is kept; Malayalam's file
+says so, and no rule here is written for Malayalam. The builder and the engine read the same
+field, so the lexicon and what is typed always agree, but the choice is fixed when the lexicon
+is built: change it later and typed words stop matching stored ones until you rebuild.
+
+Which to choose? Unicode gives joiners after a virama a meaning in several scripts: in
+Devanagari and Bengali, virama + ZWJ asks for a half form and virama + ZWNJ for a visible
+virama. In running text they are rare and inconsistent (the same word with and without one),
+and a word typed without the joiner would then miss the stored one with it. So Hindi,
+Assamese and Tamil drop them, as their published lexicons were built: keeping them now would
+make every stored word with such a cluster unreachable from text that has the joiner, and
+the reverse. Keep them only if your language tells words apart by a joiner, or writes common
+words that are wrong without one (Malayalam's ഛത്തീസ്‌ഗഡ്), and then leave ZWJ and ZWNJ out
+of `replace`. A Devanagari `lang.json` that drops them can say nothing; the first two
+`replace` entries below drop them before NFC as well, which mends a few mis-typed
+sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
 
 A Devanagari example (Marathi). Copy this rather than the Assamese file for any `deva`
 language:
@@ -281,7 +297,8 @@ language:
 ```
 
 - `"‍"` is ZWJ and `"‌"` ZWNJ. Marathi's eyelash ra (र + virama + ZWJ) becomes a
-  plain र्, as the engine's normal form makes it.
+  plain र्, as the engine's normal form makes it when the file doesn't ask for
+  `"joiners": "afterVirama"`.
 - The other `replace` entries mend independent vowels typed as अ or ए plus a sign.
 - `signs` lists what must follow a consonant (vowel signs, nukta forms, the virama).
   Anusvara ं, candrabindu ँ and visarga ः are left out on purpose: they can follow a vowel
@@ -572,9 +589,10 @@ writes its checksums, and stops at the start if it is missing. Copy
   publish. The app won't install an older version over a newer one.
 - `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, 3 for a pack in a script
   other than Malayalam that has an `lm`, 4 for a pack in any other script (engines before 4
-  have only those three scripts' rules, in code, and ignore `lang.json`), and 5 for a pack
-  whose `lang.json` uses `notLetter`, `looseSigns`, `finalPairs` or `suffixJoins` (Malayalam's
-  own pack stays at 1: older engines have what those say in code). Write 2 and leave the rest
+  have only those three scripts' rules, in code, and ignore `lang.json`), 5 for a pack
+  whose `lang.json` uses `notLetter`, `looseSigns`, `finalPairs` or `suffixJoins`, and 6 for
+  one that uses `joiners` or `zwjForms` (Malayalam's own pack stays at 1: older engines have
+  what those say in code). Write 2 and leave the rest
   to `pack.py --write`, which the lexicon build runs at the end of step 7 (and you run again
   in step 10): it copies `data/langs/xx/lang.json` into the pack, adds `"lang": "lang.json"`
   to `files` and, for a script other than `mlym`, `deva` and `beng`, raises `minEngine` to 4,

@@ -17,7 +17,14 @@
 //! - `signs`, `virama`: combining signs that must follow a base, and the virama. Only the
 //!   builder reads them (which corpus tokens are well-formed words).
 //! - `replace`: `[from, to]` text replacements that make one spelling, applied before and after
-//!   the engine's `normalize::normalize` (NFC, `’` to `'`, joiners dropped).
+//!   the engine's `normalize::normalize` (NFC, `’` to `'`, the joiner rules).
+//! - `joiners`: `"afterVirama"` keeps a ZWJ or ZWNJ that stands between the `virama` and a
+//!   character of the script (it changes how the cluster is drawn: Malayalam ഗ്‍ക, Devanagari's
+//!   half forms and explicit halant); `"drop"`, the default, drops every joiner.
+//! - `zwjForms`: `[consonant, letter]` code points. The consonant + `virama` + ZWJ is an older
+//!   encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ).
+//!   Both need `virama`. A file that has neither field, in a script the engine has its own
+//!   rules for, gets that script's (`script::for_pack`): files were written before the fields.
 //! - `phraseBreaks`: characters that end a phrase as a full stop does (the danda).
 //! - `apostrophe`: an apostrophe may stand inside a word.
 //! - `notLetter`: ranges that stay inside a run when text is split into words, but that a word
@@ -70,6 +77,10 @@ struct Raw {
     final_pairs: Vec<[String; 2]>,
     #[serde(default)]
     suffix_joins: Option<RawJoins>,
+    #[serde(default)]
+    joiners: Option<String>,
+    #[serde(default)]
+    zwj_forms: Option<Vec<[String; 2]>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -192,6 +203,10 @@ pub struct ScriptDef {
     /// Two endings, after a consonant, of one word.
     pub final_pairs: Vec<(char, char)>,
     pub joins: Option<Joins>,
+    /// What the normal form does with ZWJ and ZWNJ (`joiners`, `zwjForms`); None drops all.
+    pub joiners: Option<crate::normalize::Joiners>,
+    /// The file has `joiners` or `zwjForms` (see `script::for_pack`).
+    pub says_joiners: bool,
 }
 
 fn in_ranges(ranges: &[(char, char)], c: char) -> bool {
@@ -264,11 +279,38 @@ impl ScriptDef {
                 }
             })
             .collect::<Result<_, _>>()?;
+        let virama = raw.virama.as_deref().map(code_point).transpose()?;
+        let says_joiners = raw.joiners.is_some() || raw.zwj_forms.is_some();
+        let keep = match raw.joiners.as_deref() {
+            None | Some("drop") => false,
+            Some("afterVirama") => true,
+            Some(other) => return Err(format!("joiners is \"afterVirama\" or \"drop\", not {other:?}")),
+        };
+        let forms: Vec<(char, char)> = raw
+            .zwj_forms
+            .iter()
+            .flatten()
+            .map(pair)
+            .collect::<Result<_, _>>()?;
+        let joiners = match virama {
+            Some(virama) if keep || !forms.is_empty() => Some(crate::normalize::Joiners {
+                virama,
+                ranges: chars.clone(),
+                keep,
+                forms,
+            }),
+            None if keep || !forms.is_empty() => {
+                return Err("joiners and zwjForms need the script's virama".into());
+            }
+            _ => None,
+        };
         Ok(Self {
+            joiners,
+            says_joiners,
             code: raw.script,
             ranges: chars,
             not_word: ranges(&raw.not_word)?,
-            virama: raw.virama.as_deref().map(code_point).transpose()?,
+            virama,
             signs: ranges(&raw.signs)?,
             bases: ranges(&raw.bases)?,
             apostrophe: raw.apostrophe,
@@ -438,15 +480,27 @@ impl ScriptDef {
         out
     }
 
+    /// The engine's normal form with this script's joiner rules in place of whichever are in
+    /// use for its code, so a definition normalises the same installed or not (the builder
+    /// never installs one).
+    fn engine_normalize(&self, text: &str) -> String {
+        let rules: Vec<&crate::normalize::Joiners> = super::all()
+            .filter(|r| r.code() != self.code)
+            .filter_map(|r| r.joiners())
+            .chain(&self.joiners)
+            .collect();
+        crate::normalize::normalize_with(text, &rules)
+    }
+
     /// The script's normal form of `text`: `replace`, the engine's `normalize`, `replace` again,
     /// and one more round when a replacement made text that NFC or the joiner rules change.
     pub fn normalize(&self, text: &str) -> String {
         if self.replace.is_empty() {
             // The engine's normal form is its own fixed point.
-            return crate::normalize::normalize(text);
+            return self.engine_normalize(text);
         }
-        let before = self.apply_replace(&crate::normalize::normalize(&self.apply_replace(text)));
-        let after = self.apply_replace(&crate::normalize::normalize(&before));
+        let before = self.apply_replace(&self.engine_normalize(&self.apply_replace(text)));
+        let after = self.apply_replace(&self.engine_normalize(&before));
         if after == before { before } else { after }
     }
 
@@ -534,6 +588,9 @@ impl ScriptRules for DataScript {
     fn inner_apostrophe(&self) -> bool {
         self.def.apostrophe
     }
+    fn joiners(&self) -> Option<&crate::normalize::Joiners> {
+        self.def.joiners.as_ref()
+    }
 }
 
 /// Whether two scripts share a character.
@@ -592,6 +649,9 @@ mod tests {
             (r#"{"script": "gujr", "block": ["0041", "005A"]}"#, "ASCII"),
             (r#"{"script": "gujr", "block": ["0A80", "0AFF"], "phraseBreaks": ["ab"]}"#, "one character"),
             (r#"{"script": "gujr", "block": ["0A80", "0AFF"], "replace": [["", "x"]]}"#, "empty"),
+            (r#"{"script": "gujr", "block": ["0A80", "0AFF"], "joiners": "afterVirama"}"#, "need the script's virama"),
+            (r#"{"script": "gujr", "block": ["0A80", "0AFF"], "virama": "0ACD", "joiners": "keep"}"#, "afterVirama"),
+            (r#"{"script": "gujr", "block": ["0A80", "0AFF"], "zwjForms": [["0A95", "0A96"]]}"#, "need the script's virama"),
         ] {
             let err = ScriptDef::from_json(json).unwrap_err();
             assert!(err.contains(want), "{json}: {err}");

@@ -69,6 +69,11 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn inner_apostrophe(&self) -> bool {
         false
     }
+    /// What the script does with ZWJ and ZWNJ in the normal form (`normalize::Joiners`); None
+    /// for a script that drops them all.
+    fn joiners(&self) -> Option<&crate::normalize::Joiners> {
+        None
+    }
 }
 
 /// The `lang.json` of the packs published without one, by script: Malayalam's, Hindi's and
@@ -177,7 +182,14 @@ pub fn for_pack(script: &str, lang: Option<&Path>) -> Result<&'static dyn Script
         return embedded(script)
             .ok_or_else(|| format!("no rules for script {script} (the pack has no lang file)"));
     };
-    let def = ScriptDef::open(path)?;
+    let mut def = ScriptDef::open(path)?;
+    // A file written before `joiners` and `zwjForms` says neither: it is read as it was then,
+    // when the engine's own rules for the script decided (Malayalam's chillus and joiners).
+    if !def.says_joiners
+        && let Some(own) = embedded(&def.code)
+    {
+        def.joiners = own.joiners().cloned();
+    }
     if def.code != script {
         return Err(format!(
             "the lang file defines script {}, the manifest says {script}",
@@ -270,6 +282,31 @@ mod tests {
         );
         let err = for_pack("taml", None).unwrap_err();
         assert!(err.contains("no lang file"), "{err}");
+    }
+
+    #[test]
+    fn a_file_from_before_the_joiner_fields_keeps_the_scripts_own() {
+        // The Malayalam pack of 2026.11.11 carries a lang.json without `joiners` or `zwjForms`.
+        let old = lang_file(r#"{"script": "mlym", "block": ["0D00", "0D7F"], "virama": "0D4D"}"#);
+        let rules = for_pack("mlym", Some(old.path())).unwrap();
+        assert_eq!(rules.joiners(), embedded("mlym").unwrap().joiners());
+        assert_eq!(rules.normalize("അവന\u{0D4D}\u{200D}"), "അവൻ");
+        assert_eq!(rules.normalize("ഗ്\u{200D}ക"), "ഗ്\u{200D}ക");
+        // A file that says so drops them, and has no chillus.
+        let none = lang_file(
+            r#"{"script": "mlym", "block": ["0D00", "0D7F"], "virama": "0D4D", "joiners": "drop"}"#,
+        );
+        let rules = for_pack("mlym", Some(none.path())).unwrap();
+        assert_eq!(rules.joiners(), None);
+        assert_eq!(rules.normalize("ഗ്\u{200D}ക"), "ഗ്ക");
+        assert_eq!(rules.normalize("അവന\u{0D4D}\u{200D}"), "അവന\u{0D4D}");
+        // A Devanagari file may ask for its joiners; the engine's own copy doesn't.
+        let half = lang_file(
+            r#"{"script": "deva", "block": ["0900", "097F"], "virama": "094D", "joiners": "afterVirama"}"#,
+        );
+        let rules = for_pack("deva", Some(half.path())).unwrap();
+        assert_eq!(rules.normalize("क्\u{200D}ष"), "क्\u{200D}ष");
+        assert_eq!(embedded("deva").unwrap().normalize("क्\u{200D}ष"), "क्ष");
     }
 
     #[test]

@@ -15,7 +15,9 @@ What the file does to `minEngine`. The engine holds its own copy of the rules fo
 and beng (`EMBEDDED`: Malayalam's, Hindi's and Assamese's files), and engines before 5 had
 those three scripts' rules in code, so a pack in one of them keeps its `minEngine`: an older
 engine ignores the role and reads the pack as before. A pack in any other script needs the
-file and `minEngine` 4, or 5 when its file uses a field engine 4 doesn't read (`FIELDS_5`).
+file and `minEngine` 4, or the level that reads the newest field its file uses (`FIELDS`: 5
+for the suffix and loose-spelling fields, 6 for `joiners` and `zwjForms`). A Devanagari or
+Bengali pack that uses a newer field needs that level too.
 `--write` raises it; `--check` fails when it is too low.
 
 The romanisation tables (the `romanisation` role). `--check` fails when the file has no
@@ -49,10 +51,18 @@ ROOT = Path(__file__).resolve().parent.parent
 EMBEDDED = {"mlym", "deva", "beng"}
 # The engine level that reads the `lang` role (engine/core/src/pack.rs PACK_ENGINE).
 LANG_ENGINE = 4
-# lang.json fields read from engine 5 on (engine/core/src/script/data.rs). Malayalam's file
-# uses them, and engines before 5 have what they say in code, so mlym is not held to 5.
-FIELDS_5 = {"notLetter", "looseSigns", "finalPairs", "suffixJoins"}
-FIELDS_ENGINE = 5
+# lang.json fields by the engine level that reads them (engine/core/src/script/data.rs).
+# Malayalam's file uses them all, and older engines have what they say in code, so mlym is not
+# held to them.
+FIELDS = {
+    5: {"notLetter", "looseSigns", "finalPairs", "suffixJoins"},
+    6: {"joiners", "zwjForms"},
+}
+
+
+def fields_engine(lang: dict | None) -> int:
+    """The highest engine level a field of `lang` needs; 0 when it uses none of `FIELDS`."""
+    return max((level for level, names in FIELDS.items() if names & set(lang or {})), default=0)
 
 
 def lang_source(manifest: dict) -> Path:
@@ -62,9 +72,9 @@ def lang_source(manifest: dict) -> Path:
 def needed_engine(script: str, lang: dict | None) -> int:
     """The lowest `minEngine` the pack's script rules allow: 0 for a script older engines have
     in code, else the level that reads the `lang` role and the fields `lang` uses."""
-    if script in EMBEDDED and (script == "mlym" or not FIELDS_5 & set(lang or {})):
+    if script in EMBEDDED and (script == "mlym" or not fields_engine(lang)):
         return 0
-    return FIELDS_ENGINE if FIELDS_5 & set(lang or {}) else LANG_ENGINE
+    return max(fields_engine(lang), LANG_ENGINE)
 
 
 def read_lang(path: Path) -> dict | None:
@@ -121,8 +131,8 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     problems = []
     needed = needed_engine(script, lang)
     if manifest.get("minEngine", 0) < needed:
-        uses = sorted(FIELDS_5 & set(lang))
-        why = f" and uses {', '.join(uses)}" if needed == FIELDS_ENGINE else ""
+        uses = sorted(FIELDS.get(needed, set()) & set(lang))
+        why = f" and uses {', '.join(uses)}" if uses else ""
         problems.append(f"minEngine must be at least {needed} for script {script}, "
                         f"whose rules are in {name}{why}")
     if lang.get("script") != script:

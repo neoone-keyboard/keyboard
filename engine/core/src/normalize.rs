@@ -1,37 +1,59 @@
-//! One normal form for every word the engine stores or looks up: NFC with
-//! atomic chillu letters. `lexbuild` and the runtime both call `normalize`,
-//! so the two can never disagree about how a word is spelled. The curly
-//! apostrophe (iOS smart punctuation, most corpus text) folds to `'`.
+//! One normal form for every word the engine stores or looks up: NFC, the curly apostrophe
+//! (iOS smart punctuation, most corpus text) folded to `'`, and ZWJ and ZWNJ kept only where a
+//! script in use says they change a word (`Joiners`, from the script's `lang.json`).
+//! `lexbuild` and the runtime both call `normalize`, so the two can never disagree about how a
+//! word is spelled.
+//!
+//! Nothing here is written for one script. Malayalam's rules (a joiner is kept between its
+//! virama and one of its letters; a consonant + virama + ZWJ that has an atomic chillu becomes
+//! that chillu) are its `lang.json`'s `joiners` and `zwjForms`.
 
 use unicode_normalization::UnicodeNormalization;
 
-const VIRAMA: char = '\u{0D4D}';
 const ZWJ: char = '\u{200D}';
 
-/// The atomic chillu for a consonant written as consonant + virama + ZWJ (old encoding).
-fn chillu(consonant: char) -> Option<char> {
-    match consonant {
-        'ണ' => Some('ൺ'),
-        'ന' => Some('ൻ'),
-        'ര' => Some('ർ'),
-        'ല' => Some('ൽ'),
-        'ള' => Some('ൾ'),
-        'ക' => Some('ൿ'),
-        _ => None,
+/// What one script does with ZWJ and ZWNJ (`lang.json`: `virama`, `joiners`, `zwjForms`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Joiners {
+    pub virama: char,
+    /// The script's characters, as ranges.
+    pub ranges: Vec<(char, char)>,
+    /// `"joiners": "afterVirama"`: a ZWJ or ZWNJ between the virama and a character of the
+    /// script is part of the word (it changes how the cluster is drawn). Otherwise dropped.
+    pub keep: bool,
+    /// `zwjForms`: `(consonant, letter)`. The consonant + virama + ZWJ is the old encoding of
+    /// the letter (Malayalam's chillus), and becomes it.
+    pub forms: Vec<(char, char)>,
+}
+
+impl Joiners {
+    fn form(&self, consonant: char) -> Option<char> {
+        self.forms.iter().find(|&&(c, _)| c == consonant).map(|&(_, f)| f)
+    }
+
+    fn has(&self, c: char) -> bool {
+        self.ranges.iter().any(|&(a, b)| (a..=b).contains(&c))
     }
 }
 
-/// NFC, then every consonant + virama + ZWJ sequence that has an atomic chillu becomes that chillu,
-/// a ZWJ or ZWNJ is dropped unless it follows a virama inside a word, and `’` becomes `'`.
+/// `normalize_with` the joiner rules of every script in use (`script::all`).
+pub fn normalize(text: &str) -> String {
+    let rules: Vec<&Joiners> = crate::script::all().filter_map(|r| r.joiners()).collect();
+    normalize_with(text, &rules)
+}
+
+/// NFC, then for each script of `rules`: every consonant + virama + ZWJ sequence that has an
+/// atomic form (`zwjForms`) becomes it. A ZWJ or ZWNJ is dropped unless it stands between the
+/// virama and a character of a script that keeps joiners there, and `’` becomes `'`.
 ///
 /// Dropping a joiner can leave text that one more pass would change: `െ` + ZWNJ + `ാ` becomes
-/// `ൊ`, which NFC composes to `ൊ`, and `ന്` + ZWNJ + ZWJ + `ക` becomes `ന്` + ZWJ + `ക`, an old
+/// `ൊ`, which NFC composes to `ൊ`, and `ന്` + ZWNJ + ZWJ + `ക` becomes `ന്` + ZWJ + `ക`, an old
 /// chillu. So the pass repeats until nothing changes. Each pass that changes anything removes at
 /// least one character, so this ends, and the second pass is the only one ordinary text needs.
-pub fn normalize(text: &str) -> String {
-    let mut out = pass(text);
+pub fn normalize_with(text: &str, rules: &[&Joiners]) -> String {
+    let mut out = pass(text, rules);
     loop {
-        let next = pass(&out);
+        let next = pass(&out, rules);
         if next == out {
             return out;
         }
@@ -39,7 +61,7 @@ pub fn normalize(text: &str) -> String {
     }
 }
 
-fn pass(text: &str) -> String {
+fn pass(text: &str, rules: &[&Joiners]) -> String {
     let nfc: Vec<char> = text
         .nfc()
         .map(|c| if c == '\u{2019}' { '\'' } else { c })
@@ -48,19 +70,25 @@ fn pass(text: &str) -> String {
     let mut i = 0;
     while i < nfc.len() {
         let c = nfc[i];
-        if nfc.get(i + 1) == Some(&VIRAMA)
-            && nfc.get(i + 2) == Some(&ZWJ)
-            && let Some(ch) = chillu(c)
+        if nfc.get(i + 2) == Some(&ZWJ)
+            && let Some(form) = rules
+                .iter()
+                .filter(|r| nfc.get(i + 1) == Some(&r.virama))
+                .find_map(|r| r.form(c))
         {
-            out.push(ch);
+            out.push(form);
             i += 3;
             continue;
         }
-        if is_joiner(c)
-            && !(out.ends_with(VIRAMA) && nfc.get(i + 1).is_some_and(|&n| is_malayalam(n)))
-        {
-            i += 1; // only virama + joiner + letter changes how a word is drawn
-            continue;
+        if is_joiner(c) {
+            // Only virama + joiner + letter changes how a word is drawn.
+            let kept = rules.iter().any(|r| {
+                r.keep && out.ends_with(r.virama) && nfc.get(i + 1).is_some_and(|&n| r.has(n))
+            });
+            if !kept {
+                i += 1;
+                continue;
+            }
         }
         out.push(c);
         i += 1;
@@ -72,14 +100,68 @@ fn is_joiner(c: char) -> bool {
     matches!(c, '\u{200C}' | ZWJ)
 }
 
-fn is_malayalam(c: char) -> bool {
-    ('\u{0D00}'..='\u{0D7F}').contains(&c)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::normalize;
+    use super::*;
     use proptest::prelude::*;
+
+    fn deva(keep: bool) -> Joiners {
+        Joiners {
+            virama: '\u{094D}',
+            ranges: vec![('\u{0900}', '\u{097F}')],
+            keep,
+            forms: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_script_keeps_joiners_after_its_virama_only_when_its_rules_say() {
+        // Devanagari writes a half form with ZWJ and an explicit halant with ZWNJ.
+        let (half, explicit) = ("क्\u{200D}ष", "क्\u{200C}ष");
+        let dropped = deva(false);
+        assert_eq!(normalize_with(half, &[&dropped]), "क्ष");
+        assert_eq!(normalize_with(explicit, &[&dropped]), "क्ष");
+        assert_eq!(normalize_with(half, &[]), "क्ष", "no rules: every joiner goes");
+        let kept = deva(true);
+        assert_eq!(normalize_with(half, &[&kept]), half);
+        assert_eq!(normalize_with(explicit, &[&kept]), explicit);
+        // Not at a word's end, before another script's letter, or after anything but the virama.
+        assert_eq!(normalize_with("क्\u{200D}", &[&kept]), "क्");
+        assert_eq!(normalize_with("क्\u{200D}ക", &[&kept]), "क्ക");
+        assert_eq!(normalize_with("क\u{200C}ष", &[&kept]), "कष");
+        // Malayalam's virama is not Devanagari's.
+        assert_eq!(normalize_with("ക്\u{200C}ക", &[&kept]), "ക്ക");
+    }
+
+    #[test]
+    fn atomic_forms_are_the_scripts_table() {
+        let khanda = Joiners {
+            virama: '\u{09CD}',
+            ranges: vec![('\u{0980}', '\u{09FF}')],
+            keep: false,
+            forms: vec![('ত', 'ৎ')],
+        };
+        assert_eq!(normalize_with("উত\u{09CD}\u{200D}সৱ", &[&khanda]), "উৎসৱ");
+        assert_eq!(normalize_with("ক\u{09CD}\u{200D}ষ", &[&khanda]), "ক্ষ", "ক has no such form");
+        // Malayalam's chillus are data too: without its rules nothing is rewritten.
+        assert_eq!(normalize_with("അവന\u{0D4D}\u{200D}", &[]), "അവന\u{0D4D}");
+        assert_eq!(normalize_with("അവന\u{0D4D}\u{200D}", &[&khanda]), "അവന\u{0D4D}");
+    }
+
+    #[test]
+    fn malayalams_rules_come_from_its_lang_file() {
+        let rules = crate::script::embedded("mlym").unwrap().joiners().unwrap();
+        assert!(rules.keep);
+        assert_eq!(rules.virama, '\u{0D4D}');
+        assert_eq!(rules.ranges, [('\u{0D00}', '\u{0D7F}')]);
+        assert_eq!(
+            rules.forms,
+            [('ണ', 'ൺ'), ('ന', 'ൻ'), ('ര', 'ർ'), ('ല', 'ൽ'), ('ള', 'ൾ'), ('ക', 'ൿ')]
+        );
+        for code in ["deva", "beng"] {
+            assert!(crate::script::embedded(code).unwrap().joiners().is_none(), "{code}");
+        }
+    }
 
     #[test]
     fn old_chillu_encoding_becomes_atomic() {

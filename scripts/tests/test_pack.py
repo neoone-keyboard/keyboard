@@ -102,6 +102,18 @@ class LangRole(unittest.TestCase):
         self.write_lang({**joins, "script": "deva", "block": ["0900", "097F"]})
         self.assertIn("at least 5", pack.lang_problems(self.dir, manifest("deva", 2))[0])
 
+    def test_the_joiner_fields_need_engine_6_except_for_malayalam(self):
+        self.write_lang({**LANG, "virama": "0ACD", "joiners": "afterVirama"})
+        problems = pack.lang_problems(self.dir, manifest(min_engine=5))
+        self.assertIn("minEngine must be at least 6", problems[0])
+        self.assertIn("uses joiners", problems[0])
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
+        m = manifest(min_engine=4)
+        pack.add_lang(self.dir, m)
+        self.assertEqual(m["minEngine"], 6)
+        self.write_lang({**LANG, "script": "mlym", "block": ["0D00", "0D7F"], "zwjForms": [["0D28", "0D7B"]]})
+        self.assertEqual(pack.lang_problems(self.dir, manifest("mlym", 1)), [])
+
     def test_another_script_needs_the_file_and_engine_4(self):
         problems = pack.lang_problems(self.dir, manifest(lang=False))
         self.assertIn("needs its lang.json", problems[0])
