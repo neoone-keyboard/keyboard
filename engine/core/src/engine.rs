@@ -3431,10 +3431,13 @@ mod tests {
     /// The tiny fixture LM (`tests/fixtures/lm-tiny.mlkbnn`). A `Sources` built in code skips
     /// the fingerprint check that `Sources::open` makes.
     fn tiny_lm() -> Option<Lm> {
-        Lm::open(
+        let mut lm = Lm::open(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn"),
         )
-        .ok()
+        .ok()?;
+        // As `Sources::open` does for a Malayalam pack.
+        lm.set_native(script::rules("mlym").unwrap().block());
+        Some(lm)
     }
 
     fn engine_with_lm(lm: Lm) -> Engine {

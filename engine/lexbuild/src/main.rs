@@ -66,6 +66,9 @@ struct Args {
     /// Output directory for the bundle files.
     #[arg(long)]
     out: PathBuf,
+    /// Longest native word kept in a `--lang` build, in chars (default: `MAX_NATIVE_CHARS`).
+    #[arg(long, requires = "native")]
+    max_chars: Option<usize>,
     /// Stop reading each corpus file after this many lines (for quick runs).
     #[arg(long)]
     max_lines: Option<usize>,
@@ -97,7 +100,10 @@ fn english_next(
 }
 
 fn run_native(args: Args) -> io::Result<()> {
-    let config = Config::default();
+    let mut config = Config::default();
+    if let Some(max) = args.max_chars {
+        config.max_native_chars = max;
+    }
     let (Some(lang), Some(table_path), Some(english_fst)) =
         (&args.lang, &args.romanisation, &args.english_fst)
     else {
@@ -112,7 +118,7 @@ fn run_native(args: Args) -> io::Result<()> {
             count_native_words(
                 open(path)?,
                 &table,
-                config.max_malayalam_chars,
+                config.max_native_chars,
                 args.max_lines,
             )?,
         );

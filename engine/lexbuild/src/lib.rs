@@ -21,7 +21,7 @@ use crate::romanisation::Table;
 /// Longest English token counted, in bytes (the engine corrects up to 24).
 pub const MAX_ENGLISH_LEN: usize = 24;
 /// Longest Malayalam token counted, in chars.
-pub const MAX_MALAYALAM_CHARS: usize = 30;
+pub const MAX_NATIVE_CHARS: usize = 30;
 /// `NextWords` drops pairs seen once when it holds more pairs than this.
 pub const PAIR_PRUNE_THRESHOLD: usize = 20_000_000;
 
@@ -51,7 +51,7 @@ pub(crate) fn for_each_line(
 
 fn token_fits(word: &str, want: Script) -> bool {
     match want {
-        Script::MALAYALAM => word.chars().count() <= MAX_MALAYALAM_CHARS,
+        Script::MALAYALAM => word.chars().count() <= MAX_NATIVE_CHARS,
         _ => word.len() <= MAX_ENGLISH_LEN,
     }
 }
@@ -77,8 +77,9 @@ pub struct Config {
     pub next_per_word: usize,
     /// Longest English word kept, in bytes (the engine corrects up to 24).
     pub max_english_len: usize,
-    /// Longest Malayalam word kept, in chars.
-    pub max_malayalam_chars: usize,
+    /// Longest native word kept, in chars: Malayalam's, and a `--lang` pack's unless its
+    /// build says otherwise (`lexbuild --max-chars`).
+    pub max_native_chars: usize,
 }
 
 impl Default for Config {
@@ -91,7 +92,7 @@ impl Default for Config {
             next_word_max: 50_000,
             next_per_word: 3,
             max_english_len: MAX_ENGLISH_LEN,
-            max_malayalam_chars: MAX_MALAYALAM_CHARS,
+            max_native_chars: MAX_NATIVE_CHARS,
         }
     }
 }
@@ -240,7 +241,7 @@ pub fn malayalam_vocab(
     let ok = |w: &str| {
         script(w) == Script::MALAYALAM
             && plausible_malayalam(w)
-            && w.chars().count() <= config.max_malayalam_chars
+            && w.chars().count() <= config.max_native_chars
     };
     let mut vocab: HashMap<String, u64> = counts
         .iter()
@@ -580,7 +581,7 @@ pub fn native_vocab(
     config: &Config,
 ) -> Vec<(String, u64)> {
     let ok = |w: &str| {
-        table.is_native(w) && table.plausible(w) && w.chars().count() <= config.max_malayalam_chars
+        table.is_native(w) && table.plausible(w) && w.chars().count() <= config.max_native_chars
     };
     let mut vocab: HashMap<String, u64> = counts
         .iter()
@@ -913,8 +914,8 @@ mod tests {
         let c = counts(&format!("{ok} {long}"), Script::Latin);
         assert_eq!(c.len(), 1);
         assert!(c.contains_key(&ok));
-        let ok_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS);
-        let long_ml = "\u{0D15}".repeat(MAX_MALAYALAM_CHARS + 1);
+        let ok_ml = "\u{0D15}".repeat(MAX_NATIVE_CHARS);
+        let long_ml = "\u{0D15}".repeat(MAX_NATIVE_CHARS + 1);
         let m = counts(&format!("{ok_ml} {long_ml}"), Script::MALAYALAM);
         assert_eq!(m.len(), 1);
         assert!(m.contains_key(&ok_ml));
