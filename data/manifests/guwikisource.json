@@ -1,0 +1,24 @@
+{
+  "id": "guwikisource",
+  "name": "Gujarati Wikisource",
+  "homepage": "https://gu.wikisource.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://gu.wikisource.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Texts on Gujarati Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
+  "used_for": "Gujarati word frequencies and next-word pairs (packs/gu.neopack; 2026-11-01 dump, main and Page namespaces).",
+  "retrieved": "2026-11-11",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/guwikisource/20261101/guwikisource-20261101-pages-articles.xml.bz2",
+      "sha1": "8b8631bf63fa098ffee0da4bb50a29fbddb58908",
+      "path": "guwikisource-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/gu.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

@@ -1,0 +1,128 @@
+{
+  "format": 1,
+  "script": "gujr",
+  "virama": "્",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "અ": "a",
+    "આ": "aa",
+    "ઇ": "i",
+    "ઈ": "i",
+    "ઉ": "u",
+    "ઊ": "u",
+    "ઋ": "ru",
+    "ઌ": "li",
+    "ઍ": "e",
+    "એ": "e",
+    "ઐ": "ai",
+    "ઑ": "o",
+    "ઓ": "o",
+    "ઔ": "au",
+    "ૠ": "ru",
+    "ૡ": "li",
+    "ૐ": "om"
+  },
+  "vowelSigns": {
+    "ા": "a",
+    "િ": "i",
+    "ી": "ee",
+    "ુ": "u",
+    "ૂ": "oo",
+    "ૃ": "ru",
+    "ૄ": "ru",
+    "ૅ": "e",
+    "ે": "e",
+    "ૈ": "ai",
+    "ૉ": "o",
+    "ો": "o",
+    "ૌ": "au",
+    "ૢ": "li",
+    "ૣ": "li"
+  },
+  "consonants": {
+    "ક": "k",
+    "ખ": "kh",
+    "ગ": "g",
+    "ઘ": "gh",
+    "ઙ": "n",
+    "ચ": "ch",
+    "છ": "chh",
+    "જ": "j",
+    "ઝ": "jh",
+    "ઞ": "n",
+    "ટ": "t",
+    "ઠ": "th",
+    "ડ": "d",
+    "ઢ": "dh",
+    "ણ": "n",
+    "ત": "t",
+    "થ": "th",
+    "દ": "d",
+    "ધ": "dh",
+    "ન": "n",
+    "પ": "p",
+    "ફ": "ph",
+    "બ": "b",
+    "ભ": "bh",
+    "મ": "m",
+    "ય": "y",
+    "ર": "r",
+    "લ": "l",
+    "ળ": "l",
+    "વ": "w",
+    "શ": "sh",
+    "ષ": "sh",
+    "સ": "s",
+    "હ": "h",
+    "ૹ": "zh",
+    "જ઼": "z",
+    "ફ઼": "f",
+    "ડ઼": "d",
+    "ઢ઼": "dh"
+  },
+  "finals": {
+    "ં": "n",
+    "ઁ": "n",
+    "ઃ": "h",
+    "ઽ": ""
+  },
+  "clusters": {
+    "ક્ષ": "ksh",
+    "ચ્ચ": "chch",
+    "ચ્છ": "chchh",
+    "જ્ઞ": "gn",
+    "ત્ર": "tr",
+    "શ્ર": "shr"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "nm",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["chh", "c"], ["aay", "e"], ["mbh", "nb"], ["mph", "np"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["zh", "j"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ow", "au"], ["ey", "e"], ["ay", "e"], ["mb", "nb"], ["mp", "np"]],
+    "singles": {
+      "f": "p",
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks"
+    },
+    "collapseDoubles": true,
+    "dropBetweenConsonants": "a",
+    "dropFinalVowel": {
+      "vowels": "a",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
+  "notes": "inherent: The inherent vowel is a. It is not said at the end of a word (ગુજરાત gujarat, ઘર ghar), and people rarely type it there; after a final cluster it is typed about as often as not (મિત્ર mitra / mitr, શબ્દ shabd / shabda). Inside a word Gujarati drops it between a vowel + lone consonant and a lone consonant + vowel (કરવું karvu, ગુજરાતી gujrati), and people type it either way, so the weighted tables have schwaDeleted. The pack's format-1 walk has no schwa rule and keeps every medial a (કરવું karavun); the skeleton drops an a between consonants instead, on both sides. anusvara: ં is n inside a word, and m before a labial (સંબંધ sambandh): the skeleton folds mb and mp to nb and np. At the end of a word, where it marks the neuter and the locative (કરવું, સારું, શું, ઘરમાં), chat usually leaves it out (karvu, saru, shu, gharma) and careful typists write n or m (karvun, gharmam); the skeleton drops a final n or m after a vowel (dropTrailing), so all three are one key. The price: a word that really ends in n or m shares its key with the word without it (નામ with ના). m is not listed as a spelling of ં, though Aksharantar's annotators type it at the end of a word more than n: the tables have one list for ં wherever it stands, the fit would make m its canonical spelling, and the key of every word with ં inside would then have m where people type n. The transliterator still learns the final m from Aksharantar's mined pairs. e: એ is e; Aksharantar's annotators also typed ey and ay (meynipyuleyshans), which are kept as rare spellings for the transliterator; the skeleton folds ey and ay to e (not ae: the ergative એ after આ, છોકરાએ chhokarae, is two vowels). ay is also the end of થાય, સમય, વિજય, which so share keys with words in e (thay with the); it is folded because one in twelve calibration pairs is typed that way. vowels: ઇ and ઈ are both i, ઉ and ઊ both u; long ones are sometimes typed ee and oo, and આ as aa. The skeleton folds aa, ee, ii, oo, uu. letters: છ is chh or ch (છે chhe / che), ઝ jh or z, ફ f or ph, વ v or w, શ sh or s (શું shu / su), ળ l. ઋ and ૃ are ru in Gujarati (કૃષ્ણ krushna) as often as ri. ક્ષ is ksh, જ્ઞ gn or gy, ત્ર tr, શ્ર shr. skeleton: A final n or m after a vowel is dropped first (dropTrailing), so karvun, karvum and karvu are one key: the neuter anusvara at the end of a word is typed all three ways. An a between two consonants is dropped (dropBetweenConsonants), so the medial inherent vowel typed or not gives one key (karvu / karavu, gujrati / gujarati). chh and ch fold to c, sh to s, the aspirates to their plain stops, f and ph to p, z and jh to j, w to v. A final a after a consonant is dropped, which covers the final inherent vowel typed or not."
+}
