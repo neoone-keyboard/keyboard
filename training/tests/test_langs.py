@@ -383,3 +383,24 @@ def test_a_lang_without_a_virama_keeps_its_short_words():
     assert lang.virama == ""
     assert lang.is_word("کہ") and lang.is_word("ہے") and lang.is_word("و")
 
+
+def test_a_character_table_is_the_vocabulary():
+    # Urdu's lang.json lists its letters (charTable): the vocabulary is those, in order, then
+    # ZWJ and ZWNJ, as the engine's vocab::Target reads them from the same file.
+    import json
+
+    from mlkb.translit.vocab import char_table, table
+
+    ur = native("ur")
+    raw = json.loads((LANGS / "ur" / "lang.json").read_text(encoding="utf-8"))
+    letters = char_table(raw["charTable"])
+    assert ur == table(letters)
+    assert len(ur) == 3 + len(letters) + 2
+    assert ur.chars[: len(letters)] == letters and ur.chars[-2:] == ("‍", "‌")
+    assert ur.index("ک") == 3 + letters.index("ک")
+    for word in ["میں", "ہے", "پاکستان", "گھر", "بڑا"]:
+        assert decode_ml(encode_ml(word, ur), ur) == word
+        assert fits("x", word, vocab=ur)
+    assert not fits("x", "زَبر", vocab=ur)  # a zabar is not in the table
+    # A block language is unchanged.
+    assert native("as") == BENGALI_ASSAMESE and len(native("hi")) == 133
