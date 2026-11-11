@@ -7,7 +7,7 @@
   "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
   "licence_source": "https://gu.wikipedia.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
   "attribution": "Text of Gujarati Wikipedia articles by Wikipedia contributors.",
-  "used_for": "Gujarati word frequencies, romanised Gujarati lookup and next-word pairs (packs/gu.neopack; whole 2026-11-01 dump).",
+  "used_for": "Gujarati word frequencies, romanised Gujarati lookup and next-word pairs (packs/gu.neopack; 2026-11-01 dump, less the paragraphs of its template-written village articles, which data/build-gu-text.sh drops with data/pipeline/drop_repeats.py).",
   "retrieved": "2026-11-11",
   "mirrors": [
     "https://dumps.wikimedia.your.org/",

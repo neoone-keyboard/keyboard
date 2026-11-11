@@ -1,10 +1,10 @@
-gu tokens: 18350117, distinct forms: 855026
-gu dropped (a letter of the script, but not a word): 107534 tokens, 31613 forms
+gu tokens: 17020380, distinct forms: 846098
+gu dropped (a letter of the script, but not a word): 106740 tokens, 31294 forms
 gu dropped top 20: 2007માં 591, 2008માં 577, 2006માં 456, 2009માં 456, સર૦ 423, 2005માં 419, 2008ના 418, 2009ના 398, આ૦ 374, 2004માં 361, 19મી 357, 2007ના 356, સ૦ 351, હિં૦ 347, ઃ 332, ા 316, કુમુદ૦ 309, 20મી 302, 1990ના 281, 2010માં 264
-next.fst pairs: 149628 gu, 149977 English
-gu.fst: 238993 keys, 2316672 bytes
-next.fst: 299605 keys, 4125932 bytes
-gu top 20: છે અને આ જ તે પણ એ કે એક તો નથી માટે હતી જે તેમ ને કરી ન હતો હોય
+next.fst pairs: 149660 gu, 149977 English
+gu.fst: 236108 keys, 2292088 bytes
+next.fst: 299637 keys, 4103645 bytes
+gu top 20: છે અને તે પણ એ આ કે જ તો એક નથી માટે હતી જે ને કરી ન હતો હતા હોય
 romanised keys skipped: 0
-romanised.fst: 238993 keys, 3868002 bytes
-gu text by source: guwiki 7193099 words (37%), guwikisource 11953575 words (62%), guwikiquote 123607 words (1%)
+romanised.fst: 236108 keys, 3824035 bytes
+gu text by source: guwiki 5846864 words (33%), guwikisource 11953575 words (67%), guwikiquote 123607 words (1%)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fetches the Gujarati sources in data/manifests/ (guwiki, guwikisource, guwikiquote,
 # aksharantar-guj) and extracts the wiki dumps to plain text in data/raw/text/gu.txt, one
-# paragraph per line. Cached: delete data/raw/text/gu.txt to re-extract. Prints how many words each
+# paragraph per line; Wikipedia's template-written village articles are dropped (drop_repeats.py). Cached: delete data/raw/text/gu.txt to re-extract. Prints how many words each
 # source gave (data/text-sources.sh), and warns when one is most of the text.
 set -euo pipefail
 
@@ -22,7 +22,12 @@ mkdir -p "$TEXT"
 
 if [ ! -s "$TEXT/gu.txt" ]; then
   reset_sources gu
-  py "$PIPELINE/extract_wiki.py" "$RAW"/guwiki/*.bz2 --out "$TEXT/gu.txt.tmp"
+  py "$PIPELINE/extract_wiki.py" "$RAW"/guwiki/*.bz2 --out "$TEXT/guwiki.txt.tmp"
+  # Gujarati Wikipedia has about 16,000 village articles written from one template ("… ગામના
+  # લોકોનો મુખ્ય વ્યવસાય ખેતી, ખેતમજૂરી તેમ જ પશુપાલન છે"): a fifth of its words. Paragraphs that
+  # are mostly repeated text are dropped, so the template doesn't lead the next-word pairs.
+  py "$PIPELINE/drop_repeats.py" "$TEXT/guwiki.txt.tmp" --out "$TEXT/gu.txt.tmp"
+  rm "$TEXT/guwiki.txt.tmp"
   count_source gu guwiki "$TEXT/gu.txt.tmp"
   # Wikisource proofread text is in the Page namespace (key 104 on Gujarati Wikisource), not the main one.
   py "$PIPELINE/extract_wiki.py" "$RAW"/guwikisource/*.bz2 --extra-namespaces 104,Page,પૃષ્ઠ \
