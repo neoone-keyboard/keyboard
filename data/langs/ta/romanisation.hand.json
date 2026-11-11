@@ -104,6 +104,12 @@
     "vowels": "aeiou",
     "dropFinal": ""
   },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length, and the voiced spelling of each stop: Tamil has one letter for t and d, k and g, p and b, s and j, and people type the sound they hear.",
+    "singles": {"d": "t", "g": "k", "b": "p", "j": "s"},
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
   "notes": {
     "voicing": "Tamil has one letter for each stop, voiced or not: க is k in கண், g in தங்கம், often h or g between vowels (மகன் magan). People type what they hear, so every stop has both spellings (க k/g, ச s/ch/j, ட t/d, த th/dh/t/d, ப p/b), and the skeleton folds each pair to one symbol (g to k, d to t, dh and th to t, b to p, j and ch to s). The format has no 'between vowels' context, so the weights are an average over positions; the pairs after a nasal and the doubled stops, where the sound is fixed, are listed in clusters (ங்க ng, ஞ்ச nj, ண்ட nd, ந்த nth/ndh, ம்ப mb; க்க kk, ச்ச ch, ட்ட tt, த்த thth, ப்ப pp).",
     "pulli": "The pulli (்) is the virama. Tamil writes almost no conjuncts, so a 'cluster' here is only consonants with pullis between them, and a pulli at the end of a word means no vowel. The inherent vowel is always a and is never dropped in speech, so there is no schwaDeleted list.",

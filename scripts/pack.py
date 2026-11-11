@@ -15,8 +15,22 @@ What the file does to `minEngine`. The engine holds its own copy of the rules fo
 and beng (`EMBEDDED`: Malayalam's, Hindi's and Assamese's files), and engines before 5 had
 those three scripts' rules in code, so a pack in one of them keeps its `minEngine`: an older
 engine ignores the role and reads the pack as before. A pack in any other script needs the
-file and `minEngine` 4, or 5 when its file uses a field engine 4 doesn't read (`FIELDS_5`).
+file and `minEngine` 4, or the level that reads the newest field its file uses (`FIELDS`: 5
+for the suffix and loose-spelling fields, 6 for `joiners` and `zwjForms`). A Devanagari or
+Bengali pack that uses a newer field needs that level too.
 `--write` raises it; `--check` fails when it is too low.
+
+The romanisation tables (the `romanisation` role). `--check` fails when the file has no
+`looseSpelling` (which typed spellings spell a word out; `{}` for none): a file without it is
+read as the packs published before the field were, with Malayalam's habits (d for t, ee for i,
+oo for u), which is right only for those packs.
+
+Emoji words (the `emojiWords` and `emojiSearch` roles, optional). The words of the pack's
+language that suggest an emoji in the bar and find one in the emoji panel's search
+(`emoji-words.txt`, `emoji-search.txt`, built by data/pipeline/emoji_data.py into
+`data/langs/<id>/`). `--write` copies them in and adds the roles when `data/langs/<id>/` has
+them; `--check` fails when the pack lacks them or its copy differs. The engine ignores the
+roles, and an app from before them uses its own bundled words, so `minEngine` doesn't move.
 
 The layout (the `layout` role). `--check` also reads `layout.json` as the app does and fails on
 what the app would refuse (not format 1, no pages, an empty key, a strip entry that isn't one
@@ -44,22 +58,68 @@ ROOT = Path(__file__).resolve().parent.parent
 EMBEDDED = {"mlym", "deva", "beng"}
 # The engine level that reads the `lang` role (engine/core/src/pack.rs PACK_ENGINE).
 LANG_ENGINE = 4
-# lang.json fields read from engine 5 on (engine/core/src/script/data.rs). Malayalam's file
-# uses them, and engines before 5 have what they say in code, so mlym is not held to 5.
-FIELDS_5 = {"notLetter", "looseSigns", "finalPairs", "suffixJoins"}
-FIELDS_ENGINE = 5
+# lang.json fields by the engine level that reads them (engine/core/src/script/data.rs).
+# Malayalam's file uses them all, and older engines have what they say in code, so mlym is not
+# held to them.
+FIELDS = {
+    5: {"notLetter", "looseSigns", "finalPairs", "suffixJoins"},
+    6: {"joiners", "zwjForms"},
+}
+
+
+def fields_engine(lang: dict | None) -> int:
+    """The highest engine level a field of `lang` needs; 0 when it uses none of `FIELDS`. A
+    `suffixJoins.nasal` ending of several code points (Tamil's ம்) is read from engine 6."""
+    lang = lang or {}
+    level = max((level for level, names in FIELDS.items() if names & set(lang)), default=0)
+    joins = lang.get("suffixJoins")
+    nasal = joins.get("nasal") if isinstance(joins, dict) else None
+    if isinstance(nasal, list) and nasal and isinstance(nasal[0], str) and len(nasal[0].split()) > 1:
+        level = max(level, 6)
+    return level
 
 
 def lang_source(manifest: dict) -> Path:
     return ROOT / "data" / "langs" / manifest["id"] / "lang.json"
 
 
+# Optional pack files that are copies of data/langs/<id>/<name>: role -> file name.
+COPIED_ROLES = {"emojiWords": "emoji-words.txt", "emojiSearch": "emoji-search.txt"}
+
+
+def copied_source(manifest: dict, name: str) -> Path:
+    return ROOT / "data" / "langs" / manifest["id"] / name
+
+
+def add_copied(pack: Path, manifest: dict) -> None:
+    """Each `COPIED_ROLES` file that data/langs/<id>/ has, copied into the pack with its role."""
+    for role, name in COPIED_ROLES.items():
+        source = copied_source(manifest, name)
+        if source.is_file():
+            (pack / manifest["files"].setdefault(role, name)).write_bytes(source.read_bytes())
+
+
+def copied_problems(pack: Path, manifest: dict) -> list[str]:
+    """The `COPIED_ROLES` files the pack lacks or holds another copy of, in words."""
+    problems = []
+    for role, name in COPIED_ROLES.items():
+        source = copied_source(manifest, name)
+        listed_as = manifest["files"].get(role)
+        if not source.is_file():
+            continue
+        if listed_as is None:
+            problems.append(f"the pack doesn't carry {source.relative_to(ROOT)} (the {role} role); run --write")
+        elif not (pack / listed_as).is_file() or (pack / listed_as).read_bytes() != source.read_bytes():
+            problems.append(f"{listed_as} differs from {source.relative_to(ROOT)}; run --write")
+    return problems
+
+
 def needed_engine(script: str, lang: dict | None) -> int:
     """The lowest `minEngine` the pack's script rules allow: 0 for a script older engines have
     in code, else the level that reads the `lang` role and the fields `lang` uses."""
-    if script in EMBEDDED and (script == "mlym" or not FIELDS_5 & set(lang or {})):
+    if script in EMBEDDED and (script == "mlym" or not fields_engine(lang)):
         return 0
-    return FIELDS_ENGINE if FIELDS_5 & set(lang or {}) else LANG_ENGINE
+    return max(fields_engine(lang), LANG_ENGINE)
 
 
 def read_lang(path: Path) -> dict | None:
@@ -116,8 +176,8 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     problems = []
     needed = needed_engine(script, lang)
     if manifest.get("minEngine", 0) < needed:
-        uses = sorted(FIELDS_5 & set(lang))
-        why = f" and uses {', '.join(uses)}" if needed == FIELDS_ENGINE else ""
+        uses = sorted(FIELDS.get(needed, set()) & set(lang))
+        why = f" and uses {', '.join(uses)}" if uses else ""
         problems.append(f"minEngine must be at least {needed} for script {script}, "
                         f"whose rules are in {name}{why}")
     if lang.get("script") != script:
@@ -127,6 +187,24 @@ def lang_problems(pack: Path, manifest: dict) -> list[str]:
     if source.is_file() and source.read_bytes() != path.read_bytes():
         problems.append(f"{name} differs from {source.relative_to(ROOT)}, which the lexicons were built "
                         f"with; run --write")
+    return problems
+
+
+def romanisation_problems(pack: Path, manifest: dict) -> list[str]:
+    """What the pack's romanisation.json leaves to the engine's old defaults, in words."""
+    name = manifest["files"].get("romanisation")
+    if name is None or not (pack / name).is_file():
+        return []
+    try:
+        tables = json.loads((pack / name).read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
+        return [f"{name}: not JSON: {e}"]
+    if not isinstance(tables, dict):
+        return [f"{name}: not a JSON object"]
+    problems = []
+    if not isinstance(tables.get("looseSpelling"), dict):
+        problems.append(f"{name} has no looseSpelling: say which typed spellings spell a word out "
+                        f"({{}} for none), or the pack is read with Malayalam's (d for t, ee for i, oo for u)")
     return problems
 
 
@@ -290,6 +368,7 @@ def main() -> int:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if args.write:
         add_lang(args.pack, manifest)
+        add_copied(args.pack, manifest)
     current = listed(args.pack, manifest)
 
     if args.write:
@@ -312,7 +391,8 @@ def main() -> int:
             print(f"{manifest_path}: checksums stale for {', '.join(stale)}; "
                   f"run scripts/pack.py {args.pack} --write", file=sys.stderr)
             return 1
-        problems = lang_problems(args.pack, manifest) + layout_problems(args.pack, manifest)
+        problems = (lang_problems(args.pack, manifest) + romanisation_problems(args.pack, manifest)
+                    + copied_problems(args.pack, manifest) + layout_problems(args.pack, manifest))
         for problem in problems:
             print(f"{manifest_path}: {problem}", file=sys.stderr)
         return 1 if problems else 0

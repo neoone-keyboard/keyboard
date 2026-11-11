@@ -108,6 +108,13 @@ actor EngineSuggestionProvider: SuggestionProvider {
         configuredActive.map(ActiveLanguages.init) ?? ActiveLanguages.engineDefault(packIDs: packs.map(\.id))
     }
 
+    /// The packs whose languages are on (`activeChoice`), with or without a keyboard: the
+    /// scripts autocorrect leaves alone (`InputController.activePacks`).
+    static var activePacks: [PackDescriptor] {
+        let choice = activeChoice
+        return packs.filter { choice.isOn($0.id) }
+    }
+
     /// The languages the settings panel offers: English, then every pack, by native name.
     static var availableLanguages: [(id: String, name: String)] {
         [(ActiveLanguages.english, "English")] + packs.map { ($0.id, $0.nativeName) }

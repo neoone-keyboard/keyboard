@@ -22,7 +22,6 @@ use crate::script::{self, ScriptRules, normalize_word as normalize};
 use crate::suffix::{self, Suffixes};
 use crate::swipe;
 use crate::text::{self, Script};
-use crate::translit::transliterate;
 use crate::user::UserStore;
 
 /// Most keys visited by one correction walk. Prefix lookups need no limit
@@ -116,7 +115,7 @@ pub struct PackSources {
     /// `next.fst`: next-word pairs, today both the pack's and English's.
     pub next_words: Option<Lexicon>,
     /// The neural transliterator (`nn::Translit`). Without it, romanised ranking is M2's:
-    /// skeleton lookup, suffix splits and the rule-based spelling (`translit::transliterate`).
+    /// skeleton lookup, suffix splits and the rule-based spelling (`Romanisation::spell`).
     pub translit: Option<Translit>,
     /// The bilingual LM (`nn::Lm`), only with the lexicons it was built against. Without it,
     /// ranking is M3a's: the previous word sets the romanised bias, `next.fst` the next words.
@@ -308,6 +307,15 @@ impl Sources {
             .romanisation
             .as_deref()
             .and_then(|p| Romanisation::load(p).ok());
+        // The romanised lexicon packs each word from the script's first code point: tables for
+        // another script would unpack every key as other words.
+        if let Some(r) = romanisation.as_ref().filter(|r| r.script() != rules.code()) {
+            return Err(format!(
+                "the romanisation tables are for script {}, the pack is in {}",
+                r.script(),
+                rules.code()
+            ));
+        }
         let romanised = romanisation.is_some();
         Ok(Some(PackSources {
             id: paths.id.clone(),
@@ -1111,7 +1119,7 @@ impl Engine {
         };
         let mut out: Vec<Candidate> = Vec::new();
         if let Some(en) = self.english() {
-            for f in swipe::decode(en, &map, &path, false) {
+            for f in swipe::decode(en, &map, &path, None) {
                 let Ok(text) = String::from_utf8(f.key) else {
                     continue;
                 };
@@ -1127,20 +1135,23 @@ impl Engine {
                 });
             }
         }
-        for (lang, mg, base) in self.packs_active().filter_map(|(lang, p)| {
+        // A pack's skeletons are drawn through the keys its own tables fold into each letter.
+        let plain = swipe::SkeletonRules::default();
+        for (lang, mg, base, rules) in self.packs_active().filter_map(|(lang, p)| {
+            let rules = p.romanisation.as_ref().map_or(&plain, |r| r.swipe_rules());
             p.romanised
                 .as_ref()
-                .map(|mg| (lang, mg, *p.rules.block().start()))
+                .map(|mg| (lang, mg, *p.rules.block().start(), rules))
         }) {
             let bias = priors.get(lang);
-            for f in swipe::decode(mg, &map, &path, true)
+            for f in swipe::decode(mg, &map, &path, Some(rules))
                 .into_iter()
                 .take(swipe::SKELETONS)
             {
                 let Ok(skeleton) = std::str::from_utf8(&f.key) else {
                     continue;
                 };
-                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key));
+                let shape = fit(f.cost, &swipe::drawn(&map, &path, &f.key, rules));
                 for (text, count) in manglish::same_skeleton(mg, skeleton, base)
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)
@@ -2136,8 +2147,8 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // The rule-based spelling (`translit::transliterate`) is Malayalam's, and so are three
-        // ranking choices below that keep its recorded results; none is pack data yet.
+        // Three ranking choices below are Malayalam's alone, to keep its recorded results;
+        // none is pack data yet.
         let malayalam = pack.rules.code() == "mlym";
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
@@ -2240,12 +2251,11 @@ impl Engine {
         }
         let free = free.map(|f| f.text);
         // Names and rare words: the model's own spelling (or, without the model, the
-        // rule-based one), as a side-slot guess.
+        // pack's rule-based one, `romanisation.json`'s `fromLatin`), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
             let guess = match free {
                 Some(text) => Some((text, rank::MANGLISH_MODEL_FREE)),
-                None if malayalam => transliterate(typed_n).map(|text| (text, rank::UNKNOWN)),
-                None => None,
+                None => r.spell(typed_n).map(|text| (text, rank::UNKNOWN)),
             };
             if let Some((text, score)) = guess {
                 found.side.push(Candidate {
@@ -3421,10 +3431,13 @@ mod tests {
     /// The tiny fixture LM (`tests/fixtures/lm-tiny.mlkbnn`). A `Sources` built in code skips
     /// the fingerprint check that `Sources::open` makes.
     fn tiny_lm() -> Option<Lm> {
-        Lm::open(
+        let mut lm = Lm::open(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn"),
         )
-        .ok()
+        .ok()?;
+        // As `Sources::open` does for a Malayalam pack.
+        lm.set_native(script::rules("mlym").unwrap().block());
+        Some(lm)
     }
 
     fn engine_with_lm(lm: Lm) -> Engine {

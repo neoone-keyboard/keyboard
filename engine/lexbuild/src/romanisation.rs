@@ -107,21 +107,12 @@ impl Table {
         self.skeleton(&self.canonical(word))
     }
 
-    /// One byte per char: the script block (128 code points from `block_base`) becomes
-    /// 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02. None if the word has any other character. The same
-    /// packing as `mlengine_core::manglish::pack`, with this script's base.
+    /// One byte per char, by the engine's own packing (`mlengine_core::manglish::pack`) with
+    /// this script's base: the script block (128 code points from `block_base`) becomes
+    /// 0x80–0xFF, ZWNJ 0x01, ZWJ 0x02, an apostrophe 0x27. None if the word has any other
+    /// character. (A word with an apostrophe never gets here: `is_native` has none.)
     pub fn pack(&self, word: &str) -> Option<Vec<u8>> {
-        let base = self.script.base as u32;
-        word.chars()
-            .map(|c| match c {
-                ZWNJ => Some(0x01),
-                ZWJ => Some(0x02),
-                _ => {
-                    let offset = (c as u32).checked_sub(base)?;
-                    (offset < 0x80).then(|| 0x80 + offset as u8)
-                }
-            })
-            .collect()
+        mlengine_core::manglish::pack(word, self.script.base)
     }
 
     /// The romanised-lexicon key `skeleton\0packed-word`; None without a skeleton or packing.
@@ -217,6 +208,24 @@ mod tests {
             None,
             "another script's letters don't pack"
         );
+    }
+
+    /// One packing for the builder and the engine, the apostrophe included (Assamese হ'ল).
+    #[test]
+    fn packs_as_the_engine_does() {
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/as.neopack/romanisation.json");
+        let t = Table::load(&path).unwrap();
+        for word in ["হ'ল", "মানুহ", "উৎসৱ"] {
+            let packed = t.pack(word).unwrap();
+            assert_eq!(Some(&packed), mlengine_core::manglish::pack(word, t.block_base()).as_ref());
+            assert_eq!(
+                mlengine_core::manglish::unpack(&packed, t.block_base()).as_deref(),
+                Some(word)
+            );
+            assert_eq!(t.key(word), mlengine_core::manglish::key(&t.tables, word), "{word}");
+        }
+        assert_eq!(t.pack("হ'ল").unwrap()[1], b'\'');
     }
 
     #[test]

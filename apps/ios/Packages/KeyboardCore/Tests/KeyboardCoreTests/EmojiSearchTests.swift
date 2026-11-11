@@ -191,13 +191,18 @@ private func search(_ query: String, history: EmojiHistory = EmojiHistory()) -> 
 @Test func theBundledIndexFindsTheRedHeartAndIsQuick() throws {
     let data = try Data(contentsOf: bundledEmoji.appending(path: "emoji-search.txt"), options: .alwaysMapped)
     let text = try String(contentsOf: bundledEmoji.appending(path: "emoji.txt"), encoding: .utf8)
-    let bundled = EmojiSearch(words: EmojiWords(data: data), catalog: EmojiCatalog(text: text), history: EmojiHistory())
+    // The app's English index, and the Malayalam pack's own after it, as the keyboard reads them.
+    let packs = try Data(contentsOf: #require(malayalamPack.emojiSearch), options: .alwaysMapped)
+    let bundled = EmojiSearch(words: EmojiWords(files: [data, packs]), catalog: EmojiCatalog(text: text), history: EmojiHistory())
     var search = bundled
     search.type("heart")
     #expect(search.results.contains("❤️"))
     search.clearQuery()
     search.type("ഹൃദയം")
     #expect(search.results.contains("❤️"))
+    var english = EmojiSearch(words: EmojiWords(data: data), catalog: EmojiCatalog(text: text), history: EmojiHistory())
+    english.type("ഹൃദയം")
+    #expect(english.results.isEmpty, "Malayalam's words come with its pack")
     // The worst case is one letter: every word it begins. Each key runs a search.
     let clock = ContinuousClock()
     var slowest = Duration.zero

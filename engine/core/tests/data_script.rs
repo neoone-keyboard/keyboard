@@ -118,6 +118,24 @@ fn native_typing_completes_and_predicts() {
 }
 
 #[test]
+fn tables_for_another_script_refuse_the_pack_in_words() {
+    let dir = edited(|m| m.to_string(), None);
+    let tables = dir.path().join("romanisation.json");
+    let text = fs::read_to_string(&tables).unwrap();
+    assert!(text.contains("\"script\": \"gujr\""));
+    fs::write(&tables, text.replace("\"script\": \"gujr\"", "\"script\": \"mlym\"")).unwrap();
+    let pack = Pack::open(dir.path()).unwrap();
+    let e = Engine::open(&Paths::with_packs(Some(en_fst()), &[pack], None));
+    let problems = e.pack_problems();
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(
+        problems[0].contains("romanisation tables are for script mlym, the pack is in gujr"),
+        "{problems:?}"
+    );
+    assert!(e.lang_of_id("gu").is_none(), "the pack is left out");
+}
+
+#[test]
 fn a_new_script_without_rules_is_refused_in_words() {
     let without = edited(|m| m.replace(",\n    \"lang\": \"lang.json\"", ""), None);
     fs::remove_file(without.path().join("lang.json")).unwrap();

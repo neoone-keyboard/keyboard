@@ -1,4 +1,4 @@
-from emoji_data import FLAG_NAMES, catalog_lines, merge_words, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
+from emoji_data import FLAG_NAMES, PACK_FLAG_NAMES, build_words, catalog_lines, merge_words, parse_annotations, parse_emoji_test, search_lines, search_words, word_lines
 
 EMOJI_TEST = """\
 # group: Smileys & Emotion
@@ -169,5 +169,38 @@ def test_an_emoji_the_word_names_comes_first_across_files():
 
 def test_everyday_flag_names_are_words_and_flags():
     from emoji_data import _is_flag, _is_word
-    assert all(_is_word(word) and _is_flag(flag) for word, flag in FLAG_NAMES.items())
+    every = {**FLAG_NAMES, **{w: f for names in PACK_FLAG_NAMES.values() for w, f in names.items()}}
+    assert all(_is_word(word) and _is_flag(flag) for word, flag in every.items())
     assert "us" not in FLAG_NAMES
+    assert all(word.isascii() for word in FLAG_NAMES), "a pack language's names go in PACK_FLAG_NAMES"
+
+
+def test_a_packs_words_are_its_own_languages_only():
+    groups = parse_emoji_test(EMOJI_TEST)
+    app_words, app_search = build_words([ANNOTATIONS], {}, groups)
+    pack_words, pack_search = build_words([ML_ANNOTATIONS], {}, groups)
+    assert "സ്നേഹം" in pack_words and "സ്നേഹം" not in app_words
+    assert "love" in app_words and "love" not in pack_words
+    assert "ഹൃദയം" in pack_search and "ഹൃദയം" not in app_search
+    assert pack_search["ഹൃദയം"] == (["❤️"], []) or pack_search["ഹൃദയം"] == ([], ["❤️"])
+    # A pack's files say whose they are, after the format's own comment lines.
+    assert word_lines(pack_words, "ml")[3].startswith("# The words of pack ml")
+    assert search_lines(pack_search, "ml")[4].startswith("# The words of pack ml")
+    assert word_lines(app_words)[3] == sorted(f"{w}\t{' '.join(e)}" for w, e in app_words.items())[0]
+
+
+def test_the_command_writes_the_apps_files_and_each_packs(tmp_path):
+    from emoji_data import main
+    (tmp_path / "emoji-test.txt").write_text(EMOJI_TEST, encoding="utf-8")
+    (tmp_path / "en.xml").write_text(ANNOTATIONS, encoding="utf-8")
+    (tmp_path / "ml.xml").write_text(ML_ANNOTATIONS, encoding="utf-8")
+    assert main(["--emoji-test", str(tmp_path / "emoji-test.txt"), "--annotations", str(tmp_path / "en.xml"),
+                 "--out", str(tmp_path / "app"), "--pack-annotations", f"ml={tmp_path / 'ml.xml'}",
+                 "--pack-out", f"ml={tmp_path / 'pack'}", "--pack-out", f"ml={tmp_path / 'copy'}"]) == 0
+    app = (tmp_path / "app/emoji-words.txt").read_text(encoding="utf-8")
+    pack = (tmp_path / "pack/emoji-words.txt").read_text(encoding="utf-8")
+    assert "love\t" in app and "സ്നേഹം" not in app
+    assert "സ്നേഹം\t❤️" in pack and "love" not in pack
+    assert "അമേരിക്ക\t🇺🇸" in pack and "usa\t🇺🇸" in app
+    assert (tmp_path / "copy/emoji-search.txt").read_bytes() == (tmp_path / "pack/emoji-search.txt").read_bytes()
+    assert not (tmp_path / "pack/emoji.txt").exists()

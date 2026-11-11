@@ -155,7 +155,7 @@ impl OwnWords {
                 let prefix = missing > 0;
                 let (mut spelled, mut distance) = manglish::fit(r, typed, word, prefix);
                 for letters in &self.typed[place as usize] {
-                    let (s, d) = manglish::fit_latin(typed, letters, prefix);
+                    let (s, d) = manglish::fit_latin(r, typed, letters, prefix);
                     spelled |= s;
                     distance = distance.min(d);
                 }
@@ -174,7 +174,7 @@ impl OwnWords {
 /// The skeleton the pack builder keys `word` by (`manglish::key`); None for a word it could
 /// not key: one with no skeleton, or with a character outside the script.
 fn word_skeleton(r: &Romanisation, word: &str) -> Option<String> {
-    manglish::pack(word, manglish::block_base(r))?;
+    manglish::pack(word, manglish::block_base(r)?)?;
     Some(r.word_skeleton(word)).filter(|skeleton| !skeleton.is_empty())
 }
 

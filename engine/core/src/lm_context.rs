@@ -483,11 +483,14 @@ mod tests {
     use super::*;
     use crate::nn::Lm;
 
+    /// The tiny fixture LM, its native pieces Malayalam's as the engine sets them for the pack.
     fn lm() -> Lm {
-        Lm::open(
+        let mut lm = Lm::open(
             &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lm-tiny.mlkbnn"),
         )
-        .unwrap()
+        .unwrap();
+        lm.set_native('\u{0D00}'..='\u{0D7F}');
+        lm
     }
 
     fn sync(ctx: &mut LmContext, lm: &Lm, text: &str) -> bool {

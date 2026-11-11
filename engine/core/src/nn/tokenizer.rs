@@ -32,8 +32,8 @@ pub mod flag {
     pub const WORD_START: u8 = 1;
     /// Has an ASCII letter.
     pub const LATIN: u8 = 2;
-    /// Has a character of the model's native script block (`Tokenizer::set_native`;
-    /// Malayalam's, U+0D00–U+0D7F, unless set).
+    /// Has a character of the model's native script block (`Tokenizer::set_native`). No
+    /// piece has it until the block is set: the tokeniser knows no script of its own.
     pub const NATIVE: u8 = 4;
     /// Neither: punctuation, digits, a bare `WORD_START`.
     pub const OTHER: u8 = 8;
@@ -75,10 +75,8 @@ fn byte_of(piece: &str) -> Option<u8> {
         .flatten()
 }
 
-/// The native block a tokeniser flags until told otherwise (`Tokenizer::set_native`).
-pub const MALAYALAM_BLOCK: RangeInclusive<char> = '\u{0D00}'..='\u{0D7F}';
-
-fn flags_of(id: u32, piece: &str, native: &RangeInclusive<char>) -> u8 {
+/// `native`: the block whose characters make a piece `NATIVE`; none flags no piece so.
+fn flags_of(id: u32, piece: &str, native: Option<&RangeInclusive<char>>) -> u8 {
     if id <= EOS {
         return flag::CONTROL;
     }
@@ -89,7 +87,7 @@ fn flags_of(id: u32, piece: &str, native: &RangeInclusive<char>) -> u8 {
     if piece.starts_with(WORD_START) {
         f |= flag::WORD_START;
     }
-    if piece.chars().any(|c| native.contains(&c)) {
+    if native.is_some_and(|block| piece.chars().any(|c| block.contains(&c))) {
         f |= flag::NATIVE;
     } else if piece.chars().any(|c| c.is_ascii_alphabetic()) {
         f |= flag::LATIN;
@@ -112,7 +110,7 @@ impl Tokenizer {
         let mut flags = Vec::with_capacity(pieces.len());
         let mut min_score = f32::INFINITY;
         for (id, piece) in pieces.iter().enumerate() {
-            let f = flags_of(id as u32, piece, &MALAYALAM_BLOCK);
+            let f = flags_of(id as u32, piece, None);
             if f & flag::BYTE != 0 {
                 bytes[usize::from(byte_of(piece).unwrap())] = id as u32;
             } else if f & flag::CONTROL == 0 {
@@ -158,11 +156,11 @@ impl Tokenizer {
         &self.pieces[id as usize]
     }
 
-    /// Flags the pieces with a character of `block` `NATIVE` instead of Malayalam's: the
-    /// script of the pack whose LM this is (`Engine` sets it from the pack's script rules).
+    /// Flags the pieces with a character of `block` `NATIVE`: the script of the pack whose
+    /// LM this is (`Engine` sets it from the pack's script rules). Until then no piece is.
     pub fn set_native(&mut self, block: RangeInclusive<char>) {
         for (id, piece) in self.pieces.iter().enumerate() {
-            self.flags[id] = flags_of(id as u32, piece, &block);
+            self.flags[id] = flags_of(id as u32, piece, Some(&block));
         }
     }
 
@@ -330,7 +328,8 @@ mod tests {
 
     #[test]
     fn flags_follow_the_piece_text() {
-        let t = tiny();
+        let mut t = tiny();
+        t.set_native('\u{0D00}'..='\u{0D7F}');
         let id = |p: &str| (0..t.len() as u32).find(|&i| t.piece(i) == p).unwrap();
         assert_eq!(t.flags(BOS), flag::CONTROL);
         assert_eq!(t.flags(id("<0x41>")), flag::BYTE);
@@ -344,6 +343,11 @@ mod tests {
     fn the_native_flag_follows_the_block_it_is_given() {
         let mut t = tiny();
         let id = |t: &Tokenizer, p: &str| (0..t.len() as u32).find(|&i| t.piece(i) == p).unwrap();
+        assert_eq!(
+            t.flags(id(&t, "▁എന്റെ")),
+            flag::WORD_START | flag::OTHER,
+            "no script is native until one is set, Malayalam's included"
+        );
         t.set_native('\u{0900}'..='\u{097F}');
         let (ml, the) = (id(&t, "▁എന്റെ"), id(&t, "▁the"));
         assert_eq!(t.flags(ml), flag::WORD_START | flag::OTHER);
@@ -357,7 +361,7 @@ mod tests {
         assert_eq!(
             deva.flags(hum),
             flag::WORD_START | flag::OTHER,
-            "Malayalam's block by default"
+            "none by default"
         );
         deva.set_native('\u{0900}'..='\u{097F}');
         assert_eq!(deva.flags(hum), flag::WORD_START | flag::NATIVE);

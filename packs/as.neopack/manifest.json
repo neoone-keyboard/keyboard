@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "as",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Assamese",
   "nativeName": "অসমীয়া",
   "script": "beng",
@@ -23,7 +23,7 @@
     "lang.json": "18a0cc226b75b4b27b90a892ed487cb9ec162dfb17a1a0a97b424f9429974f76",
     "layout.json": "4ca35fbf1aedcc5e1dc6f89d9b19ba6b6986f09cb5df38be075a7648e1f0d184",
     "next.fst": "13ab7855a7aefaad16d7b460cb4d0295c57c7b5da3fb836a1a9db1566dd058c7",
-    "romanisation.json": "cdb523507e11f5da7430406b9bc5955440e04f8edcb3c71a6325267aee105290",
+    "romanisation.json": "290327050f69296519c3005f9c56b6d85a991262c714d8de3e44938907eb7ea1",
     "romanised.fst": "3f9f0ec2be79b4ef8455391cd7bba0bc09c7af9221db69f86ab7b2464a77d3a4",
     "translit.mlkbnn": "a0e63af5e943aaa2a761c95e5ce419656a38049fef2017a717701003626f525a"
   },

@@ -313,6 +313,7 @@ fn swipe_eval() {
 fn swipe_recall() {
     let tables = mlengine_core::romanisation::Romanisation::load(&root().join("packs/ml.neopack/romanisation.json")).unwrap();
     use mlengine_core::swipe::{MAX_POINTS, STEP, decode, resample};
+    let rules = tables.swipe_rules();
     let every: usize = std::env::var("SWIPE_EVERY").map_or(1, |v| v.parse().unwrap());
     let mg = mlengine_core::lexicon::Lexicon::open(
         &root().join("packs/ml.neopack/manglish.fst"),
@@ -335,7 +336,7 @@ fn swipe_recall() {
             STEP,
             MAX_POINTS,
         );
-        let finished = decode(&mg, &map, &path, true);
+        let finished = decode(&mg, &map, &path, Some(rules));
         rows += 1;
         if let Some(rank) = finished.iter().position(|f| f.key == skeleton) {
             found += 1;
@@ -374,10 +375,12 @@ fn swipe_word() {
     )
     .unwrap();
     let map = KeyMap::new(&qwerty()).unwrap();
+    let tables = mlengine_core::romanisation::Romanisation::load(&root().join("packs/ml.neopack/romanisation.json")).unwrap();
+    let rules = tables.swipe_rules();
     for seed in 1..6 {
         let raw = noisy_path(&map, &word, &mut Rng(seed));
         let path = resample(&raw, STEP, MAX_POINTS);
-        let finished = decode(&mg, &map, &path, true);
+        let finished = decode(&mg, &map, &path, Some(rules));
         let best: Vec<String> = finished
             .iter()
             .take(3)

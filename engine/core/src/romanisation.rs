@@ -30,6 +30,32 @@ struct Raw {
     finals: HashMap<String, String>,
     clusters: HashMap<String, String>,
     skeleton: RawSkeleton,
+    #[serde(default)]
+    loose_spelling: Option<RawLoose>,
+    #[serde(default)]
+    swipe: Option<RawSwipe>,
+    #[serde(default)]
+    from_latin: Option<crate::translit::RawFromLatin>,
+}
+
+/// `swipe`: each part optional, derived from the skeleton when absent.
+#[derive(Deserialize)]
+struct RawSwipe {
+    #[serde(default)]
+    aspirated: Option<String>,
+    #[serde(default)]
+    trail: Option<String>,
+}
+
+/// `looseSpelling`: every part optional.
+#[derive(Deserialize)]
+struct RawLoose {
+    #[serde(default)]
+    singles: HashMap<char, char>,
+    #[serde(default)]
+    pairs: Vec<(String, char)>,
+    #[serde(default)]
+    collapse: String,
 }
 
 #[derive(Deserialize)]
@@ -109,9 +135,115 @@ struct Skeleton {
     final_min: usize,
 }
 
+/// `looseSpelling`: the Latin spellings that count as one when the engine asks whether the
+/// typed letters spell a word out (`Romanisation::relaxed`). Narrower than the skeleton, which
+/// only finds candidates: two words that differ here are told apart by what was typed.
+#[derive(Debug, PartialEq)]
+struct Loose {
+    /// A letter read as another (Malayalam `d` as `t`: ട is typed either way).
+    singles: [u8; 26],
+    /// Two letters in a row read as one (`ee` as `i`): first, second, result.
+    pairs: Vec<(u8, u8, u8)>,
+    /// Letters whose repeats count once (`aa` as `a`).
+    collapse: Vec<u8>,
+}
+
+impl Loose {
+    fn new(singles: &[(u8, u8)], pairs: &[(u8, u8, u8)], collapse: &[u8]) -> Self {
+        let mut map = LETTERS;
+        for &(from, to) in singles {
+            map[usize::from(from - b'a')] = to;
+        }
+        Self {
+            singles: map,
+            pairs: pairs.to_vec(),
+            collapse: collapse.to_vec(),
+        }
+    }
+
+    /// What a `romanisation.json` without `looseSpelling` gets: the packs published before the
+    /// field were all read with Malayalam's habits (vowel length, and t for d), and still are.
+    fn before_the_field() -> Self {
+        Self::new(&[(b'd', b't')], &[(b'e', b'e', b'i'), (b'o', b'o', b'u')], b"aiu")
+    }
+
+    fn from_raw(raw: RawLoose) -> Result<Self, String> {
+        let letter = |c: char, what: &str| {
+            if c.is_ascii_lowercase() {
+                Ok(c as u8)
+            } else {
+                Err(format!("looseSpelling {what} {c:?}: lower-case a–z"))
+            }
+        };
+        let singles = raw
+            .singles
+            .into_iter()
+            .map(|(from, to)| Ok((letter(from, "singles key")?, letter(to, "singles value")?)))
+            .collect::<Result<Vec<_>, String>>()?;
+        let pairs = raw
+            .pairs
+            .into_iter()
+            .map(|(pat, to)| {
+                let pat = ascii_letters(&pat, "looseSpelling pair")?;
+                match pat[..] {
+                    [a, b] => Ok((a, b, letter(to, "pairs value")?)),
+                    _ => Err("a looseSpelling pair is two letters and the one they are read as".to_string()),
+                }
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        Ok(Self::new(
+            &singles,
+            &pairs,
+            &ascii_letters(&raw.collapse, "looseSpelling collapse")?,
+        ))
+    }
+}
+
+const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
+
+/// The swipe rules of a skeleton. A skeleton letter is drawn through its own key and through
+/// every letter the skeleton folds into it: a `singles` letter that becomes it, and the first
+/// letter of a `pairs` pattern that does (`gh` → `k`: the finger starts on `g`). Unless the
+/// file's `swipe` section says otherwise, the letters an `h` may follow are those a pattern
+/// ending in `h` becomes (`th` → `t`), and the letters drawn after the skeleton's end are the
+/// ones it drops there (`dropTrailing.letters` and `dropFinalVowel.vowels`).
+fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swipe::SkeletonRules, String> {
+    let mut also: Vec<(u8, u8)> = Vec::new();
+    for (typed, symbol) in LETTERS.iter().zip(&skeleton.singles) {
+        if let Some([letter]) = symbol.as_deref() {
+            also.push((*letter, *typed));
+        }
+    }
+    let mut aspirated: Vec<u8> = Vec::new();
+    for (pattern, symbol) in &skeleton.pairs {
+        if let [letter] = symbol[..] {
+            also.push((letter, pattern[0]));
+        }
+        if let (Some(b'h'), Some(&last)) = (pattern.last(), symbol.last())
+            && pattern.len() > 1
+            && last != b'h'
+        {
+            aspirated.push(last);
+        }
+    }
+    let mut trail = skeleton.trailing.clone();
+    trail.extend(&skeleton.final_vowels);
+    let (said_aspirated, said_trail) = raw.map_or((None, None), |r| (r.aspirated, r.trail));
+    if let Some(said) = said_aspirated {
+        aspirated = ascii_letters(&said, "swipe aspirated")?;
+    }
+    if let Some(said) = said_trail {
+        trail = ascii_letters(&said, "swipe trail")?;
+    }
+    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail))
+}
+
 /// A loaded `romanisation.json`.
 #[derive(Debug)]
 pub struct Romanisation {
+    loose: Loose,
+    swipe: crate::swipe::SkeletonRules,
+    speller: crate::translit::Speller,
     script: String,
     virama: Vec<char>,
     inherent: String,
@@ -183,17 +315,53 @@ impl Romanisation {
             final_after_consonant: s.drop_final_vowel.after_consonant,
             final_min: s.drop_final_vowel.min_length,
         };
+        let loose = match raw.loose_spelling {
+            Some(raw) => Loose::from_raw(raw)?,
+            None => Loose::before_the_field(),
+        };
+        let swipe = swipe_rules(&skeleton, raw.swipe)?;
+        let virama = nfc(&raw.virama);
+        let independent = Keys::new(raw.independent_vowels);
+        let signs = Keys::new(raw.vowel_signs);
+        let consonants = Keys::new(raw.consonants);
+        let clusters = Keys::new(raw.clusters);
+        // The file's own speller; else the one the engine holds for the script (Malayalam's,
+        // for its packs published before the section); else one from the tables turned round.
+        let speller = match raw.from_latin {
+            Some(section) => crate::translit::Speller::from_raw(section, &virama)?,
+            None => crate::translit::embedded(&raw.script).unwrap_or_else(|| {
+                let mut letters = crate::translit::rows(&clusters.map);
+                letters.extend(crate::translit::rows(&consonants.map));
+                let singles: Vec<(u8, Vec<u8>)> = LETTERS
+                    .iter()
+                    .zip(&skeleton.singles)
+                    .filter_map(|(l, s)| Some((*l, s.clone()?)))
+                    .collect();
+                crate::translit::Speller::derived(
+                    &virama,
+                    &letters,
+                    &crate::translit::rows(&independent.map),
+                    &crate::translit::rows(&signs.map),
+                    &raw.inherent,
+                    &singles,
+                    raw.at_word_end.inherent.is_empty(),
+                )
+            }),
+        };
         Ok(Self {
+            loose,
+            swipe,
+            speller,
             script: raw.script,
-            virama: nfc(&raw.virama).chars().collect(),
+            virama: virama.chars().collect(),
             inherent: raw.inherent,
             end_virama: raw.at_word_end.virama,
             end_inherent: raw.at_word_end.inherent,
-            independent: Keys::new(raw.independent_vowels),
-            signs: Keys::new(raw.vowel_signs),
-            consonants: Keys::new(raw.consonants),
+            independent,
+            signs,
+            consonants,
             finals: Keys::new(raw.finals),
-            clusters: Keys::new(raw.clusters),
+            clusters,
             skeleton,
         })
     }
@@ -335,6 +503,51 @@ impl Romanisation {
         String::from_utf8(out).unwrap_or_default()
     }
 
+    /// The Latin a consonant of the tables is spelled with, without a vowel (യ → `y`).
+    pub fn consonant(&self, letter: char) -> Option<&str> {
+        self.consonants.map.get(&[letter][..]).map(String::as_str)
+    }
+
+    /// `latin` spelled in the script by rule (`translit::Speller`): a guess for a word no
+    /// lexicon or model has. None unless it is all letters the tables can spell.
+    pub fn spell(&self, latin: &str) -> Option<String> {
+        self.speller.spell(latin)
+    }
+
+    /// What the skeleton means for a swipe over the Latin keys (`swipe::decode`).
+    pub fn swipe_rules(&self) -> &crate::swipe::SkeletonRules {
+        &self.swipe
+    }
+
+    /// Lower-case letters with the spellings the pack's `looseSpelling` calls the same made
+    /// one: `singles` map a letter, `pairs` read two letters in a row as one, `collapse` letters
+    /// count once however often they repeat. Two spellings equal here spell the same word out
+    /// (`manglish::fit_latin`). Malayalam: d is t, ee is i, oo is u, and aa, ii, uu are a, i, u;
+    /// doubled consonants are kept (`veedu` is വീട്, veetu, not വിട്ടു, vittu).
+    pub fn relaxed(&self, latin: &[u8]) -> Vec<u8> {
+        let rules = &self.loose;
+        let mut out: Vec<u8> = Vec::with_capacity(latin.len());
+        for &b in latin {
+            let b = b.to_ascii_lowercase();
+            if !b.is_ascii_lowercase() {
+                continue;
+            }
+            let b = rules.singles[usize::from(b - b'a')];
+            let last = out.last().copied();
+            if let Some(&(_, _, to)) = rules
+                .pairs
+                .iter()
+                .find(|&&(first, second, _)| last == Some(first) && b == second)
+            {
+                out.pop();
+                out.push(to);
+            } else if !(last == Some(b) && rules.collapse.contains(&b)) {
+                out.push(b);
+            }
+        }
+        out
+    }
+
     /// `skeleton(romanize(word))`: what the romanised lexicon is keyed by.
     pub fn word_skeleton(&self, word: &str) -> String {
         self.skeleton(&self.romanize(word))
@@ -355,6 +568,20 @@ pub(crate) fn load_ml() -> Romanisation {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json"),
     )
     .unwrap()
+}
+
+/// Malayalam's tables with `looseSpelling` set to `json`, or without the field for None.
+#[cfg(test)]
+pub(crate) fn with_loose_spelling(json: Option<&str>) -> Romanisation {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/romanisation.json");
+    let mut file: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let fields = file.as_object_mut().unwrap();
+    match json {
+        Some(json) => fields.insert("looseSpelling".into(), serde_json::from_str(json).unwrap()),
+        None => fields.remove("looseSpelling"),
+    };
+    Romanisation::parse(&file.to_string()).unwrap()
 }
 
 #[cfg(test)]

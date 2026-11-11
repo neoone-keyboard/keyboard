@@ -209,5 +209,6 @@
       "minLength": 3
     }
   },
+  "looseSpelling": {},
   "notes": "A test fixture: Hindi's tables moved to the Gujarati block (U+0A80), for the letters Gujarati has. Not a romanisation anyone has checked."
 }

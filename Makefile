@@ -6,9 +6,10 @@ CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 # Stamped into the keyboard extension for its diagnostics report.
 GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
-# data/langs/{ml,hi,as}/lang.json are compiled into the engine (engine/core/src/script/mod.rs).
+# data/langs/{ml,hi,as}/lang.json are compiled into the engine (engine/core/src/script/mod.rs),
+# and packs/ml.neopack/romanisation.json for its fromLatin (engine/core/src/translit.rs).
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
-  data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json
+  data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
 .PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 

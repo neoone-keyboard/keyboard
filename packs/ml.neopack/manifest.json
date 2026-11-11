@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ml",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Malayalam",
   "nativeName": "മലയാളം",
   "script": "mlym",
@@ -19,17 +19,21 @@
     "suffixes": "suffixes.tsv",
     "chatForms": "chat-forms.tsv",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
     "chat-forms.tsv": "084de0b02d1ffd7400f2f9d1838e9cc4d03199c02bb4624f4ca7706d7e25bccb",
-    "lang.json": "48bfaa3517310f3c89dd8c71c708ff271499babc118392465975ece872d4e184",
+    "emoji-search.txt": "4bc5f0170ca07a907c365bb55f6c565413af2e9fc2e7de1a598b581e52553fb0",
+    "emoji-words.txt": "54a32b7b3ebc5bf3232dc8d1075a6893cc4c9890d7d0693e51f79e39ac6ed2d4",
+    "lang.json": "8a8e85a19d05cb45e3f53bae8275bbb1ef3493e113b5da1c36052ff4e55cbea5",
     "layout.json": "8064b883c57346c01094f4e040c72bc22b090391b80b3be93eb155aba2accf6b",
     "lm.mlkbnn": "4cb54319258e5fbac340675786638418413be6c37c7138cd6bf39546197dde4c",
     "manglish.fst": "afb22b4e6e5a6df38a275cf991b17b50fe449ae3f3bb0c54cc988996bd304c2e",
     "ml.fst": "3afc897841f2cef2b3ec5e2025a2085ae26fb5537f1c83e7008f54b7e580b11c",
     "next.fst": "08e40c6240b21b19337c1cb8ef3b80ed6cb3713540b84f6cc83a28f01e821c5a",
-    "romanisation.json": "676ba29348d7bd59d8e70557d2459add199f3a4a6c626c90fe70152d370eef6b",
+    "romanisation.json": "6494edd90da79fd8396f0c121333c39c4cb76ac23fd02a87b4fef0328783de4a",
     "suffixes.tsv": "2e0a525a6e57dd8dad98575a553244dac9e3e3a8aaec9bbe88944fe0f9b040d1",
     "translit.mlkbnn": "fd545d98c7ffe507a25ea1c8ab24a63fcac98de00adf4a46bc55be93523ff6ed"
   },
@@ -73,6 +77,14 @@
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
       "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "attribution": "Malayalam transliteration pairs from Aksharantar by AI4Bharat (Madhani et al., 2022), including names from Wikidata (CC0), used to train the transliterator and to find English loanwords for the language model. https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Malayalam emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Malayalam."
     },
     {
       "id": "enwiki",

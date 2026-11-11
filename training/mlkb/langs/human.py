@@ -83,9 +83,21 @@ class Lang:
             text = text.replace(a, b)
         return text
 
+    @cached_property
+    def _joiners(self) -> tuple:
+        """The joiner rules `ScriptDef::engine_normalize` uses: this file's for its script
+        (`joiners`, `zwjForms`), and Malayalam's, which an engine with no other pack has."""
+        from mlkb.data.human import MALAYALAM, Joiners
+
+        own = Joiners.of(self.data)
+        if self.data.get("script") == "mlym":
+            says = "joiners" in self.data or "zwjForms" in self.data
+            return ((own,) if own else ()) if says else (MALAYALAM,)
+        return (MALAYALAM,) + ((own,) if own else ())
+
     def normalize(self, text: str) -> str:
-        before = self._replace(_engine_normalize(self._replace(text)))
-        after = self._replace(_engine_normalize(before))
+        before = self._replace(_engine_normalize(self._replace(text), self._joiners))
+        after = self._replace(_engine_normalize(before, self._joiners))
         return before if after == before else after
 
     def is_word(self, word: str) -> bool:
@@ -110,11 +122,11 @@ def load(lang: str) -> Lang:
     return Lang(json.loads((LANGS / lang / "lang.json").read_text(encoding="utf-8")))
 
 
-def _engine_normalize(text: str) -> str:
-    """`engine/core/src/normalize.rs` outside Malayalam: NFC, `’` to `'`, joiners dropped."""
-    from mlkb.data.human import normalize as malayalam_normalize
+def _engine_normalize(text: str, rules: tuple) -> str:
+    """`engine/core/src/normalize.rs` `normalize_with`: NFC, `’` to `'`, and `rules`' joiners."""
+    from mlkb.data.human import normalize as engine_normalize
 
-    return malayalam_normalize(text)
+    return engine_normalize(text, rules)
 
 
 @dataclass(frozen=True)

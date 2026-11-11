@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "hi",
-  "version": "2026.11.11",
+  "version": "2026.11.12",
   "name": "Hindi",
   "nativeName": "हिन्दी",
   "script": "deva",
@@ -27,7 +27,7 @@
     "layout.json": "61d03b93eb91ff250fa3f2f1f82710044ded0d3e1f5e12a09a8721a4ab7c359d",
     "lm.mlkbnn": "7b3e8327b8c0e8c6393cc99906227c55cecf182e1cbf2234b9ac16b5eefb0da4",
     "next.fst": "85e761bd0eef7bc142ad7f1e76233d2d911b4a91000a0628d0b7d127bc94ee2f",
-    "romanisation.json": "356c2a2878b4558b544d97318184c672883f63121609bfea409d9c83a26b6ece",
+    "romanisation.json": "6190c33e2397515df60cb5d389ea88193df16973f7929624cfb536b41ffe9f2f",
     "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
   },
   "credits": [

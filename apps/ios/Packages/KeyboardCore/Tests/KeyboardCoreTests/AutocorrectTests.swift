@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import KeyboardCore
 
@@ -112,6 +113,54 @@ struct AutocorrectTests {
         input.handle(.space, at: 0.1)
         #expect(output.text == "എന്റ ")
         #expect(events.events == [.committed("എന്റ")])
+    }
+
+    /// On the Latin keys, a word in an active pack's script is not a mistyped English word,
+    /// whatever the bar's middle says: Malayalam's, and any other pack's the same.
+    @Test func aWordInAnActivePacksScriptIsNotReplacedOnTheLatinKeys() {
+        for (packs, word, other) in [
+            ([malayalamPack], "എന്റ", "एक"),
+            ([pack("hi")], "नमस्त", "എന്റ"),
+            ([pack("as")], "অসম", "एक"),
+            ([pack("ta")], "தமிழ", "অসম"),
+        ] {
+            let output = RecordingOutput()
+            let input = InputController(output: output, languages: [.english] + packs.map(Language.pack))
+            output.text = word
+            input.updateSuggestions(SuggestionResult(typed: word, candidates: [Suggestion("x", kind: .manglish)]))
+            input.handle(.space, at: 0)
+            #expect(output.text == word + " ", "\(packs[0].id) is active")
+            // A script no active pack writes is not protected by this rule.
+            output.text = other
+            input.updateSuggestions(SuggestionResult(typed: other, candidates: [Suggestion("x", kind: .manglish)]))
+            input.handle(.space, at: 1)
+            #expect(output.text == "x ", "\(packs[0].id) is active, \(other) is another script")
+        }
+    }
+
+    /// A pack that is on but has no keyboard of its own is not among `languages`; the keyboard
+    /// names it in `activePacks`.
+    @Test func anActivePackWithoutAKeyboardProtectsItsScriptToo() {
+        input.activePacks = [pack("hi")]
+        output.text = "नमस्त"
+        input.updateSuggestions(SuggestionResult(typed: "नमस्त", candidates: [Suggestion("x", kind: .manglish)]))
+        input.handle(.space, at: 0)
+        #expect(output.text == "नमस्त ")
+    }
+
+    @Test func aPacksScriptRangesComeFromItsLangFile() {
+        #expect(malayalamPack.scriptRanges == [0x0D00...0x0D7F])
+        #expect(pack("hi").scriptRanges == [0x0900...0x097F])
+        #expect(pack("ta").scriptRanges == [0x0B80...0x0BFF])
+        // A pack published before packs carried lang.json: the three scripts the engine has
+        // its own rules for.
+        let old = PackDescriptor(id: "as", name: "Assamese", nativeName: "অসমীয়া", script: "beng", layout: nil,
+                                 folder: URL(filePath: "/nowhere"))
+        #expect(old.scriptRanges == [0x0980...0x09FF])
+        let unknown = PackDescriptor(id: "xx", name: "X", nativeName: "X", script: "qaaa", layout: nil,
+                                     folder: URL(filePath: "/nowhere"))
+        #expect(unknown.scriptRanges.isEmpty)
+        #expect(malayalamPack.writes("ക") && !malayalamPack.writes("क") && !malayalamPack.writes("k"))
     }
 
     @Test func tappingTheQuotedTypedWordKeepsAndLearnsIt() throws {

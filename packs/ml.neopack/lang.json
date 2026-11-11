@@ -5,6 +5,15 @@
   "block": ["0D00", "0D7F"],
   "notLetter": [["0D64", "0D79"]],
   "virama": "0D4D",
+  "joiners": "afterVirama",
+  "zwjForms": [
+    ["0D23", "0D7A"],
+    ["0D28", "0D7B"],
+    ["0D30", "0D7C"],
+    ["0D32", "0D7D"],
+    ["0D33", "0D7E"],
+    ["0D15", "0D7F"]
+  ],
   "bases": [["0D15", "0D3A"]],
   "apostrophe": false,
   "looseSigns": [
@@ -56,7 +65,9 @@
     "block": "Malayalam, U+0D00-U+0D7F. Text is split into words at anything outside the block.",
     "notLetter": "The digits ൦-൯, the fraction and number signs and the date mark (U+0D64-U+0D79) stay inside a run when text is split, as Malayalam text always has been, but a word is not made of them: letters are U+0D00-U+0D63 and the chillus U+0D7A-U+0D7F.",
     "bases": "The consonants ക-ഺ. A vowel sign attaches to one; the chillus never take a sign.",
-    "replace": "None here. The normal form is the engine's own (normalize.rs): NFC, ’ to ', a consonant + virama + ZWJ that has an atomic chillu becomes that chillu (ന്‍ to ൻ), and a ZWJ or ZWNJ is kept only between a virama and a Malayalam letter.",
+    "replace": "None here. The normal form is NFC, ’ to ', and the two fields below.",
+    "joiners": "A ZWJ or ZWNJ is part of a word only between the virama and a Malayalam character, where it changes how the cluster is drawn (ഛത്തീസ്‌ഗഡ്, ഗ്‍ക). Anywhere else it is dropped.",
+    "zwjForms": "A consonant + virama + ZWJ that has an atomic chillu is the old encoding of that chillu and becomes it: ണ ന ര ല ള ക to ൺ ൻ ർ ൽ ൾ ൿ (ന്‍ to ൻ). These two rules were code in normalize.rs for every script until they became this file's.",
     "looseSigns": "The vowel signs ാ ി ീ ു ൂ ൃ െ േ ൈ ൊ ോ. Loose spelling inserts one between consonants (ആവിശ്യം for ആവശ്യം), so the spelling without a medial sign is tried too. A final sign is inflection and is kept.",
     "finalPairs": "A word ending in a consonant + ു is also written with ് (samvruthokaram): ഇന്നു and ഇന്ന്. Older text has ു where chat writes ്.",
     "suffixJoins": "How a stem and a suffix of suffixes.tsv fuse. vowelSigns: the sign each independent vowel becomes on a consonant (അ is the consonant's own vowel). nasal: a final ം becomes മ before a vowel suffix (സുഖം + ആണോ is സുഖമാണോ), doesn't take a case ending, and is replaced by an oblique one (മരം + ത്തിൽ is മരത്തിൽ). finalForms: a chillu becomes its consonant before a vowel (അവൻ + ഓട് is അവനോട്). elide: a final ് or ു gives way to the suffix's vowel (കഴിച്ചു + ഓ is കഴിച്ചോ). glides: വ after u and o sounds (പൂ + ഇൽ is പൂവിൽ), യ after the other vowels and, as inherentGlide, after a bare consonant's own a (അമ്മ + ഓട് is അമ്മയോട്). consonantAfter: ർ and ൾ take a suffix that starts with a consonant (അവൾ + ക്ക് is അവൾക്ക്), as stems ending in a vowel do; ൻ doesn't."

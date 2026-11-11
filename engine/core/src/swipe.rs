@@ -191,30 +191,69 @@ fn step_for(b: u8) -> Step {
     }
 }
 
-/// The keys a Manglish skeleton letter may be drawn through (the pack's skeleton folds them):
-/// `k` is also `c`, `q` and the `g` of `gh`; `t` is `d`; `p` is `f`; `v` is `w`; `i` is the
-/// `e` of `ee`; `u` is the `o` of `oo`.
-fn skeleton_keys(letter: u8) -> &'static [u8] {
-    match letter {
-        b'k' => b"kcqg",
-        b't' => b"td",
-        b'p' => b"pf",
-        b'v' => b"vw",
-        b'i' => b"ie",
-        b'u' => b"uo",
-        _ => std::slice::from_ref(&LETTERS[usize::from(letter - b'a')]),
+/// What a pack's skeleton means for a swipe, from its `romanisation.json`
+/// (`Romanisation::swipe_rules`): a skeleton letter stands for every spelling the skeleton
+/// folds into it, so the finger may have drawn any of them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkeletonRules {
+    /// Per skeleton letter, the keys it may be drawn through, its own first (Malayalam: `k` is
+    /// also `c`, `q` and the `g` of `gh`; `t` is `d`; `i` is the `e` of `ee`).
+    keys: [Vec<u8>; 26],
+    /// Skeleton letters people write with an `h` the skeleton drops (`th`, `kh`, `sh` …): the
+    /// path may pass through `h` after them, bending there, at no cost.
+    aspirated: Vec<u8>,
+    /// The letters a skeleton drops from a word's end (`veedu` → `veed`, `entey` → `ent`): the
+    /// path may still draw up to `TRAILING` of them after the skeleton's last letter.
+    trail: Vec<u8>,
+}
+
+impl Default for SkeletonRules {
+    /// Every letter is its own key, and nothing is dropped: a skeleton that folds nothing.
+    fn default() -> Self {
+        Self::new(&[], b"", b"")
+    }
+}
+
+impl SkeletonRules {
+    /// `also`: (skeleton letter, another key it may be drawn through), in the order they are
+    /// tried when two keys are equally near the path. Anything but a–z is left out.
+    pub fn new(also: &[(u8, u8)], aspirated: &[u8], trail: &[u8]) -> Self {
+        let mut keys: [Vec<u8>; 26] = std::array::from_fn(|l| vec![LETTERS[l]]);
+        for &(letter, key) in also {
+            if letter.is_ascii_lowercase() && key.is_ascii_lowercase() {
+                let row = &mut keys[usize::from(letter - b'a')];
+                if !row.contains(&key) {
+                    row.push(key);
+                }
+            }
+        }
+        let letters = |s: &[u8]| -> Vec<u8> {
+            let mut out: Vec<u8> = Vec::new();
+            for &b in s {
+                if b.is_ascii_lowercase() && !out.contains(&b) {
+                    out.push(b);
+                }
+            }
+            out
+        };
+        Self {
+            keys,
+            aspirated: letters(aspirated),
+            trail: letters(trail),
+        }
+    }
+
+    /// The keys a skeleton letter (a–z) may be drawn through.
+    fn keys(&self, letter: u8) -> &[u8] {
+        &self.keys[usize::from(letter - b'a')]
     }
 }
 
 const LETTERS: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
 
-/// Skeleton letters people write with an `h` the skeleton drops (`th`, `kh`, `sh` …): the
-/// path may pass through `h` after them, bending there, at no cost.
-const ASPIRATED: &[u8] = b"ktpbcjsz";
-
 /// The keys a skeleton was most likely drawn through: each letter's key (`skeleton_keys`)
 /// nearest the path. For `shape_cost` and `length_cost`, which compare a drawing with the path.
-pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8]) -> Vec<u8> {
+pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8], rules: &SkeletonRules) -> Vec<u8> {
     let near = |k: u8| {
         keys.centre(k).map_or(f32::INFINITY, |c| {
             path.iter()
@@ -228,7 +267,8 @@ pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8]) -> Vec<u8> {
             if !l.is_ascii_lowercase() {
                 return l;
             }
-            skeleton_keys(l)
+            rules
+                .keys(l)
                 .iter()
                 .copied()
                 .min_by(|&a, &b| near(a).total_cmp(&near(b)))
@@ -237,9 +277,7 @@ pub fn drawn(keys: &KeyMap, path: &[(f32, f32)], skeleton: &[u8]) -> Vec<u8> {
         .collect()
 }
 
-/// Letters a skeleton drops from the end of a word (`veedu` → `veed`, `entey` → `ent`), at most
-/// `TRAILING` of them, which the path may still draw after the skeleton's last letter.
-const TRAIL: &[u8] = b"euyh";
+/// Most dropped letters (`SkeletonRules::trail`) the path may draw after a skeleton's last.
 const TRAILING: usize = 2;
 
 /// Per letter: its cost at each path point, or None for a letter far from the whole path.
@@ -291,13 +329,14 @@ fn bends(path: &[(f32, f32)]) -> Vec<f32> {
     out
 }
 
-/// The finished words of `lexicon` for a resampled `path`, best first. With `skeletons`, keys
-/// are `skeleton\0…` and a word ends where the separator follows; otherwise where a key ends.
+/// The finished words of `lexicon` for a resampled `path`, best first. With `skeletons` (the
+/// pack's rules), keys are `skeleton\0…` and a word ends where the separator follows; otherwise
+/// where a key ends.
 pub fn decode(
     lexicon: &Lexicon,
     keys: &KeyMap,
     path: &[(f32, f32)],
-    skeletons: bool,
+    skeletons: Option<&SkeletonRules>,
 ) -> Vec<Finished> {
     let n = path.len();
     if n == 0 {
@@ -309,13 +348,14 @@ pub fn decode(
         arc: arc(path),
         keys,
     };
-    if !skeletons {
+    let Some(rules) = skeletons else {
         return walk(lexicon.raw(), &plain, &track, None);
-    }
+    };
     let costs: Vec<Option<Vec<f32>>> = LETTERS
         .iter()
         .map(|&l| {
-            let rows = skeleton_keys(l)
+            let rows = rules
+                .keys(l)
                 .iter()
                 .filter_map(|&k| plain[usize::from(k - b'a')].as_ref());
             rows.fold(None::<Vec<f32>>, |acc, row| {
@@ -326,13 +366,15 @@ pub fn decode(
             })
         })
         .collect();
-    let trail: Vec<&Vec<f32>> = TRAIL
+    let trail: Vec<&Vec<f32>> = rules
+        .trail
         .iter()
         .filter_map(|&t| plain[usize::from(t - b'a')].as_ref())
         .collect();
     let skeleton = Skeleton {
         trail: &trail,
         h: plain[usize::from(b'h' - b'a')].as_ref(),
+        aspirated: &rules.aspirated,
     };
     walk(lexicon.raw(), &costs, &track, Some(&skeleton))
 }
@@ -356,10 +398,12 @@ fn end_with_trail(cost: &[f32], bends: &[f32], trail: &[&Vec<f32>]) -> f32 {
     best
 }
 
-/// What a skeleton lexicon's walk adds: the cost rows of `TRAIL` and of `h`.
+/// What a skeleton lexicon's walk adds: the cost rows of the trailing letters and of `h`, and
+/// the letters an `h` may follow.
 struct Skeleton<'a> {
     trail: &'a [&'a Vec<f32>],
     h: Option<&'a Vec<f32>>,
+    aspirated: &'a [u8],
 }
 
 /// `skeleton`: Some for a skeleton lexicon.
@@ -397,9 +441,9 @@ fn walk<D: AsRef<[u8]>>(
                     Step::Letter(l) => {
                         let Some(row) = &costs[l] else { continue };
                         let cost = extend(&hyp.cost, row, bends);
-                        let cost = match skeleton.and_then(|s| s.h) {
+                        let cost = match skeleton.and_then(|s| Some((s.h?, s.aspirated))) {
                             // With or without a drawn h after it, whichever fits each point.
-                            Some(h) if ASPIRATED.contains(&t.inp) => {
+                            Some((h, aspirated)) if aspirated.contains(&t.inp) => {
                                 let with_h = extend(&cost, h, bends);
                                 cost.iter().zip(&with_h).map(|(a, b)| a.min(*b)).collect()
                             }
@@ -692,7 +736,7 @@ mod tests {
     fn top(lexicon: &Lexicon, word: &str) -> Vec<String> {
         let keys = keymap();
         let path = resample(&ideal_path(&keys, word, 4.0), STEP, MAX_POINTS);
-        decode(lexicon, &keys, &path, false)
+        decode(lexicon, &keys, &path, None)
             .into_iter()
             .map(|f| String::from_utf8(f.key).unwrap())
             .collect()
@@ -769,11 +813,73 @@ mod tests {
         let lexicon = lex(&[("sukamanu\0x", 1), ("suk\0y", 1)]);
         let keys = keymap();
         let path = resample(&ideal_path(&keys, "sukamanu", 4.0), STEP, MAX_POINTS);
-        let found = decode(&lexicon, &keys, &path, true);
+        let rules = crate::romanisation::ml().swipe_rules();
+        let found = decode(&lexicon, &keys, &path, Some(rules));
         assert_eq!(found[0].key, b"sukamanu");
         // A skeleton that ends early is found, but its last letter is far from the path's end.
         let early = found.iter().find(|f| f.key == b"suk").unwrap();
         assert!(early.cost > found[0].cost + 4.0);
+    }
+
+    /// What `skeleton_keys`, `ASPIRATED` and `TRAIL` were when they were written by hand for
+    /// Malayalam: its tables give the same.
+    #[test]
+    fn malayalams_tables_give_the_rules_that_were_code() {
+        let rules = crate::romanisation::ml().swipe_rules();
+        for letter in LETTERS {
+            let was: &[u8] = match letter {
+                b'k' => b"kcqg",
+                b't' => b"td",
+                b'p' => b"pf",
+                b'v' => b"vw",
+                b'i' => b"ie",
+                b'u' => b"uo",
+                _ => std::slice::from_ref(&LETTERS[usize::from(letter - b'a')]),
+            };
+            assert_eq!(rules.keys(letter), was, "{}", letter as char);
+        }
+        let sorted = |s: &[u8]| {
+            let mut v = s.to_vec();
+            v.sort_unstable();
+            v
+        };
+        assert_eq!(sorted(&rules.aspirated), sorted(b"ktpbcjsz"));
+        assert_eq!(sorted(&rules.trail), sorted(b"euyh"));
+    }
+
+    #[test]
+    fn another_packs_skeleton_is_drawn_through_its_own_keys() {
+        let pack = |id: &str| {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(format!("../../packs/{id}.neopack/romanisation.json"));
+            crate::romanisation::Romanisation::load(&path).unwrap()
+        };
+        // Hindi keeps d and t apart, and says its own aspirates and trailing letters.
+        let hi = pack("hi");
+        let rules = hi.swipe_rules();
+        assert_eq!(rules.keys(b't'), b"t");
+        assert_eq!(rules.keys(b'd'), b"d");
+        assert_eq!(rules.keys(b'j'), b"jz");
+        assert_eq!(rules.aspirated, b"ktpbcjsdgz");
+        assert_eq!(rules.trail, b"h");
+        // Tamil folds every voiced stop: `k` is drawn through g too, `s` through j and c.
+        let ta = pack("ta");
+        let rules = ta.swipe_rules();
+        assert_eq!(rules.keys(b'k'), b"kgq");
+        assert_eq!(rules.keys(b's'), b"scj");
+        assert!(rules.trail.is_empty(), "Tamil's skeleton drops nothing from the end");
+        // A path through d-a-l is Hindi's `dal`, and its `tal` only at the cost of the t key's
+        // distance; under Malayalam's rules the same path draws either as well.
+        let lexicon = lex(&[("dal\0x", 1), ("tal\0y", 1)]);
+        let keys = keymap();
+        let path = resample(&ideal_path(&keys, "dal", 4.0), STEP, MAX_POINTS);
+        let cost = |rules: &SkeletonRules, key: &[u8]| {
+            let found = decode(&lexicon, &keys, &path, Some(rules));
+            found.iter().find(|f| f.key == key).map_or(f32::INFINITY, |f| f.cost)
+        };
+        let (hi, ml) = (hi.swipe_rules(), crate::romanisation::ml().swipe_rules());
+        assert!(cost(hi, b"tal") > cost(hi, b"dal") + 4.0);
+        assert_eq!(cost(ml, b"tal"), cost(ml, b"dal"));
     }
 
     #[test]

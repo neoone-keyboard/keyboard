@@ -24,6 +24,72 @@ def manifest(script="gujr", min_engine=4, lang=True):
     return m
 
 
+class RomanisationRole(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.manifest = {"id": "zz-test", "script": "gujr", "files": {"romanisation": "romanisation.json"}}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def problems(self, tables):
+        (self.dir / "romanisation.json").write_text(json.dumps(tables), encoding="utf-8")
+        return pack.romanisation_problems(self.dir, self.manifest)
+
+    def test_the_tables_say_which_spellings_are_the_same(self):
+        self.assertIn("no looseSpelling", self.problems({"format": 1})[0])
+        self.assertEqual(self.problems({"format": 1, "looseSpelling": {}}), [])
+        self.assertEqual(self.problems({"format": 1, "looseSpelling": {"collapse": "a"}}), [])
+
+    def test_no_romanisation_is_not_a_problem(self):
+        self.assertEqual(pack.romanisation_problems(self.dir, {"files": {}}), [])
+        self.assertEqual(pack.romanisation_problems(self.dir, self.manifest), [])  # listed, not written yet
+
+    def test_every_committed_pack_says(self):
+        packs = sorted((pack.ROOT / "packs").glob("*.neopack"))
+        self.assertTrue(packs)
+        for folder in packs:
+            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(pack.romanisation_problems(folder, manifest), [], folder.name)
+
+
+class EmojiRoles(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name) / "zz.neopack"
+        self.dir.mkdir()
+        self.root = pack.ROOT
+        pack.ROOT = Path(self.tmp.name) / "repo"
+        self.source = pack.ROOT / "data/langs/zz-test"
+        self.source.mkdir(parents=True)
+
+    def tearDown(self):
+        pack.ROOT = self.root
+        self.tmp.cleanup()
+
+    def test_a_language_without_emoji_words_has_no_roles(self):
+        m = manifest(lang=False)
+        pack.add_copied(self.dir, m)
+        self.assertEqual(m, manifest(lang=False))
+        self.assertEqual(pack.copied_problems(self.dir, m), [])
+
+    def test_the_pack_carries_its_languages_emoji_words(self):
+        (self.source / "emoji-words.txt").write_text("പൂച്ച\t🐈\n", encoding="utf-8")
+        (self.source / "emoji-search.txt").write_text("പൂച്ച\t🐈\n", encoding="utf-8")
+        m = manifest(lang=False)
+        self.assertIn("the emojiWords role", pack.copied_problems(self.dir, m)[0])
+        self.assertEqual(len(pack.copied_problems(self.dir, m)), 2)
+        pack.add_copied(self.dir, m)
+        self.assertEqual(m["files"]["emojiWords"], "emoji-words.txt")
+        self.assertEqual(m["files"]["emojiSearch"], "emoji-search.txt")
+        self.assertEqual(m["minEngine"], 4, "the roles don't raise it")
+        self.assertEqual((self.dir / "emoji-words.txt").read_text(encoding="utf-8"), "പൂച്ച\t🐈\n")
+        self.assertEqual(pack.copied_problems(self.dir, m), [])
+        (self.dir / "emoji-search.txt").write_text("other\n", encoding="utf-8")
+        self.assertIn("emoji-search.txt differs", pack.copied_problems(self.dir, m)[0])
+
+
 class LangRole(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -71,6 +137,25 @@ class LangRole(unittest.TestCase):
         # Devanagari's are in code there too, but not what the new fields say.
         self.write_lang({**joins, "script": "deva", "block": ["0900", "097F"]})
         self.assertIn("at least 5", pack.lang_problems(self.dir, manifest("deva", 2))[0])
+
+    def test_the_joiner_fields_need_engine_6_except_for_malayalam(self):
+        self.write_lang({**LANG, "virama": "0ACD", "joiners": "afterVirama"})
+        problems = pack.lang_problems(self.dir, manifest(min_engine=5))
+        self.assertIn("minEngine must be at least 6", problems[0])
+        self.assertIn("uses joiners", problems[0])
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
+        m = manifest(min_engine=4)
+        pack.add_lang(self.dir, m)
+        self.assertEqual(m["minEngine"], 6)
+        self.write_lang({**LANG, "script": "mlym", "block": ["0D00", "0D7F"], "zwjForms": [["0D28", "0D7B"]]})
+        self.assertEqual(pack.lang_problems(self.dir, manifest("mlym", 1)), [])
+
+    def test_a_nasal_ending_of_several_code_points_needs_engine_6(self):
+        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE", "0AAE"]}})
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=5)), [])
+        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE 0ACD", "0AAE"]}})
+        self.assertIn("at least 6", pack.lang_problems(self.dir, manifest(min_engine=5))[0])
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
 
     def test_another_script_needs_the_file_and_engine_4(self):
         problems = pack.lang_problems(self.dir, manifest(lang=False))

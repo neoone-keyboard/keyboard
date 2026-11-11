@@ -8,7 +8,12 @@ UTF-8 bytes so the keyboard can binary-search it in place. emoji-search.txt is t
 panel's search, in the same form: every word of each emoji's name and keywords ("red" and
 "heart" from "red heart"), with all its emoji in the panel's order, those it names first,
 then "|" and those it is only a keyword of. Only fully-qualified
-emoji; the Component group (lone skin tones and hair styles) is left out."""
+emoji; the Component group (lone skin tones and hair styles) is left out.
+
+The app's two word files hold English (`--annotations`). A pack language's words go to its own
+pair of files (`--pack-annotations ID=FILE`, `--pack-out ID=DIR`), the pack's optional
+`emojiWords` and `emojiSearch` roles: the same formats, that language's annotations and
+everyday flag names only. The keyboard reads the app's files and then each active pack's."""
 
 import argparse
 import sys
@@ -27,11 +32,20 @@ MAX_EMOJI_PER_WORD = 6
 # Everyday names for flags that CLDR names only in full ("United States"), so a word of
 # them suggests the flag. Our own list, not CLDR's. "us" is left out: it's a grammar word.
 FLAG_NAMES = {
-    "usa": "🇺🇸", "america": "🇺🇸", "അമേരിക്ക": "🇺🇸",
-    "uk": "🇬🇧", "britain": "🇬🇧", "ബ്രിട്ടൻ": "🇬🇧", "യുകെ": "🇬🇧",
-    "uae": "🇦🇪", "emirates": "🇦🇪", "dubai": "🇦🇪", "യുഎഇ": "🇦🇪", "ദുബായ്": "🇦🇪",
-    "korea": "🇰🇷", "കൊറിയ": "🇰🇷",
+    "usa": "🇺🇸", "america": "🇺🇸",
+    "uk": "🇬🇧", "britain": "🇬🇧",
+    "uae": "🇦🇪", "emirates": "🇦🇪", "dubai": "🇦🇪",
+    "korea": "🇰🇷",
     "holland": "🇳🇱",
+}
+# The same for a pack's language, by pack id: they go into that pack's files.
+PACK_FLAG_NAMES = {
+    "ml": {
+        "അമേരിക്ക": "🇺🇸",
+        "ബ്രിട്ടൻ": "🇬🇧", "യുകെ": "🇬🇧",
+        "യുഎഇ": "🇦🇪", "ദുബായ്": "🇦🇪",
+        "കൊറിയ": "🇰🇷",
+    },
 }
 STOP_WORDS = {"at", "do", "down", "got", "not", "off", "out", "over", "that", "this", "up"}
 
@@ -197,49 +211,78 @@ def search_words(xml: str, groups: list[tuple[str, list[Emoji]]]) -> dict[str, t
     }
 
 
-def word_lines(words: dict[str, list[str]]) -> list[str]:
+def word_lines(words: dict[str, list[str]], pack: str | None = None) -> list[str]:
     header = [
         "# Emoji suggestions: lowercased word<TAB>emoji, best first, from Unicode CLDR annotations",
         "# (Unicode License v3; see data/manifests/cldr-annotations.json). Built by",
         "# data/pipeline/emoji_data.py. Sorted by UTF-8 bytes after these comment lines.",
-    ]
+    ] + _pack_header(pack, "emojiWords")
     # Python orders strings by code point, which is UTF-8 byte order; the tab sorts first.
     return header + sorted(f"{word}\t{' '.join(emoji)}" for word, emoji in words.items())
 
 
-def search_lines(words: dict[str, tuple[list[str], list[str]]]) -> list[str]:
+def _pack_header(pack: str | None, role: str) -> list[str]:
+    """One more comment line for a pack's file: whose words these are."""
+    return [] if pack is None else [f"# The words of pack {pack} (its {role} role); the app's own file holds English."]
+
+
+def search_lines(words: dict[str, tuple[list[str], list[str]]], pack: str | None = None) -> list[str]:
     header = [
         "# Emoji search: lowercased word<TAB>the emoji it names | the emoji it is a keyword of,",
         "# each in the panel's order, from Unicode CLDR annotations (Unicode License v3; see",
         "# data/manifests/cldr-annotations.json). Built by data/pipeline/emoji_data.py. Sorted by",
         "# UTF-8 bytes after these comment lines.",
-    ]
+    ] + _pack_header(pack, "emojiSearch")
     return header + sorted(
         f"{word}\t{' '.join(named + (['|'] if others else []) + others)}"
         for word, (named, others) in words.items()
     )
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--emoji-test", type=Path, required=True)
-    parser.add_argument("--annotations", type=Path, action="append", required=True)
-    parser.add_argument("--out", type=Path, required=True, help="directory for emoji.txt and emoji-words.txt")
-    args = parser.parse_args(argv)
-    groups = parse_emoji_test(args.emoji_test.read_text(encoding="utf-8"))
+def build_words(
+    annotations: list[str], flags: dict[str, str], groups: list[tuple[str, list[Emoji]]]
+) -> tuple[dict[str, list[str]], dict[str, tuple[list[str], list[str]]]]:
+    """The suggestion words and the search words of one language: its annotation files (their
+    XML text, in order) and its everyday flag names."""
     ranked: list[dict[str, list[tuple[bool, str]]]] = []
     search: dict[str, tuple[list[str], list[str]]] = {}
-    for path in args.annotations:
-        xml = path.read_text(encoding="utf-8")
+    for xml in annotations:
         ranked.append(ranked_annotations(xml, groups))
         for word, (named, others) in search_words(xml, groups).items():
             had_named, had_others = search.get(word, ([], []))
             all_named = list(dict.fromkeys(had_named + named))
             search[word] = (all_named, [e for e in dict.fromkeys(had_others + others) if e not in all_named])
-    words = merge_words([{word: [(True, flag)] for word, flag in FLAG_NAMES.items()}] + ranked)
-    for word, flag in FLAG_NAMES.items():
+    words = merge_words([{word: [(True, flag)] for word, flag in flags.items()}] + ranked)
+    for word, flag in flags.items():
         named, others = search.get(word, ([], []))
         search[word] = ([flag] + [e for e in named if e != flag], [e for e in others if e != flag])
+    return words, search
+
+
+def _by_id(pairs: list[str], what: str) -> dict[str, list[Path]]:
+    out: dict[str, list[Path]] = {}
+    for pair in pairs:
+        pack, sep, path = pair.partition("=")
+        if not sep or not pack or not path:
+            raise SystemExit(f"{what} wants ID=PATH, got {pair!r}")
+        out.setdefault(pack, []).append(Path(path))
+    return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--emoji-test", type=Path, required=True)
+    parser.add_argument("--annotations", type=Path, action="append", required=True,
+                        help="an English annotation file, for the app's files")
+    parser.add_argument("--out", type=Path, required=True, help="directory for emoji.txt and the app's word files")
+    parser.add_argument("--pack-annotations", action="append", default=[], metavar="ID=FILE",
+                        help="an annotation file of a pack's language")
+    parser.add_argument("--pack-out", action="append", default=[], metavar="ID=DIR",
+                        help="directory for that pack's emoji-words.txt and emoji-search.txt")
+    args = parser.parse_args(argv)
+    groups = parse_emoji_test(args.emoji_test.read_text(encoding="utf-8"))
+    read_all = lambda paths: [path.read_text(encoding="utf-8") for path in paths]  # noqa: E731
+    words, search = build_words(read_all(args.annotations), FLAG_NAMES, groups)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "emoji.txt").write_text("\n".join(catalog_lines(groups)) + "\n", encoding="utf-8")
     (args.out / "emoji-words.txt").write_text("\n".join(word_lines(words)) + "\n", encoding="utf-8")
@@ -247,6 +290,17 @@ def main(argv: list[str] | None = None) -> int:
     count = sum(len(entries) for _, entries in groups)
     print(f"{args.out}: {count:,} emoji in {len(groups)} groups, {len(words):,} words, {len(search):,} search words",
           file=sys.stderr)
+    annotations = _by_id(args.pack_annotations, "--pack-annotations")
+    outs = _by_id(args.pack_out, "--pack-out")
+    if set(annotations) != set(outs):
+        raise SystemExit("--pack-annotations and --pack-out name different packs")
+    for pack, paths in annotations.items():
+        words, search = build_words(read_all(paths), PACK_FLAG_NAMES.get(pack, {}), groups)
+        for out in outs[pack]:
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "emoji-words.txt").write_text("\n".join(word_lines(words, pack)) + "\n", encoding="utf-8")
+            (out / "emoji-search.txt").write_text("\n".join(search_lines(search, pack)) + "\n", encoding="utf-8")
+            print(f"{out}: pack {pack}, {len(words):,} words, {len(search):,} search words", file=sys.stderr)
     return 0
 
 

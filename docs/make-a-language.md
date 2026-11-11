@@ -67,8 +67,9 @@ packs/as.neopack/
 | `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam has one. | No |
 | `layout` | `layout.json` | The native-script keyboard pages. Without it the language is typed in Latin only and the language key skips it. | No |
 | `lang` | `lang.json` | The script's definition: `data/langs/xx/lang.json`, the file the lexicons were built with (step 2). `pack.py --write` copies it in. Engine 4. | **Yes.** `pack.py --check` fails without it. (The engine still reads an older `mlym`, `deva` or `beng` pack that lacks it.) |
-| `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a script whose `lang.json` has `suffixJoins` uses it (Malayalam today). | No |
+| `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a pack whose `lang.json` has `suffixJoins` uses it (Malayalam today; step 4b). | No |
 | `chatForms` | `chat-forms.tsv` | Hand-written chat spellings no rule reaches: `latin<TAB>native` per line. | No |
+| `emojiWords`, `emojiSearch` | `emoji-words.txt`, `emoji-search.txt` | Your language's words for emoji: the first suggests an emoji in the bar for a typed word, the second is the emoji panel's search. Built from Unicode CLDR's annotations for your locale (step 8b). Read by the app, not the engine. | No. Without them the bar and the search know English only. |
 
 Any missing optional file switches off only its feature.
 
@@ -242,7 +243,9 @@ engine the same: one definition for both. The engine's parser is
 | `notLetter` | Ranges that stay inside a run when text is split into words but that a word is not made of. Malayalam lists its digits and number signs, as its text has always been split that way; a new language should use `notWord`. Engine 5. |
 | `looseSigns` | Vowel signs that loose spelling inserts between consonants (Malayalam ആവിശ്യം for ആവശ്യം). A typed word that reads as a rare word is also tried without one such sign before a consonant. Optional. Engine 5. |
 | `finalPairs` | `[["a", "b"]]`, code points in hex: a word ending in a consonant and one of the two is also written with the other (Malayalam's final ു and ്). Optional. Engine 5. |
-| `suffixJoins` | How a stem and a suffix of `suffixes.tsv` fuse: the vowel signs, glides and final forms of the script's sandhi. See `data/langs/ml/lang.json` and `Joins` in `engine/core/src/script/data.rs`. Without it the pack is never split into stem and suffix. Optional. Engine 5. |
+| `suffixJoins` | How a stem and a suffix of `suffixes.tsv` fuse: the vowel signs, glides and final forms of the script's sandhi. Step 4b explains each part, with Malayalam's and a Tamil example. Without it the pack is never split into stem and suffix. Optional. Engine 5 (6 for a `nasal` ending of several code points). |
+| `joiners` | `"afterVirama"`: a ZWJ or ZWNJ between the `virama` and a character of the script is part of the word, because it changes how the cluster is drawn (Malayalam ഗ്‍ക; Devanagari's half form क्‍ष and explicit halant क्‌ष; Bengali's য-ফলা forms). `"drop"`, the default: every joiner is dropped. Decide before you build the lexicon (see below). Optional. Engine 6. |
+| `zwjForms` | `[["consonant", "letter"]]`, code points in hex: the consonant + `virama` + ZWJ is an older encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ). Optional. Engine 6. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
 
@@ -251,10 +254,24 @@ did, so typed words meet stored ones. Only `script`, and `block` or `letters`, a
 the engine; the other script fields are optional, and the builder's (`maxChars`, `maxWords`,
 `minCount`, `aksharantar`, `notes`) are ignored by it.
 
-The engine's normal form always includes NFC and drops every ZWJ and ZWNJ (only the Malayalam
-virama keeps one), so a Devanagari `lang.json` should drop them too, with the first two
-`replace` entries below, so the builder's words carry none. There is no test for a new pack
-yet (gap G9).
+**Joiners.** The engine's normal form is NFC plus what each script's `lang.json` says about
+ZWJ and ZWNJ. By default every joiner is dropped. With `"joiners": "afterVirama"` one that
+follows the script's virama, before another character of the script, is kept; Malayalam's file
+says so, and no rule here is written for Malayalam. The builder and the engine read the same
+field, so the lexicon and what is typed always agree, but the choice is fixed when the lexicon
+is built: change it later and typed words stop matching stored ones until you rebuild.
+
+Which to choose? Unicode gives joiners after a virama a meaning in several scripts: in
+Devanagari and Bengali, virama + ZWJ asks for a half form and virama + ZWNJ for a visible
+virama. In running text they are rare and inconsistent (the same word with and without one),
+and a word typed without the joiner would then miss the stored one with it. So Hindi,
+Assamese and Tamil drop them, as their published lexicons were built: keeping them now would
+make every stored word with such a cluster unreachable from text that has the joiner, and
+the reverse. Keep them only if your language tells words apart by a joiner, or writes common
+words that are wrong without one (Malayalam's ഛത്തീസ്‌ഗഡ്), and then leave ZWJ and ZWNJ out
+of `replace`. A Devanagari `lang.json` that drops them can say nothing; the first two
+`replace` entries below drop them before NFC as well, which mends a few mis-typed
+sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
 
 A Devanagari example (Marathi). Copy this rather than the Assamese file for any `deva`
 language:
@@ -281,7 +298,8 @@ language:
 ```
 
 - `"‍"` is ZWJ and `"‌"` ZWNJ. Marathi's eyelash ra (र + virama + ZWJ) becomes a
-  plain र्, as the engine's normal form makes it.
+  plain र्, as the engine's normal form makes it when the file doesn't ask for
+  `"joiners": "afterVirama"`.
 - The other `replace` entries mend independent vowels typed as अ or ए plus a sign.
 - `signs` lists what must follow a consonant (vowel signs, nukta forms, the virama).
   Anusvara ं, candrabindu ँ and visarga ः are left out on purpose: they can follow a vowel
@@ -461,6 +479,85 @@ and ஓ. Leave it out when it would mend a pair or two: folding e to i would hav
 Tamil's 200 pairs and merged every e and i word. After step 7, check with step 11's script
 that common words still come first.
 
+**Spellings that spell the same word: `looseSpelling`.** The skeleton only finds candidates.
+To rank them, the engine asks whether the typed letters spell a word out: are they its
+canonical spelling, up to the differences your language's typists don't hear? A word spelled
+out beats one the letters only resemble, and may replace an English word. Those differences
+are the hand file's `looseSpelling` (the export copies it into `romanisation.json`):
+
+```json
+"looseSpelling": {
+  "singles": {"d": "t"},
+  "pairs": [["ee", "i"], ["oo", "u"]],
+  "collapse": "aiu"
+}
+```
+
+- `singles`: a letter read as another. Malayalam has `d` as `t` (ട is typed either way:
+  `veedu` for വീട്, canonical `veetu`). Tamil has `d`, `g`, `b`, `j` as `t`, `k`, `p`, `s`, one
+  letter each in its script. Hindi and Assamese have none: द and त are different letters, so
+  `dal` must not count as spelling ताल.
+- `pairs`: two letters in a row read as one letter (`ee` as `i`, `oo` as `u`).
+- `collapse`: letters that count once however often they repeat (`aa` as `a`). Leave
+  consonants out when a doubled consonant is another word (Malayalam `veedu` / `vittu`).
+
+Every part is optional; `{}` means only the same letters spell the word. Keep it narrower than
+the skeleton: a fold here stops the typed letters from telling two words apart. Without the
+field in the hand file the export writes `{}`. `scripts/pack.py --check` fails on a
+`romanisation.json` that lacks it, because the engine reads such a file as it read the packs
+published before the field, with Malayalam's three habits above. Measure a change with step
+11's `mlkb.eval.pack`: Tamil's voiced letters moved its held-out top-1 from 47.8% to 47.9%
+and the first slot from 24.8% to 25.0%; dropping the field's vowel folds cost Hindi a point of
+first slot.
+
+**Swiping romanised words.** A swipe over the Latin keys is matched against the skeletons of
+your romanised lexicon, and the rules for that come from your skeleton, with nothing to write:
+a skeleton letter may be drawn through every letter the skeleton folds into it (Tamil's `k`
+through `g` and `q`, its `s` through `c` and `j`; Hindi's `t` only through `t`), the finger
+may pass through `h` after a letter that a pattern ending in `h` folds to (`th` to `t`), and it
+may go on to the letters the skeleton drops from a word's end (`dropTrailing`,
+`dropFinalVowel`). If the derived lists are wrong for your language, a `swipe` section in
+`romanisation.json` overrides the last two: `"swipe": {"aspirated": "ktpb", "trail": "h"}`
+(Hindi's file has one). The export doesn't write it; add it to the pack's file by hand after
+step 7 and run `scripts/pack.py --write` again.
+
+**A spelled guess without a model: `fromLatin`.** When nothing else answers for typed
+letters (no lexicon word, and no transliterator, or one that wasn't asked because the letters
+are an English word), the engine spells them by rule and offers that in a side slot. With no
+work from you the rules are your tables turned round: each Latin spelling of a consonant or a
+vowel gives its letter back. That is rough where two letters share a spelling, since the
+tables don't say which is commoner and the lower code point wins (Hindi `t` gives ट, not त;
+Tamil `tamil` gives டமில்). On the held-out sets, with the model taken out of the pack, it
+answers many more words but few of them right (first native suggestion right: Tamil 33.1% to
+36.0%, Assamese 34.1% to 35.0%, Hindi unchanged at 50.0%; no native suggestion at all: 55% to
+23%, 51% to 20%, 32% to 24%). A pack with a transliterator hardly uses it.
+
+For a better guess, add a `fromLatin` section to the pack's `romanisation.json` (by hand,
+after step 7, then `scripts/pack.py --write`; the export doesn't write it). Malayalam's is
+the worked example, and `RawFromLatin` in `engine/core/src/translit.rs` documents each part.
+Two tables are required, read left to right with the first match taken, so put longer
+spellings first:
+
+```json
+"fromLatin": {
+  "consonants": [["kh", "ख"], ["k", "क"], ["t", "त"], ["b", "ब"]],
+  "vowels": [["aa", "आ", "ा"], ["a", "अ", ""], ["i", "इ", "ि"]],
+  "bareFinal": true
+}
+```
+
+- `consonants`: `[latin, native]`. List every letter a to z that isn't a vowel spelling, or a
+  word with a missing letter gets no guess.
+- `vowels`: `[latin, letter, sign]`: the independent letter, and the sign on a consonant
+  (`""` for the inherent vowel).
+- `bareFinal`: a word-final consonant is written bare (Hindi कमल). Without it, it takes the
+  virama, or its `finalForms` entry (`[native, final]`: Malayalam's chillus, ന to ൻ).
+- The rest encode habits of Malayalam's typists that other languages may share:
+  `longBeforeOpenSyllable` (a short e or o is long before one consonant and a vowel: `mohan`),
+  `finalVowels` (a final `y` after a consonant is ി), `fused` (`r` + `i` after `k` is ൃ),
+  `afterConsonant` (`n` after `sh` is ണ), `betweenVowels` (a lone `ch` is ച്ച) and
+  `beforeConsonant` (`r` before a consonant is the chillu ർ).
+
 **Doubled letters.** A consonant doubled across a virama (க்க) is one slot. By default it is
 spelled with the letter's first Latin letter doubled (க `k` gives `kk`, but த `th` gives
 `tth`), or, `geminateSingle` of the time, like the single letter. When people type it another
@@ -490,6 +587,79 @@ Assamese hand file), so write your language's notes there. The Assamese hand fil
 `inClusterLetters` (`শষস`): letters whose `inCluster` spelling holds in every two-letter
 cluster they are in, which the export lists as clusters. Leave it out unless your language
 has such letters.
+
+### 4b. Optional: endings glued onto words (`suffixes.tsv`)
+
+Skip this unless your language glues clitics and case endings onto words the way Malayalam
+does (സുഖം + ആണോ is സുഖമാണോ) and people type such forms all the time. Most of them never
+occur in your text, so the lexicon doesn't have them. With a suffix table the engine reads a
+typed word that has no whole-form match as a stem from the lexicon plus one or two endings,
+and joins them by your script's sandhi. Malayalam is the only pack that ships one; nothing in
+the mechanism is Malayalam's, but nobody has measured it for another language yet, so treat
+a new table as an experiment and check it with step 11's script.
+
+Two files. **`data/langs/xx/lang.json` gets `suffixJoins`**, the sandhi (code points in hex;
+every part is optional):
+
+| Part | Meaning | Malayalam | Tamil |
+|---|---|---|---|
+| `vowelSigns` | `[vowel, sign]`: the sign an independent vowel becomes on a consonant; `""` for the consonant's own vowel. A vowel suffix must start with one of these. | അ `""`, ആ ാ, ഇ ി … | அ `""`, ஆ ா, இ ி … |
+| `elide` | Final signs that give way to the suffix's vowel, after a consonant. | ് and ു (കഴിച്ചു + ഓ is കഴിച്ചോ) | the pulli ் (அவன் + இடம் is அவனிடம்) |
+| `glides` | `{"glide": consonant, "after": ranges}`: the consonant put between a stem ending in one of `after` and a vowel. | വ after u and o sounds, യ after the rest | வ after ா ு ூ ொ ோ ௌ, ய after ி ீ ெ ே ை (பள்ளி + இல் is பள்ளியில்) |
+| `inherentGlide` | The glide after a bare consonant (its own vowel). | യ (അമ്മ + ഓട് is അമ്മയോട്) | வ |
+| `finalForms` | `[letter, consonant]`: a word-final form that becomes its consonant before a vowel. | the chillus (അവൻ + ഓട് is അവനോട്) | none |
+| `nasal` | `[ending, consonant]`: a stem ending in `ending` takes a vowel suffix as the consonant + sign, takes no case ending, and loses the ending to an oblique one. Several code points are separated by spaces. | `["0D02", "0D2E"]`: ം, മ (മരം + ത്തിൽ is മരത്തിൽ) | `["0BAE 0BCD", "0BAE"]`: ம், ம (காலம் + த்தில் is காலத்தில்) |
+| `consonantAfter` | Finals, besides vowels and consonants, that take a suffix starting with a consonant. | ർ and ൾ (അവൾ + ക്ക് is അവൾക്ക്) | none |
+
+Tamil's, complete (the engine's tests join the examples above with exactly this):
+
+```json
+"suffixJoins": {
+  "vowelSigns": [["0B85", ""], ["0B86", "0BBE"], ["0B87", "0BBF"], ["0B88", "0BC0"],
+                 ["0B89", "0BC1"], ["0B8A", "0BC2"], ["0B8E", "0BC6"], ["0B8F", "0BC7"],
+                 ["0B90", "0BC8"], ["0B92", "0BCA"], ["0B93", "0BCB"]],
+  "nasal": ["0BAE 0BCD", "0BAE"],
+  "elide": ["0BCD"],
+  "glides": [
+    {"glide": "0BB5", "after": [["0BBE", "0BBE"], ["0BC1", "0BC2"], ["0BCA", "0BCC"]]},
+    {"glide": "0BAF", "after": [["0BBF", "0BC0"], ["0BC6", "0BC8"]]}
+  ],
+  "inherentGlide": "0BB5"
+}
+```
+
+It needs `bases` (your consonants) in the same file: a consonant, for the joins, is a `bases`
+letter that is not a combining mark.
+
+**`packs/xx.neopack/suffixes.tsv`** lists the endings, one per line, tab-separated, and the
+manifest's `files` gets `"suffixes": "suffixes.tsv"`:
+
+```
+# latin	native	join	[inner]
+il	இல்	case	inner
+thil	த்தில்	oblique	inner
+a,aa	ஆ	vowel
+kku,ku	க்கு	consonant
+```
+
+- `latin`: the ways people type the ending, comma-separated, lower-case a to z. It is matched
+  against the end of the typed word; what is left must be at least three letters.
+- `native`: the ending in your script.
+- `join`: `vowel` (starts with a vowel, which becomes a sign on the stem), `case` (the same,
+  but a stem with the `nasal` ending doesn't take it), `consonant` (starts with a consonant;
+  appended to a stem that ends in a vowel, a consonant or a `consonantAfter` letter), or
+  `oblique` (replaces the `nasal` ending; only such stems take it).
+- `inner`: write it when another ending may follow this one.
+- Row order breaks ties: among cuts of equal length, earlier rows are tried first. Keep the
+  table small. Every row is a guess about words the engine has never seen, so each ending
+  must be common.
+
+Two things about the typed stem come from your data, not from code: an oblique ending is
+typed without the stem's nasal (`kaala` + `thil`), so the engine adds how your tables spell
+the `nasal` ending (`m`) before it looks the stem up; and a stem typed with its glide
+(`ammay` + `odu`) is also looked up without it, the glides being your `glides` and
+`inherentGlide` letters as your `consonants` table spells them. A language without a
+`nasal` or glides gets neither.
 
 ### 5. The manifest
 
@@ -530,9 +700,10 @@ writes its checksums, and stops at the start if it is missing. Copy
   publish. The app won't install an older version over a newer one.
 - `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, 3 for a pack in a script
   other than Malayalam that has an `lm`, 4 for a pack in any other script (engines before 4
-  have only those three scripts' rules, in code, and ignore `lang.json`), and 5 for a pack
-  whose `lang.json` uses `notLetter`, `looseSigns`, `finalPairs` or `suffixJoins` (Malayalam's
-  own pack stays at 1: older engines have what those say in code). Write 2 and leave the rest
+  have only those three scripts' rules, in code, and ignore `lang.json`), 5 for a pack
+  whose `lang.json` uses `notLetter`, `looseSigns`, `finalPairs` or `suffixJoins`, and 6 for
+  one that uses `joiners` or `zwjForms` (Malayalam's own pack stays at 1: older engines have
+  what those say in code). Write 2 and leave the rest
   to `pack.py --write`, which the lexicon build runs at the end of step 7 (and you run again
   in step 10): it copies `data/langs/xx/lang.json` into the pack, adds `"lang": "lang.json"`
   to `files` and, for a script other than `mlym`, `deva` and `beng`, raises `minEngine` to 4,
@@ -662,6 +833,30 @@ Devanagari rules from the engine's copy of `data/langs/hi/lang.json` instead of 
 Step 7 already wrote `next.fst`: pairs of adjacent words from your text, plus the English
 pairs. Nothing more is needed for next-word suggestions. Sentences never span a
 `phraseBreaks` character.
+
+### 8b. Optional: emoji words
+
+The bar offers an emoji for a word (🍕 for `pizza`) and the emoji panel has a search. Both
+know English from the app, and your language from your pack. The words come from
+[Unicode CLDR](https://cldr.unicode.org/)'s emoji annotations, which exist for most locales
+(Unicode License v3, already credited by the app).
+
+1. Add your locale's two files to `data/manifests/cldr-annotations.json`, next to
+   Malayalam's: `common/annotations/xx.xml` as `xx.xml` and `common/annotationsDerived/xx.xml`
+   as `derived-xx.xml`, with their sha256 (`shasum -a 256`). CLDR's locale code must be your
+   pack id; the script takes every `<id>.xml` but English's as a pack language.
+2. `make emoji` writes `data/langs/xx/emoji-words.txt` and `emoji-search.txt`. It rewrites
+   the app's English files too, with the same bytes unless Unicode's data changed.
+3. `scripts/pack.py packs/xx.neopack --write` (step 10) copies the two files into the pack,
+   adds the `emojiWords` and `emojiSearch` roles and their checksums. `--check` fails when
+   the pack's copies differ from `data/langs/xx/`. `minEngine` doesn't move: the engine
+   doesn't read them, and an older app ignores them.
+4. Add a credit to the manifest, as Malayalam's has: id `cldr-annotations`, licence
+   `Unicode License v3`.
+
+Everyday names for flags that CLDR only spells out in full (`അമേരിക്ക` for 🇺🇸) are a short
+list per pack id in `data/pipeline/emoji_data.py` (`PACK_FLAG_NAMES`); that one is a code
+edit, and optional.
 
 ### 9. Train the transliterator
 

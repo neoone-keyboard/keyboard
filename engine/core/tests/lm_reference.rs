@@ -153,7 +153,18 @@ fn trained() -> Option<Lm> {
         println!("skipped: {} is missing", path.display());
         return None;
     }
-    Some(Lm::open(&path).unwrap())
+    let mut lm = Lm::open(&path).unwrap();
+    // Its native pieces are its pack's script, as the engine sets them when the pack opens.
+    let script = match lm_lang().as_str() {
+        "ml" => Some("mlym"),
+        "hi" => Some("deva"),
+        "as" => Some("beng"),
+        _ => None,
+    };
+    if let Some(rules) = script.and_then(mlengine_core::script::embedded) {
+        lm.set_native(rules.block());
+    }
+    Some(lm)
 }
 
 fn percentiles(mut times: Vec<Duration>) -> (Duration, Duration) {
