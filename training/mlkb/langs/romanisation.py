@@ -296,6 +296,16 @@ class Tables:
             for sym in symbols:
                 if not out or out[-1] != sym:
                     out.append(sym)
+        # `dropBetweenConsonants` (optional; the format's step 5): every such letter with a
+        # consonant on both sides goes, all at once, so a medial inherent vowel typed or not
+        # gives one key (Marathi karanar / karnar).
+        between = self.data["skeleton"].get("dropBetweenConsonants", "")
+        if between and len(out) >= 3:
+            out = [
+                c for k, c in enumerate(out)
+                if not (c in between and 0 < k < len(out) - 1
+                        and out[k - 1] not in "aeiou" and out[k + 1] not in "aeiou")
+            ]
         if len(out) >= 2 and out[-1] in drop_final and out[-2] not in vowels:
             out.pop()
         return "".join(out)
