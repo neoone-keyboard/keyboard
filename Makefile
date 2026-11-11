@@ -264,9 +264,12 @@ endif
 	cd training && uv run --quiet python -m mlkb.eval.pack --lang $(PACK_LANG)
 
 # Rebuilds the committed emoji files (the panel and the suggestions) from Unicode's
-# emoji-test.txt and the CLDR annotations in data/manifests (downloads about 1.5 MB).
+# emoji-test.txt and the CLDR annotations in data/manifests (downloads about 13 MB): English,
+# and every pack language that has its words in data/langs/<id>/. A language's first build
+# names it by pack id (its CLDR locale is in data/manifests/cldr-annotations.json, "packs"):
+#   make emoji EMOJI_PACKS="as ta"
 emoji:
-	./data/build-emoji.sh
+	./data/build-emoji.sh $(EMOJI_PACKS)
 
 # Which language the LM pipeline pairs with English (training/mlkb/lm/lang.py): ml, the default,
 # builds in training/build/lm and build/lm.pt as it always has; hi in training/build/lm-hi and

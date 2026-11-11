@@ -204,3 +204,25 @@ def test_the_command_writes_the_apps_files_and_each_packs(tmp_path):
     assert "അമേരിക്ക\t🇺🇸" in pack and "usa\t🇺🇸" in app
     assert (tmp_path / "copy/emoji-search.txt").read_bytes() == (tmp_path / "pack/emoji-search.txt").read_bytes()
     assert not (tmp_path / "pack/emoji.txt").exists()
+
+
+def test_the_manifest_lists_both_files_of_every_pack_language():
+    """data/build-emoji.sh reads a pack's words from <locale>.xml and derived-<locale>.xml of the
+    manifest's "packs" (pack id -> CLDR locale), and rebuilds the languages that have their two
+    files in data/langs/<id>/: each of those must be a pack of the manifest."""
+    import json
+    from pathlib import Path
+    data = Path(__file__).resolve().parents[2]
+    manifest = json.loads((data / "manifests/cldr-annotations.json").read_text(encoding="utf-8"))
+    files = {entry["path"]: entry for entry in manifest["files"]}
+    base = "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/"
+    for pack, locale in manifest["packs"].items():
+        assert files[f"{locale}.xml"]["url"] == f"{base}annotations/{locale}.xml", pack
+        assert files[f"derived-{locale}.xml"]["url"] == f"{base}annotationsDerived/{locale}.xml", pack
+        assert len(files[f"{locale}.xml"]["sha256"]) == 64 and len(files[f"derived-{locale}.xml"]["sha256"]) == 64
+    built = {path.parent.name for path in (data / "langs").glob("*/emoji-words.txt")}
+    assert built and built <= set(manifest["packs"]), "a language's emoji words have no source in the manifest"
+    for pack in built:
+        assert (data / "langs" / pack / "emoji-search.txt").is_file(), pack
+        header = (data / "langs" / pack / "emoji-words.txt").read_text(encoding="utf-8").splitlines()[3]
+        assert header.startswith(f"# The words of pack {pack} "), pack
