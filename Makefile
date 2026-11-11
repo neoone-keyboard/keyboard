@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: golden golden-save golden-check golden-more testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift lexicons emoji lm-data lm models bench bench-hi eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -72,6 +72,18 @@ test: test-engine test-data test-training test-swift eval
 test-engine:
 	cd engine && $(CARGO) test && $(CARGO) clippy --all-targets -- -D warnings
 	./scripts/shipped-crates.sh --check
+
+# Line coverage of the engine's test suite (the `cargo test` of test-engine, so the release-only
+# and ignored tests of test-data, eval and bench don't count): a table of every source file, the
+# least covered first, and the total. Measures only; nothing fails on a number. Needs
+# cargo-llvm-cov, once:
+#   cd engine && rustup component add llvm-tools-preview && cargo install cargo-llvm-cov
+# The tests run several times slower instrumented (about 10 minutes).
+coverage-engine:
+	@cd engine && $(CARGO) llvm-cov --version >/dev/null 2>&1 || { echo "cargo-llvm-cov not found. Install it with: cd engine && rustup component add llvm-tools-preview && cargo install cargo-llvm-cov"; exit 1; }
+	mkdir -p build/coverage
+	cd engine && $(CARGO) llvm-cov --workspace --json --summary-only --output-path ../build/coverage/engine.json
+	@python3 -I scripts/coverage-table.py build/coverage/engine.json engine
 
 # The data checks: every pack's checksums, script rules and layout (scripts/pack.py --check),
 # the scripts' own tests, each pack's lexicons against its tables and script
