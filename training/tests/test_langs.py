@@ -333,3 +333,53 @@ def test_the_skeletons_optional_steps_come_from_the_hand_file():
         ("bharat", "brt"), ("amar", "amr"), ("kaam", "ka"), ("tr", "tr"), ("", ""),
     ]:
         assert t.skeleton(typed) == key and f.skeleton(typed) == key, typed
+
+
+def _abjad_tables() -> dict:
+    """Weighted tables for a script without a virama, as Urdu's: consonants, three letters that
+    are also vowels after a consonant, a final, and the do-chashmi he clusters."""
+    return {
+        "format": 1,
+        "script": "arab",
+        "virama": "",
+        "independentVowels": {"ا": [["a", 1.0]]},
+        "vowelSigns": {"ا": [["a", 1.0]], "ی": [["i", 1.0]], "و": [["o", 1.0]]},
+        "consonants": {"ک": [["k", 1.0]], "ب": [["b", 1.0]], "ر": [["r", 1.0]], "ھ": [["h", 1.0]],
+                       "م": [["m", 1.0]], "ی": [["y", 1.0]], "و": [["w", 1.0]]},
+        "clusters": {"بھ": [["bh", 1.0]], "کھ": [["kh", 1.0]]},
+        "finals": {"ں": [["n", 1.0]]},
+        "inherent": {"medial": [["", 1.0]], "final": [["", 1.0]], "finalAfterCluster": [["", 1.0]],
+                     "only": [["", 1.0]]},
+        "skeleton": {"replace": [["bh", "b"]], "letters": {}, "dropFinal": ""},
+    }
+
+
+def test_a_script_without_a_virama_walks_its_clusters_as_written():
+    t = Tables(_abjad_tables())
+    assert t.virama == ""
+    assert t.canonical("بھائی") == "bhay"  # بھ is one cluster, ا its vowel, then ی a consonant
+    assert t.canonical("کھر") == "khr"
+    assert t.canonical("کر") == "kr"  # no inherent vowel is written
+    assert t.canonical("میں") == "min"
+    assert [s.table for s in t.slots("بھر")] == ["clusters", "inherent.medial", "consonants", "inherent.final"]
+
+
+def test_format1_exports_and_walks_a_script_without_a_virama():
+    t = Tables(_abjad_tables())
+    f = Format1(export(t))
+    assert f.data["virama"] == ""
+    assert f.data["clusters"] == {"بھ": "bh", "کھ": "kh"}
+    for word in ["بھائی", "کھر", "کر", "میں", "بکری", "کو"]:
+        assert f.romanize(word) == t.canonical(word), word
+    # The inherent vowel still follows a consonant without a sign: an empty virama is not one.
+    data = _abjad_tables()
+    data["inherent"]["medial"] = [["a", 1.0]]
+    assert Format1(export(Tables(data))).romanize("کرو") == "karo"
+
+
+def test_a_lang_without_a_virama_keeps_its_short_words():
+    lang = human.Lang({"id": "xx", "block": ["0600", "06FF"], "firstLetter": [["0621", "06FF"]],
+                       "maxChars": 30})
+    assert lang.virama == ""
+    assert lang.is_word("کہ") and lang.is_word("ہے") and lang.is_word("و")
+

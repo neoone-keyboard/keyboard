@@ -70,7 +70,9 @@ class Lang:
 
     @cached_property
     def virama(self) -> str:
-        return _cp(self.data["virama"])
+        """The virama, or "" for a script without one (Urdu's): `virama` is optional in
+        lang.json, as in the engine's `ScriptDef`."""
+        return _cp(self.data["virama"]) if self.data.get("virama") else ""
 
     def in_block(self, c: str) -> bool:
         return self.block[0] <= c <= self.block[1]
@@ -105,7 +107,7 @@ class Lang:
         apostrophe = bool(self.data.get("apostrophe"))
         ok = all(self.is_word_char(c) or c in (ZWJ, ZWNJ) or (c == "'" and apostrophe) for c in word)
         starts = bool(word) and any(a <= word[0] <= b for a, b in self._first)
-        lone_virama = len(word) <= 2 and word.endswith(self.virama)
+        lone_virama = bool(self.virama) and len(word) <= 2 and word.endswith(self.virama)
         return (
             ok
             and word.count("'") <= 1
