@@ -1,0 +1,305 @@
+{
+  "format": 1,
+  "script": "beng",
+  "language": "bn",
+  "about": "How Bengali is typed in Latin letters: native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar ben (training/mlkb/langs/calibrate.py). Each table maps a letter (or a letter + nukta, or a conjunct) to [spelling, weight] options, canonical first.",
+  "virama": "্",
+  "independentVowels": {
+    "অ": [["a", 0.964], ["o", 0.036]],
+    "আ": [["aa", 0.935], ["a", 0.065]],
+    "ই": [["i", 0.983], ["e", 0.017]],
+    "ঈ": [["i", 0.691], ["ee", 0.309]],
+    "উ": [["u", 0.996], ["oo", 0.01]],
+    "ঊ": [["u", 0.8], ["oo", 0.2]],
+    "ঋ": [["ri", 0.7], ["rri", 0.15], ["wri", 0.1], ["ru", 0.05]],
+    "ঌ": [["li", 1.0]],
+    "এ": [["e", 0.984], ["a", 0.01], ["ae", 0.01]],
+    "ঐ": [["ai", 0.539], ["oi", 0.461]],
+    "ও": [["o", 0.998], ["u", 0.01]],
+    "ঔ": [["ou", 0.6], ["au", 0.4]],
+    "ৠ": [["ri", 1.0]],
+    "ৡ": [["li", 1.0]],
+    "অ্যা": [["a", 0.774], ["e", 0.174], ["ae", 0.051]],
+    "এ্যা": [["a", 0.75], ["e", 0.15], ["ae", 0.1]]
+  },
+  "vowelSigns": {
+    "া": [["aa", 0.886], ["a", 0.114]],
+    "ি": [["i", 0.997], ["e", 0.01], ["ee", 0.01]],
+    "ী": [["ee", 0.991], ["i", 0.01]],
+    "ু": [["u", 0.997], ["oo", 0.01], ["o", 0.01]],
+    "ূ": [["oo", 0.988], ["u", 0.013]],
+    "ৃ": [["rri", 0.376], ["ri", 0.338], ["wri", 0.241], ["ru", 0.046]],
+    "ৄ": [["ri", 1.0]],
+    "ে": [["e", 0.996], ["a", 0.01], ["ae", 0.01]],
+    "ৈ": [["ai", 0.812], ["oi", 0.188]],
+    "ো": [["o", 0.999], ["u", 0.01]],
+    "ৌ": [["au", 0.639], ["ou", 0.361]],
+    "ৗ": [["ou", 1.0]],
+    "ৢ": [["li", 1.0]],
+    "ৣ": [["li", 1.0]]
+  },
+  "consonants": {
+    "ক": [["k", 1.0]],
+    "খ": [["kh", 0.961], ["k", 0.039]],
+    "গ": [["g", 1.0]],
+    "ঘ": [["gh", 0.984], ["g", 0.016]],
+    "ঙ": [["ng", 0.943], ["n", 0.058]],
+    "চ": [["ch", 0.998], ["c", 0.01]],
+    "ছ": [["chh", 0.939], ["ch", 0.059], ["s", 0.01]],
+    "জ": [["j", 0.993], ["z", 0.01]],
+    "ঝ": [["jh", 0.945], ["j", 0.044], ["z", 0.011]],
+    "ঞ": [["n", 0.934], ["ny", 0.066]],
+    "ট": [["t", 1.0]],
+    "ঠ": [["th", 0.996], ["t", 0.01]],
+    "ড": [["d", 1.0]],
+    "ঢ": [["dh", 0.923], ["d", 0.077]],
+    "ণ": [["n", 1.0]],
+    "ত": [["t", 0.996], ["th", 0.01]],
+    "থ": [["th", 0.998], ["t", 0.01]],
+    "দ": [["d", 1.0]],
+    "ধ": [["dh", 0.998], ["d", 0.01]],
+    "ন": [["n", 1.0]],
+    "প": [["p", 1.0]],
+    "ফ": [["f", 0.917], ["ph", 0.083]],
+    "ব": [["b", 0.995], ["v", 0.01]],
+    "ভ": [["bh", 0.676], ["v", 0.322], ["b", 0.01]],
+    "ম": [["m", 1.0]],
+    "য": [["z", 0.635], ["j", 0.245], ["y", 0.12]],
+    "র": [["r", 1.0]],
+    "ল": [["l", 1.0]],
+    "শ": [["sh", 0.999], ["s", 0.01]],
+    "ষ": [["sh", 0.986], ["s", 0.014]],
+    "স": [["s", 0.999], ["sh", 0.01]],
+    "হ": [["h", 1.0]],
+    "ড়": [["r", 1.0]],
+    "ঢ়": [["rh", 0.6], ["r", 0.4]],
+    "য়": [["y", 0.984], ["", 0.015], ["e", 0.01], ["i", 0.01]],
+    "ক়": [["k", 1.0]],
+    "খ়": [["kh", 1.0]],
+    "গ়": [["g", 1.0]],
+    "জ়": [["z", 0.7], ["j", 0.3]],
+    "ফ়": [["f", 1.0]]
+  },
+  "inCluster": {
+    "শ": [["sh", 0.939], ["s", 0.061]],
+    "ষ": [["sh", 0.969], ["s", 0.031]],
+    "স": [["s", 0.988], ["sh", 0.012]]
+  },
+  "afterVirama": {
+    "য": [["y", 0.83], ["", 0.125], ["j", 0.046]],
+    "ব": [["b", 0.535], ["w", 0.405], ["", 0.061]],
+    "ম": [["m", 0.994], ["", 0.01]],
+    "র": [["r", 1.0]]
+  },
+  "clusters": {
+    "ক্ষ": [["kkh", 0.64], ["ksh", 0.338], ["kh", 0.019], ["khy", 0.01]],
+    "জ্ঞ": [["gg", 0.499], ["gy", 0.475], ["gn", 0.015], ["jn", 0.01]],
+    "হ্ম": [["hm", 0.654], ["mh", 0.346]],
+    "ঙ্ক": [["nk", 0.5], ["ngk", 0.5]],
+    "ঙ্গ": [["ng", 0.597], ["ngg", 0.403]],
+    "ম্ব": [["mb", 1.0]],
+    "ল্ব": [["lb", 1.0]],
+    "ব্ব": [["bb", 0.914], ["b", 0.086]],
+    "দ্ব": [["dw", 0.638], ["d", 0.197], ["db", 0.164]],
+    "য্য": [["jj", 0.432], ["jy", 0.395], ["y", 0.172]],
+    "ক্য": [["ky", 0.818], ["kk", 0.128], ["k", 0.054]],
+    "খ্য": [["khy", 0.744], ["kkh", 0.179], ["kh", 0.077]],
+    "গ্য": [["gy", 0.744], ["gg", 0.179], ["g", 0.077]],
+    "ত্য": [["ty", 0.956], ["tt", 0.031], ["t", 0.013]],
+    "থ্য": [["thy", 0.772], ["tth", 0.159], ["th", 0.068]],
+    "দ্য": [["dy", 0.898], ["dd", 0.071], ["d", 0.031]],
+    "ধ্য": [["dhy", 0.878], ["ddh", 0.086], ["dh", 0.037]],
+    "ন্য": [["ny", 0.744], ["nn", 0.179], ["n", 0.077]],
+    "ণ্য": [["ny", 0.625], ["nn", 0.263], ["n", 0.113]],
+    "প্য": [["py", 0.625], ["pp", 0.263], ["p", 0.113]],
+    "ভ্য": [["bhy", 0.625], ["bbh", 0.263], ["bh", 0.113]],
+    "ম্য": [["my", 0.752], ["m", 0.163], ["mm", 0.086]],
+    "ল্য": [["ly", 0.579], ["l", 0.293], ["ll", 0.128]],
+    "শ্য": [["shy", 0.744], ["ssh", 0.179], ["sh", 0.077]],
+    "ষ্য": [["shy", 0.569], ["ssh", 0.302], ["sh", 0.13]],
+    "স্য": [["sy", 0.711], ["ss", 0.203], ["s", 0.087]],
+    "জ্য": [["jy", 0.711], ["jj", 0.203], ["j", 0.087]],
+    "ট্য": [["ty", 0.5], ["tt", 0.263], ["t", 0.237]],
+    "ত্ব": [["tw", 0.75], ["tt", 0.159], ["t", 0.091]],
+    "শ্ব": [["shw", 0.866], ["ssh", 0.086], ["sh", 0.049]],
+    "স্ব": [["sw", 0.952], ["sh", 0.031], ["s", 0.018]],
+    "জ্ব": [["jw", 0.639], ["jj", 0.23], ["j", 0.131]],
+    "ধ্ব": [["dhw", 0.525], ["ddh", 0.302], ["dh", 0.173]],
+    "ত্ম": [["tm", 0.838], ["tt", 0.162]],
+    "দ্ম": [["dm", 0.6], ["dd", 0.4]]
+  },
+  "geminateSingle": 0.007,
+  "finals": {
+    "ং": [["ng", 0.807], ["n", 0.193]],
+    "ঁ": [["n", 0.942], ["", 0.058]],
+    "ঃ": [["h", 0.824], ["", 0.176]],
+    "ৎ": [["t", 1.0]]
+  },
+  "inherent": {
+    "medial": [["a", 0.975], ["", 0.017], ["o", 0.01]],
+    "schwaDeleted": [["a", 0.96], ["", 0.036], ["o", 0.01]],
+    "final": [["", 0.939], ["a", 0.061], ["o", 0.01]],
+    "finalAfterCluster": [["", 0.67], ["a", 0.321], ["o", 0.01]],
+    "only": [["o", 0.7], ["a", 0.3]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); every `dropBetweenConsonants` letter with a consonant on both sides is dropped; then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "kkh",
+        "k"
+      ],
+      [
+        "khy",
+        "k"
+      ],
+      [
+        "ksh",
+        "k"
+      ],
+      [
+        "wri",
+        "ri"
+      ],
+      [
+        "gy",
+        "g"
+      ],
+      [
+        "ngk",
+        "nk"
+      ],
+      [
+        "ngs",
+        "ns"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mph",
+        "np"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "rh",
+        "r"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "u"
+      ],
+      [
+        "au",
+        "u"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "f": "p",
+      "v": "b",
+      "w": "b",
+      "q": "k",
+      "o": "a",
+      "y": "i"
+    },
+    "vowels": "aeiou",
+    "dropBetweenConsonants": "a",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length only: Bengali keeps d and t apart (দ, ত), and typed o and a for the inherent vowel are already one skeleton key.",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is typed 'o' or 'a' (কর kor, বল bol, কলকাতা kolkata / kalkata); at the end of a word it is mostly dropped (আমার amar), but kept after a final cluster (গল্প golpo) and often where it is said (ভাল bhalo). In the middle of a word it is dropped between a vowel + lone consonant and a lone consonant + vowel (রাজনীতি rajniti, কলকাতা kolkata).",
+    "phalas": "The -ya sign after a consonant is 'y' or nothing (ব্যাপার byapar / bapar, সন্ধ্যা sondhya / sondha), the -ba sign mostly nothing or 'w' (স্বাধীন swadhin / shadhin, বিশ্ব bishwo), and ম after a virama is usually 'm' (আত্মা atma). Speech doubles the consonant instead, and chat spells what is said (অন্য onno, ধন্যবাদ dhonnobad, সত্য sotto, বিশ্ব bissho, পদ্ম poddo), so the common consonant + -ya, -ba and -ma pairs are listed in clusters with the doubled spelling as an option. The doubled spelling has another skeleton than the y or w one, so those forms reach their word through the transliterator, which learns them from these tables. ম্ব, ল্ব and ব্ব keep their b.",
+    "letters": "অ্যা (অ + -ya sign + আ-kar, also written এ্যা) is the a of English loans (অ্যাপ app, অ্যান্ড and) and is one key of four code points. র (U+09B0) is r; the Assamese ৰ and ৱ are not Bengali letters and are not in the tables. য is j (যদি jodi) and য় is y (হয় hoy, মেয়ে meye). য় ড় ঢ় are base + nukta after NFC (U+09DF etc. are composition exclusions), so their keys are two code points. ড় is r only (বাড়ি bari, বড় boro): Aksharantar's annotators mostly typed d, a transliteration habit that chat does not have, and with d listed the fit would key every such word by d. ৎ, ং, ঁ and ঃ are finals. স is said sh and typed s or sh (সব sob / shob).",
+    "skeleton": "sh folds to s and chh, ch to c; z to j; v and w to b; f to p; o to a, so the inherent vowel typed o or a gives one key (বল bol / bal); y to i (হয় hoy / hoi). kkh, ksh and khy fold to k (ক্ষমা khoma / kshoma). gy folds to g (জ্ঞান gyan / ggan), wri to ri (বৃষ্টি bwrishti / brishti), ng before k or s to n (ব্যাংক byangk / bank), mb and mp to nb and np. An a between two consonants is dropped, so the inherent vowel that speech drops gives one key typed or not (আমরা amara / amra, করব korobo / korbo); with o and aa folded to a this also drops a typed o or aa there, so the letters between consonants are told apart only by ranking. A final a after a consonant is dropped, which covers the final inherent vowel typed or not (ভাল bhal / bhalo)."
+  }
+}

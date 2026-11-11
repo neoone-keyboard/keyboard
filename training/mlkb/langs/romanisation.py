@@ -101,6 +101,17 @@ class Tables:
     def _cluster_keys(self) -> list[str]:
         return sorted(self.table("clusters"), key=len, reverse=True)
 
+    @cached_property
+    def _independent_keys(self) -> list[str]:
+        return sorted(self.table("independentVowels"), key=len, reverse=True)
+
+    def _independent_at(self, word: str, i: int) -> str | None:
+        """The independent-vowel key at `word[i:]`, longest first."""
+        for key in self._independent_keys:
+            if word.startswith(key, i):
+                return key
+        return None
+
     def _consonant_at(self, word: str, i: int) -> str | None:
         """The consonant table key at `word[i:]` (a letter, or a letter + nukta), longest first."""
         for key in self._consonant_keys:
@@ -156,9 +167,14 @@ class Tables:
                     out.append(Slot("V", t["inherent"][ctx], f"inherent.{ctx}", ""))
                 i = j
                 continue
-            if c in t["independentVowels"]:
-                out.append(Slot("V", t["independentVowels"][c], "independentVowels", c))
-            elif c in t["vowelSigns"]:  # a stray sign: spelled as its vowel
+            vowel = self._independent_at(word, i)
+            if vowel is not None:
+                # A key may be several code points (Bengali অ্যা, the vowel of "and"), as in the
+                # format-1 walk: the longest one that matches.
+                out.append(Slot("V", t["independentVowels"][vowel], "independentVowels", vowel))
+                i += len(vowel)
+                continue
+            if c in t["vowelSigns"]:  # a stray sign: spelled as its vowel
                 out.append(Slot("V", t["vowelSigns"][c], "vowelSigns", c))
             elif c.isascii() and c.isalpha():
                 out.append(Slot("F", ((c.lower(), 1.0),), "latin", c.lower()))
@@ -296,6 +312,16 @@ class Tables:
             for sym in symbols:
                 if not out or out[-1] != sym:
                     out.append(sym)
+        # `dropBetweenConsonants` (optional; the format's step 5): every such letter with a
+        # consonant on both sides goes, all at once, so a medial inherent vowel typed or not
+        # gives one key (Marathi karanar / karnar).
+        between = self.data["skeleton"].get("dropBetweenConsonants", "")
+        if between and len(out) >= 3:
+            out = [
+                c for k, c in enumerate(out)
+                if not (c in between and 0 < k < len(out) - 1
+                        and out[k - 1] not in "aeiou" and out[k + 1] not in "aeiou")
+            ]
         if len(out) >= 2 and out[-1] in drop_final and out[-2] not in vowels:
             out.pop()
         return "".join(out)

@@ -1,0 +1,62 @@
+{
+  "format": 1,
+  "id": "mai",
+  "version": "2026.11.11",
+  "name": "Maithili",
+  "nativeName": "मैथिली",
+  "script": "deva",
+  "romanised": {
+    "name": "Romanised Maithili"
+  },
+  "minEngine": 2,
+  "files": {
+    "lexicon": "mai.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "lang.json": "e4d67d4f692170a0e14fdabfc4fc38bbad69a38a60fa5117d1fd790ded98dbd0",
+    "layout.json": "0bd162132ebe65a841555223ae2ca76621dcfe9c9bd9a2da024f833814989991",
+    "mai.fst": "ca704166414f48236b87cb2e61398081bb181aff803e52b2431578412b5eac19",
+    "next.fst": "a1349f4cbf90c676efee7cce0d3e7ca4f18f74c8ed44e10abadae8c9a006eb06",
+    "romanisation.json": "8227e442180711c765606d2a886ea67e57ebc3b17c4e141e54b4997881d242a4",
+    "romanised.fst": "2cc65904c1871f1ca0ac52bf55226bbb86f806967ff0b3c2b54307675824eeab",
+    "translit.mlkbnn": "3dde815fb04fc4fd697253bdd8d27cd49c8e57692fc486d4103cb147a1c3270a"
+  },
+  "credits": [
+    {
+      "name": "Maithili Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://mai.wikipedia.org/"
+    },
+    {
+      "name": "Hindi Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikipedia.org/"
+    },
+    {
+      "name": "Hindi Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://hi.wikisource.org/"
+    },
+    {
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

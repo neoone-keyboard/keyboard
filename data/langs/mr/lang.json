@@ -1,0 +1,51 @@
+{
+  "id": "mr",
+  "name": "Marathi",
+  "script": "deva",
+  "block": ["0900", "097F"],
+  "notWord": [["0964", "0970"]],
+  "firstLetter": [
+    ["0904", "0914"],
+    ["0915", "0939"],
+    ["0958", "0961"],
+    ["0972", "097F"]
+  ],
+  "virama": "094D",
+  "signs": [
+    ["093A", "093B"],
+    ["093E", "094C"],
+    ["094E", "094F"],
+    ["0955", "0957"],
+    ["0962", "0963"],
+    ["094D", "094D"]
+  ],
+  "bases": [
+    ["0915", "0939"],
+    ["093C", "093C"],
+    ["0958", "095F"],
+    ["0978", "097F"]
+  ],
+  "apostrophe": false,
+  "replace": [
+    ["‍", ""],
+    ["‌", ""],
+    ["अा", "आ"],
+    ["अो", "ओ"],
+    ["अौ", "औ"],
+    ["एे", "ऐ"],
+    ["अॅ", "ॲ"],
+    ["ाॅ", "ॉ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "mar",
+  "notes": {
+    "block": "Devanagari, U+0900-U+097F. Words are runs of these letters and signs.",
+    "notWord": "Danda, double danda, digits ०-९ and the abbreviation sign are not word letters.",
+    "replace": "The normal form is NFC with every ZWJ and ZWNJ dropped (no \"joiners\" field), and the first two entries drop them before NFC as well, so Marathi's eyelash ra (र + virama + ZWJ) becomes a plain र्. Mis-encoded independent vowels (अ + sign) are mended, among them अ + ॅ for ॲ (अॅलोपॅथिक), and ा + ॅ for ॉ (डाॅ).",
+    "phraseBreaks": "The danda । and double danda ॥ end a sentence.",
+    "signs": "A vowel sign or virama must follow a consonant or nukta. Anusvara, candrabindu and visarga may follow a vowel and are not in this list."
+  }
+}

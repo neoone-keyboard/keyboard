@@ -132,6 +132,13 @@ class Format1:
             for sym in symbols:
                 if not (sk["collapseDoubles"] and out and out[-1] == sym):
                     out.append(sym)
+        between = sk.get("dropBetweenConsonants", "")
+        if between and len(out) >= 3:  # the format's step 5: every such letter at once
+            out = [
+                c for k, c in enumerate(out)
+                if not (c in between and 0 < k < len(out) - 1
+                        and out[k - 1] not in VOWELS and out[k + 1] not in VOWELS)
+            ]
         final = sk["dropFinalVowel"]
         # As romanize.rs: the length before the vowel is dropped is at least minLength.
         if (
@@ -228,6 +235,9 @@ def export(t: Tables) -> dict:
     # written: a file without it is read as the packs published before the field were, with
     # Malayalam's habits. A hand file that says nothing gets none.
     loose = {k: v for k, v in hand.get("looseSpelling", {}).items() if k in ("singles", "pairs", "collapse")}
+    # A medial vowel that typing drops or keeps (Hindi-belt schwas): only when the hand file
+    # asks for it, so files exported before the option are unchanged.
+    between = {"dropBetweenConsonants": sk["dropBetweenConsonants"]} if sk.get("dropBetweenConsonants") else {}
     return {
         "format": 1,
         "script": t.data["script"],
@@ -244,6 +254,7 @@ def export(t: Tables) -> dict:
             "pairs": [list(p) for p in pairs],
             "singles": dict(sk["letters"]),
             "collapseDoubles": True,
+            **between,
             "dropFinalVowel": {"vowels": sk.get("dropFinal", ""), "afterConsonant": True, "minLength": 3},
         },
         "looseSpelling": loose,

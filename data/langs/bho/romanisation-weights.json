@@ -1,0 +1,247 @@
+{
+  "format": 1,
+  "script": "deva",
+  "language": "bho",
+  "about": "How Bhojpuri is typed in Latin letters: native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar hin, Hindi's pairs, as there are none for Bhojpuri (training/mlkb/langs/calibrate.py). Each table maps a letter (or a letter + nukta, or a conjunct) to [spelling, weight] options, canonical first.",
+  "virama": "्",
+  "independentVowels": {
+    "अ": [["a", 1.0]],
+    "आ": [["aa", 0.955], ["a", 0.045]],
+    "इ": [["i", 0.948], ["e", 0.052]],
+    "ई": [["ee", 0.841], ["i", 0.159]],
+    "उ": [["u", 0.996], ["oo", 0.01]],
+    "ऊ": [["oo", 0.567], ["u", 0.433]],
+    "ऋ": [["ri", 0.85], ["ru", 0.15]],
+    "ए": [["e", 0.997], ["a", 0.01]],
+    "ऐ": [["ai", 0.949], ["ei", 0.051]],
+    "ओ": [["o", 1.0]],
+    "औ": [["au", 0.85], ["ou", 0.15]],
+    "ऑ": [["o", 0.898], ["aa", 0.102]],
+    "ऍ": [["e", 0.6], ["a", 0.4]]
+  },
+  "vowelSigns": {
+    "ा": [["aa", 0.837], ["a", 0.163]],
+    "ि": [["i", 0.998], ["e", 0.01]],
+    "ी": [["ee", 0.812], ["i", 0.188]],
+    "ु": [["u", 0.996], ["oo", 0.01]],
+    "ू": [["oo", 0.979], ["u", 0.021]],
+    "ृ": [["ru", 0.957], ["ri", 0.043]],
+    "ॄ": [["ri", 1.0]],
+    "े": [["e", 0.995], ["a", 0.01]],
+    "ै": [["ai", 0.997], ["ei", 0.01]],
+    "ो": [["o", 1.0]],
+    "ौ": [["au", 0.996], ["ou", 0.01]],
+    "ॉ": [["o", 0.909], ["aa", 0.091]],
+    "ॅ": [["e", 0.6], ["a", 0.4]]
+  },
+  "consonants": {
+    "क": [["k", 1.0]],
+    "ख": [["kh", 0.998], ["k", 0.01]],
+    "ग": [["g", 1.0]],
+    "घ": [["gh", 0.99], ["g", 0.01]],
+    "ङ": [["n", 0.775], ["ng", 0.225]],
+    "च": [["ch", 0.999], ["c", 0.01]],
+    "छ": [["chh", 0.967], ["ch", 0.033]],
+    "ज": [["j", 0.999], ["z", 0.01]],
+    "झ": [["jh", 0.923], ["j", 0.077]],
+    "ञ": [["n", 0.828], ["ny", 0.172]],
+    "ट": [["t", 1.0]],
+    "ठ": [["th", 0.993], ["t", 0.01]],
+    "ड": [["d", 1.0]],
+    "ढ": [["dh", 0.963], ["d", 0.037]],
+    "ण": [["n", 1.0]],
+    "त": [["t", 1.0]],
+    "थ": [["th", 0.998], ["t", 0.01]],
+    "द": [["d", 1.0]],
+    "ध": [["dh", 0.999], ["d", 0.01]],
+    "न": [["n", 1.0]],
+    "प": [["p", 1.0]],
+    "फ": [["f", 0.735], ["ph", 0.265]],
+    "ब": [["b", 1.0]],
+    "भ": [["bh", 0.998], ["b", 0.01]],
+    "म": [["m", 1.0]],
+    "य": [["y", 1.0]],
+    "र": [["r", 1.0]],
+    "ल": [["l", 1.0]],
+    "ळ": [["l", 1.0]],
+    "व": [["v", 0.628], ["w", 0.372]],
+    "श": [["sh", 0.999], ["s", 0.01]],
+    "ष": [["sh", 0.997], ["s", 0.01]],
+    "स": [["s", 1.0]],
+    "ह": [["h", 1.0]],
+    "क़": [["k", 0.6], ["q", 0.4]],
+    "ख़": [["kh", 1.0]],
+    "ग़": [["g", 1.0]],
+    "ज़": [["z", 0.7], ["j", 0.3]],
+    "ड़": [["r", 0.518], ["d", 0.482]],
+    "ढ़": [["dh", 0.844], ["rh", 0.112], ["r", 0.044]],
+    "फ़": [["f", 1.0]],
+    "य़": [["y", 1.0]]
+  },
+  "inCluster": {},
+  "afterVirama": {
+    "य": [["y", 0.991], ["", 0.01]],
+    "व": [["v", 0.547], ["w", 0.453]],
+    "र": [["r", 1.0]],
+    "ह": [["h", 1.0]]
+  },
+  "clusters": {
+    "क्ष": [["ksh", 0.982], ["x", 0.01], ["ks", 0.01], ["kch", 0.01]],
+    "ज्ञ": [["gy", 0.957], ["gn", 0.026], ["jn", 0.017]],
+    "श्र": [["shr", 0.972], ["sr", 0.028]]
+  },
+  "geminateSingle": 0.002,
+  "finals": {
+    "ं": [["n", 0.973], ["m", 0.025], ["", 0.01]],
+    "ँ": [["n", 0.948], ["", 0.052]],
+    "ः": [["h", 0.994], ["", 0.01]],
+    "ऽ": [["", 0.6], ["a", 0.4]]
+  },
+  "inherent": {
+    "medial": [["a", 0.992], ["", 0.01]],
+    "schwaDeleted": [["a", 0.935], ["", 0.065]],
+    "final": [["", 0.983], ["a", 0.017]],
+    "finalAfterCluster": [["", 0.707], ["a", 0.293]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); every `dropBetweenConsonants` letter with a consonant on both sides is dropped; then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "ksh",
+        "x"
+      ],
+      [
+        "kch",
+        "x"
+      ],
+      [
+        "ks",
+        "x"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "rh",
+        "r"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ei",
+        "ai"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "mph",
+        "np"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "f": "p",
+      "w": "v",
+      "q": "k"
+    },
+    "vowels": "aeiou",
+    "dropBetweenConsonants": "a",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed). Vowel length only, as for Hindi: Bhojpuri keeps d and t apart (द, त), so no letter is read as another.",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is typed 'a' inside a word and dropped at its end (घर ghar). Speech drops it inside words too (करत karat, करतानी kartani), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key.",
+    "letters": "ऽ (avagraha) lengthens the vowel before it and is typed as nothing or as a (कऽ ka, हऽ ha); it is a final in the tables. Candrabindu is n or nothing (हँ han / ha, में men / me), anusvara n, or m before a labial. ज्ञ is gy (ज्ञान gyan). A nukta letter is its consonant plus U+093C after NFC, so its key is two code points; ड़ is r or d (बड़ bar / bad, लइका and लड़िका).",
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; mb and mp to nb and np. A final a after a consonant is dropped, which covers the final inherent vowel typed or not."
+  }
+}

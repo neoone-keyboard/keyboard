@@ -1,0 +1,24 @@
+{
+  "id": "mrwikiquote",
+  "name": "Marathi Wikiquote",
+  "homepage": "https://mr.wikiquote.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://mr.wikiquote.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Quotations on Marathi Wikiquote, collected by Wikiquote contributors.",
+  "used_for": "Marathi word frequencies and next-word pairs (packs/mr.neopack; whole 2026-11-01 dump).",
+  "retrieved": "2026-11-11",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/mrwikiquote/20261101/mrwikiquote-20261101-pages-articles.xml.bz2",
+      "sha1": "1c02d157838c0667e964e9ddf9680b776b90b9b5",
+      "path": "mrwikiquote-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/mr.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}

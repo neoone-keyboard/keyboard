@@ -1,0 +1,24 @@
+{
+  "id": "bnwikisource",
+  "name": "Bengali Wikisource",
+  "homepage": "https://bn.wikisource.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://bn.wikisource.org/ page footer (checked 2026-11-11): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Texts on Bengali Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
+  "used_for": "Bengali word frequencies and next-word pairs (packs/bn.neopack; 2026-11-01 dump, main and Page namespaces; every third paragraph, so that older literature is well under half of the text).",
+  "retrieved": "2026-11-11",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/bnwikisource/20261101/bnwikisource-20261101-pages-articles.xml.bz2",
+      "sha1": "dd5b6c3fcf5b845e2fb3f41fdfdf54e2be0f3d6f",
+      "path": "bnwikisource-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/bn.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}

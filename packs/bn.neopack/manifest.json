@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "id": "bn",
+  "version": "2026.11.11",
+  "name": "Bengali",
+  "nativeName": "বাংলা",
+  "script": "beng",
+  "romanised": {
+    "name": "Romanised Bengali"
+  },
+  "minEngine": 4,
+  "files": {
+    "lexicon": "bn.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json"
+  },
+  "sha256": {
+    "bn.fst": "6d95da874d58376869e1e9d8c73cd359ac86eecda0fe8454ee19e32ee91fbfea",
+    "lang.json": "b9f2431f7b5d0474f35bef68d3d74ec7a0facdb11a170b75670d81422d39a57b",
+    "layout.json": "bb4f9c86712733d1c9cde264c83d1261a8e612c4823dc2595a3bbb35a27cdd74",
+    "next.fst": "0f5944ae0e6f25a4b3df88edb7535eaef3d0f341366c71a30949dd0a8020bfb7",
+    "romanisation.json": "4798ac0a9f7b1d2130b16d8ade8c79853a92590425132f1d2adb67509fea5a64",
+    "romanised.fst": "b25ebb6a2162ab1bc3a5ad55cb23f4f0caf8a473ca19f608dedcb5c1a10261fc",
+    "translit.mlkbnn": "753f59acdc0f59ebd4a8f6d9470fa99c964867edd5b41022d584fcecb7e178a7"
+  },
+  "credits": [
+    {
+      "name": "Bengali Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://bn.wikipedia.org/"
+    },
+    {
+      "name": "Bengali Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://bn.wikisource.org/"
+    },
+    {
+      "name": "Bengali Wikiquote",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://bn.wikiquote.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

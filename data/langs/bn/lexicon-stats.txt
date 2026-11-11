@@ -1,0 +1,10 @@
+bn tokens: 107193377, distinct forms: 3155502
+bn dropped (a letter of the script, but not a word): 1818064 tokens, 465358 forms
+bn dropped top 20: ২১শ 25221, ২০শ 24581, ধৰ্ম্ম 14240, ক'রে 13030, কৰ্ম্ম 11052, হ'ল 9560, ১ম 9538, কাৰ্য্য 9000, পূৰ্ব্বে 8710, ২য় 8254, ১টি 7415, পৰ্য্যন্ত 6878, ২টি 5957, ৰি 5883, ১৯শ 5258, ৩য় 5189, কৰ্ত্তব্য 4974, শ্ৰীযুক্ত 4926, টুয়েন্টি২০ 4694, ৩টি 4541
+next.fst pairs: 149952 bn, 149977 English
+bn.fst: 300000 keys, 3332449 bytes
+next.fst: 299929 keys, 4728189 bytes
+bn top 20: এবং ও হয় করে এই একটি তিনি করা না যে করেন থেকে তার জন্য এর সালে বিষয়শ্রেণী ছিল মধ্যে বা
+romanised keys skipped: 0
+romanised.fst: 300000 keys, 5457911 bytes
+bn text by source: bnwiki 75749660 words (62%), bnwikisource 40075781 words (33%), bnwikiquote 6165637 words (5%)

@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-mar",
+  "name": "Aksharantar (AI4Bharat), Marathi",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-06): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Marathi files have 46,966 Dakshina rows and 1,918 Existing rows, which the filter in training/mlkb/langs/human.py drops (the tools keep only mined, Wikidata and manual rows). What is kept is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-NEF, AK-NEI: CC BY).",
+  "used_for": "mar_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/mr.neopack, and to fit and check the romanised Marathi tables (data/langs/mr/romanisation.json). mar_valid.json has no manual rows, so a quarter of mar_train.json's manual rows, held out by word, calibrate the tables and validate training. mar_test.json's manual rows (CC BY) are the held-out eval set: their words are left out of every training pair.",
+  "retrieved": "2026-11-11",
+  "notes": "Fetched 2026-11-11. Extract with: unzip mar.zip -d data/raw/aksharantar-mar/extracted (data/build-mr-text.sh does). mar_train.json has 1,452,748 rows: IndicCorp 1,379,659, Dakshina 37,690, Samanantar 21,320, Wikidata 8,015, AK-Freq 4,146, Existing 1,918. mar_valid.json has 7,646 rows: Dakshina 3,631, IndicCorp 3,493, Samanantar 336, Wikidata 186. mar_test.json has 12,190 rows: Dakshina 5,645, AK-Freq 4,467, AK-NEI 1,247, AK-NEF 831. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/mar.zip",
+      "sha256": "47aab4119094f44e907d017a26aff5a33590bb42e115f19e79b957c5eb0056ef",
+      "path": "mar.zip"
+    }
+  ],
+  "extracted": {
+    "mar_train.json": "e7b2e549b6cb6a63e8c2f52a87c86ef2b5ed3c70578e786054cfeb480f4fcd18",
+    "mar_valid.json": "259547775b32981615f48eeb1c82246996ac5aeaa5d020ca7caba6210b917187",
+    "mar_test.json": "512a5b66a63c8bc8b55826801680ba34bb66719565f938c742c073eba442fa9f"
+  },
+  "status": "in packs/mr.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+}

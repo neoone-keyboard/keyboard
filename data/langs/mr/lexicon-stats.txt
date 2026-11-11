@@ -1,0 +1,10 @@
+mr tokens: 25178284, distinct forms: 1388206
+mr dropped (a letter of the script, but not a word): 90829 tokens, 34326 forms
+mr dropped top 20: टी२० 2374, ट्वेंटी२० 2199, टी२०आ 1880, इ० 1815, स० 1047, २०व्या 992, पृ० 885, १७व्या 628, २१व्या 599, ॐ 582, अ० 542, १९व्या 501, १६व्या 475, उदा० 450, वि० 424, श्लो० 422, उ० 421, ता० 417, प० 386, प्रक० 377
+next.fst pairs: 149595 mr, 149977 English
+mr.fst: 300000 keys, 3250714 bytes
+next.fst: 299572 keys, 4752463 bytes
+mr top 20: आहे आणि व या हे ते एक हा आहेत होते नाही ही असे तर वर्ग इ असते स त्या तो
+romanised keys skipped: 0
+romanised.fst: 299997 keys, 5666297 bytes
+mr text by source: mrwiki 15655964 words (56%), mrwikisource 12087067 words (44%), mrwikiquote 41686 words (0%)
