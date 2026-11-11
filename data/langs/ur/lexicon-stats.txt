@@ -1,0 +1,10 @@
+ur tokens: 58000416, distinct forms: 331968
+ur dropped (a letter of the script, but not a word): 601249 tokens, 29926 forms
+ur dropped top 20: ں 44038, ء 21327, 2018ء 9050, 2019ء 8382, 2021ء 7456, 2022ء 6387, 2017ء 6355, 2020ء 6354, 2016ء 6144, 2015ء 5901, 2011ء 5858, 2013ء 5782, 2014ء 5618, 2010ء 5616, 2008ء 5578, 2009ء 5496, 2012ء 5264, 2007ء 5176, 2006ء 4906, 2023ء 4581
+next.fst pairs: 148834 ur, 149977 English
+ur.fst: 116276 keys, 989343 bytes
+next.fst: 298811 keys, 3348139 bytes
+ur top 20: کے میں کی اور ہے سے کا نے اس کو ایک پر ہیں کیا و جو ان کر تھا کہ
+romanised keys skipped: 0
+romanised.fst: 116274 keys, 1413984 bytes
+ur text by source: urwiki 52923997 words (90%), urwikisource 5999904 words (10%), urwikiquote 168683 words (0%)

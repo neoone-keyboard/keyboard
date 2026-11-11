@@ -129,7 +129,14 @@ def fit(tables: Tables, pairs: list[tuple[str, str]]) -> tuple[Tables, int]:
             continue
         else:
             node, name = data[table], key
+        canonical = node[name][0][0]
         node[name] = _fit(node[name], seen)
+        # The hand file may hold a slot's canonical spelling whatever people type most
+        # (`keepCanonical`, "table" or "table.key": Urdu keeps the medial inherent vowel "a",
+        # so a walked consonant never runs into the next as a digraph, k + h as kh).
+        keep = tables.data.get("keepCanonical", [])
+        if table in keep or f"{table}.{key}" in keep:
+            node[name].sort(key=lambda x: x[0] != canonical)
     if geminate:
         g = float(data.get("geminateSingle", 0.0))
         total = sum(geminate.values())

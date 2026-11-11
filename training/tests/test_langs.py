@@ -404,3 +404,30 @@ def test_a_character_table_is_the_vocabulary():
     assert not fits("x", "زَبر", vocab=ur)  # a zabar is not in the table
     # A block language is unchanged.
     assert native("as") == BENGALI_ASSAMESE and len(native("hi")) == 133
+
+
+def test_keep_canonical_holds_a_slots_first_spelling():
+    # Typed without the medial vowel (kr for کر), the fit puts "" first; a hand file that names
+    # the slot in keepCanonical (Urdu's inherent.medial) keeps "a" first, with the fitted weights.
+    from mlkb.langs.calibrate import fit
+
+    data = _abjad_tables()
+    data["inherent"]["medial"] = [["a", 0.5], ["", 0.5]]
+    pairs = [("کر", "kr"), ("بر", "br"), ("مر", "mr"), ("کر", "kar")] * 5
+    plain, _ = fit(Tables(data), pairs)
+    assert plain.data["inherent"]["medial"][0][0] == ""
+    data["keepCanonical"] = ["inherent.medial"]
+    kept, _ = fit(Tables(data), pairs)
+    assert kept.data["inherent"]["medial"][0][0] == "a"
+    assert sorted(kept.data["inherent"]["medial"]) == sorted(plain.data["inherent"]["medial"])
+
+
+def test_a_lang_that_lists_its_letters():
+    # Urdu's lang.json has no block: `letters` are its characters, scattered over the Arabic block.
+    lang = human.load("ur")
+    assert "block" not in lang.data
+    assert lang.block == ("ء", "ۓ")
+    assert lang.in_block("ک") and lang.in_block("ے") and lang.in_block("ھ")
+    assert not lang.in_block("َ") and not lang.in_block("ك") and not lang.in_block("۱")
+    assert lang.is_word("پاکستان") and not lang.is_word("ںا")
+    assert lang.normalize("كتاب") == "کتاب" and lang.normalize("کِتاب") == "کتاب"

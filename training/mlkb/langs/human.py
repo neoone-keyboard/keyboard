@@ -41,8 +41,16 @@ class Lang:
 
     @cached_property
     def block(self) -> tuple[str, str]:
-        a, b = self.data["block"]
-        return _cp(a), _cp(b)
+        """The span of the script's characters, first to last (`ScriptDef::span`)."""
+        ranges = self._ranges
+        return min(a for a, _ in ranges), max(b for _, b in ranges)
+
+    @cached_property
+    def _ranges(self) -> list[tuple[str, str]]:
+        """The script's characters: `block`, then `letters` (a script not in one block, or one
+        that lists only its letters: Urdu's)."""
+        pairs = ([self.data["block"]] if self.data.get("block") else []) + list(self.data.get("letters", []))
+        return [(_cp(a), _cp(b)) for a, b in pairs]
 
     @cached_property
     def _not_word(self) -> list[tuple[str, str]]:
@@ -75,7 +83,7 @@ class Lang:
         return _cp(self.data["virama"]) if self.data.get("virama") else ""
 
     def in_block(self, c: str) -> bool:
-        return self.block[0] <= c <= self.block[1]
+        return any(a <= c <= b for a, b in self._ranges)
 
     def is_word_char(self, c: str) -> bool:
         return self.in_block(c) and not any(a <= c <= b for a, b in self._not_word)
