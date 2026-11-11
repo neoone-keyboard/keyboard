@@ -37,9 +37,10 @@ Check three things first.
 
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
 Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json` and need an engine 4 app
-(`minEngine` 4). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
-its র. `packs/ta.neopack` is a Tamil pack built this way, and
-`engine/core/tests/fixtures/gu.neopack` a test-sized Gujarati one.
+(`minEngine` 4), or engine 6 when the file keeps joiners, as Telugu's does (step 2). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
+its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati and
+`packs/te.neopack` a Telugu one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
+Gujarati one.
 
 ## What a pack is
 
@@ -369,6 +370,24 @@ That keeps every third paragraph. Delete `data/raw/text/xx.txt` to extract again
 you kept in the source's manifest (`used_for`). If the big source is ordinary modern prose,
 leave it whole: more text is better.
 
+**Articles written from a template.** Some Wikipedias hold thousands of articles a bot wrote
+from one template, usually one per village: about 30,000 in Telugu's (15.4M of its 76.1M
+words) and 16,000 in Gujarati's (a fifth of its words). Their words then lead the lexicon
+(Telugu's 20 most frequent had గ్రామం "village", దూరంలో "at a distance" and హెక్టార్లు
+"hectares") and their sentences fill the next-word pairs. If step 7's `xx top 20` shows such
+words, drop the repeated paragraphs from that source in the text script, as
+`data/build-te-text.sh` and `data/build-gu-text.sh` do:
+
+```sh
+py "$PIPELINE/extract_wiki.py" "$RAW"/xxwiki/*.bz2 --out "$TEXT/xxwiki.txt.tmp"
+py "$PIPELINE/drop_repeats.py" "$TEXT/xxwiki.txt.tmp" --out "$TEXT/xx.txt.tmp"
+rm "$TEXT/xxwiki.txt.tmp"
+```
+
+`drop_repeats.py` drops a paragraph when half its runs of four words (digits read as 0) occur
+50 times or more in the text, and prints how many paragraphs and words went. Ordinary prose
+stays. Say so in the source's manifest (`used_for`).
+
 The lexicon build in step 7 runs this script again, so it must be safe to re-run. The
 Assamese one skips work that is already done: a second run only checks the downloads'
 checksums and prints the counts again. This script is per language today (gap G4).
@@ -389,6 +408,13 @@ There are three files in `data/langs/xx/`:
   (below).
 - `romanisation.json`, the pack's file, exported from the weights by the lexicon build
   (step 7).
+
+The hand file's weights are more than a starting point for the fit. Half of the
+transliterator's synthetic training pairs (step 9, `--chat-share 0.5`) are spelled from the
+hand file and half from the fitted weights. Aksharantar's annotators type carefully (they
+wrote Gujarati's છ as `chh` 97% of the time), so the fitted weights describe them; write the
+hand weights for how people type in chat (`che`, a final anusvara left out), and the model
+sees both.
 
 **The inherent vowel.** `inherent` has one option list per position: `medial` (inside a
 word), `final` (at the end, after a lone consonant), `finalAfterCluster` (at the end, after a
@@ -411,8 +437,10 @@ uv run python -m mlkb.langs.calibrate --lang xx --write    # write the weights
 
 The report first says which pairs it calibrates on: Aksharantar's manual rows in `valid`, or,
 when `valid` has none, a quarter of `train`'s manual rows held out by word (never a test
-word; step 9's training leaves them out too). It stops with an error if there are no manual
-rows at all. Then it shows how often the tables give exactly what people typed
+word; step 9's training leaves them out too). When neither has any (Telugu's manual rows are
+all in the held-out test split), it calibrates on `valid`'s mined IndicCorp rows and says so:
+those were matched by a model, not typed by people, so read the numbers as rough. It stops
+with an error only if there are none of those either. Then it shows how often the tables give exactly what people typed
 (`canonical`), whether they can spell it at all (`producible`), and how often the lookup
 would find the word (`skeleton`, `prefix`).
 
@@ -436,6 +464,10 @@ would find the word (`skeleton`, `prefix`).
 - **The test numbers are held out.** They are for your pull request's description. Changing
   the tables to raise them tunes on the test set, and then they no longer say how well the
   tables do on words nobody tuned for.
+- **Run `--write` after every edit, the skeleton's too.** `romanisation-weights.json` holds a
+  copy of the whole hand file, skeleton included, and step 7 exports from it. An edit to the
+  hand file's `skeleton` that isn't followed by `calibrate --write` changes nothing in the
+  pack, and nothing warns you.
 
 Without Aksharantar data, copy the hand file to `romanisation-weights.json` and skip the
 fitting (gap G6).
@@ -478,6 +510,38 @@ spelling that never reaches the key: Tamil folds o to u because people type `oo`
 and ஓ. Leave it out when it would mend a pair or two: folding e to i would have caught 3 of
 Tamil's 200 pairs and merged every e and i word. After step 7, check with step 11's script
 that common words still come first.
+
+**Letters the skeleton drops.** Two optional steps of the pack's skeleton can be written in
+the hand file's `skeleton`, in the pack file's own shape; the export copies them:
+
+```json
+"dropTrailing": {"letters": "nm", "afterVowel": true, "minLength": 3},
+"dropBetweenConsonants": "a"
+```
+
+- `dropTrailing` removes one final letter of `letters` after a vowel, before any fold, when
+  the typed text is at least `minLength` long. Gujarati's and Telugu's files have it for the
+  anusvara at the end of a word, which is typed `n`, `m` or not at all (કરવું `karvun`,
+  `karvum`, `karvu`): all three get one key. The price is that a word really ending in `n` or
+  `m` shares its key with the word without it (નામ with ના).
+- `dropBetweenConsonants` removes every such letter that has a consonant on both sides, after
+  the folds. Gujarati has `"a"`, as Hindi's file does: the pack's walk has no schwa rule and
+  keeps every medial inherent vowel (કરવું is `karavun`), and people type it or not (`karvu`,
+  `gujrati`). Don't use it for a language that always says the vowel (Telugu, Tamil).
+
+On Gujarati's 1,607 calibration pairs the two took the skeleton from 84.1% to 86.3%, and the
+engine's first native suggestion on the held-out rows, lexicons only, from 29.0% to 32.2%;
+what they are for (chat spellings) the annotators' pairs hardly measure.
+
+**One spelling list per letter, wherever it stands.** The anusvara is the clearest case: `n`
+inside a word (before a labial `m`) and `m` or nothing at its end. The fit makes the most
+typed spelling canonical, and the key of every word then has that letter in both places.
+Gujarati lists only `n` and nothing for ં (not `m`, though annotators type a final `m` more
+than `n`), folds `mb` and `mp` to `nb` and `np`, and drops the final letter with
+`dropTrailing`. Telugu, which has no dropped vowels to bring a real `m` next to a consonant
+when typed, folds `m` before every consonant to `n` (a `replace` entry per consonant spelling)
+and drops the final one. Folding `m` to `n` everywhere also works and costs more: every મ and
+ન word pair shares a key (Gujarati `naam` gave માં before નામ).
 
 **Spellings that spell the same word: `looseSpelling`.** The skeleton only finds candidates.
 To rank them, the engine asks whether the typed letters spell a word out: are they its
@@ -1070,7 +1134,7 @@ If the import fails, the app shows one sentence:
 | "This file is damaged or isn't a language pack." | Not a zip, or a zip64, encrypted, or larger than 1 GiB unpacked. |
 | "This file isn't a NeoOne Keyboard language pack." | No `manifest.json` in the zip. |
 | "This pack is damaged. Download it again." | Invalid manifest JSON, a checksum that differs (run `pack.py --write`), or a checksum for a file that isn't in the zip. |
-| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (5 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
+| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (6 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
 | "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, a file in the zip with no checksum, a script other than `mlym`, `deva` and `beng` without `lang.json`, or a `lang.json` the engine refuses (it names another script, has no characters, or overlaps another script's). |
 | "You already have a newer version of this language." | The installed pack has a higher `version`. Raise yours. |
 
