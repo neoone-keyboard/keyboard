@@ -51,12 +51,12 @@
       "id": "ta",
       "name": "Tamil",
       "nativeName": "தமிழ்",
-      "version": "2026.11.12",
+      "version": "2026.11.13",
       "script": "taml",
       "minEngine": 4,
-      "size": 19944674,
-      "sha256": "d783c9623efa1d045e592f0466b3ed303b028d9ae85354a38845918212103b08",
-      "url": "https://neoone.jishnu.me/packs/ta-2026.11.12.neopack"
+      "size": 29517658,
+      "sha256": "1cb21f43607548abfcedb268f74138f08102df10f34a8b45c2df65b1b379562c",
+      "url": "https://neoone.jishnu.me/packs/ta-2026.11.13.neopack"
     }
   ]
 }
