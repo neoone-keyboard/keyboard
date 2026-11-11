@@ -171,10 +171,12 @@ fn every_pack_passes_its_checks() {
     for dir in dirs {
         let pack = Pack::open(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
         let id = pack.manifest.id.clone();
-        // The rules the engine uses for this pack, installed as opening it would.
+        // The rules the engine uses for this pack, in use while it is checked as they are
+        // while its engine is open, and no longer: the next pack may share its script
+        // (Assamese and Bengali), and a word is read without an engine by the first in use.
         let rules = script::for_pack(&pack.manifest.script, pack.file("lang").as_deref())
             .unwrap_or_else(|e| panic!("{id}: {e}"));
-        script::install(rules).unwrap_or_else(|e| panic!("{id}: {e}"));
+        let _in_use = script::in_use(rules).unwrap_or_else(|e| panic!("{id}: {e}"));
 
         sources_load(&pack);
         let words = words_are_in_normal_form(&pack, rules);
