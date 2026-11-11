@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "as",
-  "version": "2026.11.14",
+  "version": "2026.11.15",
   "name": "Assamese",
   "nativeName": "অসমীয়া",
   "script": "beng",
   "romanised": {
     "name": "Romanised Assamese"
   },
-  "minEngine": 3,
+  "minEngine": 6,
   "files": {
     "lexicon": "as.fst",
     "romanisedLexicon": "romanised.fst",

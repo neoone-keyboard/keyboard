@@ -46,6 +46,29 @@ fn packs() -> Vec<PathBuf> {
     dirs
 }
 
+/// The pack's `minEngine` is at least the level its contents need (`Pack::needs`): an app on
+/// a lower engine would accept it and ignore or misread what needs more. The error names
+/// each thing in the pack that needs more than it declares.
+fn declares_the_engine_it_needs(pack: &Pack) -> Result<(), String> {
+    let id = &pack.manifest.id;
+    let declared = pack.manifest.min_engine;
+    let needs = pack.needs().map_err(|e| format!("{id}: {e}"))?;
+    let above: Vec<String> = needs
+        .iter()
+        .filter(|n| n.level > declared)
+        .map(ToString::to_string)
+        .collect();
+    if above.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "{id}: minEngine is {declared}, but the pack needs {} (`make pack-needs PACK_LANG={id}`); \
+         raise minEngine and the version. Needs above {declared}:\n  {}",
+        needs[0].level,
+        above.join("\n  ")
+    ))
+}
+
 /// The engine loads what the manifest lists, under the pack's id.
 fn sources_load(pack: &Pack) {
     let id = &pack.manifest.id;
@@ -178,6 +201,7 @@ fn every_pack_passes_its_checks() {
             .unwrap_or_else(|e| panic!("{id}: {e}"));
         let _in_use = script::in_use(rules).unwrap_or_else(|e| panic!("{id}: {e}"));
 
+        declares_the_engine_it_needs(&pack).unwrap_or_else(|e| panic!("{e}"));
         sources_load(&pack);
         let words = words_are_in_normal_form(&pack, rules);
         assert!(words > 0, "{id}: an empty lexicon");
@@ -197,4 +221,49 @@ fn every_pack_passes_its_checks() {
             },
         );
     }
+}
+
+/// The `minEngine` check alone, for every pack in `packs/` (or `NEOPACK`'s): quick, so
+/// `make test-engine` runs it, not only `make test-data`.
+#[test]
+fn every_pack_declares_the_engine_it_needs() {
+    let problems: Vec<String> = packs()
+        .iter()
+        .map(|dir| Pack::open(dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display())))
+        .filter_map(|pack| declares_the_engine_it_needs(&pack).err())
+        .collect();
+    assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+/// Hindi's files under a manifest that declares engine 3, as Hindi 2026.11.14 did: the check
+/// fails and names what needs more.
+#[test]
+fn a_pack_declaring_too_low_an_engine_fails() {
+    let hi = root().join("packs/hi.neopack");
+    let dir = tempfile::tempdir().unwrap();
+    for name in ["romanisation.json", "lang.json"] {
+        std::fs::copy(hi.join(name), dir.path().join(name)).unwrap();
+    }
+    std::fs::write(dir.path().join("hi.fst"), b"x").unwrap();
+    let manifest = r#"{"format": 1, "id": "hi", "version": "2026.11.14", "name": "Hindi",
+        "nativeName": "हिन्दी", "script": "deva", "minEngine": 3,
+        "files": {"lexicon": "hi.fst", "romanisation": "romanisation.json", "lang": "lang.json"}}"#;
+    std::fs::write(dir.path().join("manifest.json"), manifest).unwrap();
+    let pack = Pack::open(dir.path()).unwrap();
+    let err = declares_the_engine_it_needs(&pack).unwrap_err();
+    assert!(err.contains("minEngine is 3, but the pack needs 7"), "{err}");
+    let named = [
+        "optionalFinals",
+        "skeleton.alsoBetweenConsonants",
+        "skeleton.alsoBesideConsonant",
+        "skeleton.dropTrailing.alsoKept",
+        "looseSpelling",
+    ];
+    for field in named {
+        assert!(err.contains(field), "{field}: {err}");
+    }
+    assert!(!err.contains("script deva"), "a need at or below 3 isn't named: {err}");
+    let raised = manifest.replace(r#""minEngine": 3"#, r#""minEngine": 7"#);
+    std::fs::write(dir.path().join("manifest.json"), raised).unwrap();
+    assert_eq!(declares_the_engine_it_needs(&Pack::open(dir.path()).unwrap()), Ok(()));
 }

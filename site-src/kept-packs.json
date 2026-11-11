@@ -1,4 +1,17 @@
 {
   "about": "Pack index entries kept for apps on older engines (scripts/publish-packs.py). Each is the newest published file of its pack id that an older engine reads; its file stays in R2.",
-  "packs": []
+  "packs": [
+    {
+      "id": "hi",
+      "name": "Hindi",
+      "nativeName": "हिन्दी",
+      "version": "2026.11.12",
+      "script": "deva",
+      "minEngine": 3,
+      "size": 26195119,
+      "sha256": "dc5218f40c76290273bac648c12ef258379e5039c6b5f52cd00daba480afaeb3",
+      "url": "https://neoone.jishnu.me/packs/hi-2026.11.12.neopack",
+      "englishFingerprint": "9a50d0c85c79a0df"
+    }
+  ]
 }

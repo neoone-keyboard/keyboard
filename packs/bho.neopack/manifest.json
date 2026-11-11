@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "bho",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Bhojpuri",
   "nativeName": "भोजपुरी",
   "script": "deva",
   "romanised": {
     "name": "Romanised Bhojpuri"
   },
-  "minEngine": 2,
+  "minEngine": 7,
   "files": {
     "lexicon": "bho.fst",
     "romanisedLexicon": "romanised.fst",

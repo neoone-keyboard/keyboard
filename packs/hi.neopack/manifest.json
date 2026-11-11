@@ -1,14 +1,14 @@
 {
   "format": 1,
   "id": "hi",
-  "version": "2026.11.14",
+  "version": "2026.11.15",
   "name": "Hindi",
   "nativeName": "हिन्दी",
   "script": "deva",
   "romanised": {
     "name": "Hinglish"
   },
-  "minEngine": 3,
+  "minEngine": 7,
   "englishFingerprint": "9a50d0c85c79a0df",
   "files": {
     "lexicon": "hi.fst",

@@ -36,9 +36,9 @@ Check three things first.
    languages. A language without Aksharantar data needs code changes (gap G6).
 
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
-Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json` and need an engine 4 app
-(`minEngine` 4), or engine 6 when the file keeps joiners, as Telugu's does (step 2). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
-its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati and
+Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json`, which only engine 4 and
+later apps read (step 5 says how to find the engine a pack needs). Assamese's র → ৰ fold is in
+its own `lang.json`, so a Bengali pack keeps its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati and
 `packs/te.neopack` a Telugu one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
 Gujarati one.
 
@@ -820,7 +820,7 @@ writes its checksums, and stops at the start if it is missing. Copy
   "nativeName": "<the language's name in its script>",
   "script": "deva",
   "romanised": { "name": "Romanised Xx" },
-  "minEngine": 2,
+  "minEngine": 6,
   "files": {
     "lexicon": "xx.fst",
     "romanisedLexicon": "romanised.fst",
@@ -842,18 +842,42 @@ writes its checksums, and stops at the start if it is missing. Copy
 
 - `version` is a date, `YYYY.MM.DD`, compared part by part. Raise it on every change you
   publish. The app won't install an older version over a newer one.
-- `minEngine` is 1 for a Malayalam pack, 2 for `deva` or `beng`, 3 for a pack in a script
-  other than Malayalam that has an `lm`, 4 for a pack in any other script (engines before 4
-  have only those three scripts' rules, in code, and ignore `lang.json`), 5 for a pack
-  whose `lang.json` uses `notLetter`, `looseSigns`, `finalPairs` or `suffixJoins`, and 6 for
-  one that uses `joiners` or `zwjForms` (Malayalam's own pack stays at 1: older engines have
-  what those say in code). Write 2 and leave the rest
-  to `pack.py --write`, which the lexicon build runs at the end of step 7 (and you run again
-  in step 10): it copies `data/langs/xx/lang.json` into the pack, adds `"lang": "lang.json"`
-  to `files` and, for a script other than `mlym`, `deva` and `beng`, raises `minEngine` to 4,
-  printing `minEngine 2 -> 4: script taml has its rules in lang.json`. `--check` fails until
-  it has. So for such a script the template's `"script": "deva"` becomes your code and its
-  `"minEngine": 2` is corrected for you.
+- `minEngine` is the oldest engine that reads everything in the pack right. An app whose engine
+  is older refuses the pack; an app that accepts it but is older than a feature the pack uses
+  would ignore that feature without a word (Hindi's `optionalFinals` on an engine 6 app: typed
+  `nahi` finds nothing). So it is checked, not chosen: the engine works out the level a pack
+  needs from its script, its roles (an `lm` or `translit` in a script other than Malayalam's),
+  its `lang.json` and every field of its `romanisation.json` (`Pack::needs` in
+  `engine/core/src/pack.rs`, which lists every level). To see it, once the pack has its files
+  (after step 7, and again before you publish):
+
+  ```sh
+  make pack-needs PACK_LANG=xx
+  ```
+
+  ```
+  ta: minEngine 6, needs 6: ok
+    6: romanisation.json has looseSpelling
+    4: a translit in script taml, decoded in its own block
+    4: script taml, which the engine has no copy of: its rules are the lang file
+    3: an lm in script taml, whose native pieces are its own
+    2: script taml, not Malayalam's
+  ```
+
+  `PACK_DIR=<folder>` in place of `PACK_LANG` checks a pack folder anywhere.
+
+  Write that number. `make test-pack` (step 10) and `make test-engine` fail while the
+  manifest's is lower, naming each thing that needs more; nothing raises it for you. Most
+  new packs need 6, as every `romanisation.json` has `looseSpelling`, and a pack that uses
+  Hindi's habits (`optionalFinals`, the skeleton's `alsoBetweenConsonants`,
+  `alsoBesideConsonant`, `dropTrailing.alsoKept`) or a `deva` or `beng` pack whose
+  `lang.json` isn't Hindi's or Assamese's needs 7. Malayalam's own pack stays at 1: engine 1
+  has its rules in code. A field or role the engine has no level for is an error too: an
+  engine change that adds one raises `PACK_ENGINE`, says in its comment what the new level
+  reads, and gives the field its level in `Pack::needs`.
+  `pack.py --write`, which the lexicon build runs at the end of step 7 (and you run again in
+  step 10), copies `data/langs/xx/lang.json` into the pack and adds `"lang": "lang.json"` to
+  `files`, but leaves `minEngine` alone.
 - `romanised.name` is what the typed-in-Latin form is called (Manglish, Hinglish).
 - `sha256` starts empty; the build fills it in.
 - `files` lists every file the finished pack will have, including ones not built yet
@@ -958,8 +982,8 @@ the words that got no key. Such a word's skeleton is empty: the tables have no s
 its letters, or every letter folds away. Latin typing can't reach it; the native keyboard
 can. One or two rare words are fine. Many means a letter is missing from the tables.
 
-The build's last step (`pack.py --write`) also copies `lang.json` into the pack and, for a
-script other than `mlym`, `deva` and `beng`, sets `minEngine` to 4 (see step 5).
+The build's last step (`pack.py --write`) also copies `lang.json` into the pack. Now set
+`minEngine` to what `make pack-needs PACK_LANG=xx` prints (see step 5).
 
 Every build exports `romanisation.json` again from the tables, so fix its notes in the hand
 file (step 4), not in the exported file.
@@ -999,8 +1023,8 @@ words; don't give it a related language's.
    rewrites the app's English files too, with the same bytes unless Unicode's data changed.
 3. `scripts/pack.py packs/xx.neopack --write` (step 10) copies the two files into the pack,
    adds the `emojiWords` and `emojiSearch` roles and their checksums. `--check` fails when
-   the pack's copies differ from `data/langs/xx/`. `minEngine` doesn't move: the engine
-   doesn't read them, and an older app ignores them.
+   the pack's copies differ from `data/langs/xx/`. They need no engine level: the app, not
+   the engine, reads them, and an older app ignores them (it has only Malayalam's, built in).
 4. Add a credit to the manifest, as Malayalam's has: id `cldr-annotations`, licence
    `Unicode License v3`, its `licenceUrl`, and the attribution with Unicode's copyright line.
 
@@ -1233,7 +1257,7 @@ same either way. If you do build one:
   copied from the training text) or makes the evaluation worse than the pack without an LM.
   It copies the file but does not list it: add `"lm": "lm.mlkbnn"` to the manifest's `files`,
   raise `version`, and run `pack.py --write`;
-- the pack's `minEngine` becomes 3 if it was lower;
+- the pack needs `minEngine` 3 at least (`make pack-needs` says what it needs);
 - `make bench-pack-lm LM_LANG=xx` is the latency gate (suggest p99 under 8 ms).
 
 ### 13. Put it on your iPhone
@@ -1258,7 +1282,7 @@ If the import fails, the app shows one sentence:
 | "This file is damaged or isn't a language pack." | Not a zip, or a zip64, encrypted, or larger than 1 GiB unpacked. |
 | "This file isn't a NeoOne Keyboard language pack." | No `manifest.json` in the zip. |
 | "This pack is damaged. Download it again." | Invalid manifest JSON, a checksum that differs (run `pack.py --write`), or a checksum for a file that isn't in the zip. |
-| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (6 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
+| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (7 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
 | "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, a file in the zip with no checksum, a script other than `mlym`, `deva` and `beng` without `lang.json`, or a `lang.json` the engine refuses (it names another script, has no characters, or overlaps another script's). |
 | "You already have a newer version of this language." | The installed pack has a higher `version`. Raise yours. |
 
@@ -1358,9 +1382,11 @@ the project's Cloudflare Worker and R2 bucket. On another host, upload
 An index may list the same `id` more than once. Each app offers, per language, the highest
 `version` its engine reads, so one language shows as one row. Use this when a new version
 raises `minEngine`: apps that are still on the older engine can't read the new version, and
-without an older entry they would stop offering the language. Hindi 2026.11.10 needs engine
-3 because of its LM. The index still lists 2026.11.06 (engine 2) for the apps already
-released, and engine 3 apps offer 2026.11.10 as an update over it.
+without an older entry they would stop offering the language. Hindi 2026.11.15 needs engine
+7 because of its `optionalFinals` and the skeleton's also-rules. The index still lists
+2026.11.12, which engine 6 reads right, for the apps already released, and engine 7 apps
+offer 2026.11.15 as an update over it. Pick the older entry by what it needs, not by what it
+declared: `make pack-needs PACK_DIR=<the unzipped older pack>`.
 
 `make site-packs` takes these older entries from `site-src/kept-packs.json`, not from `packs/`.
 List the old version there with the `size`, `sha256` and `url` the index had when it published
