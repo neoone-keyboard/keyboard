@@ -50,7 +50,7 @@
     "replace": "The normal form is NFC with every ZWJ and ZWNJ dropped (no \"joiners\" field), and the first two entries drop them before NFC as well. Mis-encoded independent vowels (अ + sign) are mended. The avagraha is often typed as a Latin s (कs for कऽ, 368 times in the Wikipedia text); the five commonest such words are mended.",
     "phraseBreaks": "The danda । and double danda ॥ end a sentence.",
     "signs": "A vowel sign or virama must follow a consonant or nukta. Anusvara, candrabindu and visarga may follow a vowel (Maithili सँ, केँ) and are not in this list.",
-    "translit": "The pack's translit.mlkbnn is, for now, the Hindi pack's (packs/hi.neopack 2026.11.12, byte for byte): the same script, and a spelling model the Maithili lexicon then filters. Its sources (Hindi Wikipedia and Wikisource, Dakshina, Aksharantar) are in the manifest's credits. Maithili's own is trained by `make pack-models PACK_LANG=mai` from this folder's tables and Aksharantar mai; when it replaces this one, take the three Hindi credits out and raise the version.",
+    "translit": "Maithili's own transliterator, trained by `make pack-models PACK_LANG=mai` from this folder's tables and Aksharantar mai. On 5,449 held-out Aksharantar mai pairs it puts the right word first 47.8% of the time and in the bar 51.8% (the Hindi pack's, used before 2026.11.13: 46.4% and 50.1%).",
     "minCount": "2, not the usual 3: the only openly licensed Maithili text is its Wikipedia, far smaller than the other packs' text, and at 3 too many real words are lost."
   }
 }
