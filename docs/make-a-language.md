@@ -39,8 +39,8 @@ Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only da
 Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json` and need an engine 4 app
 (`minEngine` 4), or engine 6 when the file keeps joiners, as Telugu's does (step 2). Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps
 its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati and
-`packs/te.neopack` a Telugu one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
-Gujarati one.
+`packs/te.neopack` a Telugu one, `packs/kn.neopack` a Kannada one (its text drops joiners, so
+engine 4), and `engine/core/tests/fixtures/gu.neopack` a test-sized Gujarati one.
 
 ## What a pack is
 
