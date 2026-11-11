@@ -158,7 +158,10 @@ class Format1:
         latin = self.romanize(word)
         for sign in self.data.get("optionalFinals", []):
             end = self.data["finals"].get(sign, "")
-            if word.endswith(sign) and end and latin.endswith(end) and len(latin) > len(end):
+            before = word[: -len(sign)]
+            vowels = (*self.data["vowelSigns"], *self.data["independentVowels"])
+            if (word.endswith(sign) and end and latin.endswith(end)
+                    and any(before.endswith(v) for v in vowels)):
                 other = self.skeleton(latin[: -len(end)])
                 if other and other != whole:
                     return [whole, other]

@@ -42,11 +42,13 @@ def test_an_optional_final_gives_a_second_key():
         ("हूँ", "hu", ["hun", "hu"]),
         ("लोगों", "logo", ["logon", "logo"]),
         ("दिन", None, ["din"]),
+        ("स्वयं", None, ["svyn"]),
         ("हिंदी", None, ["hindi"]),
         ("नही", None, ["nhi"]),
         ("जगह", None, ["jga", "jgh"]),
         ("कह", None, ["ka"]),
-        ("तेरह", None, ["tera"]),
+        ("तेरह", None, ["tera", "terh"]),
+        ("वाह", None, ["va"]),
     ]:
         assert r.canonical_short(word) == short, word
         assert r.keys(word) == keys, word

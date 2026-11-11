@@ -486,7 +486,9 @@ impl Romanisation {
     /// The walk without the word's last sign, when the pack's `optionalFinals` says people
     /// leave it unwritten there (Hindi's anusvara and chandrabindu: नहीं is `nahin` and
     /// `nahi`, हूँ `hun` and `hu`). The letters before the sign are as the whole walk has
-    /// them. None for a word that doesn't end in such a sign, or is only the sign.
+    /// them. Only after a written vowel (a vowel sign or an independent vowel): after a bare
+    /// consonant the sign is the syllable's whole ending and is written (स्वयं `svayan`, सं
+    /// `san`). None for any other word.
     pub fn romanize_short(&self, word: &str) -> Option<String> {
         if self.optional_finals.is_empty() {
             return None;
@@ -496,6 +498,13 @@ impl Romanisation {
             .filter(|&c| c != ZWJ && c != ZWNJ)
             .collect();
         let sign = self.optional_finals.iter().find(|sign| chars.ends_with(sign))?;
+        let before = &chars[..chars.len() - sign.len()];
+        let after_vowel = [&self.signs, &self.independent]
+            .iter()
+            .any(|table| table.map.keys().any(|vowel| before.ends_with(vowel)));
+        if !after_vowel {
+            return None;
+        }
         let latin = self.finals.map.get(sign)?;
         let whole = self.romanize(word);
         let short = whole.strip_suffix(latin.as_str())?;
@@ -842,6 +851,9 @@ mod tests {
             ("दिन", "din", None),
             ("हिंदी", "hindi", None),
             ("ं", "n", None),
+            ("स्वयं", "svayan", None),
+            ("सं", "san", None),
+            ("आँ", "an", Some("a")),
         ] {
             assert_eq!(hi.romanize(word), whole, "{word}");
             assert_eq!(hi.romanize_short(word).as_deref(), short, "{word}");
@@ -851,7 +863,8 @@ mod tests {
         assert_eq!(hi.word_skeletons("जगह"), ["jga", "jgh"]);
         assert_eq!(hi.word_skeletons("तरह"), ["tra", "trh"]);
         assert_eq!(hi.word_skeletons("कह"), ["ka"], "two letters would be any path from k to h");
-        assert_eq!(hi.word_skeletons("तेरह"), ["tera"], "the e stays: nothing more is dropped");
+        assert_eq!(hi.word_skeletons("तेरह"), ["tera", "terh"]);
+        assert_eq!(hi.word_skeletons("वाह"), ["va"], "vah is longer: nothing more is dropped");
         assert_eq!(hi.word_skeletons("रखा"), ["rka"]);
         assert_eq!(hi.word_skeletons("दिन"), ["din"]);
         assert_eq!(hi.word_skeletons("नही"), ["nhi"]);

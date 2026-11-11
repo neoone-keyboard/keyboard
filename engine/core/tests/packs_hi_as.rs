@@ -122,14 +122,15 @@ fn a_final_nasal_left_unwritten_still_spells_the_word() {
 }
 
 /// The short vowel Hindi's skeleton drops between consonants is written `a` or `u` (`hamse`,
-/// `humse`): the pack's `alsoBetweenConsonants`. A word with a real उ still wins for its own
-/// letters.
+/// `humse`). The forms of हम are rows of the pack's `chat-forms.tsv` and take the middle; any
+/// other word is offered beside the typed letters by the pack's `alsoBetweenConsonants`
+/// (`sub` for सब). A word with a real उ still wins for its own letters.
 #[test]
 fn a_u_written_for_the_short_vowel_finds_the_word() {
     let e = engine(&["hi"]);
     for (typed, want) in [
         ("humse", "हमसे"),
-        ("hamse", "हमसे"),
+        ("hume", "हमें"),
         ("humara", "हमारा"),
         ("humne", "हमने"),
         ("kuch", "कुछ"),
@@ -141,7 +142,7 @@ fn a_u_written_for_the_short_vowel_finds_the_word() {
     }
     // `tum` and `sub` are English words too and keep the middle; the Hindi word is beside
     // them, तुम ahead of any word the u would stand in for.
-    for (typed, want) in [("tum", "तुम"), ("sub", "सब"), ("hum", "हम")] {
+    for (typed, want) in [("tum", "तुम"), ("sub", "सब"), ("hum", "हम"), ("hamse", "हमसे"), ("humsafar", "हमसफर")] {
         let s = e.suggest(typed, Layout::Latin, true);
         let hindi: Vec<&str> = s
             .candidates

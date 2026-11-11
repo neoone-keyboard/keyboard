@@ -150,6 +150,10 @@ class Romanisation:
         None for any other word. As the engine's `Romanisation::romanize_short`."""
         chars = "".join(c for c in _nfc(word) if c not in (ZWJ, ZWNJ))
         sign = next((s for s in self.optional_finals if chars.endswith(s)), None)
+        # Only after a written vowel: after a bare consonant the sign is always written.
+        before = chars[: -len(sign)] if sign else ""
+        if not any(before.endswith(v) for v in (*self.signs, *self.independent)):
+            return None
         latin = self.finals.get(sign) if sign else None
         whole = self.canonical(word)
         if not latin or not whole.endswith(latin):

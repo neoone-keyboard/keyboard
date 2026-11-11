@@ -523,7 +523,7 @@ spelling in `finals` unless nobody writes it (Assamese's chandrabindu). List it 
 Each entry is a key of `finals`. A word that ends in one is then stored under two keys, the
 skeleton of its walk and the skeleton of its walk without that sign, and typing or swiping
 either spelling finds it and counts as spelling it out. A sign inside a word is always
-written. The field is in the pack's `romanisation.json` (and in the hand file, from which the
+written, and so is one that follows a bare consonant (स्वयं). The field is in the pack's `romanisation.json` (and in the hand file, from which the
 export copies it); after adding it, rebuild the romanised lexicon from the tables
 (`lexbuild-rekey romanisation.json <id>.fst <romanised>.fst` does it without the corpus) and
 run `scripts/pack.py --write`. `lexbuild --lang` and `lexbuild-native --romanisation` write

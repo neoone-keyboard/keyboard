@@ -117,6 +117,9 @@ pub struct Match {
     /// the same (Malayalam: vowel length and t/d, `nale` for നാളെ, romanised `naale`).
     /// `distance` is then 0.
     pub spelled: bool,
+    /// Found by the typed letters' other reading (`Romanisation::skeleton_respelt`: `humse`
+    /// read as `hamse`), not by the letters as written: a side slot, never the middle.
+    pub other_reading: bool,
 }
 
 /// Malayalam words matching a typed Latin word: those with exactly its
@@ -146,8 +149,6 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
     let mut seen = std::collections::HashSet::new();
     // A word stored under two skeletons (`keys`) is one match, by the nearer of them.
     let mut place: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    // The matches of the other reading, by their place in `shortlist`.
-    let mut other_reading = std::collections::HashSet::new();
     for (i, (key, count)) in keys.into_iter().enumerate() {
         if !seen.insert(key.clone()) {
             continue;
@@ -164,7 +165,6 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
             // one skeleton letter longer does.
             if !place.contains_key(&word) {
                 place.insert(word.clone(), shortlist.len());
-                other_reading.insert(word.clone());
                 shortlist.push((
                     log_prob - 1.0,
                     Match {
@@ -173,6 +173,7 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
                         missing: 0,
                         distance: 0,
                         spelled: false,
+                        other_reading: true,
                     },
                 ));
             }
@@ -197,18 +198,21 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
                 missing,
                 distance: 0,
                 spelled: false,
+                other_reading: false,
             },
         ));
     }
     shortlist.sort_by(|a, b| b.0.total_cmp(&a.0));
     shortlist.truncate(SHORTLIST);
+    // The other reading's words after those of the letters as written.
+    shortlist.sort_by_key(|(_, m)| m.other_reading);
     shortlist
         .into_iter()
         .map(|(_, mut m)| {
             match &respelt {
                 // Never spelled out: one more than the distance of the letters as it reads
                 // them, for the letter that was read as another.
-                Some((_, written)) if other_reading.contains(&m.word) => {
+                Some((_, written)) if m.other_reading => {
                     m.distance = 1 + fit(r, written, &m.word, false).1;
                 }
                 _ => (m.spelled, m.distance) = fit(r, typed, &m.word, m.missing > 0),
@@ -433,7 +437,7 @@ mod tests {
     #[test]
     fn a_letter_written_for_the_dropped_vowel_finds_the_word_behind_exact_matches() {
         use crate::romanisation::hi;
-        let vocab: Vec<(String, u64)> = [("हमसे", 100), ("कुछ", 100), ("कच", 400), ("हुमसे", 1)]
+        let vocab: Vec<(String, u64)> = [("हमसे", 100), ("कुछ", 100), ("कच", 400), ("हुमसे", 100)]
             .iter()
             .map(|(w, c)| (w.to_string(), *c))
             .collect();
@@ -443,14 +447,15 @@ mod tests {
             .iter()
             .map(|m| (m.word.as_str(), m.missing, m.spelled, m.distance))
             .collect();
-        // The word spelled with u first, then the one whose dropped vowel the u stands for:
-        // `hamse` against `hamase` is one letter, and one more for the u.
-        assert_eq!(words, [("हुमसे", 0, true, 0), ("हमसे", 0, false, 2)]);
+        assert_eq!(found.iter().map(|m| m.other_reading).collect::<Vec<_>>(), [false, true]);
+        // The word spelled with u first (`humase`, a letter away), then the one whose dropped
+        // vowel the u stands for: `hamse` against `hamase` is one letter, and one more for the u.
+        assert_eq!(words, [("हुमसे", 0, false, 1), ("हमसे", 0, false, 2)]);
         let found = lookup(hi(), &lex, "kuch");
-        assert_eq!(found[0].word, "कुछ");
-        assert!(found[0].spelled);
-        assert_eq!((found[1].word.as_str(), found[1].spelled), ("कच", false));
-        assert!(found[1].distance >= 1);
+        // The word with the u first, though the other is four times as frequent.
+        assert_eq!((found[0].word.as_str(), found[0].other_reading), ("कुछ", false));
+        assert_eq!((found[1].word.as_str(), found[1].other_reading), ("कच", true));
+        assert!(!found[1].spelled && found[1].distance >= 1);
         // Typed with the a, the word is found as it always was, and only it.
         let found = lookup(hi(), &lex, "hamse");
         assert_eq!(found.len(), 1);

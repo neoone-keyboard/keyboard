@@ -165,6 +165,7 @@ impl OwnWords {
                     missing,
                     distance: if spelled { 0 } else { distance },
                     spelled,
+                    other_reading: false,
                 }
             })
             .collect()

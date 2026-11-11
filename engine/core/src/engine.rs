@@ -2203,13 +2203,20 @@ impl Engine {
             // Without the fit bonus: it ranks a word against English, but
             // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
             let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
+            // A word of the letters' other reading (`humse` as `hamse`) is offered beside
+            // what they say as written, and never replaces it.
+            let floor = if m.other_reading {
+                f32::INFINITY
+            } else {
+                rank::MIN_REPLACE
+            };
             found.push(
                 m.word,
                 unfitted,
                 fit_bonus(m.missing),
                 m.missing,
                 m.spelled,
-                rank::MIN_REPLACE,
+                floor,
             );
         }
         // The user's own words the letters fit: the middle only for one used before.

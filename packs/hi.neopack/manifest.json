@@ -24,7 +24,7 @@
   "sha256": {
     "chat-forms.tsv": "d71ff5431325c1b53a7b2bde43a569253af85181006812f2dc3052d6942a441f",
     "hi.fst": "1fa9ba05a26839017e585fc919e1c61c5a9de2acbca775ed6c6659a31b0b4326",
-    "hinglish.fst": "f9726402ba6a89f93998c4636f7d75e421764a6cecbc11ac6b86992135cee1b2",
+    "hinglish.fst": "7c9d2a297ca28cdf2500f3292b3247908d71c4a4f257882fef3fa56c259626da",
     "lang.json": "eae5cfb7c38df5b7fcca9eb786fac09f9f4cc8f2cd6fb2f3e0bfb62648df18b3",
     "layout.json": "61d03b93eb91ff250fa3f2f1f82710044ded0d3e1f5e12a09a8721a4ab7c359d",
     "lm.mlkbnn": "7b3e8327b8c0e8c6393cc99906227c55cecf182e1cbf2234b9ac16b5eefb0da4",
