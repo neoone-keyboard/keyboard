@@ -1,0 +1,10 @@
+kn tokens: 37952321, distinct forms: 3866653
+kn dropped (a letter of the script, but not a word): 440066 tokens, 145711 forms
+kn dropped top 20: 19ನೆಯ 2088, 2ನೆಯ 1660, 18ನೆಯ 1477, 3ನೆಯ 1432, 1ನೆಯ 1287, 2008ರಲ್ಲಿ 1241, 16ನೆಯ 1227, 2008ರ 1151, 2007ರಲ್ಲಿ 1135, 20ನೆಯ 1128, ್ನು 1048, 17ನೆಯ 1033, 2009ರ 1033, 6ನೆಯ 1019, 5ನೆಯ 982, 12ನೆಯ 970, 2007ರ 955, 4ನೆಯ 947, 2006ರಲ್ಲಿ 929, ಂ 927
+next.fst pairs: 148543 kn, 149977 English
+kn.fst: 300000 keys, 3549391 bytes
+next.fst: 298520 keys, 5164522 bytes
+kn top 20: ಮತ್ತು ಈ ಒಂದು ಎಂದು ಆ ಇದು ಅವರು ಅಥವಾ ಮೇಲೆ ತನ್ನ ಎಂಬ ಹಾಗೂ ಅವರ ಆದರೆ ತಮ್ಮ ಕೆಲವು ಹೆಚ್ಚು ರಲ್ಲಿ ನಂತರ ಅನೇಕ
+romanised keys skipped: 0
+romanised.fst: 300000 keys, 6479238 bytes
+kn text by source: knwiki 19556815 words (48%), knwikisource 20893666 words (51%), knwikiquote 615122 words (1%)

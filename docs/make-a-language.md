@@ -38,8 +38,8 @@ Check three things first.
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
 Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json`, which only engine 4 and
 later apps read (step 5 says how to find the engine a pack needs). Assamese's র → ৰ fold is in
-its own `lang.json`, so a Bengali pack keeps its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati and
-`packs/te.neopack` a Telugu one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
+its own `lang.json`, so a Bengali pack keeps its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati,
+`packs/te.neopack` a Telugu and `packs/kn.neopack` a Kannada one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
 Gujarati one.
 
 ## What a pack is
