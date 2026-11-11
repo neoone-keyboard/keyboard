@@ -67,7 +67,7 @@ packs/as.neopack/
 | `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam has one. | No |
 | `layout` | `layout.json` | The native-script keyboard pages. Without it the language is typed in Latin only and the language key skips it. | No |
 | `lang` | `lang.json` | The script's definition: `data/langs/xx/lang.json`, the file the lexicons were built with (step 2). `pack.py --write` copies it in. Engine 4. | **Yes.** `pack.py --check` fails without it. (The engine still reads an older `mlym`, `deva` or `beng` pack that lacks it.) |
-| `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a script whose `lang.json` has `suffixJoins` uses it (Malayalam today). | No |
+| `suffixes` | `suffixes.tsv` | Endings that chat glues onto words, for splitting `stem + ending`. Only a pack whose `lang.json` has `suffixJoins` uses it (Malayalam today; step 4b). | No |
 | `chatForms` | `chat-forms.tsv` | Hand-written chat spellings no rule reaches: `latin<TAB>native` per line. | No |
 
 Any missing optional file switches off only its feature.
@@ -242,7 +242,7 @@ engine the same: one definition for both. The engine's parser is
 | `notLetter` | Ranges that stay inside a run when text is split into words but that a word is not made of. Malayalam lists its digits and number signs, as its text has always been split that way; a new language should use `notWord`. Engine 5. |
 | `looseSigns` | Vowel signs that loose spelling inserts between consonants (Malayalam ആവിശ്യം for ആവശ്യം). A typed word that reads as a rare word is also tried without one such sign before a consonant. Optional. Engine 5. |
 | `finalPairs` | `[["a", "b"]]`, code points in hex: a word ending in a consonant and one of the two is also written with the other (Malayalam's final ു and ്). Optional. Engine 5. |
-| `suffixJoins` | How a stem and a suffix of `suffixes.tsv` fuse: the vowel signs, glides and final forms of the script's sandhi. See `data/langs/ml/lang.json` and `Joins` in `engine/core/src/script/data.rs`. Without it the pack is never split into stem and suffix. Optional. Engine 5. |
+| `suffixJoins` | How a stem and a suffix of `suffixes.tsv` fuse: the vowel signs, glides and final forms of the script's sandhi. Step 4b explains each part, with Malayalam's and a Tamil example. Without it the pack is never split into stem and suffix. Optional. Engine 5 (6 for a `nasal` ending of several code points). |
 | `joiners` | `"afterVirama"`: a ZWJ or ZWNJ between the `virama` and a character of the script is part of the word, because it changes how the cluster is drawn (Malayalam ഗ്‍ക; Devanagari's half form क्‍ष and explicit halant क्‌ष; Bengali's য-ফলা forms). `"drop"`, the default: every joiner is dropped. Decide before you build the lexicon (see below). Optional. Engine 6. |
 | `zwjForms` | `[["consonant", "letter"]]`, code points in hex: the consonant + `virama` + ZWJ is an older encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ). Optional. Engine 6. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
@@ -586,6 +586,79 @@ Assamese hand file), so write your language's notes there. The Assamese hand fil
 `inClusterLetters` (`শষস`): letters whose `inCluster` spelling holds in every two-letter
 cluster they are in, which the export lists as clusters. Leave it out unless your language
 has such letters.
+
+### 4b. Optional: endings glued onto words (`suffixes.tsv`)
+
+Skip this unless your language glues clitics and case endings onto words the way Malayalam
+does (സുഖം + ആണോ is സുഖമാണോ) and people type such forms all the time. Most of them never
+occur in your text, so the lexicon doesn't have them. With a suffix table the engine reads a
+typed word that has no whole-form match as a stem from the lexicon plus one or two endings,
+and joins them by your script's sandhi. Malayalam is the only pack that ships one; nothing in
+the mechanism is Malayalam's, but nobody has measured it for another language yet, so treat
+a new table as an experiment and check it with step 11's script.
+
+Two files. **`data/langs/xx/lang.json` gets `suffixJoins`**, the sandhi (code points in hex;
+every part is optional):
+
+| Part | Meaning | Malayalam | Tamil |
+|---|---|---|---|
+| `vowelSigns` | `[vowel, sign]`: the sign an independent vowel becomes on a consonant; `""` for the consonant's own vowel. A vowel suffix must start with one of these. | അ `""`, ആ ാ, ഇ ി … | அ `""`, ஆ ா, இ ி … |
+| `elide` | Final signs that give way to the suffix's vowel, after a consonant. | ് and ു (കഴിച്ചു + ഓ is കഴിച്ചോ) | the pulli ் (அவன் + இடம் is அவனிடம்) |
+| `glides` | `{"glide": consonant, "after": ranges}`: the consonant put between a stem ending in one of `after` and a vowel. | വ after u and o sounds, യ after the rest | வ after ா ு ூ ொ ோ ௌ, ய after ி ீ ெ ே ை (பள்ளி + இல் is பள்ளியில்) |
+| `inherentGlide` | The glide after a bare consonant (its own vowel). | യ (അമ്മ + ഓട് is അമ്മയോട്) | வ |
+| `finalForms` | `[letter, consonant]`: a word-final form that becomes its consonant before a vowel. | the chillus (അവൻ + ഓട് is അവനോട്) | none |
+| `nasal` | `[ending, consonant]`: a stem ending in `ending` takes a vowel suffix as the consonant + sign, takes no case ending, and loses the ending to an oblique one. Several code points are separated by spaces. | `["0D02", "0D2E"]`: ം, മ (മരം + ത്തിൽ is മരത്തിൽ) | `["0BAE 0BCD", "0BAE"]`: ம், ம (காலம் + த்தில் is காலத்தில்) |
+| `consonantAfter` | Finals, besides vowels and consonants, that take a suffix starting with a consonant. | ർ and ൾ (അവൾ + ക്ക് is അവൾക്ക്) | none |
+
+Tamil's, complete (the engine's tests join the examples above with exactly this):
+
+```json
+"suffixJoins": {
+  "vowelSigns": [["0B85", ""], ["0B86", "0BBE"], ["0B87", "0BBF"], ["0B88", "0BC0"],
+                 ["0B89", "0BC1"], ["0B8A", "0BC2"], ["0B8E", "0BC6"], ["0B8F", "0BC7"],
+                 ["0B90", "0BC8"], ["0B92", "0BCA"], ["0B93", "0BCB"]],
+  "nasal": ["0BAE 0BCD", "0BAE"],
+  "elide": ["0BCD"],
+  "glides": [
+    {"glide": "0BB5", "after": [["0BBE", "0BBE"], ["0BC1", "0BC2"], ["0BCA", "0BCC"]]},
+    {"glide": "0BAF", "after": [["0BBF", "0BC0"], ["0BC6", "0BC8"]]}
+  ],
+  "inherentGlide": "0BB5"
+}
+```
+
+It needs `bases` (your consonants) in the same file: a consonant, for the joins, is a `bases`
+letter that is not a combining mark.
+
+**`packs/xx.neopack/suffixes.tsv`** lists the endings, one per line, tab-separated, and the
+manifest's `files` gets `"suffixes": "suffixes.tsv"`:
+
+```
+# latin	native	join	[inner]
+il	இல்	case	inner
+thil	த்தில்	oblique	inner
+a,aa	ஆ	vowel
+kku,ku	க்கு	consonant
+```
+
+- `latin`: the ways people type the ending, comma-separated, lower-case a to z. It is matched
+  against the end of the typed word; what is left must be at least three letters.
+- `native`: the ending in your script.
+- `join`: `vowel` (starts with a vowel, which becomes a sign on the stem), `case` (the same,
+  but a stem with the `nasal` ending doesn't take it), `consonant` (starts with a consonant;
+  appended to a stem that ends in a vowel, a consonant or a `consonantAfter` letter), or
+  `oblique` (replaces the `nasal` ending; only such stems take it).
+- `inner`: write it when another ending may follow this one.
+- Row order breaks ties: among cuts of equal length, earlier rows are tried first. Keep the
+  table small. Every row is a guess about words the engine has never seen, so each ending
+  must be common.
+
+Two things about the typed stem come from your data, not from code: an oblique ending is
+typed without the stem's nasal (`kaala` + `thil`), so the engine adds how your tables spell
+the `nasal` ending (`m`) before it looks the stem up; and a stem typed with its glide
+(`ammay` + `odu`) is also looked up without it, the glides being your `glides` and
+`inherentGlide` letters as your `consonants` table spells them. A language without a
+`nasal` or glides gets neither.
 
 ### 5. The manifest
 

@@ -114,6 +114,13 @@ class LangRole(unittest.TestCase):
         self.write_lang({**LANG, "script": "mlym", "block": ["0D00", "0D7F"], "zwjForms": [["0D28", "0D7B"]]})
         self.assertEqual(pack.lang_problems(self.dir, manifest("mlym", 1)), [])
 
+    def test_a_nasal_ending_of_several_code_points_needs_engine_6(self):
+        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE", "0AAE"]}})
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=5)), [])
+        self.write_lang({**LANG, "suffixJoins": {"nasal": ["0AAE 0ACD", "0AAE"]}})
+        self.assertIn("at least 6", pack.lang_problems(self.dir, manifest(min_engine=5))[0])
+        self.assertEqual(pack.lang_problems(self.dir, manifest(min_engine=6)), [])
+
     def test_another_script_needs_the_file_and_engine_4(self):
         problems = pack.lang_problems(self.dir, manifest(lang=False))
         self.assertIn("needs its lang.json", problems[0])

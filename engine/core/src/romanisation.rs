@@ -503,6 +503,11 @@ impl Romanisation {
         String::from_utf8(out).unwrap_or_default()
     }
 
+    /// The Latin a consonant of the tables is spelled with, without a vowel (യ → `y`).
+    pub fn consonant(&self, letter: char) -> Option<&str> {
+        self.consonants.map.get(&[letter][..]).map(String::as_str)
+    }
+
     /// `latin` spelled in the script by rule (`translit::Speller`): a guess for a word no
     /// lexicon or model has. None unless it is all letters the tables can spell.
     pub fn spell(&self, latin: &str) -> Option<String> {

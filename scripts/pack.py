@@ -61,8 +61,15 @@ FIELDS = {
 
 
 def fields_engine(lang: dict | None) -> int:
-    """The highest engine level a field of `lang` needs; 0 when it uses none of `FIELDS`."""
-    return max((level for level, names in FIELDS.items() if names & set(lang or {})), default=0)
+    """The highest engine level a field of `lang` needs; 0 when it uses none of `FIELDS`. A
+    `suffixJoins.nasal` ending of several code points (Tamil's ம்) is read from engine 6."""
+    lang = lang or {}
+    level = max((level for level, names in FIELDS.items() if names & set(lang)), default=0)
+    joins = lang.get("suffixJoins")
+    nasal = joins.get("nasal") if isinstance(joins, dict) else None
+    if isinstance(nasal, list) and nasal and isinstance(nasal[0], str) and len(nasal[0].split()) > 1:
+        level = max(level, 6)
+    return level
 
 
 def lang_source(manifest: dict) -> Path:

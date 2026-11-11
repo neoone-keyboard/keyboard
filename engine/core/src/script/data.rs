@@ -114,9 +114,10 @@ struct RawGlide {
 /// - `vowelSigns`: `[vowel, sign]`, the sign an independent vowel becomes on a consonant
 ///   (`""` for the vowel a consonant carries by itself). A suffix joined as a vowel or a case
 ///   ending must start with one of these.
-/// - `nasal`: `[sign, consonant]`. A stem ending in the sign takes a vowel suffix as the
-///   consonant + the vowel's sign, takes no case ending, and loses the sign to an oblique
-///   ending, which only such a stem takes.
+/// - `nasal`: `[ending, consonant]`. A stem ending in `ending` takes a vowel suffix as the
+///   consonant + the vowel's sign, takes no case ending, and loses the ending to an oblique
+///   one, which only such a stem takes. `ending` is one code point (Malayalam's ം) or several
+///   separated by spaces (Tamil's ம் is `"0BAE 0BCD"`; engine 6).
 /// - `finalForms`: `[letter, consonant]`, a word-final form of a consonant (a chillu), which
 ///   becomes the consonant before a vowel.
 /// - `elide`: final signs that give way to the suffix's vowel, after a consonant.
@@ -127,7 +128,7 @@ struct RawGlide {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Joins {
     pub vowel_signs: Vec<(char, Option<char>)>,
-    pub nasal: Option<(char, char)>,
+    pub nasal: Option<(String, char)>,
     pub final_forms: Vec<(char, char)>,
     pub elide: Vec<char>,
     pub glides: Vec<(char, Vec<(char, char)>)>,
@@ -158,7 +159,20 @@ impl Joins {
                     Ok((code_point(vowel)?, sign))
                 })
                 .collect::<Result<_, String>>()?,
-            nasal: raw.nasal.as_ref().map(pair).transpose()?,
+            nasal: raw
+                .nasal
+                .as_ref()
+                .map(|[ending, consonant]| {
+                    let ending: String = ending
+                        .split_whitespace()
+                        .map(code_point)
+                        .collect::<Result<_, _>>()?;
+                    if ending.is_empty() {
+                        return Err("suffixJoins nasal has no ending".to_string());
+                    }
+                    Ok((ending, code_point(consonant)?))
+                })
+                .transpose()?,
             final_forms: raw
                 .final_forms
                 .iter()
@@ -415,7 +429,10 @@ impl ScriptDef {
         let joins = self.joins.as_ref()?;
         let last = stem.chars().last()?;
         let body = &stem[..stem.len() - last.len_utf8()];
-        let nasal = joins.nasal.filter(|&(sign, _)| sign == last);
+        // The stem without its nasal ending, and the consonant the ending stands for.
+        let nasal = joins.nasal.as_ref().and_then(|(ending, consonant)| {
+            Some((stem.strip_suffix(ending.as_str())?, *consonant))
+        });
         match how {
             Join::Consonant => {
                 let first = suffix.chars().next()?;
@@ -424,14 +441,14 @@ impl ScriptDef {
                     || joins.consonant_after.contains(&last);
                 (self.is_consonant(first) && joins_on).then(|| format!("{stem}{suffix}"))
             }
-            Join::Oblique => nasal.map(|_| format!("{body}{suffix}")),
+            Join::Oblique => nasal.map(|(body, _)| format!("{body}{suffix}")),
             Join::Vowel | Join::Case => {
                 let mut chars = suffix.chars();
                 let first = chars.next()?;
                 let sign = joins.vowel_signs.iter().find(|&&(v, _)| v == first)?.1;
                 let rest = chars.as_str();
                 let sign: String = sign.into_iter().collect();
-                if let Some((_, consonant)) = nasal {
+                if let Some((body, consonant)) = nasal {
                     return (how == Join::Vowel).then(|| format!("{body}{consonant}{sign}{rest}"));
                 }
                 if let Some(&(_, base)) = joins.final_forms.iter().find(|&&(f, _)| f == last) {
@@ -591,6 +608,9 @@ impl ScriptRules for DataScript {
     fn joiners(&self) -> Option<&crate::normalize::Joiners> {
         self.def.joiners.as_ref()
     }
+    fn joins(&self) -> Option<&Joins> {
+        self.def.joins.as_ref()
+    }
 }
 
 /// Whether two scripts share a character.
@@ -601,6 +621,24 @@ pub(super) fn overlaps(a: &dyn ScriptRules, b: &dyn ScriptRules) -> bool {
             .any(|rb| ra.start() <= rb.end() && rb.start() <= ra.end())
     })
 }
+
+/// A script other than Malayalam's with its own sandhi: Tamil's, as the guide gives it.
+#[cfg(test)]
+pub(crate) const TAMIL: &str = r#"{
+  "script": "taml", "block": ["0B80", "0BFF"], "virama": "0BCD", "bases": [["0B95", "0BB9"]],
+  "suffixJoins": {
+    "vowelSigns": [["0B85", ""], ["0B86", "0BBE"], ["0B87", "0BBF"], ["0B88", "0BC0"],
+                   ["0B89", "0BC1"], ["0B8A", "0BC2"], ["0B8E", "0BC6"], ["0B8F", "0BC7"],
+                   ["0B90", "0BC8"], ["0B92", "0BCA"], ["0B93", "0BCB"]],
+    "nasal": ["0BAE 0BCD", "0BAE"],
+    "elide": ["0BCD"],
+    "glides": [
+      {"glide": "0BB5", "after": [["0BBE", "0BBE"], ["0BC1", "0BC2"], ["0BCA", "0BCC"]]},
+      {"glide": "0BAF", "after": [["0BBF", "0BC0"], ["0BC6", "0BC8"]]}
+    ],
+    "inherentGlide": "0BB5"
+  }
+}"#;
 
 #[cfg(test)]
 mod tests {
@@ -656,6 +694,28 @@ mod tests {
             let err = ScriptDef::from_json(json).unwrap_err();
             assert!(err.contains(want), "{json}: {err}");
         }
+    }
+
+    #[test]
+    fn another_scripts_suffixes_join_by_its_own_rules() {
+        use crate::suffix::Join;
+        let ta = ScriptDef::from_json(TAMIL).unwrap();
+        let join = |stem, suffix, how| ta.join_suffix(stem, suffix, how);
+        // A final pulli gives way to the suffix's vowel; a vowel takes its glide.
+        assert_eq!(join("அவன்", "இடம்", Join::Case).as_deref(), Some("அவனிடம்"));
+        assert_eq!(join("பள்ளி", "இல்", Join::Case).as_deref(), Some("பள்ளியில்"));
+        assert_eq!(join("பூ", "இல்", Join::Case).as_deref(), Some("பூவில்"));
+        assert_eq!(join("அம்மா", "ஆ", Join::Vowel).as_deref(), Some("அம்மாவா"));
+        // ம் is two code points: it becomes ம before a clitic, takes no case ending, and
+        // gives way to the oblique one.
+        assert_eq!(join("காலம்", "ஆ", Join::Vowel).as_deref(), Some("காலமா"));
+        assert_eq!(join("காலம்", "இல்", Join::Case), None);
+        assert_eq!(join("காலம்", "த்தில்", Join::Oblique).as_deref(), Some("காலத்தில்"));
+        assert_eq!(join("பள்ளி", "த்தில்", Join::Oblique), None);
+        assert_eq!(join("பள்ளி", "க்கு", Join::Consonant).as_deref(), Some("பள்ளிக்கு"));
+        assert_eq!(join("அவன்", "க்கு", Join::Consonant), None, "அவனுக்கு, not அவன்க்கு");
+        let bad = TAMIL.replace("0BAE 0BCD", " ");
+        assert!(ScriptDef::from_json(&bad).unwrap_err().contains("no ending"));
     }
 
     #[test]

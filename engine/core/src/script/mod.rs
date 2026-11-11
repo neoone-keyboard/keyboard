@@ -55,6 +55,11 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn join_suffix(&self, _stem: &str, _suffix: &str, _how: crate::suffix::Join) -> Option<String> {
         None
     }
+    /// The script's sandhi between a stem and a suffix (`lang.json`'s `suffixJoins`), if it
+    /// has any: `suffix` reads from it which letters a typed stem may lack or carry.
+    fn joins(&self) -> Option<&data::Joins> {
+        None
+    }
     /// A char of the block that is part of a word when splitting text (`text::words`).
     /// `is_letter` unless the script says otherwise.
     fn is_word_char(&self, c: char) -> bool {

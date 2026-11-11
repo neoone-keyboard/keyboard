@@ -43,8 +43,43 @@ pub enum Join {
     Consonant,
     /// The oblique case ending of a stem in ം: ം is replaced (മരം + ത്തിൽ →
     /// മരത്തിൽ). The typed letters (`marathil`) leave the stem's m out, so it
-    /// is put back for the lookup.
+    /// is put back for the lookup (`StemLetters::oblique`).
     Oblique,
+}
+
+/// The Latin letters a typed stem lacks or carries at the join, which its lexicon spelling
+/// doesn't: read from the script's sandhi (`lang.json`'s `suffixJoins`) through the pack's
+/// romanisation, so each language gets its own (Malayalam's are `m`, and `y` and `v`).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct StemLetters {
+    /// How the nasal ending an oblique suffix replaces is spelled (`nasal`: ം is `m`). The
+    /// typed stem leaves it out (`mara` + `thil`), so it is added for the lookup.
+    oblique: String,
+    /// How the glides are spelled (`glides`, `inherentGlide`: യ is `y`, വ is `v`). A typed
+    /// stem may end in one after a vowel (`ammay` + `odu`); it is tried without it too.
+    glides: Vec<String>,
+}
+
+impl StemLetters {
+    /// Empty for a script without joins: nothing is added or dropped.
+    pub fn new(rules: &dyn ScriptRules, r: &Romanisation) -> Self {
+        let Some(joins) = rules.joins() else {
+            return Self::default();
+        };
+        let oblique = joins
+            .nasal
+            .as_ref()
+            .map(|(ending, _)| r.romanize(ending))
+            .unwrap_or_default();
+        let mut glides: Vec<String> = Vec::new();
+        let letters = joins.glides.iter().map(|(glide, _)| *glide).chain(joins.inherent_glide);
+        for latin in letters.filter_map(|glide| r.consonant(glide)) {
+            if !latin.is_empty() && !glides.iter().any(|g| g == latin) {
+                glides.push(latin.to_string());
+            }
+        }
+        Self { oblique, glides }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -156,21 +191,22 @@ struct Cut<'a> {
 }
 
 /// Stem spellings to look up for the Latin letters before a suffix: the
-/// letters themselves, plus the stem's m for an oblique ending, or without a
-/// typed glide (`ammay` + `odu` → amma) before a vowel.
-fn stem_spellings(latin: &str, how: Join) -> Vec<String> {
+/// letters themselves, plus the stem's nasal for an oblique ending (Malayalam's
+/// `m`), or without a typed glide (`ammay` + `odu` → amma) before a vowel.
+fn stem_spellings(latin: &str, how: Join, letters: &StemLetters) -> Vec<String> {
     let mut out = Vec::with_capacity(2);
     match how {
-        Join::Oblique => out.push(format!("{latin}m")),
+        Join::Oblique => out.push(format!("{latin}{}", letters.oblique)),
         Join::Consonant => out.push(latin.to_string()),
         Join::Vowel | Join::Case => {
             out.push(latin.to_string());
-            let b = latin.as_bytes();
-            if b.len() > MIN_STEM
-                && matches!(b[b.len() - 1], b'y' | b'v')
-                && matches!(b[b.len() - 2], b'a' | b'e' | b'i' | b'o' | b'u')
-            {
-                out.push(latin[..latin.len() - 1].to_string());
+            for glide in &letters.glides {
+                if let Some(stem) = latin.strip_suffix(glide.as_str())
+                    && latin.len() > MIN_STEM
+                    && stem.as_bytes().last().is_some_and(|b| b"aeiou".contains(b))
+                {
+                    out.push(stem.to_string());
+                }
             }
         }
     }
@@ -216,10 +252,10 @@ pub fn splits(
 
 /// Every way to cut `latin` into a stem and one or two suffixes: one suffix
 /// first, and a longer suffix before a shorter one.
-fn cuts<'t>(latin: &str, suffixes: &'t Suffixes) -> Vec<Cut<'t>> {
+fn cuts<'t>(latin: &str, suffixes: &'t Suffixes, letters: &StemLetters) -> Vec<Cut<'t>> {
     let mut cuts: Vec<Cut> = Vec::new();
     for (outer, before, len) in endings(latin, suffixes) {
-        for stem in stem_spellings(before, outer.join) {
+        for stem in stem_spellings(before, outer.join, letters) {
             cuts.push(Cut {
                 stem,
                 suffixes: vec![outer],
@@ -227,7 +263,7 @@ fn cuts<'t>(latin: &str, suffixes: &'t Suffixes) -> Vec<Cut<'t>> {
             });
         }
         for (inner, stem, inner_len) in endings(before, suffixes).filter(|(s, _, _)| s.inner) {
-            for stem in stem_spellings(stem, inner.join) {
+            for stem in stem_spellings(stem, inner.join, letters) {
                 cuts.push(Cut {
                     stem,
                     suffixes: vec![inner, outer],
@@ -257,7 +293,7 @@ fn splits_with(
     if latin.len() < MIN_LETTERS || latin.len() != typed.len() {
         return Vec::new();
     }
-    let cuts = cuts(&latin, suffixes);
+    let cuts = cuts(&latin, suffixes, &StemLetters::new(rules, r));
     let mut looked_up: Vec<(String, Vec<(String, f32)>)> = Vec::new();
     let mut out = Vec::new();
     for cut in &cuts {
@@ -417,6 +453,63 @@ mod tests {
         .collect()
     }
 
+    /// What `stem_spellings` had as code for Malayalam: its joins and tables say the same.
+    #[test]
+    fn malayalams_stem_letters_are_the_ones_that_were_code() {
+        let letters = StemLetters::new(mlym(), romanisation::ml());
+        assert_eq!(letters.oblique, "m");
+        let mut glides = letters.glides.clone();
+        glides.sort();
+        assert_eq!(glides, ["v", "y"]);
+        let spellings = |latin, how| stem_spellings(latin, how, &letters);
+        assert_eq!(spellings("mara", Join::Oblique), ["maram"]);
+        assert_eq!(spellings("amma", Join::Consonant), ["amma"]);
+        assert_eq!(spellings("ammay", Join::Case), ["ammay", "amma"]);
+        assert_eq!(spellings("poov", Join::Vowel), ["poov", "poo"]);
+        assert_eq!(spellings("avan", Join::Vowel), ["avan"]);
+        assert_eq!(spellings("pay", Join::Vowel), ["pay"], "too short to lose a letter");
+        assert_eq!(spellings("mazhy", Join::Vowel), ["mazhy"], "a glide follows a vowel");
+    }
+
+    /// Another language's suffixes get its own letters, or none.
+    #[test]
+    fn stem_letters_are_each_languages_own() {
+        use crate::script::data::{DataScript, ScriptDef};
+        let path = |id: &str| {
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join(format!("../../packs/{id}.neopack/romanisation.json"))
+        };
+        // Hindi has no joins: nothing is added or dropped, whatever the suffix file says.
+        let hi = romanisation::Romanisation::load(&path("hi")).unwrap();
+        let none = StemLetters::new(rules("deva").unwrap(), &hi);
+        assert_eq!(none, StemLetters::default());
+        assert_eq!(stem_spellings("ghar", Join::Oblique, &none), ["ghar"]);
+        assert_eq!(stem_spellings("bhay", Join::Vowel, &none), ["bhay"]);
+        // Tamil's ம் is `m`, its glides y and v; a Tamil suffix file splits by them.
+        let ta = romanisation::Romanisation::load(&path("ta")).unwrap();
+        let taml = DataScript::intern(ScriptDef::from_json(crate::script::data::TAMIL).unwrap());
+        let letters = StemLetters::new(taml, &ta);
+        assert_eq!(letters.oblique, "m");
+        assert_eq!(letters.glides, ["v", "y"]);
+        let suffixes = Suffixes::parse("il\tஇல்\tcase\nthil,athil\tத்தில்\toblique\na\tஆ\tvowel\n").unwrap();
+        let stems = |key: &str| -> Vec<(String, f32)> {
+            ["காலம்", "பள்ளி"]
+                .iter()
+                .filter(|w| ta.word_skeleton(w) == key)
+                .map(|w| (w.to_string(), -5.0))
+                .collect()
+        };
+        let words = |typed: &str| -> Vec<String> {
+            let mut words: Vec<String> =
+                splits_with(taml, &ta, &suffixes, typed, stems).into_iter().map(|s| s.word).collect();
+            words.dedup(); // a stem typed with and without its glide is one skeleton here
+            words
+        };
+        assert_eq!(words("kaalathil"), ["காலத்தில்"]);
+        assert_eq!(words("palliyil"), ["பள்ளியில்"]);
+        assert_eq!(words("kaalama"), ["காலமா"]);
+    }
+
     #[test]
     fn splits_typed_words_into_known_stems() {
         let lex = lexicon(&[
@@ -477,7 +570,8 @@ mod tests {
     fn lookups_are_bounded() {
         // Many suffix spellings end this word; only a few stems are looked up.
         let typed = "marathilundoo";
-        let mut skeletons: Vec<String> = cuts(typed, ml())
+        let letters = StemLetters::new(mlym(), romanisation::ml());
+        let mut skeletons: Vec<String> = cuts(typed, ml(), &letters)
             .iter()
             .map(|c| romanisation::ml().skeleton(&c.stem))
             .collect();
