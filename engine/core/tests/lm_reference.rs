@@ -163,6 +163,15 @@ fn trained() -> Option<Lm> {
     };
     if let Some(rules) = script.and_then(mlengine_core::script::embedded) {
         lm.set_native(rules.block());
+    } else {
+        // Another pack's script is in its `lang.json` (Tamil).
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(format!("../../packs/{}.neopack", lm_lang()));
+        let pack = mlengine_core::pack::Pack::open(&dir).expect("the language's pack");
+        let rules =
+            mlengine_core::script::for_pack(&pack.manifest.script, pack.file("lang").as_deref())
+                .expect("the pack's script rules");
+        lm.set_native(rules.block());
     }
     Some(lm)
 }
