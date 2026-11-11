@@ -115,6 +115,11 @@ final class LanguagesImportTests: XCTestCase {
         // which the app asks before a pack goes where the keyboard looks, can tell.
         let file = try packFile(replacing: ["lang.json": Data("{}".utf8)])
         try await importRefused(file, saying: "This pack wasn't made correctly, so it can't be added.")
+
+        // The same for a lexicon that is there, with its checksum, but isn't one: the engine
+        // opens the pack's files, it doesn't only look for them.
+        let garbage = try packFile(replacing: ["gu.fst": Data("not an fst".utf8)])
+        try await importRefused(garbage, saying: "This pack wasn't made correctly, so it can't be added.")
     }
 
     func testANewerVersionReplacesTheOlderAndAnOlderOneIsRefused() async throws {

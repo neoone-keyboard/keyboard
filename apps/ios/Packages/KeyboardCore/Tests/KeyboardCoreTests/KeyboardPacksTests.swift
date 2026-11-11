@@ -263,22 +263,103 @@ private let later = earlier.addingTimeInterval(60)
     #expect(removed.active == ["en"])
 }
 
-/// A bug, recorded here rather than fixed: `PackDescriptor` is equal by id alone, so a pack
-/// replaced by a newer version (an update from the app's Languages screen, or an installed
-/// copy taking over from the bundled one) reads as no change. The engine keeps the old
-/// version's files open until iOS ends the keyboard's process, while the keys and the emoji
-/// words already follow the new version. `EngineSuggestionProvider.reloadIfChanged` says "if
-/// a pack was installed, replaced or removed the engine reopens".
+/// A pack replaced by a newer version (an update from the app's Languages screen) is a
+/// change of packs though its id is the same: the engine has the old version's files open,
+/// and reopens (`EngineSuggestionProvider.reloadIfChanged`).
 @Test func aPackReplacedByANewerVersionReopensTheEngine() throws {
+    let fixture = try PacksFixture()
+    defer { fixture.cleanUp() }
+    try fixture.add("ml", to: fixture.bundled)
+    let hindi = try fixture.add("hi", to: fixture.installed, version: "2026.11.05")
+    let before = fixture.read()
+
+    // As the installer does it: the new version takes the old one's folder.
+    try FileManager.default.removeItem(at: hindi)
+    try fixture.add("hi", to: fixture.installed, version: "2026.11.09")
+    let after = fixture.read()
+    #expect(after.packs.map(\.id) == before.packs.map(\.id))
+    #expect(after.packs[1].folder == before.packs[1].folder)
+    #expect(after.packs[1].version == "2026.11.09")
+    #expect(after.change(from: before) == .packs)
+    #expect(after.packs == before.packs, "still the same languages: packs are equal by id")
+}
+
+/// An installed copy newer than the bundled one takes over from it: another folder, so the
+/// engine reopens. And back, when the installed copy is removed.
+@Test func anInstalledCopyTakingOverFromTheBundledOneReopensTheEngine() throws {
     let fixture = try PacksFixture()
     defer { fixture.cleanUp() }
     try fixture.add("ml", to: fixture.bundled, version: "2026.11.05")
     let before = fixture.read()
-    try fixture.add("ml", to: fixture.installed, version: "2026.11.09")
+    let installed = try fixture.add("ml", to: fixture.installed, version: "2026.11.09")
     let after = fixture.read()
     #expect(after.packs[0].version == "2026.11.09")
     #expect(after.packs[0].folder != before.packs[0].folder)
-    withKnownIssue("a replaced pack isn't seen as a change: the engine doesn't reopen") {
-        #expect(after.change(from: before) == .packs)
-    }
+    #expect(after.change(from: before) == .packs)
+
+    try FileManager.default.removeItem(at: installed)
+    let back = fixture.read()
+    #expect(back.packs[0].version == "2026.11.05")
+    #expect(back.change(from: after) == .packs)
+    #expect(back.change(from: before) == .none)
+}
+
+/// The folder alone decides too: the same version in the bundle and installed are two sets
+/// of files.
+@Test func theSameVersionInTheOtherFolderIsAChangeOfPacks() throws {
+    let fixture = try PacksFixture()
+    defer { fixture.cleanUp() }
+    let bundled = try fixture.add("ml", to: fixture.bundled, version: "2026.11.05")
+    let installed = try fixture.add("ml", to: fixture.installed, version: "2026.11.05")
+    let one = KeyboardPacks(packs: [try PackDescriptor.load(folder: bundled)], active: nil)
+    let other = KeyboardPacks(packs: [try PackDescriptor.load(folder: installed)], active: nil)
+    #expect(other.change(from: one) == .packs)
+    #expect(one.change(from: one) == .none)
+}
+
+/// Reading the same packs again, updated or not, is no change: the open engine stays. An
+/// installed copy that doesn't take over (not newer than the bundled one) changes nothing
+/// either.
+@Test func packsReadAgainUnchangedDoNotReopenTheEngine() throws {
+    let fixture = try PacksFixture()
+    defer { fixture.cleanUp() }
+    try fixture.add("ml", to: fixture.bundled, version: "2026.11.05")
+    try fixture.add("hi", to: fixture.installed, version: "2026.11.09")
+    try fixture.chooseInApp(["en", "hi"], at: earlier)
+    let before = fixture.read()
+    #expect(fixture.read().change(from: before) == .none)
+    #expect(before.change(from: before) == .none)
+
+    try fixture.add("ml", to: fixture.installed, version: "2026.11.05")
+    #expect(fixture.read().change(from: before) == .none, "the bundled copy is still the one in use")
+}
+
+/// Turning a language on or off is only a choice, set on the open engine, as before; with a
+/// pack updated at the same time the engine reopens, and takes the choice as it opens.
+@Test func turningALanguageOnOrOffOnlySetsTheChoice() throws {
+    let fixture = try PacksFixture()
+    defer { fixture.cleanUp() }
+    try fixture.add("ml", to: fixture.bundled)
+    let hindi = try fixture.add("hi", to: fixture.installed, version: "2026.11.05")
+    let before = fixture.read()
+
+    try fixture.chooseInApp(["en", "ml", "hi"], at: earlier)
+    let on = fixture.read()
+    #expect(on.change(from: before) == .choice)
+    #expect(on.engineLanguages == ["en", "ml", "hi"])
+
+    try fixture.chooseInApp(["en", "ml"], at: later)
+    let off = fixture.read()
+    #expect(off.change(from: on) == .choice)
+    #expect(off.engineLanguages == ["en", "ml"])
+
+    // Made in the keyboard's settings panel instead.
+    let inKeyboard = fixture.read(keyboardChoice: DatedLanguages(ActiveLanguages(["en", "hi"]), date: later.addingTimeInterval(60)))
+    #expect(inKeyboard.change(from: off) == .choice)
+    #expect(inKeyboard.change(from: inKeyboard) == .none)
+
+    try FileManager.default.removeItem(at: hindi)
+    try fixture.add("hi", to: fixture.installed, version: "2026.11.09")
+    try fixture.chooseInApp(["en", "hi"], at: later.addingTimeInterval(120))
+    #expect(fixture.read().change(from: off) == .packs)
 }

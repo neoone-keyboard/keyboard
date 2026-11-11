@@ -105,9 +105,10 @@ public struct PackInstaller: Sendable {
 
     public let packsFolder: URL
     public let support: PackSupport
-    /// The engine's own check of an unpacked pack folder (the FFI's `pack_problem`: the
-    /// manifest, the lexicon, the script's rules from its `lang.json`): why it can't be used,
-    /// or nil. Run before the pack is moved where the keyboard looks.
+    /// The engine's own check of an unpacked pack folder (MLEngine's `packOpenProblem`: the
+    /// manifest, the script's rules from its `lang.json`, and the lexicon opened as the
+    /// keyboard opens it): why it can't be used, or nil. Run before the pack is moved where
+    /// the keyboard looks.
     public let engineCheck: (@Sendable (URL) -> String?)?
 
     public init(packsFolder: URL, support: PackSupport, engineCheck: (@Sendable (URL) -> String?)? = nil) {

@@ -105,8 +105,11 @@ public struct KeyboardPacks: Equatable, Sendable {
         case choice
     }
 
+    /// The packs differ when one came or went, or one is now another version or in the other
+    /// folder (`PackDescriptor.files`): the engine has the old one's files open. Packs
+    /// themselves are equal by id alone, so they are not compared here.
     public func change(from old: KeyboardPacks) -> Change {
-        if self == old { return .none }
-        return packs != old.packs ? .packs : .choice
+        if packs.map(\.files) != old.packs.map(\.files) { return .packs }
+        return active == old.active ? .none : .choice
     }
 }
