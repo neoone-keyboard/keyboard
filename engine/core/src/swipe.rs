@@ -1137,6 +1137,15 @@ mod tests {
         assert_eq!(rules.keys(b'k'), b"kgq");
         assert_eq!(rules.keys(b's'), b"scj");
         assert!(rules.trail.is_empty(), "Tamil's skeleton drops nothing from the end");
+        // Assamese drops a final a, and its o is an a: either may be drawn after the end.
+        let as_ = pack("as");
+        assert_eq!(as_.swipe_rules().trail, b"ao");
+        assert_eq!(as_.swipe_rules().keys(b'a'), b"ao");
+        // Only Hindi drops a letter inside a word.
+        assert_eq!(hi.swipe_rules().between, b"a");
+        for other in [ta.swipe_rules(), as_.swipe_rules(), crate::romanisation::ml().swipe_rules()] {
+            assert!(other.between.is_empty());
+        }
         // A path through d-a-l is Hindi's `dal`, and its `tal` only at the cost of the t key's
         // distance; under Malayalam's rules the same path draws either as well.
         let lexicon = lex(&[("dal\0x", 1), ("tal\0y", 1)]);
