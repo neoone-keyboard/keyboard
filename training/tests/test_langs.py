@@ -284,3 +284,30 @@ def test_calibrate_misses_prints_the_failing_pairs(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "misses: 1 of 2 calibration pairs" in out
     assert "অসম\tzzz\t" in out and "does not align" in out
+
+
+def test_the_skeletons_optional_steps_come_from_the_hand_file():
+    import copy
+
+    weights = Tables.load("as")
+    # A hand file without them exports as before: no letters to drop, no dropBetweenConsonants.
+    plain = export(weights)["skeleton"]
+    assert plain["dropTrailing"] == {"letters": "", "afterVowel": True, "minLength": 3}
+    assert "dropBetweenConsonants" not in plain
+    # With them (Gujarati: a final n or m after a vowel, an a between consonants), the export
+    # has the format's fields, and the weighted tables and the pack's file give the same keys.
+    data = copy.deepcopy(weights.data)
+    data["skeleton"]["dropTrailing"] = {"letters": "nm", "afterVowel": True, "minLength": 3}
+    data["skeleton"]["dropBetweenConsonants"] = "a"
+    data["skeleton"]["dropFinal"] = ""
+    t = Tables(data)
+    f = Format1(export(t))
+    assert f.data["skeleton"]["dropTrailing"]["letters"] == "nm"
+    assert f.data["skeleton"]["dropBetweenConsonants"] == "a"
+    assert list(f.data["skeleton"])[-1] == "dropFinalVowel"
+    for typed, key in [
+        ("karnun", "krnu"), ("karnum", "krnu"), ("karnu", "krnu"), ("karanu", "krnu"),
+        ("an", "an"),  # shorter than minLength: kept
+        ("bharat", "brt"), ("amar", "amr"), ("kaam", "ka"), ("tr", "tr"), ("", ""),
+    ]:
+        assert t.skeleton(typed) == key and f.skeleton(typed) == key, typed
