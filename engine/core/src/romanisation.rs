@@ -235,7 +235,7 @@ fn swipe_rules(skeleton: &Skeleton, raw: Option<RawSwipe>) -> Result<crate::swip
     if let Some(said) = said_trail {
         trail = ascii_letters(&said, "swipe trail")?;
     }
-    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail))
+    Ok(crate::swipe::SkeletonRules::new(&also, &aspirated, &trail).dropping_between(&skeleton.between))
 }
 
 /// A loaded `romanisation.json`.
