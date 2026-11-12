@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use crate::chat_forms::ChatForms;
+use crate::convert::{Conversion, ConversionPaths, Converter};
 use crate::fuzzy::{self, WeightedEdit};
 use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
@@ -231,6 +232,9 @@ pub struct PackPaths {
     /// `lang.json`: the pack's script defined by data (`script::data`). Without it, the
     /// engine's own copy of the rules for `script`.
     pub lang: Option<PathBuf>,
+    /// A phrase-conversion pack's files (engine 9): such a pack is opened as a `Converter`
+    /// (`Engine::convert`), not as a word list, and its word files are not read.
+    pub conversion: Option<ConversionPaths>,
 }
 
 impl PackPaths {
@@ -250,6 +254,7 @@ impl PackPaths {
             chat_forms: None,
             layout: None,
             lang: None,
+            conversion: None,
         }
     }
 }
@@ -277,6 +282,10 @@ impl Sources {
             }
             if packs.iter().any(|q| q.id == p.id) {
                 problems.push(format!("{name}: another pack has id {}", p.id));
+                continue;
+            }
+            if p.conversion.is_some() {
+                // A phrase-conversion pack: `Engine::open` opens its converter.
                 continue;
             }
             match Self::open_pack(p, english.as_ref()) {
@@ -403,6 +412,36 @@ impl Sources {
     }
 }
 
+/// The converters of the phrase-conversion packs in `paths`, each with an id no word pack
+/// has; why one couldn't open goes in `problems`, as for a word pack.
+fn open_converters(paths: &Paths, sources: &Sources, problems: &mut Vec<String>) -> Vec<(LangId, Converter)> {
+    let mut converters: Vec<(LangId, Converter)> = Vec::new();
+    for p in &paths.packs {
+        let Some(files) = &p.conversion else { continue };
+        let name = p.dir.as_deref().and_then(Path::file_name).map_or_else(
+            || format!("{}.neopack", p.id),
+            |n| n.to_string_lossy().into_owned(),
+        );
+        if p.id == LangId::english() {
+            continue; // open_reporting said why
+        }
+        let taken = sources.packs.iter().any(|q| q.id == p.id) || converters.iter().any(|(id, _)| *id == p.id);
+        if taken {
+            // open_reporting said so when the word pack came first.
+            let why = format!("{name}: another pack has id {}", p.id);
+            if !problems.contains(&why) {
+                problems.push(why);
+            }
+            continue;
+        }
+        match Converter::open(&files.kana, &files.dictionary, &files.connection) {
+            Ok(c) => converters.push((p.id.clone(), c)),
+            Err(why) => problems.push(format!("{name}: {why}")),
+        }
+    }
+    converters
+}
+
 fn open_lexicon(path: &Option<PathBuf>) -> Option<Lexicon> {
     path.as_deref().and_then(|p| Lexicon::open(p).ok())
 }
@@ -423,6 +462,8 @@ pub struct Engine {
     shown: usize,
     /// The user's own words of each pack (`own_words`).
     own: Mutex<OwnIndex>,
+    /// The phrase-conversion packs' converters, by pack id (`convert`).
+    converters: Vec<(LangId, Converter)>,
 }
 
 /// Each pack's own words (`own::OwnWords`), by its place in `Sources::packs`, as the store
@@ -446,9 +487,11 @@ impl Engine {
             Some(dir) => UserStore::open(dir),
             None => UserStore::in_memory(),
         };
-        let (sources, problems) = Sources::open_reporting(paths);
+        let (sources, mut problems) = Sources::open_reporting(paths);
+        let converters = open_converters(paths, &sources, &mut problems);
         let mut engine = Self::new(sources, user);
         engine.pack_problems = problems;
+        engine.converters = converters;
         engine
     }
 
@@ -456,6 +499,32 @@ impl Engine {
     /// empty when every pack loaded.
     pub fn pack_problems(&self) -> Vec<String> {
         self.pack_problems.clone()
+    }
+
+    /// The ids of the loaded phrase-conversion packs (Japanese), in load order. They aren't
+    /// languages of `suggest`: the keyboard composes and converts with them instead
+    /// (`compose`, `convert`).
+    pub fn conversion_languages(&self) -> Vec<LangId> {
+        self.converters.iter().map(|(id, _)| id.clone()).collect()
+    }
+
+    /// The converter of the phrase-conversion pack `id`.
+    pub fn converter(&self, id: &str) -> Option<&Converter> {
+        self.converters.iter().find(|(l, _)| l.0 == id).map(|(_, c)| c)
+    }
+
+    /// The composing text of `typed`, the letters typed since the composition began, in pack
+    /// `id`: (kana, letters still waiting), the app showing both as marked text. `finish`
+    /// writes the waiting letters too (`n` → ん), as before converting. None when `id` is no
+    /// conversion pack.
+    pub fn compose(&self, id: &str, typed: &str, finish: bool) -> Option<(String, String)> {
+        Some(self.converter(id)?.compose(typed, finish))
+    }
+
+    /// Up to `n` candidates for `kana` converted whole, and for its first segment, in pack
+    /// `id` (`Converter::convert`). None when `id` is no conversion pack.
+    pub fn convert(&self, id: &str, kana: &str, n: usize) -> Option<Conversion> {
+        Some(self.converter(id)?.convert(kana, n))
     }
 
     pub fn new(sources: Sources, user: UserStore) -> Self {
@@ -469,6 +538,7 @@ impl Engine {
             pack_problems: Vec::new(),
             shown: DEFAULT_SUGGESTIONS,
             own: Mutex::new(OwnIndex::default()),
+            converters: Vec::new(),
         };
         // The user's own words are indexed now, not by the first suggest.
         engine.own_words();

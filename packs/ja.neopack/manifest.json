@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "id": "ja",
+  "version": "2026.11.12",
+  "name": "Japanese",
+  "nativeName": "日本語",
+  "script": "jpan",
+  "romanised": {
+    "name": "Romaji"
+  },
+  "minEngine": 9,
+  "conversion": "phrase",
+  "files": {
+    "kana": "kana.json",
+    "conversionLexicon": "conversion.dict",
+    "connection": "connection.bin",
+    "notices": "dictionary-notices.txt"
+  },
+  "sha256": {
+    "connection.bin": "b61c89788696df6c366211da1fe306fbc43d4e5f2e6b16767c2d40d4ab67e563",
+    "conversion.dict": "891789fdc4e860d89120b57e3f8858ef38fdf3f61aa0152dba78393a459cbd36",
+    "dictionary-notices.txt": "8c97dbd7e2199693bed4291dde98af0e6a0d9751d6d97491f87ad454a521ca0c",
+    "kana.json": "20b5f4e516c2ddde5cb57f1bfa13cf96820ef9fce879a99347768867e6ca6e9e"
+  },
+  "credits": [
+    {
+      "id": "mozc-dictionary",
+      "name": "Mozc OSS dictionary (IPAdic, the Okinawa dictionary and Google's additions)",
+      "licence": "IPAdic licence, not CC BY-SA",
+      "url": "https://github.com/google/mozc/tree/master/src/data/dictionary_oss",
+      "licenceUrl": "https://github.com/google/mozc/blob/master/LICENSE",
+      "attribution": "conversion.dict and connection.bin are built from the Mozc OSS dictionary. Copyright 2000, 2001, 2002, 2003 Nara Institute of Science and Technology. All Rights Reserved. A large portion of the dictionary entries originate from ICOT Free Software. These two files are under the IPAdic licence and ICOT's conditions, not the pack's CC BY-SA 4.0: the full notices, ICOT's NO WARRANTY section among them, are in dictionary-notices.txt in the pack. Mozc: Copyright 2010-2018, Google Inc., BSD 3-Clause. The Okinawa dictionary is public domain."
+    }
+  ]
+}

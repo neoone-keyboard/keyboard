@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -381,6 +381,20 @@ bench-hi:
 bench-pack-lm:
 	cd engine && NEOPACK_LM=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test pack_lm_any -- --include-ignored --nocapture --test-threads=1
 	cd engine && MLENGINE_LM_LANG=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
+
+# Japanese, a phrase-conversion pack (engine 9, engine/core/src/convert; docs/next-languages.md,
+# track B). ja-pack builds packs/ja.neopack's dictionary and connection matrix from the Mozc OSS
+# dictionary at a fixed commit (scripts/ja-pack.sh; downloads about 100 MB into build/ja/mozc
+# once). eval-ja converts the held-out Tatoeba sentences of data/eval/ja/tatoeba-convert.tsv
+# (scripts/ja-eval-set.py) and prints how many come out exactly right, whole and phrase by
+# phrase; JA_EVAL_SHOW=20 prints the first 20 wrong. bench-ja converts expected phrases and
+# times 64 kana, with the heap a conversion takes.
+ja-pack:
+	./scripts/ja-pack.sh
+eval-ja:
+	cd engine && $(CARGO) test --release -p mlengine-core --test ja_eval -- --ignored --nocapture
+bench-ja:
+	cd engine && $(CARGO) test --release -p mlengine-core --test ja_convert -- --ignored --nocapture
 
 test-swift: $(XCFRAMEWORK)
 	swift test --package-path apps/ios/Packages/KeyboardCore

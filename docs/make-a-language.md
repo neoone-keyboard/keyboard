@@ -49,6 +49,12 @@ Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps i
 `packs/pa.neopack` a Punjabi one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
 Gujarati one.
 
+A language typed as a reading and converted a whole phrase at a time, as Japanese is (romaji
+to kana to kanji), is not a word pack and isn't made with this guide. `packs/ja.neopack` is
+one: a phrase-conversion pack (`"conversion": "phrase"`, engine 9) with a romaji table, a
+conversion dictionary and a connection matrix in place of word lists, built by
+`make ja-pack` (`engine/core/src/convert`).
+
 ## What a pack is
 
 A pack is a folder named `<id>.neopack/`, zipped into a `.neopack` file to install or

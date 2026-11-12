@@ -15,7 +15,7 @@ pub mod dict;
 pub mod lattice;
 pub mod romaji;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub use connection::Connection;
 pub use dict::Dictionary;
@@ -28,6 +28,17 @@ pub const MAX_KANA: usize = 64;
 /// How much dearer than the best path a candidate may be. Mozc's word costs run to about
 /// 20,000; a path that much dearer is never what was meant.
 const BEAM: i32 = 30_000;
+
+/// A phrase-conversion pack's files, as the engine opens them (`PackPaths::conversion`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConversionPaths {
+    /// `kana.json`, the `kana` role.
+    pub kana: PathBuf,
+    /// The `conversionLexicon` role.
+    pub dictionary: PathBuf,
+    /// The `connection` role.
+    pub connection: PathBuf,
+}
 
 /// One segment of a conversion: a word and the particles or endings after it (今日は).
 #[derive(Debug, Clone, PartialEq, Eq)]
