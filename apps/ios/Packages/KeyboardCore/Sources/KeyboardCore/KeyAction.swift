@@ -30,10 +30,14 @@ public enum KeyboardPage: Hashable, Sendable {
 public struct KeysShown: Hashable, Sendable {
     public let language: String
     public let page: KeyboardPage
+    /// The pack whose script's marks and digits the Latin pages show
+    /// (`InputController.scriptPack`): turning a language on or off can change them.
+    public let script: String?
 
-    public init(language: String, page: KeyboardPage) {
+    public init(language: String, page: KeyboardPage, script: String? = nil) {
         self.language = language
         self.page = page
+        self.script = script
     }
 }
 

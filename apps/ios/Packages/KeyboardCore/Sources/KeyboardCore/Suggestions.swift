@@ -133,6 +133,21 @@ public struct SuggestionBar: Equatable, Sendable {
 
     /// Left, middle, right; nil for an empty slot.
     public var slots: [SuggestionSlot?] { [left, middle, right] }
+
+    /// The three slots in the order the bar draws them from where reading starts: left to
+    /// right, `slots`. Right to left (a pack whose script is, `PackDescriptor.rightToLeft`),
+    /// the bar is read from its right edge: the best word there, then the other word, then
+    /// the typed word in quotes or the emoji; `more` follows further left.
+    public func drawn(rightToLeft: Bool) -> [SuggestionSlot?] {
+        guard rightToLeft else { return slots }
+        // A word first, then the quoted typed word, then an emoji; empty slots last.
+        func rank(_ slot: SuggestionSlot?) -> Int {
+            guard let slot else { return 3 }
+            return slot.suggestion.kind == .emoji ? 2 : slot.quoted ? 1 : 0
+        }
+        let others = [left, right].enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
+        return [middle] + others.map(\.element)
+    }
 }
 
 /// Holding a bar slot asks whether to remove its word (SwiftKey's "Remove …?"). Once

@@ -30,17 +30,31 @@ public struct PackLayout: Equatable, Sendable {
     /// What the strip offers after a letter a sign can attach to, in the order shown when the
     /// engine has no preference. Empty: no strip.
     public let vowelSignStrip: [String]
+    /// The script's own marks for the Latin punctuation keys (`punctuation`, optional):
+    /// Urdu's {".": "۔", ",": "،", "?": "؟", ";": "؛"}. After a word of the script those keys
+    /// type its marks, and so do two spaces; the symbols page shows them. Empty: Latin marks.
+    public let punctuation: [String: String]
+    /// The script's digits, zero to nine (`digits`, optional): Urdu's ۰ to ۹. The symbols
+    /// page's top row, and long-press options on the Latin letters' top row. Empty unless ten.
+    public let digits: [String]
+    /// The symbols page's currency sign (`currency`, optional): Urdu's ₨. Nil: the
+    /// keyboard's own (₹).
+    public let currency: String?
 
     public struct Invalid: Error, CustomStringConvertible {
         public let description: String
     }
 
-    public init(spaceBar: String, languageKey: String, pages: [Page], longPress: [String: [String]] = [:], vowelSignStrip: [String] = []) {
+    public init(spaceBar: String, languageKey: String, pages: [Page], longPress: [String: [String]] = [:], vowelSignStrip: [String] = [],
+                punctuation: [String: String] = [:], digits: [String] = [], currency: String? = nil) {
         self.spaceBar = spaceBar
         self.languageKey = languageKey
         self.pages = pages
         self.longPress = longPress
         self.vowelSignStrip = vowelSignStrip
+        self.punctuation = punctuation.filter { !$0.key.isEmpty && !$0.value.isEmpty }
+        self.digits = digits.count == 10 && !digits.contains("") ? digits : []
+        self.currency = currency?.isEmpty == false ? currency : nil
     }
 
     public static func load(_ url: URL) throws -> PackLayout {
@@ -57,7 +71,9 @@ public struct PackLayout: Equatable, Sendable {
         }
         return PackLayout(
             spaceBar: file.spaceBar, languageKey: file.languageKey, pages: file.pages,
-            longPress: file.longPress ?? [:], vowelSignStrip: file.vowelSignStrip ?? []
+            longPress: file.longPress ?? [:], vowelSignStrip: file.vowelSignStrip ?? [],
+            punctuation: file.punctuation?.value ?? [:], digits: file.digits?.value ?? [],
+            currency: file.currency?.value ?? nil
         )
     }
 
@@ -85,5 +101,18 @@ public struct PackLayout: Equatable, Sendable {
         let pages: [Page]
         let longPress: [String: [String]]?
         let vowelSignStrip: [String]?
+        let punctuation: Lenient<[String: String]>?
+        let digits: Lenient<[String]>?
+        let currency: Lenient<String>?
+    }
+
+    /// An optional field that is left out, not refused, when it isn't what it should be: the
+    /// layout still types without the script's marks or digits.
+    private struct Lenient<Value: Decodable>: Decodable {
+        let value: Value?
+
+        init(from decoder: Decoder) throws {
+            value = try? decoder.singleValueContainer().decode(Value.self)
+        }
     }
 }

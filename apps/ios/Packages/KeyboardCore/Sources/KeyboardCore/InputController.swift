@@ -162,16 +162,24 @@ public final class InputController {
         let replacement: String
         /// Typed after the word and put back with it by undo: the `.` of `teh.` + space.
         var kept = ""
+        /// What undo puts back for `kept`: the `.` typed where Urdu's `۔` went in after the word.
+        var keptTyped: String?
         let separator: String
     }
 
     /// The word before a full stop, with what ending it at whitespace does: put in
-    /// `replacement`, or report the word when `reports`.
+    /// `replacement`, or report the word when `reports`. `mark` is the full stop as typed:
+    /// `.`, or a script's own (`۔`) after a word in that script.
     private struct HeldStop {
         let word: String
+        var mark = "."
         let replacement: String?
         let reports: Bool
     }
+
+    /// The text before the cursor just after the space key typed a space, until the next key:
+    /// a second space then may end the sentence in the script's full stop (`spacesMark`).
+    private var afterSpace: String?
 
     /// Typed straight after a word, these commit the middle suggestion first. A full stop
     /// waits for the next key: only whitespace after it ends the word (`googel.com`).
@@ -191,11 +199,25 @@ public final class InputController {
 
     /// Which keys show: when this changes they must be drawn again (a shift change only
     /// relabels them). The page alone isn't enough: every pack's first page may be `letters`.
-    public var keysShown: KeysShown { KeysShown(language: language.id, page: page) }
+    public var keysShown: KeysShown {
+        KeysShown(language: language.id, page: page, script: language == .english ? scriptPack?.id : nil)
+    }
 
     public var layout: KeyboardLayout {
-        .forPage(page, native: language.nativeLayout, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard)
+        .forPage(page, native: language.nativeLayout, numberRow: numberRow, showsNextKeyboard: showsNextKeyboard,
+                 script: scriptPack?.layout)
     }
+
+    /// The pack whose conventions the keys and the bar follow: on a pack's own layout that
+    /// pack; on the Latin keys the one pack typed beside English (Roman Urdu with Urdu on),
+    /// and none when several are on, as they may differ.
+    public var scriptPack: PackDescriptor? {
+        if case .pack(let pack) = language { return pack }
+        return activePacks.count == 1 ? activePacks[0] : nil
+    }
+
+    /// The suggestion bar is mirrored: `scriptPack` is written right to left. The keys never are.
+    public var rightToLeft: Bool { scriptPack?.rightToLeft ?? false }
 
     /// The language the language key switches to: the next in `languages`.
     private var nextLanguage: Language {
@@ -217,7 +239,7 @@ public final class InputController {
         if let swipe = takeSwipe() {
             if action == .backspace, deleteSwipe(swipe) { return }
             settleSwipe(swipe)
-            if case .character(let c) = action, Self.closingPunctuation.contains(c),
+            if case .character(let c) = action, Self.closingPunctuation.contains(latinTwin(of: c)),
                (output.contextBefore ?? "").hasSuffix(swipe.text) {
                 output.deleteBackward() // The swipe's space.
             }
@@ -226,20 +248,29 @@ public final class InputController {
         lastReplacement = nil
         let stop = heldStop
         heldStop = nil
+        let spaced = afterSpace
+        afterSpace = nil
         switch action {
-        case .character(".") where !continuesAddress(with: "."):
-            holdFullStop()
-        case .character(let c) where Self.committingPunctuation.contains(c) && !continuesAddress(with: c):
+        case .character(let c) where latinTwin(of: c) == "." && !continuesAddress(with: c):
+            holdFullStop(c)
+        case .character(let c) where Self.committingPunctuation.contains(latinTwin(of: c)) && !continuesAddress(with: c):
             if !commitMiddle(separator: c) {
                 noteCommittedWord()
-                type(c)
+                type(mark(c, after: output.contextBefore ?? ""))
             }
         case .character(let c):
             type(c)
         case .space:
-            if !end(stop, with: " "), !commitMiddle(separator: " ") {
-                noteCommittedWord()
-                output.insertText(" ")
+            if let spaced, spaced == output.contextBefore, let stop = spacesMark(endingAt: spaced) {
+                // The second space: the sentence ends in the script's full stop (Urdu's ۔).
+                output.deleteBackward()
+                output.insertText(stop + " ")
+            } else {
+                if !end(stop, with: " "), !commitMiddle(separator: " ") {
+                    noteCommittedWord()
+                    output.insertText(" ")
+                }
+                afterSpace = output.contextBefore
             }
             if page == .symbols || page == .moreSymbols { page = alphabetPage }
         case .returnKey:
@@ -346,6 +377,7 @@ public final class InputController {
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
+        afterSpace = nil
         suggestions = .empty
     }
 
@@ -515,9 +547,13 @@ public final class InputController {
     /// the tap would correct it (after a held full stop too), then the space.
     public func contextAfterSpace() -> String {
         let context = output.contextBefore ?? ""
-        if let stop = heldStop, context.hasSuffix(stop.word + ".") {
+        if let stop = heldStop, context.hasSuffix(stop.word + stop.mark) {
             guard let replacement = stop.replacement else { return context + " " }
-            return String(context.dropLast(stop.word.count + 1)) + replacement + ". "
+            return String(context.dropLast(stop.word.count + stop.mark.count)) + replacement
+                + mark(stop.mark, after: replacement) + " "
+        }
+        if let spaced = afterSpace, spaced == output.contextBefore, let stop = spacesMark(endingAt: spaced) {
+            return String(context.dropLast()) + stop + " "
         }
         guard let (word, replacement) = correction(endingAt: context) else { return context + " " }
         return String(context.dropLast(word.count)) + replacement + " "
@@ -604,6 +640,8 @@ public final class InputController {
     private func commitMiddle(separator: String) -> Bool {
         let context = output.contextBefore ?? ""
         guard let (word, replacement) = correction(endingAt: context) else { return false }
+        // After a word in a script with its own marks, the script's: `kya?` → `کیا؟`.
+        let separator = mark(separator, after: replacement)
         delete(word, from: context)
         output.insertText(replacement + separator)
         reportUse(replacement, before: String(context.dropLast(word.count)))
@@ -638,32 +676,76 @@ public final class InputController {
     /// A full stop after a word ends it only if whitespace comes next: a letter makes one
     /// word of both (`googel.com`, `e.g`). So it is typed as it is, and what ending the
     /// word does (a replacement, or the report) waits for `end(_:with:)`.
-    private func holdFullStop() {
+    /// `typed` is the key's: `.`, or a script's own full stop (`۔`). A `.` after a word in a
+    /// script with its own goes in as that (`شکریہ.` is `شکریہ۔`); after a Latin word that
+    /// will be replaced, it waits for the replacement (`end(_:with:)`).
+    private func holdFullStop(_ typed: String = ".") {
         let context = output.contextBefore ?? ""
         let word = currentWord
+        let mark = mark(typed, after: context)
         if !word.isEmpty {
-            heldStop = HeldStop(word: word, replacement: correction(endingAt: context)?.1, reports: committableWord() != nil)
+            heldStop = HeldStop(word: word, mark: mark, replacement: correction(endingAt: context)?.1,
+                                reports: committableWord() != nil)
         }
-        type(".")
+        type(mark)
     }
 
     /// Whitespace straight after a held full stop: the word before it ends there, so it
     /// is replaced (`teh.` → `the. `, undone like any replacement) or reported. False
-    /// when nothing is held or the text no longer ends in it.
+    /// when nothing is held or the text no longer ends in it. A replacement in a script with
+    /// its own full stop takes it (`mera.` → `میرا۔ `).
     private func end(_ stop: HeldStop?, with separator: String) -> Bool {
         let context = output.contextBefore ?? ""
-        guard let stop, context.hasSuffix(stop.word + ".") else { return false }
-        reportUse(stop.replacement ?? stop.word, before: String(context.dropLast(stop.word.count + 1)))
+        guard let stop, context.hasSuffix(stop.word + stop.mark) else { return false }
+        let typed = stop.word + stop.mark
+        reportUse(stop.replacement ?? stop.word, before: String(context.dropLast(typed.count)))
         if let replacement = stop.replacement {
-            delete(stop.word + ".", from: context)
-            output.insertText(replacement + "." + separator)
-            lastReplacement = Replacement(typed: stop.word, replacement: replacement, kept: ".", separator: separator)
+            let mark = mark(stop.mark, after: replacement)
+            delete(typed, from: context)
+            output.insertText(replacement + mark + separator)
+            lastReplacement = Replacement(typed: stop.word, replacement: replacement, kept: mark,
+                                          keptTyped: stop.mark, separator: separator)
             suggestions = .empty
         } else {
             if stop.reports { report(.committed(stop.word)) }
             output.insertText(separator)
         }
         return true
+    }
+
+    /// The packs whose scripts the text may be in: the active ones and those with a layout.
+    private var writingPacks: [PackDescriptor] {
+        activePacks + languages.compactMap { language in
+            if case .pack(let pack) = language { pack } else { nil }
+        }
+    }
+
+    /// The script's own mark for the Latin `mark` when `text` ends, past any whitespace, in a
+    /// letter of a pack whose script has one (`PackDescriptor.punctuation`); else `mark`.
+    private func mark(_ mark: String, after text: some StringProtocol) -> String {
+        guard let last = text.last(where: { !$0.isWhitespace }), last.isLetter else { return mark }
+        let letter = String(last)
+        return writingPacks.lazy.compactMap { pack in pack.writes(letter) ? pack.punctuation[mark] : nil }.first ?? mark
+    }
+
+    /// The Latin mark a script's own one stands for (`۔` is `.`), so it ends a word as that
+    /// does; any other text as it is.
+    private func latinTwin(of text: String) -> String {
+        for pack in writingPacks {
+            if let latin = pack.punctuation.first(where: { $0.value == text })?.key { return latin }
+        }
+        return text
+    }
+
+    /// What a second space after `context` (which ends in the first) puts in its place: the
+    /// script's full stop after a word in a script with its own (`میرا ` → `میرا۔ `); nil
+    /// elsewhere, where two spaces stay two (iOS's own shortcut, if on, still applies there).
+    private func spacesMark(endingAt context: String) -> String? {
+        guard context.hasSuffix(" ") else { return nil }
+        let before = context.dropLast()
+        guard let last = before.last, !last.isWhitespace else { return nil }
+        let stop = mark(".", after: before)
+        return stop == "." ? nil : stop
     }
 
     private static func straight(_ text: String) -> String {
@@ -786,7 +868,7 @@ public final class InputController {
         let committed = replacement.replacement + replacement.kept + replacement.separator
         guard context.hasSuffix(committed) else { return false }
         delete(committed, from: context)
-        output.insertText(replacement.typed + replacement.kept)
+        output.insertText(replacement.typed + (replacement.keptTyped ?? replacement.kept))
         keptWord = replacement.typed
         suggestions = .empty
         report(.learn(replacement.typed))

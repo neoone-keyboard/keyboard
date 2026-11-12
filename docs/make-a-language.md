@@ -255,6 +255,7 @@ engine the same: one definition for both. The engine's parser is
 | `zwjForms` | `[["consonant", "letter"]]`, code points in hex: the consonant + `virama` + ZWJ is an older encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ). Optional. Engine 6. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
+| `direction` | `"rtl"` or `"ltr"`: which way the script is written. The apps mirror the suggestion bar for `"rtl"`; the keys stay as listed. Optional: without it the apps take the Unicode direction of the script's letters (Arabic's is right to left). Read by the apps only, so it needs no engine level. |
 
 The engine normalises typed text with this file's `replace` list, the same way the builder
 did, so typed words meet stored ones. Only `script`, and `block` or `letters`, are required by
@@ -940,6 +941,17 @@ Copy `packs/as.neopack/layout.json`:
 - `longPress` maps a key's text to its long-press options.
 - `vowelSignStrip` is the row of vowel signs shown after a letter a sign can attach to. Each
   entry must be one character. Leave it empty for no strip.
+- `punctuation` (optional) maps the Latin marks to your script's own:
+  `{".": "۔", ",": "،", "?": "؟", ";": "؛"}` for Urdu. After a word in your script, those keys
+  type your marks, and the double-space full stop does too. The symbols page shows them.
+- `digits` (optional) lists your script's digits, zero to nine (exactly ten). They go on the
+  symbols page's top row, and as long-press options on the Latin letters' top row.
+- `currency` (optional) is the currency sign on the symbols page: `"₨"` for Urdu. Without it
+  the page shows ₹.
+- Right-to-left scripts need nothing more here. Rows are listed left to right, as they
+  appear. The Android app mirrors the suggestion bar when the script is right to left. It
+  reads the direction from `direction` in `lang.json` (`"rtl"` or `"ltr"`) when given, or
+  else from the Unicode direction of the script's letters.
 - The app refuses a layout with another `format`, no pages, or an empty key.
 
 `pack.py --check` (step 10, and `make test-pack`) reads the layout and fails on what the app

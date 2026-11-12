@@ -396,8 +396,13 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func applyLanguages(_ languages: [Language]) {
+        let keysBefore = input.keysShown
         input.activePacks = EngineSuggestionProvider.packState.activePacks
-        guard !languages.isEmpty, languages != input.languages else { return }
+        guard !languages.isEmpty, languages != input.languages else {
+            // Another pack on or off can change the Latin pages' marks and digits.
+            if input.keysShown != keysBefore { applySettings() }
+            return
+        }
         let before = input.language.id
         input.languages = languages
         log.info("Languages now \(languages.map(\.id).joined(separator: ",")); was on \(before), now \(input.language.id)")
@@ -978,6 +983,8 @@ final class KeyboardViewController: UIInputViewController {
             return try? languageMarkBase(lang: pack.id, contextBefore: context)
         }
         if content.isForCurrentWord { barWord = state.straightWord }
+        // Mirrored for a language written right to left (Urdu), its words in its own font.
+        topBar.setScript(input.scriptPack)
         switch content {
         case .unchanged:
             break
