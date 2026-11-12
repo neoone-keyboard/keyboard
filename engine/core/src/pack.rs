@@ -2,7 +2,9 @@
 //! language's data files. The manifest maps roles (`lexicon`, `romanisedLexicon`,
 //! `romanisation`, `nextWords`, `translit`, `lm`, `suffixes`, `chatForms`, `layout`, `lang`) to file
 //! names in the folder; `Pack::open` reads and checks it, and `Paths::with_packs` turns it into
-//! the paths the engine opens.
+//! the paths the engine opens. A phrase-conversion pack (`"conversion": "phrase"`, engine 9:
+//! Japanese) has the roles `kana`, `conversionLexicon` and `connection` instead
+//! (`crate::convert`).
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -10,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
+use crate::convert::ConversionPaths;
 use crate::lang::LangId;
 use crate::{PackPaths, Paths};
 
@@ -62,6 +65,13 @@ pub const FORMAT: u32 = 1;
 /// as other characters and refuse the transliterator: a pack whose `lang.json` sets
 /// `charTable` needs 8, in any script. A pack without one is packed and spelled as before.
 ///
+/// 9: phrase conversion (`crate::convert`, Japanese): a manifest with `"conversion": "phrase"`
+/// and the roles `kana` (`kana.json`, romaji to kana), `conversionLexicon` (reading → surface,
+/// part-of-speech ids and cost) and `connection` (the ids' connection costs). Such a pack has no
+/// word list: it is opened as a converter, its script is no word script, and an older engine
+/// would refuse it for having no lexicon. `notices` (licence texts the app shows, such as
+/// IPAdic's, which must travel with the dictionary) is an app role and needs no level.
+///
 /// No level: `lang.json`'s `direction` ("rtl" or "ltr"), which only the apps read (a mirrored
 /// suggestion bar; without it they take the Unicode direction of the script's letters). The engine
 /// ignores it, and an older app lays the bar out left to right as before, as for `APP_ROLES`.
@@ -69,7 +79,7 @@ pub const FORMAT: u32 = 1;
 /// Adding a pack feature an older engine would ignore or misread: raise this, say here what
 /// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's
 /// contents to the level they need (`tests/pack_check.rs` holds every pack in `packs/` to it).
-pub const PACK_ENGINE: u32 = 8;
+pub const PACK_ENGINE: u32 = 9;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -97,7 +107,18 @@ pub struct Manifest {
     pub sha256: BTreeMap<String, String>,
     #[serde(default)]
     pub credits: Vec<Credit>,
+    /// `"phrase"` for a phrase-conversion pack (engine 9, `crate::convert`); None for a pack of
+    /// words.
+    #[serde(default)]
+    pub conversion: Option<String>,
 }
+
+/// The one kind of conversion this engine does: the typed reading of a whole phrase converted
+/// at once (Japanese).
+pub const PHRASE: &str = "phrase";
+
+/// The roles a phrase-conversion pack must have.
+const CONVERSION_ROLES: &[&str] = &["kana", "conversionLexicon", "connection"];
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Romanised {
@@ -126,6 +147,8 @@ pub enum PackError {
     Engine(u32),
     /// The required `lexicon` file is missing.
     NoLexicon,
+    /// A conversion this engine doesn't do, or a conversion pack without a file it needs.
+    Conversion(String),
 }
 
 impl fmt::Display for PackError {
@@ -137,6 +160,7 @@ impl fmt::Display for PackError {
             Self::Script(why) => write!(f, "script rules: {why}"),
             Self::Engine(v) => write!(f, "pack needs engine {v}, this is {PACK_ENGINE}"),
             Self::NoLexicon => write!(f, "pack has no lexicon file"),
+            Self::Conversion(why) => write!(f, "conversion: {why}"),
         }
     }
 }
@@ -166,6 +190,16 @@ impl Pack {
             dir: dir.to_path_buf(),
             manifest,
         };
+        if let Some(kind) = pack.manifest.conversion.as_deref() {
+            // Not words in a script: no script rules and no lexicon, but its own files.
+            if kind != PHRASE {
+                return Err(PackError::Conversion(format!("{kind:?}, this engine converts {PHRASE:?}")));
+            }
+            if let Some(role) = CONVERSION_ROLES.iter().find(|r| pack.file(r).is_none()) {
+                return Err(PackError::Conversion(format!("no {role} file")));
+            }
+            return Ok(pack);
+        }
         if let (Some(name), None) = (pack.manifest.files.get("lang"), pack.file("lang")) {
             return Err(PackError::Script(format!(
                 "the manifest names a lang file, {name:?}, that isn't in the pack"
@@ -208,7 +242,18 @@ impl Pack {
             chat_forms: self.file("chatForms"),
             layout: self.file("layout"),
             lang: self.file("lang"),
+            conversion: self.conversion_paths(),
         }
+    }
+
+    /// A phrase-conversion pack's files; None for a pack of words.
+    fn conversion_paths(&self) -> Option<ConversionPaths> {
+        self.manifest.conversion.as_ref()?;
+        Some(ConversionPaths {
+            kana: self.file("kana")?,
+            dictionary: self.file("conversionLexicon")?,
+            connection: self.file("connection")?,
+        })
     }
 }
 
@@ -291,6 +336,9 @@ const LANG_KEYS: &[(&str, Key)] = &[
     ("direction", Key::App),
 ];
 
+/// `kana.json`'s keys (`convert::romaji`): all read since the file's level, 9.
+const KANA_KEYS: &[(&str, Key)] = &[("format", Key::Base), ("notes", Key::Base), ("rules", Key::Base)];
+
 /// `romanisation.json`'s keys (`romanisation::Raw`), an object's inner keys after a dot.
 const ROMANISATION_KEYS: &[(&str, Key)] = &[
     ("format", Key::Base),
@@ -338,12 +386,17 @@ const ENGINE_ROLES: &[&str] = &[
     "chatForms",
     "layout",
     "lang",
+    "kana",
+    "conversionLexicon",
+    "connection",
 ];
 
 /// Roles the app reads, never the engine: an older app ignores them and reads the pack as
 /// before. An app from before them has Malayalam's emoji words bundled, the same words
 /// Malayalam's pack brings; any other language's pack is only without its emoji words there.
-const APP_ROLES: &[&str] = &["emojiWords", "emojiSearch"];
+/// `notices` holds licence texts that must travel with the pack's data and that the app shows
+/// beside its credits (IPAdic's, for Japanese's dictionary).
+const APP_ROLES: &[&str] = &["emojiWords", "emojiSearch", "notices"];
 
 /// True when `value` says something: not null, false, 0, "" or an empty list or object.
 fn is_set(value: &serde_json::Value) -> bool {
@@ -437,6 +490,17 @@ impl Pack {
         }
         let mut need = |level, what: String| needs.push(Need { level, what });
         let has = |role: &str| self.manifest.files.contains_key(role);
+        let conversion = self.manifest.conversion.is_some() || CONVERSION_ROLES.iter().any(|r| has(r));
+        if conversion {
+            // Its script is no word script: only the converter reads the pack.
+            need(9, "phrase conversion (kana, conversionLexicon, connection)".into());
+            if let Some(path) = self.file("kana") {
+                let keys = KeyNeeds { file: "kana.json", table: KANA_KEYS, malayalam };
+                keys.of_file(&path, &mut needs)?;
+            }
+            needs.sort_by(|a, b| b.level.cmp(&a.level).then_with(|| a.what.cmp(&b.what)));
+            return Ok(needs);
+        }
         if !malayalam {
             need(2, format!("script {script}, not Malayalam's"));
             if has("lm") {
@@ -766,6 +830,74 @@ mod tests {
         assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 8);
         let lang = with_field(&own_lang("ml"), "charTable", r#"[["0D00", "0D7F"]]"#);
         assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 8);
+    }
+
+    /// A phrase-conversion pack whose manifest has `extra` and files `files` (role, name).
+    fn conversion_pack(extra: &str, files: &[(&str, &str)]) -> (tempfile::TempDir, Result<Pack, PackError>) {
+        let dir = tempfile::tempdir().unwrap();
+        let mut roles = Vec::new();
+        for (role, name) in files {
+            let text = if *role == "kana" { r#"{"format": 1, "rules": [["a", "あ"]]}"# } else { "x" };
+            fs::write(dir.path().join(name), text).unwrap();
+            roles.push(format!(r#""{role}": "{name}""#));
+        }
+        let manifest = format!(
+            r#"{{"format": 1, "id": "ja", "version": "1", "name": "Japanese", "nativeName": "日本語",
+                "script": "jpan", "minEngine": 9, "files": {{{}}}{extra}}}"#,
+            roles.join(", ")
+        );
+        fs::write(dir.path().join("manifest.json"), manifest).unwrap();
+        let pack = Pack::open(dir.path());
+        (dir, pack)
+    }
+
+    const CONVERSION_FILES: &[(&str, &str)] =
+        &[("kana", "kana.json"), ("conversionLexicon", "c.dict"), ("connection", "c.bin")];
+
+    #[test]
+    fn opens_a_phrase_conversion_pack_without_a_lexicon_or_script_rules() {
+        let (dir, pack) = conversion_pack(r#", "conversion": "phrase""#, CONVERSION_FILES);
+        let pack = pack.unwrap();
+        assert_eq!(pack.manifest.conversion.as_deref(), Some("phrase"));
+        let paths = pack.paths();
+        assert_eq!(paths.lexicon, None);
+        let files = paths.conversion.unwrap();
+        assert_eq!(files.kana, dir.path().join("kana.json"));
+        assert_eq!(files.dictionary, dir.path().join("c.dict"));
+        assert_eq!(files.connection, dir.path().join("c.bin"));
+        // A pack of words has none.
+        let words = pack_dir(FULL, &["ml.fst"]);
+        assert_eq!(Pack::open(words.path()).unwrap().paths().conversion, None);
+    }
+
+    #[test]
+    fn refuses_a_conversion_it_cannot_do() {
+        let (_dir, pack) = conversion_pack(r#", "conversion": "word""#, CONVERSION_FILES);
+        assert!(matches!(pack, Err(PackError::Conversion(_))), "{pack:?}");
+        let (_dir, pack) = conversion_pack(r#", "conversion": "phrase""#, &CONVERSION_FILES[..2]);
+        let err = pack.unwrap_err();
+        assert_eq!(err.to_string(), "conversion: no connection file");
+        // Without "conversion" it is a pack of words, and jpan has no rules.
+        let (_dir, pack) = conversion_pack("", CONVERSION_FILES);
+        assert!(matches!(pack, Err(PackError::Script(_))), "{pack:?}");
+    }
+
+    #[test]
+    fn needs_level_9_for_phrase_conversion() {
+        let mut files = CONVERSION_FILES.to_vec();
+        files.push(("notices", "NOTICE.txt"));
+        let (_dir, pack) = conversion_pack(r#", "conversion": "phrase""#, &files);
+        let pack = pack.unwrap();
+        let needs = pack.needs().unwrap();
+        assert_eq!(needs.len(), 1, "no script needs for a converter: {needs:?}");
+        assert_eq!(needs[0].level, 9);
+        assert_eq!(pack.needed_engine().unwrap(), 9);
+        // A kana.json key no level reads is refused.
+        let (dir, pack) = conversion_pack(r#", "conversion": "phrase""#, CONVERSION_FILES);
+        fs::write(dir.path().join("kana.json"), r#"{"format": 1, "rules": [], "newRule": 1}"#).unwrap();
+        assert!(pack.unwrap().needs().unwrap_err().contains("newRule"));
+        // A word pack with a conversion role needs 9 too: an older engine would ignore it.
+        assert_eq!(level("deva", &[("kana", "kana.json", r#"{"format": 1, "rules": []}"#)]), 9);
     }
 
     #[test]
