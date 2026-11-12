@@ -15,6 +15,30 @@ struct AboutView: View {
                 HeaderedSection(title: "Word lists and models are built from") {
                     CreditList(credits: Credits.dataSources(packs: packs))
                 }
+                let notices = Credits.notices(packs: packs)
+                if !notices.isEmpty {
+                    // Licences that are not CC BY-SA (Japanese's IPAdic and ICOT notices),
+                    // each shown in full as the pack carries it.
+                    HeaderedSection(title: "Dictionary licences") {
+                        Card {
+                            ForEach(Array(notices.enumerated()), id: \.element.id) { index, notice in
+                                if index > 0 { RowDivider() }
+                                NavigationLink {
+                                    NoticeView(notice: notice)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Text(notice.title).font(.system(size: 15))
+                                        Spacer(minLength: 8)
+                                        Chevron()
+                                    }
+                                    .padding(AppStyle.rowPadding)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
                 Card {
                     NavigationLink {
                         SoftwareView()
@@ -90,6 +114,24 @@ struct AboutView: View {
         let short = info["CFBundleShortVersionString"] as? String ?? "?"
         let build = info["CFBundleVersion"] as? String
         return build.map { "\(short) (\($0))" } ?? short
+    }
+}
+
+/// A pack's notices file, verbatim: its line breaks kept, in a fixed-width font, selectable.
+private struct NoticeView: View {
+    let notice: PackNotice
+
+    var body: some View {
+        ScrollView {
+            Text(notice.text)
+                .font(.system(size: 12, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(notice.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

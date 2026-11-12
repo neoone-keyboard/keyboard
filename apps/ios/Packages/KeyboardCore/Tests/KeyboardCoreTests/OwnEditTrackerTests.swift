@@ -75,6 +75,24 @@ struct OwnEditTrackerTests {
         #expect(tracker.isOwn("sentence that the host trimsx"))
         #expect(!tracker.isOwn("trimsx"))
     }
+
+    /// Marked text (Japanese composing) is part of the text before the cursor: each new
+    /// marked text replaces the one before, and committing it changes nothing.
+    @Test func markedTextReplacesTheMarkedTextBefore() {
+        var tracker = OwnEditTracker()
+        tracker.beginEdit(current: "A: ")
+        tracker.replacedMarked("", with: "き")
+        tracker.endEdit(current: "A: き")
+        tracker.beginEdit(current: "A: き")
+        tracker.replacedMarked("き", with: "きょ")
+        tracker.endEdit(current: "A: きょ")
+        #expect(tracker.isOwn("A: きょ"))
+        tracker.beginEdit(current: "A: きょ")
+        tracker.replacedMarked("きょ", with: "今日")
+        tracker.endEdit(current: "A: 今日")
+        #expect(tracker.isOwn("A: 今日"))
+        #expect(!tracker.isOwn("A: きょ今日"))
+    }
 }
 
 @Test func aResultIsForTheWordWhateverItsApostrophe() {

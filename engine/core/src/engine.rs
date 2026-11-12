@@ -527,6 +527,19 @@ impl Engine {
         Some(self.converter(id)?.convert(kana, n))
     }
 
+    /// `kana` converted with its first segment fixed to its first `first_end` bytes, as when
+    /// the user moves the segment boundary, in pack `id` (`Converter::convert_with_first`).
+    /// None when `id` is no conversion pack, or `first_end` isn't a boundary inside the text.
+    pub fn convert_with_first(
+        &self,
+        id: &str,
+        kana: &str,
+        first_end: usize,
+        n: usize,
+    ) -> Option<Conversion> {
+        self.converter(id)?.convert_with_first(kana, first_end, n)
+    }
+
     pub fn new(sources: Sources, user: UserStore) -> Self {
         let engine = Self {
             active: Self::default_active(&sources),

@@ -26,6 +26,21 @@ final class ProxyTextOutput: TextOutput {
         proxy().deleteBackward()
     }
 
+    /// The marked text this keyboard last set, until it is committed.
+    private var marked = ""
+
+    /// The cursor stays at the end of the marked text.
+    func setMarkedText(_ text: String) {
+        edits.replacedMarked(marked, with: text)
+        marked = text
+        proxy().setMarkedText(text, selectedRange: NSRange(location: (text as NSString).length, length: 0))
+    }
+
+    func unmarkText() {
+        marked = ""
+        proxy().unmarkText()
+    }
+
     func adjustTextPosition(byCharacterOffset offset: Int) {
         edits.movedCursor()
         proxy().adjustTextPosition(byCharacterOffset: offset)

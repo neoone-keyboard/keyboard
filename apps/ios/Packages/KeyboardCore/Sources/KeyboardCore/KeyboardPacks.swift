@@ -51,7 +51,7 @@ public struct KeyboardPacks: Equatable, Sendable {
     /// The active languages as the settings panel shows them: the configured list, else the
     /// engine's default.
     public var activeChoice: ActiveLanguages {
-        active.map(ActiveLanguages.init) ?? ActiveLanguages.engineDefault(packIDs: packs.map(\.id))
+        active.map(ActiveLanguages.init) ?? ActiveLanguages.engineDefault(packIDs: wordPacks.map(\.id))
     }
 
     /// The packs whose languages are on (`activeChoice`), with or without a keyboard: the
@@ -72,27 +72,53 @@ public struct KeyboardPacks: Equatable, Sendable {
     /// configured list's packs with a keyboard).
     public var defaultLanguages: [Language] {
         guard let active else {
-            return [.english] + packs.prefix(1).filter { $0.layout != nil }.map(Language.pack)
+            return [.english] + wordPacks.prefix(1).filter { $0.layout != nil }.map(Language.pack)
         }
         return [.english] + active.compactMap(language(forPack:))
     }
 
-    /// The language of the pack `id`, when the keyboard can draw it (it has a layout).
+    /// The language of the pack `id`, when the keyboard can type it: it has a layout, or it is
+    /// a phrase-conversion language (`PackDescriptor.conversion`), typed on the Latin keys.
     public func language(forPack id: String) -> Language? {
-        packs.first { $0.id == id && $0.layout != nil }.map(Language.pack)
+        packs.first { $0.id == id && ($0.layout != nil || $0.conversion) }.map(Language.pack)
+    }
+
+    /// The language key's list once the engine has said: its `layouts` (English, then the
+    /// active packs' own keyboards), then each active conversion language it converts
+    /// (`converting`, `Engine.conversionLanguages`), in the order of the choice. Switching to
+    /// Japanese is the language key's or the globe's: the engine never mixes it into another
+    /// language's suggestions.
+    public func languages(layouts: [Language], converting: [String]) -> [Language] {
+        let ids = active ?? []
+        let conversions = ids.filter(converting.contains).compactMap(language(forPack:))
+            .filter { language in !layouts.contains { $0.id == language.id } }
+        return layouts + conversions
+    }
+
+    /// The packs of word languages: every pack but the conversion ones, which the word engine
+    /// keeps apart and never makes active.
+    private var wordPacks: [PackDescriptor] { packs.filter { !$0.conversion } }
+
+    /// `ids` as the word engine takes them: without the conversion languages, which it never
+    /// has active, and English when nothing else is left (Japanese alone is typed beside it).
+    private func wordLanguages(_ ids: [String]) -> [String] {
+        let conversions = Set(packs.filter(\.conversion).map(\.id))
+        let words = ids.filter { !conversions.contains($0) }
+        return words.isEmpty ? [ActiveLanguages.english] : words
     }
 
     /// What the engine is given for a choice made in the keyboard's settings panel: the ids
     /// it can load, else its default for these packs.
     public func engineLanguages(for choice: ActiveLanguages) -> [String] {
         let packIDs = packs.map(\.id)
-        return choice.usable(packIDs: packIDs) ?? ActiveLanguages.engineDefault(packIDs: packIDs).languages
+        return wordLanguages(choice.usable(packIDs: packIDs)
+            ?? ActiveLanguages.engineDefault(packIDs: wordPacks.map(\.id)).languages)
     }
 
     /// What the open engine is given when only the choice changed: the configured list, else
     /// its default for these packs.
     public var engineLanguages: [String] {
-        active ?? ActiveLanguages.engineDefault(packIDs: packs.map(\.id)).languages
+        wordLanguages(active ?? ActiveLanguages.engineDefault(packIDs: wordPacks.map(\.id)).languages)
     }
 
     /// What reading the packs again found, against what was read before

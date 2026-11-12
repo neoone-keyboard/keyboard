@@ -14,13 +14,15 @@
     "kana": "kana.json",
     "conversionLexicon": "conversion.dict",
     "connection": "connection.bin",
-    "notices": "dictionary-notices.txt"
+    "notices": "dictionary-notices.txt",
+    "layout": "layout.json"
   },
   "sha256": {
     "connection.bin": "b61c89788696df6c366211da1fe306fbc43d4e5f2e6b16767c2d40d4ab67e563",
     "conversion.dict": "891789fdc4e860d89120b57e3f8858ef38fdf3f61aa0152dba78393a459cbd36",
     "dictionary-notices.txt": "8c97dbd7e2199693bed4291dde98af0e6a0d9751d6d97491f87ad454a521ca0c",
-    "kana.json": "20b5f4e516c2ddde5cb57f1bfa13cf96820ef9fce879a99347768867e6ca6e9e"
+    "kana.json": "20b5f4e516c2ddde5cb57f1bfa13cf96820ef9fce879a99347768867e6ca6e9e",
+    "layout.json": "f5ddde4a1295bfdddfc1d412547a878382065e4b45fb03429418a282aeee2217"
   },
   "credits": [
     {

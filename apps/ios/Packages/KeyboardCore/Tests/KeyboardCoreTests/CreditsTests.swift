@@ -88,3 +88,21 @@ private let dataSources = Credits.dataSources(packs: [malayalamPack])
     #expect(Array(dataSources.prefix(Credits.english.count)) == Credits.english)
     #expect(Credits.dataSources(packs: []) == Credits.english)
 }
+
+/// A pack's `notices` (Japanese's dictionary-notices.txt: the IPAdic, ICOT and Google notices)
+/// are shown as they are, apart from the credits, which are CC BY-SA and the like.
+@Test func aPacksNoticesAreShownVerbatimApartFromTheCredits() throws {
+    let ja = pack("ja")
+    let file = packsFolder.appending(path: "ja.neopack/dictionary-notices.txt")
+    #expect(ja.notices?.standardizedFileURL == file.standardizedFileURL)
+    #expect(malayalamPack.notices == nil)
+    let notices = Credits.notices(packs: [malayalamPack, ja])
+    #expect(notices.count == 1)
+    let notice = try #require(notices.first)
+    #expect(notice.id == "ja")
+    #expect(notice.title == "Japanese dictionary notices")
+    #expect(notice.text == (try String(contentsOf: file, encoding: .utf8)), "verbatim")
+    #expect(notice.text.contains("NO WARRANTY"))
+    #expect(notice.text.contains("Nara Institute of Science and Technology"))
+    #expect(Credits.notices(packs: [malayalamPack]).isEmpty)
+}

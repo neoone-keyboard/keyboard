@@ -18,6 +18,12 @@ final class KeyboardViewController: UIInputViewController {
     private var loggedEmptyBar: String?
     private var gate = PredictionGate(budget: .keyboardExtension)
     private let topBar = TopBarView()
+    /// In the top bar's place while a phrase-conversion language (Japanese) is typed.
+    private let candidateBar = CandidateBarView()
+    /// Every candidate, over the keys while open (the candidate bar's expand arrow).
+    private var candidateGrid: CandidateGridView?
+    /// The space and return keys' labels last drawn: they change as Japanese composes.
+    private var actionLabels = ""
     private let keyboardView = KeyboardView()
     private let settingsPanel = SettingsPanelView()
     /// In the top bar's place while open, with the keys below typing its search.
@@ -36,6 +42,8 @@ final class KeyboardViewController: UIInputViewController {
     private var yourWordsHeight: NSLayoutConstraint?
     /// The suggestion bar's: shorter in landscape (`KeyboardHeight`).
     private var barHeight: NSLayoutConstraint?
+    /// The candidate bar's, the same.
+    private var candidatesHeight: NSLayoutConstraint?
     private var yourWordsOpen: Bool { !yourWordsView.isHidden }
     private var settings = KeyboardSettings()
     /// The suggestion count last given to the provider (`applySuggestionCount`).
@@ -239,6 +247,14 @@ final class KeyboardViewController: UIInputViewController {
         }
 
         stack.addArrangedSubview(topBar)
+        stack.addArrangedSubview(candidateBar)
+        candidateBar.isHidden = true
+        candidateBar.onChoose = { [unowned self] index in
+            editComposition { $0.choose(index) }
+        }
+        candidateBar.onShrink = { [unowned self] in editComposition { $0.shrink() } }
+        candidateBar.onGrow = { [unowned self] in editComposition { $0.grow() } }
+        candidateBar.onExpand = { [unowned self] in showCandidateGrid() }
         stack.addArrangedSubview(yourWordsView)
         stack.addArrangedSubview(emojiSearchView)
         stack.addArrangedSubview(keyboardView)
@@ -269,7 +285,10 @@ final class KeyboardViewController: UIInputViewController {
         let barHeight = topBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
         barHeight.priority = .required - 1
         self.barHeight = barHeight
-        NSLayoutConstraint.activate([wordsHeight, searchHeight, barHeight])
+        let candidatesHeight = candidateBar.heightAnchor.constraint(equalToConstant: Self.topBarHeight)
+        candidatesHeight.priority = .required - 1
+        self.candidatesHeight = candidatesHeight
+        NSLayoutConstraint.activate([wordsHeight, searchHeight, barHeight, candidatesHeight])
         attachViews()
 
         registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
@@ -297,6 +316,7 @@ final class KeyboardViewController: UIInputViewController {
         hideSettings()
         hideEmojiPanel()
         hideEmojiSearch()
+        hideCandidateGrid()
         noteExternalChange()
         applySettings()
     }
@@ -317,8 +337,9 @@ final class KeyboardViewController: UIInputViewController {
             await provider.reloadIfChanged()
             await provider.warmUp(contextBefore: contextBefore)
             let layouts = await provider.layouts()
+            let conversions = await provider.conversionLanguages()
             self?.refreshLearnedAddresses()
-            if let layouts { self?.applyLayouts(layouts) }
+            if let layouts { self?.applyLayouts(layouts, converting: conversions) }
         }
     }
 
@@ -376,8 +397,8 @@ final class KeyboardViewController: UIInputViewController {
     /// The language key cycles the engine's layouts (its active languages). Until the engine
     /// opens it cycles `KeyboardPacks.defaultLanguages`, the same list by default,
     /// so this redraws only when the engine's list differs.
-    private func applyLayouts(_ layouts: [InputLayout]) {
-        applyLanguages(EngineSuggestionProvider.languages(for: layouts))
+    private func applyLayouts(_ layouts: [InputLayout], converting: [String]) {
+        applyLanguages(EngineSuggestionProvider.languages(for: layouts, converting: converting))
     }
 
     /// A language turned on or off in the settings panel: the language key cycles the new list
@@ -386,9 +407,10 @@ final class KeyboardViewController: UIInputViewController {
         log.info("Languages chosen in the keyboard: \(choice.languages.joined(separator: ","))")
         Task { [weak self, provider] in
             let layouts = await provider.choose(choice)
+            let conversions = await provider.conversionLanguages()
             guard let self else { return }
             if let layouts {
-                applyLayouts(layouts)
+                applyLayouts(layouts, converting: conversions)
             } else {
                 applyLanguages(EngineSuggestionProvider.packState.defaultLanguages)
             }
@@ -396,6 +418,7 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     private func applyLanguages(_ languages: [Language]) {
+        defer { attachPhraseConverter() }
         let keysBefore = input.keysShown
         input.activePacks = EngineSuggestionProvider.packState.activePacks
         guard !languages.isEmpty, languages != input.languages else {
@@ -408,6 +431,61 @@ final class KeyboardViewController: UIInputViewController {
         log.info("Languages now \(languages.map(\.id).joined(separator: ",")); was on \(before), now \(input.language.id)")
         // The keys, their labels and the bar may all change with the list.
         applySettings()
+    }
+
+    /// Gives the input controller the engine's converter for the conversion language among
+    /// its languages (Japanese), once; without it, that language's keys type letters.
+    private func attachPhraseConverter() {
+        guard let id = input.languages.first(where: \.convertsPhrases)?.id else {
+            input.phraseConverter = nil
+            return
+        }
+        guard (input.phraseConverter as? EnginePhraseConverter)?.language != id, suggestions.isEnabled else { return }
+        Task { [weak self, provider] in
+            let converter = await provider.phraseConverter(for: id)
+            guard let self, let converter, input.languages.contains(where: { $0.id == id }) else { return }
+            input.phraseConverter = converter
+            log.info("Converter attached for \(id); footprint \(Diagnostics.footprint())")
+            reloadKeys()
+            refreshTopBar()
+        }
+    }
+
+    /// Runs `edit` on the composition from the candidate bar or grid, as a key would.
+    private func editComposition(_ edit: (PhraseInput) -> Void) {
+        guard let phrase = input.composing else { return }
+        let keys = input.keysShown, shift = input.shift
+        output.beginEdit()
+        edit(phrase)
+        afterInput(keysBefore: keys, shiftBefore: shift)
+    }
+
+    /// Every candidate in the keys' place, scrolling; a tap commits one, the arrow goes back.
+    private func showCandidateGrid() {
+        guard candidateGrid == nil, let phrase = input.composing, !phrase.candidates.isEmpty else { return }
+        keyboardView.cancelAllTouches()
+        let grid = CandidateGridView()
+        grid.onChoose = { [unowned self] index in
+            hideCandidateGrid()
+            editComposition { $0.choose(index) }
+        }
+        grid.onClose = { [unowned self] in hideCandidateGrid() }
+        grid.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(grid)
+        NSLayoutConstraint.activate([
+            grid.leadingAnchor.constraint(equalTo: keyboardView.leadingAnchor),
+            grid.trailingAnchor.constraint(equalTo: keyboardView.trailingAnchor),
+            grid.topAnchor.constraint(equalTo: keyboardView.topAnchor),
+            grid.bottomAnchor.constraint(equalTo: keyboardView.bottomAnchor),
+        ])
+        grid.apply(theme)
+        grid.show(phrase.candidates.map(\.text), highlighted: phrase.highlighted)
+        candidateGrid = grid
+    }
+
+    private func hideCandidateGrid() {
+        candidateGrid?.removeFromSuperview()
+        candidateGrid = nil
     }
 
     override func viewWillLayoutSubviews() {
@@ -547,8 +625,10 @@ final class KeyboardViewController: UIInputViewController {
         topBar.cancelRemoval()
         input.applyAutoCapitalization(autoCapitalization)
         if input.keysShown != keysBefore {
+            hideCandidateGrid()
             reloadKeys()
-        } else if input.shift != shiftBefore {
+        } else if input.shift != shiftBefore || currentActionLabels != actionLabels {
+            actionLabels = currentActionLabels
             keyboardView.refreshLabels()
         }
         checkMemoryBudget()
@@ -893,6 +973,7 @@ final class KeyboardViewController: UIInputViewController {
             if let constraint, constraint.constant != value { constraint.constant = value }
         }
         set(self.barHeight, height.bar)
+        set(candidatesHeight, height.bar)
         set(yourWordsHeight, Self.topBarHeight + extra)
         set(heightConstraint, height.total + extra)
     }
@@ -903,6 +984,8 @@ final class KeyboardViewController: UIInputViewController {
         theme = KeyboardTheme.resolve(settings, style: traitCollection.userInterfaceStyle)
         view.backgroundColor = theme.background
         topBar.apply(theme)
+        candidateBar.apply(theme)
+        candidateGrid?.apply(theme)
         if !settingsPanel.isHidden { settingsPanel.apply(theme) }
         if yourWordsOpen { yourWordsView.apply(theme) }
         if emojiSearchOpen { emojiSearchView.apply(theme) }
@@ -931,7 +1014,11 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
+    /// Space's and return's labels (次候補 and 確定 while Japanese composes).
+    private var currentActionLabels: String { input.label(for: .space) + "|" + input.label(for: .returnKey) }
+
     private func reloadKeys() {
+        actionLabels = currentActionLabels
         spokenReturnTitle = returnTitle
         keyboardView.configure(
             layout: input.layout, theme: theme,
@@ -967,6 +1054,14 @@ final class KeyboardViewController: UIInputViewController {
     /// timeout arrives without a match, the strip falls back to aksharamala
     /// order and the slots go empty; typing is unaffected either way.
     private func refreshTopBar() {
+        // A conversion language has its candidates in the bar's place, never suggestions.
+        let converting = input.language.convertsPhrases && !yourWordsOpen && !emojiSearchOpen
+        candidateBar.isHidden = !converting
+        if !yourWordsOpen && !emojiSearchOpen { topBar.isHidden = converting }
+        if converting {
+            candidateBar.show(input.composing)
+            return
+        }
         var state = BarState()
         state.swipeFailed = swipeFailed
         state.word = input.currentWord
@@ -1081,6 +1176,7 @@ final class KeyboardViewController: UIInputViewController {
                 await provider.resume()
                 guard let self, gate.isOn else { return }
                 suggestions.isEnabled = true
+                attachPhraseConverter()
                 lastRequest = nil // ask again for the word being typed
                 requestSuggestions()
                 refreshTopBar()
@@ -1092,14 +1188,18 @@ final class KeyboardViewController: UIInputViewController {
 
     /// Until the gate turns prediction back on.
     private func shedPrediction() {
+        // The converter holds the engine: it goes with it, and Japanese types letters.
+        input.phraseConverter = nil
+        hideCandidateGrid()
         suggestions.isEnabled = false
         lastRequest = nil
         Task { [provider] in await provider.unload() }
     }
 
     private func requestSuggestions() {
-        // The bar keeps a swipe's alternatives until the next key.
-        guard !input.showsSwipe else { return }
+        // The bar keeps a swipe's alternatives until the next key; a conversion language
+        // has its candidates instead.
+        guard !input.showsSwipe, !input.language.convertsPhrases else { return }
         let request = suggestionRequest(contextBefore: textDocumentProxy.documentContextBeforeInput ?? "")
         guard request != lastRequest else { return }
         // A result for the other language must not stay in the bar.
@@ -1120,7 +1220,7 @@ final class KeyboardViewController: UIInputViewController {
     /// On space it only brings the LM's context up to the finished word: the key-up reports
     /// the word's use, which would drop a result made ahead, but the LM's context is kept.
     private func prefetchSuggestions(after action: KeyAction) {
-        guard suggestions.isEnabled, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil else { return }
+        guard suggestions.isEnabled, !input.language.convertsPhrases, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil else { return }
         if action == .space {
             let context = String(input.contextAfterSpace().suffix(64))
             Task { [provider] in await provider.warmUp(contextBefore: context) }
