@@ -58,5 +58,84 @@
       "sha256": "c9e8ae94309053bd4ecf68c0d67ff55cb90468fb23d5ba2aefb943df021aad3b",
       "url": "https://neoone.jishnu.me/packs/ta-2026.11.15.neopack"
     }
+  ],
+  "beta": [
+    {
+      "id": "as",
+      "name": "Assamese",
+      "nativeName": "অসমীয়া",
+      "version": "2026.11.15",
+      "script": "beng",
+      "minEngine": 6,
+      "size": 25840111,
+      "sha256": "41932e840c619f701beb29bbbca7046110baa57adb69ee444d95eda2903b260b",
+      "url": "https://neoone.jishnu.me/packs/as-2026.11.15.neopack"
+    },
+    {
+      "id": "gu",
+      "name": "Gujarati",
+      "nativeName": "ગુજરાતી",
+      "version": "2026.11.13",
+      "script": "gujr",
+      "minEngine": 6,
+      "size": 15256895,
+      "sha256": "4d08c5ec283071e79731b44c17c491c9fc326dd4cd9ef3c6239c735f567ea260",
+      "url": "https://neoone.jishnu.me/packs/gu-2026.11.13.neopack"
+    },
+    {
+      "id": "kn",
+      "name": "Kannada",
+      "nativeName": "ಕನ್ನಡ",
+      "version": "2026.11.13",
+      "script": "knda",
+      "minEngine": 6,
+      "size": 20249150,
+      "sha256": "73c25826d4bda148caf61dd59bad492d3a79d541724c1338b0914bf47255b1fc",
+      "url": "https://neoone.jishnu.me/packs/kn-2026.11.13.neopack"
+    },
+    {
+      "id": "ne",
+      "name": "Nepali",
+      "nativeName": "नेपाली",
+      "version": "2026.11.12",
+      "script": "deva",
+      "minEngine": 7,
+      "size": 12761480,
+      "sha256": "c63cdbe349431c1e8609044eb5e895fd23e212758b3bf0a5a1a2d8ec1510d508",
+      "url": "https://neoone.jishnu.me/packs/ne-2026.11.12.neopack"
+    },
+    {
+      "id": "pa",
+      "name": "Punjabi",
+      "nativeName": "ਪੰਜਾਬੀ",
+      "version": "2026.11.13",
+      "script": "guru",
+      "minEngine": 7,
+      "size": 13156425,
+      "sha256": "ddd41ff410ee20229dea13d7ed5a836a395d6feb643d328a860989e3083c9b82",
+      "url": "https://neoone.jishnu.me/packs/pa-2026.11.13.neopack"
+    },
+    {
+      "id": "ta",
+      "name": "Tamil",
+      "nativeName": "தமிழ்",
+      "version": "2026.11.15",
+      "script": "taml",
+      "minEngine": 6,
+      "size": 29843371,
+      "sha256": "c9e8ae94309053bd4ecf68c0d67ff55cb90468fb23d5ba2aefb943df021aad3b",
+      "url": "https://neoone.jishnu.me/packs/ta-2026.11.15.neopack"
+    },
+    {
+      "id": "te",
+      "name": "Telugu",
+      "nativeName": "తెలుగు",
+      "version": "2026.11.13",
+      "script": "telu",
+      "minEngine": 6,
+      "size": 19645906,
+      "sha256": "e850bb999cc7adc0f2a2660a32673717ebd5e3fd20be89d8bf2b1b0c9dc9dfa0",
+      "url": "https://neoone.jishnu.me/packs/te-2026.11.13.neopack"
+    }
   ]
 }

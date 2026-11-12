@@ -144,5 +144,97 @@ class Index(unittest.TestCase):
             self.assertEqual(pp.republished(index, [other]), ["hi 2026.11.06"])
 
 
+class Beta(unittest.TestCase):
+    """Beta packs are listed in the index's `beta` section, which builds before it never read
+    (they decode only `format` and `packs`). Ids in `alsoInPacks` stay in `packs` too, for the
+    builds that listed them before there was a beta section."""
+
+    def test_ids_of_listed_packs(self):
+        raw = {"about": "…", "ids": ["ta", "kn"], "alsoInPacks": ["ta"]}
+        self.assertEqual(pp.beta_ids(raw, ["hi", "kn", "ta"], []), (["ta", "kn"], ["ta"]))
+        self.assertEqual(pp.beta_ids({}, ["hi"], []), ([], []))
+
+    def test_refusals(self):
+        cases = {
+            "no pack": ({"ids": ["kn"]}, []),
+            "twice": ({"ids": ["ta", "ta"]}, []),
+            "not a list": ({"ids": "ta"}, []),
+            "unlisted too": ({"ids": ["ta"]}, ["ta"]),
+            "also not beta": ({"ids": ["ta"], "alsoInPacks": ["hi"]}, []),
+        }
+        for why, (raw, unlisted) in cases.items():
+            with self.subTest(why), self.assertRaises(SystemExit):
+                pp.beta_ids(raw, ["hi", "ta"], unlisted)
+
+    def test_index_with_beta_entries(self):
+        import json
+        full = entry(pid="ml", version="1", min_engine=1)
+        old_hi = entry(version="2026.11.06", min_engine=2)
+        ta, kn = entry(pid="ta", min_engine=6), entry(pid="kn", min_engine=6)
+        got = json.loads(pp.index_json(releases(full, entry(), ta, kn), [old_hi], beta=["kn", "ta"], also=["ta"]))
+        self.assertEqual(list(got), ["format", "packs", "beta"])
+        self.assertEqual(got["format"], 1)
+        self.assertEqual([(e["id"], e["version"]) for e in got["packs"]],
+                         [("hi", "2026.11.10"), ("hi", "2026.11.06"), ("ml", "1"), ("ta", "2026.11.10")])
+        self.assertEqual([e["id"] for e in got["beta"]], ["kn", "ta"])
+        # The same entry in both sections, byte for byte.
+        self.assertEqual(got["packs"][-1], got["beta"][-1])
+
+    def test_index_without_beta_entries_is_the_old_format(self):
+        import json
+        got = json.loads(pp.index_json(releases(entry(pid="ml", version="1", min_engine=1), entry()), []))
+        self.assertEqual(list(got), ["format", "packs"])
+
+    def test_old_builds_see_what_they_saw_before(self):
+        """What an old build reads (`format` and `packs`) is the index without the beta section,
+        with the beta packs it listed before still in it."""
+        import json
+        rel = releases(entry(pid="ml", version="1", min_engine=1), entry(pid="as", min_engine=6),
+                       entry(pid="kn", min_engine=6))
+        before = json.loads(pp.index_json(rel[:2], []))
+        after = json.loads(pp.index_json(rel, [], beta=["as", "kn"], also=["as"]))
+        self.assertEqual({k: after[k] for k in ("format", "packs")}, before)
+
+    def test_credits_mark_beta_packs(self):
+        rel = [{"entry": entry(pid="ml", version="1", min_engine=1), "manifest": {"name": "ML", "id": "ml"}},
+               {"entry": entry(pid="kn", min_engine=6), "manifest": {"name": "KN", "id": "kn"}}]
+        english = {"url": DOWNLOADS + "english-base.zip", "size": 10}
+        orig = pp.english_credits
+        pp.english_credits = lambda: []
+        try:
+            page = pp.credits_page(rel, [], english, beta=["kn"])
+        finally:
+            pp.english_credits = orig
+        self.assertIn("KN pack 2026.11.10</a>, beta", page)
+        self.assertNotIn("ML pack 1</a>, beta", page)
+
+
+class Listing(unittest.TestCase):
+    """The user's decision of which packs are full languages, beta or unlisted."""
+
+    def test_the_decision(self):
+        self.assertEqual(pp.LISTING["full"], ["hi", "ml"])
+        self.assertEqual(pp.LISTING["beta"], ["as", "gu", "kn", "ne", "pa", "ta", "te"])
+        self.assertEqual(pp.LISTING["unlisted"], ["bho", "bn", "ja", "mai", "mr", "or", "ur"])
+        self.assertEqual(pp.LISTING["alsoInPacks"], ["as", "ta"])
+
+    def test_the_site_src_files_match_it(self):
+        ids = [p.name.removesuffix(".neopack") for p in pp.PACKS.glob("*.neopack")]
+        unlisted = pp.unlisted_ids(pp.json.loads(pp.UNLISTED.read_text()), ids)
+        beta, also = pp.beta_ids(pp.json.loads(pp.BETA.read_text()), ids, unlisted)
+        self.assertEqual(pp.listing_problems(ids, unlisted, beta, also), [])
+
+    def test_a_different_listing_is_named(self):
+        ids = ["as", "hi", "kn", "ml", "mr"]
+        self.assertEqual(pp.listing_problems(ids, ["mr"], ["as", "kn"], ["as"], decision={
+            "full": ["hi", "ml"], "beta": ["as", "kn"], "unlisted": ["mr"], "alsoInPacks": ["as"]}), [])
+        got = pp.listing_problems(ids, [], ["as", "kn", "mr"], ["as"], decision={
+            "full": ["hi", "ml"], "beta": ["as", "kn"], "unlisted": ["mr"], "alsoInPacks": ["as"]})
+        self.assertTrue(any("mr" in p for p in got), got)
+        got = pp.listing_problems(ids, ["mr"], ["kn"], [], decision={
+            "full": ["hi", "ml"], "beta": ["as", "kn"], "unlisted": ["mr"], "alsoInPacks": ["as"]})
+        self.assertTrue(any("as" in p for p in got), got)
+
+
 if __name__ == "__main__":
     unittest.main()
