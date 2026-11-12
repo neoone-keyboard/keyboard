@@ -1,0 +1,28 @@
+{
+  "id": "or",
+  "name": "Odia",
+  "script": "orya",
+  "block": ["0B00", "0B7F"],
+  "notWord": [["0B66", "0B70"], ["0B72", "0B77"]],
+  "firstLetter": [["0B05", "0B14"], ["0B15", "0B39"], ["0B5C", "0B5F"], ["0B60", "0B61"], ["0B71", "0B71"]],
+  "virama": "0B4D",
+  "signs": [["0B3E", "0B4D"], ["0B55", "0B57"], ["0B62", "0B63"]],
+  "bases": [["0B15", "0B39"], ["0B3C", "0B3C"], ["0B5C", "0B5F"], ["0B71", "0B71"]],
+  "apostrophe": true,
+  "replace": [["ଅା", "ଆ"], ["ଯ଼", "ୟ"]],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "ori",
+  "notes": {
+    "about": "Odia, in a script the engine has no rules of its own for: this file is all it knows. Sources: data/manifests/orwiki.json, orwikisource.json, aksharantar-ori.json.",
+    "notWord": "The digits ୦-୯, the isshar sign ୰ and the fraction signs.",
+    "firstLetter": "Independent vowels, consonants, ଡ଼ ଢ଼ ୟ (U+0B5C-0B5F), ୠ ୡ and the letter ୱ (wa). Never a sign, the anusvara (ଂ), candrabindu or visarga.",
+    "signs": "Vowel signs, the virama and the length marks must follow a consonant. ଂ ଁ ଃ are left out: they can follow an independent vowel (ଅଂଶ). The nukta is a base, as in Bengali, so a vowel sign may follow ଡ଼ (ଡ + ଼ after NFC: U+0B5C and 0B5D are composition exclusions).",
+    "letters": "ୟ (U+0B5F, yya) is its own letter and has no decomposition, unlike Bengali's য়; ଯ + nukta, a mis-typing of it, is mended to ୟ. ୱ (U+0B71) is the wa of the -wa sign (ସ୍ୱ).",
+    "replace": "ଅ + ା typed for ଆ is mended. The two-part vowel signs (େ + ା, େ + ୖ, େ + ୗ) are ୋ ୈ ୌ by NFC, which the normal form already applies. Every ZWJ and ZWNJ is dropped (no joiners field).",
+    "phraseBreaks": "Odia ends a sentence with the danda । (U+0964); ॥ ends verse.",
+    "apostrophe": "Odia marks a dropped vowel with an apostrophe inside a word: କ'ଣ (what), ତା'ର (his, for ତାହାର), ତା'ପରେ, ମା'ଙ୍କ. Without it these common words were the top of the dropped list (ତା'ର 1,390 times, କ'ଣ 1,106)."
+  }
+}

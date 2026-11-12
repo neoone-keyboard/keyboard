@@ -1,4 +1,4 @@
 {
   "about": "Ids of packs in packs/ that are not published (scripts/publish-packs.py): trial packs, checked like any pack but left out of the pack index, the site's pages and the uploads. They are handed out as files (scripts/pack.py packs/<id>.neopack --zip <file>).",
-  "ids": ["bho", "bn", "gu", "kn", "mai", "mr", "te", "ur"]
+  "ids": ["bho", "bn", "gu", "kn", "mai", "mr", "or", "te", "ur"]
 }
