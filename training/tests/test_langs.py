@@ -433,8 +433,8 @@ def test_a_lang_that_lists_its_letters():
     assert lang.normalize("كتاب") == "کتاب" and lang.normalize("کِتاب") == "کتاب"
 
 
-# ---- Dakshina's lexicon for a pack language (Punjabi): train trains and calibrates, dev
-# validates, test is held out ----
+# ---- A language's own human pairs (data/langs/<id>/pairs.json; Dakshina's lexicon for Punjabi
+# and Sinhala): train trains and calibrates, dev validates, test is held out ----
 
 DAKSHINA_PA = {
     "train": ["ਪਾਣੀ\tpani\t3", "ਪਾਣੀ\tpaani\t1", "ਘਰ\tghar\t2", "ਕੱਲ੍ਹ\tkal\t1"],
@@ -444,20 +444,44 @@ DAKSHINA_PA = {
 
 
 def _fake_dakshina(monkeypatch, tmp_path, splits: dict[str, list[str]]) -> None:
-    lexicons = tmp_path / "dakshina/dakshina_dataset_v1.0/pa/lexicons"
-    lexicons.mkdir(parents=True)
+    """Writes `splits` where data/langs/pa/pairs.json names them, under a repository root at
+    `tmp_path`."""
+    src = human.pair_source("pa")
+    monkeypatch.setattr(human, "ROOT", tmp_path)
     for split, lines in splits.items():
-        text = "".join(f"{line}\n" for line in lines)
-        (lexicons / f"pa.translit.sampled.{split}.tsv").write_text(text, encoding="utf-8")
-    monkeypatch.setattr(human, "RAW", tmp_path)
+        path = src.path(split)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
+
+
+def test_punjabi_names_dakshina_as_its_own_pairs():
+    src = human.pair_source("pa")
+    assert src.name == "Dakshina"
+    assert src.files["train"].endswith("pa/lexicons/pa.translit.sampled.train.tsv")
+    assert human.pair_source("as") is None, "a language without pairs.json has none"
 
 
 def test_dakshina_rows_keep_their_annotator_counts(monkeypatch, tmp_path):
     _fake_dakshina(monkeypatch, tmp_path, DAKSHINA_PA)
-    rows = human.dakshina("pa", "train")
+    rows = human.file_pairs("pa", "train")
     assert [(h.latin, h.native, h.count) for h in rows][:2] == [("pani", "ਪਾਣੀ", 3), ("paani", "ਪਾਣੀ", 1)]
     assert all(h.source == "Dakshina" for h in rows)
-    assert human.dakshina("as", "train") == [], "a language without Dakshina has none"
+    assert human.file_pairs("as", "train") == [], "a language without pairs.json has none"
+
+
+def test_a_pairs_file_may_leave_out_the_count_and_hold_comments(tmp_path):
+    path = tmp_path / "pairs.tsv"
+    path.write_text("# typed by friends\n\nਘਰ\tghar\nਦਿਨ\tdin\t4\n", encoding="utf-8")
+    assert human.read_pairs_file(path) == [("ਘਰ", "ghar", 1), ("ਦਿਨ", "din", 4)]
+    path.write_text("ਘਰ ghar\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="pairs.tsv:1"):
+        human.read_pairs_file(path)
+
+
+def test_a_missing_pairs_file_says_how_to_get_it(monkeypatch, tmp_path):
+    monkeypatch.setattr(human, "ROOT", tmp_path)
+    with pytest.raises(SystemExit, match="tar -xf"):
+        human.file_pairs("pa", "train")
 
 
 def test_dakshina_dev_and_test_words_are_held_out(monkeypatch, tmp_path):
@@ -465,7 +489,7 @@ def test_dakshina_dev_and_test_words_are_held_out(monkeypatch, tmp_path):
     held = human.held_out_words("pa", [_hp("ਘਰ", latin="ghar")])
     assert held == {"ਘਰ", "ਦਿਨ", "ਰਾਤ"}
     rows, where = human.calibration("pa", held)
-    assert "Dakshina's train split" in where
+    assert "Dakshina's train split (pa.translit.sampled.train.tsv" in where
     assert {h.native for h in rows} == {"ਪਾਣੀ", "ਕੱਲ੍ਹ"}, "calibrates on train, never a held-out word"
 
 
@@ -481,4 +505,40 @@ def test_pairs_train_on_dakshina_and_validate_on_its_dev_split(monkeypatch, tmp_
     train = [line.split("\t") for line in (out / "train.tsv").read_text(encoding="utf-8").splitlines()]
     assert not {native for _, native in train} & {"ਘਰ", "ਦਿਨ", "ਰਾਤ"}, "no held-out word in any training pair"
     assert ["kal", "ਕੱਲ੍ਹ"] in train, "Dakshina's train pairs train"
+    assert ["pani", "ਪਾਣੀ"] in train, "beside Aksharantar's mined pairs"
     assert (out / "valid-human.tsv").read_text(encoding="utf-8") == "din\tਦਿਨ\n"
+
+
+def test_a_language_without_aksharantar_holds_out_its_own_test_split(monkeypatch, tmp_path):
+    """Sinhala's case: no Aksharantar code, so the eval set is the pairs file's test split and every
+    human training row is the pairs file's."""
+    from mlkb.langs import pairs
+
+    _fake_dakshina(monkeypatch, tmp_path, DAKSHINA_PA)
+    monkeypatch.setattr(human, "has_aksharantar", lambda lang_id: False)
+    _fake_aksharantar(monkeypatch, {})  # what aksharantar() gives a language with no code
+    test = human.held_out_pairs("pa")
+    assert {(h.latin, h.native) for h in test} == {("raat", "ਰਾਤ"), ("rat", "ਰਾਤ")}
+    assert human.second_test_pairs("pa") == [], "the test split is the main set, not a second one"
+
+    eval_path = tmp_path / "eval.tsv"
+    pairs.write_eval("pa", test, eval_path)
+    text = eval_path.read_text(encoding="utf-8")
+    assert "# section: Dakshina\n\traat\tਰਾਤ\n" in text
+    assert "pa.translit.sampled.test.tsv" in text and "CC BY-SA 4.0" in text and "Aksharantar" not in text
+
+    out = tmp_path / "pairs"
+    monkeypatch.setattr(pairs, "write_eval", lambda *a, **k: None)
+    pairs.main(["--lang", "pa", "--out", str(out), "--rows", "3000", "--words", "3000", "--human-share", "0.5"])
+    train = [tuple(line.split("\t")) for line in (out / "train.tsv").read_text(encoding="utf-8").splitlines()]
+    own = {("pani", "ਪਾਣੀ"), ("paani", "ਪਾਣੀ"), ("ghar", "ਘਰ"), ("kal", "ਕੱਲ੍ਹ")}
+    assert sum(pair in own for pair in train) >= len(train) * 0.45, "all the human rows are the language's own"
+    assert not {native for _, native in train} & {"ਦਿਨ", "ਰਾਤ"}
+
+
+def test_a_language_with_neither_source_says_so(monkeypatch):
+    monkeypatch.setattr(human, "has_aksharantar", lambda lang_id: False)
+    with pytest.raises(SystemExit, match="no test split"):
+        human.held_out_pairs("as")
+    with pytest.raises(SystemExit, match="no calibration pairs"):
+        human.calibration("as", set())

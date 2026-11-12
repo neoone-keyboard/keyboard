@@ -9,16 +9,19 @@ each drawn in proportion to `count ** 0.5`, spelled by `Tables.variants` from th
 the hand-set ones (`romanisation.hand.json`), whose weights allow more chat shortcuts.
 
 Human rows make up `--human-share` of `train.tsv`: Aksharantar `<code>_train.json`, filtered
-(`mlkb.langs.human.aksharantar`). For a language in `human.DAKSHINA` (Punjabi), `--dakshina-share`
-of them are Dakshina's train pairs instead, drawn by annotator count; `valid-human.tsv` is then
-Dakshina's dev pairs, and neither its dev nor its test words are in `train.tsv`.
+(`mlkb.langs.human.aksharantar`). For a language with its own pairs (`data/langs/<id>/pairs.json`,
+`mlkb.langs.human.PairSource`: Dakshina's lexicon for Punjabi and Sinhala), `--own-share` of them
+are its train split instead, drawn by count (all of them when the language has no Aksharantar
+data); `valid-human.tsv` is then its dev split, and neither its dev nor its test words are in
+`train.tsv`.
 
 1% of the lexicon words (not rows) go to `valid.tsv`. `valid-human.tsv` is the calibration pairs
 (`mlkb.langs.human.calibration`): Aksharantar's manual valid rows (AK-Uni, AK-Freq), or a held-out
 slice of the train split's manual rows when the valid split has none (Marathi). The manual test
 rows are the held-out eval set, written to `data/eval/<lang>/translit-human.tsv` with a
-`# section: <source>` line before each source's rows; neither they nor the valid-human words are
-in `train.tsv`. `--eval-only` writes just that file.
+`# section: <source>` line before each source's rows; for a language without Aksharantar data it
+is the test split of its own pairs. Neither they nor the valid-human words are in `train.tsv`.
+`--eval-only` writes just that file.
 """
 
 import argparse
@@ -80,7 +83,6 @@ def write_eval(lang: str, rows: list[human.HumanPair], path: Path) -> None:
     """`context<TAB>latin<TAB>native` with an empty context, as `data/eval/translit-human.tsv`,
     with a `# section: <source>` line before each source's rows (`mlkb.eval.translit.load_sections`),
     so the evals can report common words and names apart."""
-    code = human.load(lang).data["aksharantar"]
     seen = set()
     body = []
     pairs = 0
@@ -93,12 +95,22 @@ def write_eval(lang: str, rows: list[human.HumanPair], path: Path) -> None:
                 body.append(f"# section: {h.source}\n")
             body.append(f"\t{h.latin}\t{h.native}\n")
             pairs += 1
-    header = (
-        "# Human transliteration eval set: context<TAB>latin<TAB>native (context empty).\n"
-        f"# {pairs} distinct manual pairs ({', '.join(sections)}; in that order) of the Aksharantar\n"
-        f"# {code}_test.json split, AI4Bharat (Madhani et al., 2022), CC BY. Built by\n"
-        "# `python -m mlkb.langs.pairs`. Never train on these words.\n"
-    )
+    src = human.pair_source(lang)
+    if human.has_aksharantar(lang) or src is None:
+        code = human.load(lang).data["aksharantar"]
+        header = (
+            "# Human transliteration eval set: context<TAB>latin<TAB>native (context empty).\n"
+            f"# {pairs} distinct manual pairs ({', '.join(sections)}; in that order) of the Aksharantar\n"
+            f"# {code}_test.json split, AI4Bharat (Madhani et al., 2022), CC BY. Built by\n"
+            "# `python -m mlkb.langs.pairs`. Never train on these words.\n"
+        )
+    else:
+        header = (
+            "# Human transliteration eval set: context<TAB>latin<TAB>native (context empty).\n"
+            f"# {pairs} distinct pairs of the test split of {src.name} ({src.path('test').name}):\n"
+            f"# {src.credit}. Built by\n"
+            "# `python -m mlkb.langs.pairs`. Never train on these words.\n"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(header + "".join(body), encoding="utf-8")
 
@@ -115,14 +127,15 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--chat-share", type=float, default=0.5, help="draws that use the hand-set tables")
     p.add_argument("--human-share", type=float, default=0.3, help="share of train rows that are human pairs")
     p.add_argument(
-        "--dakshina-share", type=float, default=0.5,
-        help="share of the human rows from Dakshina's train split (a language in human.DAKSHINA)",
+        "--own-share", "--dakshina-share", type=float, default=0.5, dest="own_share",
+        help="share of the human rows from the language's own train split (data/langs/<id>/pairs.json), "
+        "when it has Aksharantar rows too",
     )
     p.add_argument("--eval-only", action="store_true", help="write only data/eval/<lang>/translit-human.tsv")
     args = p.parse_args(argv)
     if args.eval_only:
         path = ROOT / f"data/eval/{args.lang}/translit-human.tsv"
-        write_eval(args.lang, human.manual(human.aksharantar(args.lang, "test")), path)
+        write_eval(args.lang, human.held_out_pairs(args.lang), path)
         print(f"wrote {path}")
         return
     out = args.out or ROOT / f"training/build/{args.lang}/pairs"
@@ -132,13 +145,14 @@ def main(argv: list[str] | None = None) -> None:
     tables = Tables.load(args.lang)
     hand = Tables.load(LANGS / args.lang / "romanisation.hand.json")
     stats: Counter = Counter()
-    test = human.manual(human.aksharantar(args.lang, "test", stats))
+    test = human.held_out_pairs(args.lang, stats)
     train_rows = human.aksharantar(args.lang, "train", stats)
     held_out = human.held_out_words(args.lang, test)
-    dakshina_train = human.dakshina(args.lang, "train", stats)
-    if args.lang in human.DAKSHINA:
-        valid_human = human.dakshina(args.lang, "dev", stats)
-        where = f"Dakshina's dev split ({human.DAKSHINA[args.lang]}.translit.sampled.dev.tsv)"
+    own_train = human.file_pairs(args.lang, "train", stats)
+    src = human.pair_source(args.lang)
+    if src is not None and "dev" in src.files:
+        valid_human = human.file_pairs(args.lang, "dev", stats)
+        where = f"{src.name}'s dev split ({src.path('dev').name})"
     else:
         valid_human, where = human.calibration(args.lang, held_out, train=train_rows)
     print(f"valid-human: {where}")
@@ -155,10 +169,13 @@ def main(argv: list[str] | None = None) -> None:
     mined = [(latin, w) for latin, w in mined if w not in excluded and w not in valid_words]
     n_human = round(len(train) * args.human_share / (1 - args.human_share))
     rng = random.Random(args.seed + 1)
-    typed = [h for h in dakshina_train if h.native not in excluded and h.native not in valid_words]
-    n_typed = round(n_human * args.dakshina_share) if typed else 0
-    # Dakshina's pairs by how many annotators typed each, as Malayalam's (mlkb.data.pairs).
-    humans = [(h.latin, h.native) for h in rng.choices(typed, weights=[h.count for h in typed], k=n_typed)]
+    typed = [h for h in own_train if h.native not in excluded and h.native not in valid_words]
+    # With no Aksharantar rows (Sinhala), every human row is the language's own.
+    own_share = args.own_share if train_rows else 1.0
+    n_typed = round(n_human * own_share) if typed else 0
+    # The language's own pairs by how many people typed each, as Malayalam's Dakshina pairs
+    # (mlkb.data.pairs).
+    humans = [(h.latin, h.native) for h in rng.choices(typed, weights=[h.count for h in typed], k=n_typed)] if n_typed else []
     # Fewer distinct mined pairs than wanted: each is repeated, so they keep their share.
     humans += [mined[i % len(mined)] for i in range(n_human - n_typed)] if mined else []
     train += humans
@@ -174,7 +191,8 @@ def main(argv: list[str] | None = None) -> None:
         print(f"  {key}: {value:,}")
     print(f"distinct mined pairs {len(set(mined)):,}; human rows in train {len(humans):,} ({len(humans) / len(train):.1%})")
     if typed:
-        print(f"distinct Dakshina train pairs {len(typed):,}; Dakshina rows in train {n_typed:,} ({n_typed / len(train):.1%})")
+        name = src.name if src else "own"
+        print(f"distinct {name} train pairs {len(typed):,}; {name} rows in train {n_typed:,} ({n_typed / len(train):.1%})")
     for name, pairs in (("train", train), ("valid", valid), ("valid-human", [(h.latin, h.native) for h in valid_human])):
         lengths = [len(latin) for latin, _ in pairs]
         print(

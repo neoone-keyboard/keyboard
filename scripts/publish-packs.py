@@ -90,12 +90,13 @@ INDEX_FORMAT = 1  # KeyboardCore PackIndex.format
 ENGLISH_CREDIT_IDS = ["enwiki", "scowl", "unicode-emoji", "cldr-annotations"]
 ENGLISH_FILES = ["en.fst", "en-next.fst"]
 # The user's decision (12 November 2026): which packs in packs/ are full languages, which are
-# listed as beta and which stay unlisted (trial files). alsoInPacks: beta ids that stay in the
-# index's `packs` for older builds, which listed them before the beta section existed.
+# listed as beta and which stay unlisted (trial files; Sinhala, a trial, unlisted too).
+# alsoInPacks: beta ids that stay in the index's `packs` for older builds, which listed them
+# before the beta section existed.
 LISTING = {
     "full": ["hi", "ml"],
     "beta": ["as", "gu", "kn", "ne", "pa", "ta", "te"],
-    "unlisted": ["bho", "bn", "ja", "mai", "mr", "or", "ur"],
+    "unlisted": ["bho", "bn", "ja", "mai", "mr", "or", "si", "ur"],
     "alsoInPacks": ["as", "ta"],
 }
 PRIVACY_UPDATED = "8 November 2026"

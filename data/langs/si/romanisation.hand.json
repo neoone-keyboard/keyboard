@@ -1,0 +1,416 @@
+{
+  "format": 1,
+  "script": "sinh",
+  "language": "si",
+  "about": "How Sinhala is typed in Latin letters: native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Dakshina's si train split (training/mlkb/langs/calibrate.py, data/langs/si/pairs.json). Each table maps a letter (or a conjunct) to [spelling, weight] options, canonical first. This is the hand-set file.",
+  "virama": "්",
+  "independentVowels": {
+    "අ": [["a", 1.0]],
+    "ආ": [["a", 0.75], ["aa", 0.25]],
+    "ඇ": [["a", 0.5], ["ae", 0.4], ["e", 0.1]],
+    "ඈ": [["a", 0.4], ["ae", 0.4], ["aa", 0.1], ["e", 0.1]],
+    "ඉ": [["i", 0.95], ["e", 0.05]],
+    "ඊ": [["i", 0.7], ["ee", 0.3]],
+    "උ": [["u", 0.95], ["o", 0.05]],
+    "ඌ": [["u", 0.7], ["oo", 0.3]],
+    "ඍ": [["ru", 0.6], ["ri", 0.4]],
+    "ඎ": [["ru", 0.6], ["ri", 0.4]],
+    "ඏ": [["lu", 1.0]],
+    "ඐ": [["lu", 1.0]],
+    "එ": [["e", 1.0]],
+    "ඒ": [["e", 0.8], ["ee", 0.2]],
+    "ඓ": [["ai", 1.0]],
+    "ඔ": [["o", 1.0]],
+    "ඕ": [["o", 0.8], ["oo", 0.2]],
+    "ඖ": [["au", 0.8], ["ou", 0.2]]
+  },
+  "vowelSigns": {
+    "ා": [["a", 0.75], ["aa", 0.25]],
+    "ැ": [["a", 0.5], ["ae", 0.4], ["e", 0.1]],
+    "ෑ": [["a", 0.4], ["ae", 0.4], ["aa", 0.1], ["e", 0.1]],
+    "ි": [["i", 0.95], ["e", 0.05]],
+    "ී": [["i", 0.7], ["ee", 0.3]],
+    "ු": [["u", 0.95], ["o", 0.05]],
+    "ූ": [["u", 0.7], ["oo", 0.3]],
+    "ෘ": [["ru", 0.5], ["ri", 0.3], ["r", 0.2]],
+    "ෲ": [["ru", 0.6], ["ri", 0.4]],
+    "ෟ": [["lu", 1.0]],
+    "ෳ": [["lu", 1.0]],
+    "ෙ": [["e", 1.0]],
+    "ේ": [["e", 0.8], ["ee", 0.2]],
+    "ෛ": [["ai", 1.0]],
+    "ො": [["o", 1.0]],
+    "ෝ": [["o", 0.8], ["oo", 0.2]],
+    "ෞ": [["au", 0.8], ["ou", 0.2]]
+  },
+  "consonants": {
+    "ක": [["k", 1.0]],
+    "ඛ": [["k", 0.6], ["kh", 0.4]],
+    "ග": [["g", 1.0]],
+    "ඝ": [["g", 0.6], ["gh", 0.4]],
+    "ඞ": [["ng", 0.7], ["n", 0.3]],
+    "ඟ": [["ng", 0.8], ["g", 0.2]],
+    "ච": [["ch", 0.8], ["c", 0.2]],
+    "ඡ": [["ch", 0.7], ["chh", 0.3]],
+    "ජ": [["j", 1.0]],
+    "ඣ": [["j", 0.6], ["jh", 0.4]],
+    "ඤ": [["ny", 0.6], ["gn", 0.4]],
+    "ඥ": [["gn", 0.5], ["gy", 0.3], ["dny", 0.2]],
+    "ඦ": [["nj", 1.0]],
+    "ට": [["t", 1.0]],
+    "ඨ": [["t", 0.6], ["th", 0.4]],
+    "ඩ": [["d", 0.9], ["dh", 0.1]],
+    "ඪ": [["d", 0.6], ["dh", 0.4]],
+    "ණ": [["n", 1.0]],
+    "ඬ": [["nd", 0.8], ["d", 0.2]],
+    "ත": [["th", 0.6], ["t", 0.4]],
+    "ථ": [["th", 1.0]],
+    "ද": [["d", 0.7], ["dh", 0.3]],
+    "ධ": [["dh", 0.6], ["d", 0.4]],
+    "න": [["n", 1.0]],
+    "ඳ": [["nd", 0.7], ["d", 0.2], ["ndh", 0.1]],
+    "ප": [["p", 1.0]],
+    "ඵ": [["p", 0.6], ["ph", 0.4]],
+    "බ": [["b", 1.0]],
+    "භ": [["b", 0.6], ["bh", 0.4]],
+    "ම": [["m", 1.0]],
+    "ඹ": [["mb", 0.8], ["b", 0.2]],
+    "ය": [["y", 1.0]],
+    "ර": [["r", 1.0]],
+    "ල": [["l", 1.0]],
+    "ව": [["v", 0.6], ["w", 0.4]],
+    "ශ": [["sh", 0.7], ["s", 0.3]],
+    "ෂ": [["sh", 0.7], ["s", 0.3]],
+    "ස": [["s", 1.0]],
+    "හ": [["h", 1.0]],
+    "ළ": [["l", 1.0]],
+    "ෆ": [["f", 1.0]]
+  },
+  "inCluster": {},
+  "afterVirama": {
+    "ය": [["y", 0.9], ["", 0.1]],
+    "ර": [["r", 1.0]],
+    "ව": [["v", 0.6], ["w", 0.4]]
+  },
+  "clusters": {
+    "ක්ෂ": [["ksh", 0.6], ["ks", 0.3], ["x", 0.1]],
+    "ඥ": [["gn", 0.5], ["gy", 0.3], ["dny", 0.2]],
+    "ත්ත": [["tth", 0.4], ["thth", 0.4], ["th", 0.1], ["tt", 0.1]],
+    "ච්ච": [["chch", 0.4], ["cch", 0.4], ["ch", 0.2]]
+  },
+  "geminateSingle": 0.3,
+  "finals": {
+    "ං": [["n", 0.5], ["m", 0.3], ["ng", 0.2]],
+    "ඃ": [["h", 0.5], ["", 0.5]],
+    "ඁ": [["n", 0.5], ["", 0.5]]
+  },
+  "inherent": {
+    "medial": [["a", 0.95], ["", 0.05]],
+    "final": [["a", 0.9], ["", 0.1]],
+    "finalAfterCluster": [["a", 0.95], ["", 0.05]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "ksh",
+        "ks"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ae",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ayi",
+        "ai"
+      ],
+      [
+        "eyi",
+        "ei"
+      ],
+      [
+        "oyi",
+        "oi"
+      ],
+      [
+        "uyi",
+        "ui"
+      ],
+      [
+        "mk",
+        "nk"
+      ],
+      [
+        "mkh",
+        "nk"
+      ],
+      [
+        "mg",
+        "ng"
+      ],
+      [
+        "mgh",
+        "ng"
+      ],
+      [
+        "mch",
+        "nc"
+      ],
+      [
+        "mchh",
+        "nc"
+      ],
+      [
+        "mc",
+        "nc"
+      ],
+      [
+        "mj",
+        "nj"
+      ],
+      [
+        "mjh",
+        "nj"
+      ],
+      [
+        "mt",
+        "nt"
+      ],
+      [
+        "mth",
+        "nt"
+      ],
+      [
+        "md",
+        "nd"
+      ],
+      [
+        "mdh",
+        "nd"
+      ],
+      [
+        "ms",
+        "ns"
+      ],
+      [
+        "msh",
+        "ns"
+      ],
+      [
+        "mh",
+        "nh"
+      ],
+      [
+        "mv",
+        "nv"
+      ],
+      [
+        "mw",
+        "nv"
+      ],
+      [
+        "my",
+        "ny"
+      ],
+      [
+        "mr",
+        "nr"
+      ],
+      [
+        "ml",
+        "nl"
+      ],
+      [
+        "ngk",
+        "nk"
+      ],
+      [
+        "ngkh",
+        "nk"
+      ],
+      [
+        "ngch",
+        "nc"
+      ],
+      [
+        "ngchh",
+        "nc"
+      ],
+      [
+        "ngc",
+        "nc"
+      ],
+      [
+        "ngj",
+        "nj"
+      ],
+      [
+        "ngjh",
+        "nj"
+      ],
+      [
+        "ngt",
+        "nt"
+      ],
+      [
+        "ngth",
+        "nt"
+      ],
+      [
+        "ngd",
+        "nd"
+      ],
+      [
+        "ngdh",
+        "nd"
+      ],
+      [
+        "ngs",
+        "ns"
+      ],
+      [
+        "ngsh",
+        "ns"
+      ],
+      [
+        "ngv",
+        "nv"
+      ],
+      [
+        "ngw",
+        "nv"
+      ],
+      [
+        "ngy",
+        "ny"
+      ],
+      [
+        "ngr",
+        "nr"
+      ],
+      [
+        "ngl",
+        "nl"
+      ],
+      [
+        "ngg",
+        "ng"
+      ],
+      [
+        "nggh",
+        "ng"
+      ],
+      [
+        "ngh",
+        "ng"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks",
+      "c": "c"
+    },
+    "vowels": "aeiou"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed). Vowel length only: Sinhala keeps its dental and retroflex t and d apart in writing (ත ට, ද ඩ), but typists don't, so the skeleton folds th to t; no letter is read as another here.",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ae",
+        "a"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "Sinhala keeps its inherent vowel in speech and in typing, inside a word and at its end (ගෙදර gedara, මම mama); a consonant with al-lakuna ends without one (අකුරක් akurak).",
+    "letters": "Typists write ත (dental) as th or t and ට (retroflex) as t; ද as d or dh, ඩ as d. Aspirates (ඛ ඝ ඨ ඪ ථ ධ ඵ භ) are typed with or without h. The prenasalised ඟ ඬ ඳ ඹ are ng, nd, nd, mb. ැ and ෑ are a, ae or e. ව is v or w, ශ and ෂ sh or s. The anusvara ං is n, m or ng (අංක anka, amka). Yansaya and rakaransaya (ක්‍ය, ක්‍ර) are a virama, a ZWJ and ය or ර: the walk drops the ZWJ, so they spell ky, kr.",
+    "skeleton": "Aspirates fold to their plain letters, ch and chh to c, sh to s, w to v; aa, ae to a, ee to i, oo to u; an anusvara spelled m or ng before k or g folds to n."
+  }
+}

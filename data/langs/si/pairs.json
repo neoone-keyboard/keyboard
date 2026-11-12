@@ -1,0 +1,11 @@
+{
+  "about": "Human romanisation pairs for this language (training/mlkb/langs/human.py, PairSource): each split a TSV of native word, romanisation, count. Train calibrates the tables and trains the transliterator, dev validates, test is held out. Read by the builder only; not shipped in the pack.",
+  "source": "Dakshina",
+  "credit": "Dakshina dataset v1.0, Google Research (Roark et al., 2020), CC BY-SA 4.0",
+  "files": {
+    "train": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.train.tsv",
+    "dev": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.dev.tsv",
+    "test": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.test.tsv"
+  },
+  "missing": "Extract it from the Dakshina tar (data/manifests/dakshina.json): ./data/fetch.sh --only dakshina && tar -xf data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina 'dakshina_dataset_v1.0/si/lexicons/*'"
+}

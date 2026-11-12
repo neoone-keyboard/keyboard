@@ -38,7 +38,8 @@ Check three things first.
    larger block lists its letters as `charTable` instead (at most 225 characters, engine 8).
 3. **There are human romanisations to learn from.** The tools read them from
    [Aksharantar](https://huggingface.co/datasets/ai4bharat/Aksharantar), which covers 21
-   languages. A language without Aksharantar data needs code changes (gap G6).
+   languages, and from any list of words as people typed them that `data/langs/xx/pairs.json`
+   names (step 4, "Your own pairs"): Punjabi and Sinhala use Dakshina's that way.
 
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
 Tamil, Telugu, Gujarati, Kannada, Odia and Punjabi (Gurmukhi): their packs carry `lang.json`,
@@ -285,9 +286,13 @@ Assamese and Tamil drop them, as their published lexicons were built: keeping th
 make every stored word with such a cluster unreachable from text that has the joiner, and
 the reverse. Keep them only if your language tells words apart by a joiner, or writes common
 words that are wrong without one (Malayalam's ഛത്തീസ്‌ഗഡ്), and then leave ZWJ and ZWNJ out
-of `replace`. A Devanagari `lang.json` that drops them can say nothing; the first two
-`replace` entries below drop them before NFC as well, which mends a few mis-typed
-sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
+of `replace`. Sinhala keeps them too (`data/langs/si/lang.json`): its yansaya and
+rakaransaya are written al-lakuna + ZWJ + ය or ර (ක්‍රමය, රාජ්‍ය, ශ්‍රී), and without the ZWJ
+the al-lakuna shows. Its text has both forms (ශ්‍රී 23,731 times, ශ්රී 1,100), and a few words
+are right without the ZWJ (දුම්රිය), so `replace` can't add it everywhere; each form stays a
+word with its own count, and the commoner leads the bar. A Devanagari `lang.json` that
+drops them can say nothing; the first two `replace` entries below drop them before NFC as
+well, which mends a few mis-typed sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
 
 A Devanagari example (Marathi). Copy this rather than the Assamese file for any `deva`
 language:
@@ -361,7 +366,9 @@ it 250 (Odia `250,Page,ପୃଷ୍ଠା`, Punjabi `250,Page,ਪੰਨਾ`); wi
 the main namespace, and nothing says so. Not every language has all three wikis: Odia and
 Punjabi have no Wikiquote, so their scripts read two sources. Nepali has neither a Wikisource
 nor a Wikiquote of its own (a dump folder that is a 404 says so); its script reads Wikipedia and
-Wikibooks, which is CC BY-SA 4.0 too (`data/build-ne-text.sh`). Then run the script once
+Wikibooks, which is CC BY-SA 4.0 too (`data/build-ne-text.sh`). So does Sinhala
+(`data/build-si-text.sh`), which has no Wikisource, Wikiquote or Wikinews; Sinhala Wikibooks is
+mostly the Tripitaka and classical poetry, 42% of its words. Then run the script once
 by hand:
 
 ```sh
@@ -504,8 +511,9 @@ would find the word (`skeleton`, `prefix`).
   hand file's `skeleton` that isn't followed by `calibrate --write` changes nothing in the
   pack, and nothing warns you.
 
-Without Aksharantar data, copy the hand file to `romanisation-weights.json` and skip the
-fitting (gap G6). Or, when a language with Aksharantar data is written in your script and
+Without Aksharantar data, give the tools pairs of your own (below, "Your own pairs"). With no
+human pairs at all, copy the hand file to `romanisation-weights.json` and skip the fitting. Or,
+when a language with Aksharantar data is written in your script and
 typed with the same habits, borrow its pairs: put its code in your `lang.json`'s
 `aksharantar`. Bhojpuri (`data/langs/bho/`) names Hindi's, `hin`: its tables are fitted to
 Hindi's manual rows, and its transliterator would train on its own words spelled by those
@@ -527,12 +535,52 @@ report says so, and three things follow:
   moves by a few points from one evaluation to the next, and the step it stops at is partly
   chance. Judge the model by the held-out numbers of step 11, which use thousands of rows.
 
-You can't add your own typed pairs yet: the tools read human pairs only from Aksharantar
-and, for a language listed in `DAKSHINA` in `training/mlkb/langs/human.py`, from Dakshina's
-lexicon (gap G6). Punjabi is listed: Aksharantar has no typed Punjabi pairs outside its test
-split, so its tables calibrate on Dakshina's train split, its transliterator trains on those
-pairs beside Aksharantar's mined ones and validates on the dev split, and the test split is
-held out. Dakshina is CC BY-SA 4.0: a pack that uses it credits it, as Punjabi's does.
+**Your own pairs.** Human pairs can come from any file, not only Aksharantar: list them in
+`data/langs/xx/pairs.json`. Sinhala's (`data/langs/si/pairs.json`) names Dakshina's lexicon:
+
+```json
+{
+  "source": "Dakshina",
+  "credit": "Dakshina dataset v1.0, Google Research (Roark et al., 2020), CC BY-SA 4.0",
+  "files": {
+    "train": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.train.tsv",
+    "dev": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.dev.tsv",
+    "test": "data/raw/dakshina/dakshina_dataset_v1.0/si/lexicons/si.translit.sampled.test.tsv"
+  },
+  "missing": "what to run when a file is missing (printed with the error)"
+}
+```
+
+Each file is TSV, one pair per line, the way Dakshina's lexicons are written:
+
+```
+native word<TAB>romanisation<TAB>count
+ගෙදර	gedara	3
+ගෙදර	gedhara	1
+```
+
+`count` is how many people typed that spelling for the word; leave the column out and it is 1.
+Blank lines and lines starting with `#` are skipped. Paths are from the repository root, so a
+list your friends typed can live in `data/langs/xx/pairs/` and be committed (with its credit and
+licence in a manifest, step 1), and a download in `data/raw/`. The file is read by the tools
+only; it isn't copied into the pack.
+
+What each split does:
+- `train` calibrates the tables (step 4, each pair counted once per person) and gives the
+  transliterator's human rows (step 9). With Aksharantar data too, half of those rows are yours
+  and half Aksharantar's mined rows (`--own-share`); without it, all of them.
+- `dev` is the transliterator's validation set (`valid-human.tsv`). Without it, the calibration
+  pairs are.
+- `test` is held out. Without Aksharantar data it is your eval set,
+  `data/eval/xx/translit-human.tsv`, which steps 9 and 11 measure on; with it, `calibrate`
+  reports it beside Aksharantar's test rows.
+
+No word of `dev` or `test` is in any training pair, the synthetic ones spelled from the lexicon
+included. Split by word, not by row, so a word's spellings are all in one split; Dakshina's
+splits already are. Punjabi has Aksharantar data too, but no typed pairs outside its test split,
+so its tables calibrate on Dakshina's train split and its transliterator trains on those pairs
+beside Aksharantar's mined ones. Dakshina is CC BY-SA 4.0: a pack that uses it credits it, as
+Punjabi's and Sinhala's do.
 
 **One letter, several sounds.** Some scripts write several sounds with one letter. Tamil has
 one letter for k, g and h (க), one for t and d (ட), one for th and dh (த), one for p and b
@@ -1095,9 +1143,10 @@ This:
 
 1. writes the training pairs (`python -m mlkb.langs.pairs --lang xx`) to
    `training/build/xx/pairs/`: 3M rows by default, 70% spelled from your tables for the
-   lexicon's common words and 30% Aksharantar's mined rows. It also writes Aksharantar's
-   manual test rows to `data/eval/xx/translit-human.tsv`, the held-out set, which training
-   never sees. `valid-human.tsv` is step 4's calibration pairs (it prints which split they
+   lexicon's common words and 30% Aksharantar's mined rows (with pairs of your own, step 4's
+   "Your own pairs", half or all of that 30% are yours). It also writes Aksharantar's
+   manual test rows (or, without Aksharantar, your pairs' test split) to
+   `data/eval/xx/translit-human.tsv`, the held-out set, which training never sees. `valid-human.tsv` is step 4's calibration pairs (it prints which split they
    came from), and their words are left out of training too;
 2. trains (`python -m mlkb.translit.train --lang xx`) into `training/build/xx/translit.pt`.
    Training stops when validation stops improving. It resumes if interrupted: run the same
