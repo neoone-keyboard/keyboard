@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-ori",
+  "name": "Aksharantar (AI4Bharat), Odia",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-12): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Odia files have no 'Dakshina Dataset' rows (Dakshina has no Odia) and no 'Existing sources' rows, so the filter in training/mlkb/data/human.py drops nothing by source. What is used is mined (IndicCorp, Samanantar: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Uni, AK-Freq, AK-NEI, AK-NEF: CC BY).",
+  "used_for": "ori_train.json rows (IndicCorp with mining score >= -0.2, Samanantar, Wikidata) as transliterator training pairs for packs/or.neopack. The manual rows of ori_valid.json (AK-Uni, AK-Freq: 1,096 pairs) fit the romanised Odia tables (data/langs/or/romanisation.json) and validate training. ori_test.json's manual rows (AK-Freq, AK-NEI, AK-NEF, CC BY) are the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-12",
+  "notes": "Fetched 2026-11-12. Extract with: unzip ori.zip -d data/raw/aksharantar-ori/extracted (data/build-or-text.sh does). ori_train.json has 346,492 rows: IndicCorp 336,766, Samanantar 9,544, Wikidata 182 (no manual rows). ori_valid.json 3,093: IndicCorp 1,893, AK-Uni 571, AK-Freq 525, Samanantar 102, Wikidata 2. ori_test.json 4,228: AK-Freq 2,222, AK-NEI 1,184, AK-NEF 822. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/ori.zip",
+      "path": "ori.zip",
+      "sha256": "9095e8dc4221708ad02826e84c1bbb7e5033e1cbf4e4f7396272ded0947b7c0b"
+    }
+  ],
+  "status": "in packs/or.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "extracted": {
+    "ori_train.json": "81f8ebd46bfbea0c7f396dcb5153e8291fb418b2dc8056d6281b39442be98c95",
+    "ori_valid.json": "a3ef3afc7e8079b506aa56a6eeecf334f3d792b221f989ad73560dfbedb0132c",
+    "ori_test.json": "3b3edd62b93b66bfc4ce1d353a407a8d1c6f8188c1601f85f01177c86583c07c"
+  }
+}

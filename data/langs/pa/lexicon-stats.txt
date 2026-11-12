@@ -1,0 +1,10 @@
+pa tokens: 28229211, distinct forms: 676077
+pa dropped (a letter of the script, but not a word): 45804 tokens, 25327 forms
+pa dropped top 20: 20ਵੀਂ 1028, 19ਵੀਂ 1019, 18ਵੀਂ 575, ਂ 542, 16ਵੀਂ 461, 17ਵੀਂ 456, 21ਵੀਂ 435, 12ਵੀਂ 371, 13ਵੀਂ 321, 15ਵੀਂ 319, 14ਵੀਂ 291, 10ਵੀਂ 264, 11ਵੀਂ 257, 9ਵੀਂ 240, ਟਵੰਟੀ20 235, 8ਵੀਂ 230, ਮ1 221, 7ਵੀਂ 179, 5ਵੀਂ 176, ਰੇ2 164
+next.fst pairs: 149573 pa, 149977 English
+pa.fst: 179562 keys, 1683290 bytes
+next.fst: 299550 keys, 3851093 bytes
+pa top 20: ਦੇ ਹੈ ਵਿੱਚ ਦੀ ਅਤੇ ਨੂੰ ਦਾ ਸੀ ਤੇ ਨੇ ਤੋਂ ਇੱਕ ਹਨ ਨਾਲ ਲਈ ਇਸ ਵਿਚ ਉਸ ਉਹ ਕਿ
+romanised keys skipped: 0
+romanised.fst: 179562 keys, 2556508 bytes
+pa text by source: pawiki 18024059 words (61%), pawikisource 11419932 words (39%)

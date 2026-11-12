@@ -1,0 +1,10 @@
+or tokens: 4899353, distinct forms: 357050
+or dropped (a letter of the script, but not a word): 35615 tokens, 9511 forms
+or dropped top 20: ୤ 377, ୨ୟ 351, ୪ଟି 309, ୨୦୧୩ରେ 307, ୩ଟି 277, ୨୦୧୪ରେ 261, ା 237, ୨୦୧୨ରେ 227, ୨୦୧୫ରେ 225, ୨ଟି 217, ୨୦୧୯ରେ 216, ୨୦୧୭ରେ 211, ୫ଟି 211, ୨୦୧୧ରେ 207, ୨୦୧୬ରେ 204, ୩ୟ 194, ୨୦୦୯ରେ 191, ୨୦୧୦ରେ 191, ୨୦୧୮ରେ 188, ୧ମ 183
+next.fst pairs: 144185 or, 149977 English
+or.fst: 94271 keys, 1043898 bytes
+next.fst: 294162 keys, 4491882 bytes
+or top 20: ଓ ସେ ଏବଂ ଏହି ଏକ କରିଥିଲେ ପାଇଁ ଏହା ଯେ କରି ମଧ୍ୟ ନ ପରେ ମସିହାରେ ତାଙ୍କ ଏ ଭାବରେ ହୋଇ ଜଣେ ନାହିଁ
+romanised keys skipped: 0
+romanised.fst: 94271 keys, 1712994 bytes
+or text by source: orwiki 3578057 words (62%), orwikisource 2199632 words (38%)

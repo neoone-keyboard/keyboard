@@ -1,0 +1,289 @@
+{
+  "format": 1,
+  "script": "orya",
+  "language": "or",
+  "about": "How Odia is typed in Latin letters (these fitted weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar ori's manual valid rows (training/mlkb/langs/calibrate.py). Each table maps a letter (or a letter + nukta, or a conjunct) to [spelling, weight] options, canonical first. Started from Bengali's table: the two scripts are laid out alike.",
+  "virama": "୍",
+  "apostrophe": "'",
+  "independentVowels": {
+    "ଅ": [["a", 0.973], ["o", 0.027]],
+    "ଆ": [["aa", 0.512], ["a", 0.488]],
+    "ଇ": [["i", 0.875], ["e", 0.125]],
+    "ଈ": [["i", 0.75], ["ee", 0.25]],
+    "ଉ": [["u", 0.979], ["oo", 0.021]],
+    "ଊ": [["u", 0.784], ["oo", 0.216]],
+    "ଋ": [["ru", 0.741], ["ri", 0.259]],
+    "ୠ": [["ru", 1.0]],
+    "ଌ": [["lu", 1.0]],
+    "ୡ": [["lu", 1.0]],
+    "ଏ": [["e", 0.767], ["a", 0.215], ["ay", 0.01], ["ye", 0.01]],
+    "ଐ": [["ai", 0.7], ["oi", 0.3]],
+    "ଓ": [["o", 0.963], ["u", 0.037]],
+    "ଔ": [["au", 0.6], ["ou", 0.4]]
+  },
+  "vowelSigns": {
+    "ା": [["a", 0.789], ["aa", 0.211]],
+    "ି": [["i", 0.997], ["e", 0.01]],
+    "ୀ": [["ee", 0.676], ["i", 0.324]],
+    "ୁ": [["u", 0.984], ["oo", 0.016]],
+    "ୂ": [["oo", 0.515], ["u", 0.485]],
+    "ୃ": [["ru", 0.891], ["ri", 0.109]],
+    "ୄ": [["ru", 1.0]],
+    "େ": [["e", 0.9], ["ay", 0.09], ["a", 0.01]],
+    "ୈ": [["ai", 0.803], ["oi", 0.197]],
+    "ୋ": [["o", 0.998], ["u", 0.01]],
+    "ୌ": [["au", 0.668], ["ou", 0.332]],
+    "ୢ": [["lu", 1.0]],
+    "ୣ": [["lu", 1.0]]
+  },
+  "consonants": {
+    "କ": [["k", 1.0]],
+    "ଖ": [["kh", 0.997], ["k", 0.01]],
+    "ଗ": [["g", 1.0]],
+    "ଘ": [["gh", 0.967], ["g", 0.033]],
+    "ଙ": [["n", 0.775], ["ng", 0.225]],
+    "ଚ": [["ch", 0.997], ["c", 0.01]],
+    "ଛ": [["chh", 0.669], ["ch", 0.331]],
+    "ଜ": [["j", 0.998], ["z", 0.01]],
+    "ଝ": [["jh", 0.898], ["j", 0.102]],
+    "ଞ": [["n", 0.8], ["ny", 0.2]],
+    "ଟ": [["t", 1.0]],
+    "ଠ": [["th", 0.979], ["t", 0.021]],
+    "ଡ": [["d", 1.0]],
+    "ଢ": [["dh", 0.913], ["d", 0.087]],
+    "ଣ": [["n", 1.0]],
+    "ତ": [["t", 0.995], ["th", 0.01]],
+    "ଥ": [["th", 0.985], ["t", 0.015]],
+    "ଦ": [["d", 1.0]],
+    "ଧ": [["dh", 0.961], ["d", 0.039]],
+    "ନ": [["n", 1.0]],
+    "ପ": [["p", 1.0]],
+    "ଫ": [["ph", 0.505], ["f", 0.495]],
+    "ବ": [["b", 0.993], ["v", 0.01]],
+    "ଭ": [["bh", 0.817], ["v", 0.161], ["b", 0.022]],
+    "ମ": [["m", 1.0]],
+    "ଯ": [["j", 0.976], ["y", 0.024]],
+    "ୟ": [["y", 0.993], ["", 0.01], ["i", 0.01]],
+    "ର": [["r", 1.0]],
+    "ଲ": [["l", 1.0]],
+    "ଳ": [["l", 1.0]],
+    "ଵ": [["v", 0.6], ["w", 0.4]],
+    "ୱ": [["w", 0.624], ["v", 0.376]],
+    "ଶ": [["sh", 0.506], ["s", 0.494]],
+    "ଷ": [["sh", 0.611], ["s", 0.389]],
+    "ସ": [["s", 0.958], ["sh", 0.042]],
+    "ହ": [["h", 1.0]],
+    "ଡ଼": [["d", 0.925], ["r", 0.075]],
+    "ଢ଼": [["dh", 0.854], ["rh", 0.146]]
+  },
+  "inCluster": {},
+  "afterVirama": {
+    "ଯ": [["y", 0.87], ["", 0.13]],
+    "ୟ": [["y", 0.997], ["", 0.01]],
+    "ୱ": [["w", 0.957], ["", 0.027], ["v", 0.016]],
+    "ବ": [["b", 0.614], ["w", 0.359], ["v", 0.027]],
+    "ର": [["r", 1.0]]
+  },
+  "clusters": {
+    "କ୍ଷ": [["khy", 0.467], ["ksh", 0.287], ["kh", 0.132], ["kshy", 0.062], ["x", 0.051]],
+    "ଜ୍ଞ": [["gy", 0.443], ["jn", 0.393], ["gn", 0.164]],
+    "ଙ୍କ": [["nk", 0.999], ["ngk", 0.01]],
+    "ଙ୍ଗ": [["ng", 0.955], ["ngg", 0.045]],
+    "ଞ୍ଚ": [["nch", 0.907], ["nc", 0.093]],
+    "ଞ୍ଜ": [["nj", 1.0]],
+    "ଶ୍ର": [["shr", 0.795], ["sr", 0.205]],
+    "ତ୍ତ": [["tt", 0.685], ["t", 0.315]],
+    "ଚ୍ଚ": [["cch", 0.432], ["chch", 0.309], ["ch", 0.259]],
+    "ଚ୍ଛ": [["cch", 0.5], ["chh", 0.3], ["ch", 0.2]],
+    "ଯ୍ୟ": [["jy", 0.853], ["y", 0.12], ["jj", 0.027]]
+  },
+  "geminateSingle": 0.27,
+  "finals": {
+    "ଂ": [["n", 0.676], ["ng", 0.26], ["m", 0.064]],
+    "ଁ": [["n", 0.707], ["", 0.293]],
+    "ଃ": [["h", 0.737], ["", 0.263]],
+    "ଽ": [["", 1.0]]
+  },
+  "inherent": {
+    "medial": [["a", 0.998], ["o", 0.01]],
+    "final": [["a", 0.968], ["", 0.028], ["o", 0.01]],
+    "finalAfterCluster": [["a", 0.966], ["", 0.032], ["o", 0.01]],
+    "only": [["a", 0.9], ["o", 0.1]]
+  },
+  "apostropheVowel": [
+    [
+      "a",
+      0.85
+    ],
+    [
+      "",
+      0.15
+    ]
+  ],
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "kshy",
+        "k"
+      ],
+      [
+        "ksh",
+        "k"
+      ],
+      [
+        "khy",
+        "k"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "rh",
+        "r"
+      ],
+      [
+        "gy",
+        "g"
+      ],
+      [
+        "jn",
+        "g"
+      ],
+      [
+        "gn",
+        "g"
+      ],
+      [
+        "ngk",
+        "nk"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "oi",
+        "ai"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "ae",
+        "ai"
+      ],
+      [
+        "ay",
+        "e"
+      ],
+      [
+        "ng",
+        "n"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "f": "p",
+      "v": "b",
+      "w": "b",
+      "q": "k",
+      "x": "k"
+    },
+    "vowels": "aeiou",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): `singles` read a letter as another, `pairs` read two letters in a row as one, `collapse` letters count once however often they repeat. Vowel length only: Odia keeps d and t apart (ଦ, ତ).",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is said (a rounded a, near o) and typed a, sometimes o (କଥା katha, ଘର ghara / ghar). Odia drops no inherent vowel inside a word in speech, so there is no schwaDeleted list. At the end of a word it is typed or left out (ଓଡ଼ିଶା odisha, ଭୁବନେଶ୍ୱର bhubaneswar), so the skeleton drops a final a.",
+    "letters": "ଯ is j (ଯାଇ jai) and ୟ y (ଭୟ bhaya, ହୋଇଯାଇ); the -ya sign (virama + ଯ) is y (ବ୍ୟବସାୟ byabasaya). ବ is b; the -wa sign ୍ୱ is w or v (ସ୍ୱାମୀ swami). ଶ ଷ ସ are all said s and typed s or sh. ଡ଼ is said r and typed d or r (ଓଡ଼ିଆ odia, ବଡ଼ bada / bara); the tables put the commoner first, and the other spelling reaches the word through the transliterator. ୃ is ru (କୃଷ୍ଣ krushna, ସଂସ୍କୃତି sanskruti) or ri. କ୍ଷ is ksh, khy or x (ଲକ୍ଷ୍ମୀ laxmi), ଜ୍ଞ gy, jn or gn.",
+    "anusvara": "ଂ is n, ng or m (ସଂସ୍କୃତି sanskruti, ଏବଂ ebang / ebam). The skeleton folds ng to n, so ଏବଂ typed ebang finds the word whose key ends in n (calibration skeleton 86.8% to 87.3%); the price is that ଙ୍ଗ words share keys with ନ words. mb and mp fold to nb and np. A final candrabindu ଁ is written or not (ନାହିଁ nahin / nahi), so optionalFinals names it.",
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, v and w to b, q and x to k; aa, ee and oo to a, i and u; ou to au, oi and ae to ai (ଲଗାଇ lagai / lagae), ay to e (Aksharantar's annotators often typed େ as ay: ନେତ୍ରୀ naytri, calibration skeleton 85.2% to 86.8%), ng to n. A final a after a consonant is dropped.",
+    "apostrophe": "An apostrophe marks a dropped vowel (କ'ଣ kana / kan, ତା'ର tar). After a consonant it is spelled by apostropheVowel, as the vowel it stands for; after a vowel sign the walk skips it. The lexicon keeps it in the word."
+  },
+  "optionalFinals": [
+    "ଁ"
+  ]
+}

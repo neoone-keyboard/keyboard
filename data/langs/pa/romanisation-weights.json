@@ -1,0 +1,280 @@
+{
+  "format": 1,
+  "script": "guru",
+  "language": "pa",
+  "about": "How Punjabi (Gurmukhi) is typed in Latin letters (these fitted weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar pan (training/mlkb/langs/calibrate.py), whose only pairs outside the held-out test split are mined ones. Each table maps a letter (or a letter + nukta, or the addak + a letter, or a conjunct) to [spelling, weight] options, canonical first. Started from Maithili's table: Gurmukhi is laid out like Devanagari and typed with the same habits.",
+  "virama": "੍",
+  "independentVowels": {
+    "ਅ": [["a", 1.0]],
+    "ਆ": [["aa", 0.845], ["a", 0.155]],
+    "ਇ": [["i", 0.996], ["e", 0.01]],
+    "ਈ": [["i", 0.933], ["ee", 0.067]],
+    "ਉ": [["u", 0.998], ["o", 0.01]],
+    "ਊ": [["u", 0.7], ["oo", 0.3]],
+    "ਏ": [["e", 0.551], ["ye", 0.439], ["ae", 0.01]],
+    "ਐ": [["ai", 0.432], ["e", 0.395], ["ae", 0.172]],
+    "ਓ": [["o", 1.0]],
+    "ਔ": [["au", 0.741], ["ou", 0.259]],
+    "ੲ": [["i", 1.0]],
+    "ੳ": [["u", 1.0]]
+  },
+  "vowelSigns": {
+    "ਾ": [["a", 0.935], ["aa", 0.065]],
+    "ਿ": [["i", 0.997], ["e", 0.01]],
+    "ੀ": [["i", 0.912], ["ee", 0.088]],
+    "ੁ": [["u", 0.999], ["o", 0.01]],
+    "ੂ": [["u", 0.818], ["oo", 0.182]],
+    "ੇ": [["e", 0.999], ["a", 0.01]],
+    "ੈ": [["ai", 0.688], ["e", 0.263], ["ae", 0.049]],
+    "ੋ": [["o", 1.0]],
+    "ੌ": [["au", 0.968], ["ou", 0.032]]
+  },
+  "consonants": {
+    "ਕ": [["k", 1.0]],
+    "ਖ": [["kh", 0.998], ["k", 0.01]],
+    "ਗ": [["g", 1.0]],
+    "ਘ": [["gh", 0.989], ["g", 0.011]],
+    "ਙ": [["n", 0.7], ["ng", 0.3]],
+    "ਚ": [["ch", 0.998], ["c", 0.01]],
+    "ਛ": [["chh", 0.659], ["ch", 0.341]],
+    "ਜ": [["j", 0.999], ["z", 0.01]],
+    "ਝ": [["jh", 0.978], ["j", 0.022]],
+    "ਞ": [["n", 0.8], ["ny", 0.2]],
+    "ਟ": [["t", 1.0]],
+    "ਠ": [["th", 0.946], ["t", 0.054]],
+    "ਡ": [["d", 1.0]],
+    "ਢ": [["dh", 0.913], ["d", 0.087]],
+    "ਣ": [["n", 1.0]],
+    "ਤ": [["t", 0.999], ["th", 0.01]],
+    "ਥ": [["th", 0.991], ["t", 0.01]],
+    "ਦ": [["d", 0.999], ["dh", 0.01]],
+    "ਧ": [["dh", 0.997], ["d", 0.01]],
+    "ਨ": [["n", 1.0]],
+    "ਪ": [["p", 1.0]],
+    "ਫ": [["f", 0.883], ["ph", 0.117]],
+    "ਬ": [["b", 1.0]],
+    "ਭ": [["bh", 0.997], ["b", 0.01]],
+    "ਮ": [["m", 1.0]],
+    "ਯ": [["y", 1.0]],
+    "ਰ": [["r", 1.0]],
+    "ਲ": [["l", 1.0]],
+    "ਵ": [["v", 0.784], ["w", 0.216]],
+    "ਸ": [["s", 1.0]],
+    "ਹ": [["h", 1.0]],
+    "ੜ": [["d", 0.866], ["r", 0.134]],
+    "ਸ਼": [["sh", 0.987], ["s", 0.013]],
+    "ਖ਼": [["kh", 1.0]],
+    "ਗ਼": [["g", 0.7], ["gh", 0.3]],
+    "ਜ਼": [["z", 0.985], ["j", 0.015]],
+    "ਫ਼": [["f", 1.0]],
+    "ਲ਼": [["l", 1.0]],
+    "ੱਕ": [["kk", 0.909], ["k", 0.091]],
+    "ੱਖ": [["kkh", 0.564], ["kh", 0.385], ["kk", 0.041], ["k", 0.01]],
+    "ੱਗ": [["gg", 0.898], ["g", 0.102]],
+    "ੱਘ": [["ggh", 0.723], ["gh", 0.147], ["gg", 0.104], ["g", 0.027]],
+    "ੱਙ": [["nn", 0.56], ["nng", 0.24], ["n", 0.14], ["ng", 0.06]],
+    "ੱਚ": [["cch", 0.59], ["ch", 0.311], ["chch", 0.098]],
+    "ੱਛ": [["chh", 0.55], ["cch", 0.3], ["cchh", 0.15]],
+    "ੱਜ": [["jj", 0.932], ["j", 0.051], ["zz", 0.011], ["z", 0.01]],
+    "ੱਝ": [["jjh", 0.68], ["jj", 0.12], ["jh", 0.17], ["j", 0.03]],
+    "ੱਞ": [["nn", 0.64], ["nny", 0.16], ["n", 0.16], ["ny", 0.04]],
+    "ੱਟ": [["tt", 0.898], ["t", 0.102]],
+    "ੱਠ": [["tth", 0.815], ["th", 0.098], ["tt", 0.069], ["t", 0.018]],
+    "ੱਡ": [["dd", 0.725], ["d", 0.275]],
+    "ੱਢ": [["ddh", 0.759], ["dh", 0.128], ["dd", 0.09], ["d", 0.023]],
+    "ੱਣ": [["nn", 0.8], ["n", 0.2]],
+    "ੱਤ": [["tt", 0.895], ["t", 0.056], ["tth", 0.039], ["th", 0.01]],
+    "ੱਥ": [["tth", 0.72], ["tt", 0.08], ["th", 0.18], ["t", 0.02]],
+    "ੱਦ": [["dd", 0.79], ["d", 0.136], ["ddh", 0.06], ["dh", 0.015]],
+    "ੱਧ": [["ddh", 0.635], ["dh", 0.252], ["dd", 0.09], ["d", 0.023]],
+    "ੱਨ": [["nn", 0.8], ["n", 0.2]],
+    "ੱਪ": [["pp", 0.898], ["p", 0.102]],
+    "ੱਫ": [["pph", 0.4], ["ff", 0.4], ["ph", 0.1], ["f", 0.1]],
+    "ੱਬ": [["bb", 0.869], ["b", 0.131]],
+    "ੱਭ": [["bbh", 0.68], ["bb", 0.12], ["bh", 0.17], ["b", 0.03]],
+    "ੱਮ": [["mm", 0.8], ["m", 0.2]],
+    "ੱਯ": [["yy", 0.8], ["y", 0.2]],
+    "ੱਰ": [["rr", 0.8], ["r", 0.2]],
+    "ੱਲ": [["ll", 0.87], ["l", 0.13]],
+    "ੱਵ": [["vv", 0.48], ["ww", 0.32], ["v", 0.12], ["w", 0.08]],
+    "ੱਸ": [["ss", 0.869], ["s", 0.131]],
+    "ੱਹ": [["hh", 0.8], ["h", 0.2]],
+    "ੱੜ": [["rr", 0.48], ["dd", 0.32], ["r", 0.12], ["d", 0.08]],
+    "ੱਸ਼": [["ssh", 0.72], ["ss", 0.08], ["sh", 0.18], ["s", 0.02]],
+    "ੱਖ਼": [["kkh", 0.8], ["kh", 0.2]],
+    "ੱਗ਼": [["gg", 0.56], ["ggh", 0.24], ["g", 0.14], ["gh", 0.06]],
+    "ੱਜ਼": [["zz", 0.56], ["jj", 0.24], ["z", 0.14], ["j", 0.06]],
+    "ੱਫ਼": [["ff", 0.8], ["f", 0.2]],
+    "ੱਲ਼": [["ll", 0.8], ["l", 0.2]]
+  },
+  "inCluster": {},
+  "afterVirama": {
+    "ਰ": [["r", 1.0]],
+    "ਹ": [["h", 1.0]],
+    "ਵ": [["v", 0.5], ["w", 0.5]],
+    "ਯ": [["y", 1.0]]
+  },
+  "clusters": {
+    "ੜ੍ਹ": [["rh", 0.606], ["dh", 0.394]],
+    "ਸ੍ਰ": [["sr", 0.6], ["shr", 0.4]]
+  },
+  "geminateSingle": 0.2,
+  "finals": {
+    "ਂ": [["n", 0.993], ["", 0.01], ["m", 0.01]],
+    "ੰ": [["n", 0.889], ["m", 0.111]],
+    "ਁ": [["n", 1.0]],
+    "ਃ": [["h", 0.6], ["", 0.4]]
+  },
+  "optionalFinals": [
+    "ਂ"
+  ],
+  "inherent": {
+    "medial": [["a", 0.859], ["", 0.141]],
+    "schwaDeleted": [["", 0.884], ["a", 0.116]],
+    "final": [["", 0.997], ["a", 0.01]],
+    "finalAfterCluster": [["", 0.652], ["a", 0.347]],
+    "only": [["a", 1.0]]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped (doubled letters); every `dropBetweenConsonants` letter with a consonant on both sides is dropped; then a final vowel in `dropFinal` after a consonant is dropped.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "rh",
+        "r"
+      ],
+      [
+        "aa",
+        "a"
+      ],
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "ii",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ],
+      [
+        "uu",
+        "u"
+      ],
+      [
+        "ou",
+        "au"
+      ],
+      [
+        "ei",
+        "ai"
+      ],
+      [
+        "mbh",
+        "nb"
+      ],
+      [
+        "mb",
+        "nb"
+      ],
+      [
+        "mph",
+        "np"
+      ],
+      [
+        "mp",
+        "np"
+      ],
+      [
+        "nm",
+        "m"
+      ],
+      [
+        "ai",
+        "e"
+      ],
+      [
+        "ae",
+        "e"
+      ]
+    ],
+    "letters": {
+      "z": "j",
+      "f": "p",
+      "w": "v",
+      "q": "k"
+    },
+    "vowels": "aeiou",
+    "dropBetweenConsonants": "a",
+    "dropFinal": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed). Vowel length only, as for Hindi: Punjabi keeps d and t apart (ਦ, ਤ), so no letter is read as another.",
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "inherent": "The inherent vowel is typed 'a' inside a word and dropped at its end (ਘਰ ghar). Speech drops it inside words too (ਕਰਦਾ karda, ਸਮਝ samajh), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key.",
+    "addak": "The addak ੱ doubles the consonant after it (ਪੱਕਾ pakka, ਬਿੱਲੀ billi, ਉੱਤੇ utte). The tables have no sign that spells the letter after it, so every addak + consonant is a key of `consonants` (two code points), spelled with the consonant's first letter doubled or, a fifth of the time, single; ਅੱਛਾ is achha or accha. The skeleton drops a doubled letter, so pakka and paka are one key.",
+    "nasals": "The tippi ੰ is n inside a word (ਪੰਜਾਬ punjab, ਮੁੰਡਾ munda), m before a labial (mb and mp fold to nb and np). The bindi ਂ ends many words and is typed n or not at all (ਨਹੀਂ nahin / nahi, ਮੈਂ main / mai, ਹਾਂ haan / haa), so optionalFinals names it: such a word is also keyed without the n.",
+    "letters": "ਸ਼ ਖ਼ ਗ਼ ਜ਼ ਫ਼ ਲ਼ are the consonant + nukta after NFC (U+0A33, 0A36 and 0A59-0A5E are composition exclusions), so their keys are two code points. ੜ is r or d (ਪੜ੍ਹਨਾ parhna / padhna). The virama is written only for the subscript letters ੍ਰ ੍ਹ ੍ਵ (ਪ੍ਰੇਮ prem, ਪੜ੍ਹ parh). ੈ is ai, ae or e (ਹੈ hai / he). ਏ after a vowel is e or ye (ਜਾਏਗਾ jaega / jayega).",
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; ei to ai, then ai and ae to e (ੈ is typed ai, ae or e: ਪੈਸਾ paisa / pesa, so ੇ and ੈ words share keys and are told apart by ranking); mb and mp to nb and np; nm to m (ਨਿੰਮ nimm). An a between two consonants is dropped, and a final a after a consonant."
+  }
+}
