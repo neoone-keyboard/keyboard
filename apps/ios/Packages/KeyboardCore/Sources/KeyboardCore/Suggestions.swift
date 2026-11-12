@@ -82,15 +82,13 @@ public struct SuggestionSlot: Equatable, Sendable {
     public var title: String { quoted ? "\u{201C}\(suggestion.text)\u{201D}" : suggestion.text }
 }
 
-/// The bar's suggestions. The bar draws `ordered`: the best (what space commits) first, at its
-/// leading edge, then the rest in the engine's order, as many as fit (`BarFit`). When the best
-/// would replace what was typed, the typed word is among them in quotes, so one tap keeps it.
-///
-/// `left`, `middle` and `right` are the same words as a bar of three slots had them (the best
-/// in the middle), with the candidates after those in `more`; `limit` counts them all
-/// (`KeyboardSettings.suggestionCount`).
+/// The three-slot bar: best in the middle; when the middle would replace what
+/// was typed, the typed word sits on the left in quotes. With a `limit` above three, the
+/// candidates after those go in `more`, in the engine's order, which the bar shows past the
+/// right slot, each in a slot as wide as the three, when it is slid (`laidOut`, `BarFit`;
+/// `KeyboardSettings.suggestionCount`).
 public struct SuggestionBar: Equatable, Sendable {
-    /// The three slots, as a bar of three has always had them.
+    /// The three slots in view.
     public static let slotCount = 3
 
     public var left: SuggestionSlot?
@@ -100,17 +98,11 @@ public struct SuggestionBar: Equatable, Sendable {
     public var more: [SuggestionSlot] = []
     /// How many suggestions the bar holds at most, slots and `more` together.
     public let limit: Int
-    /// The bar's words in the order it draws them from its leading edge: the best first, then
-    /// the engine's order, the typed word quoted in its place there. At most `limit`.
-    public private(set) var ordered: [SuggestionSlot] = []
 
     public init(_ result: SuggestionResult, limit: Int = SuggestionBar.slotCount) {
         self.limit = max(limit, Self.slotCount)
         let candidates = result.candidates
         guard let first = candidates.first else { return }
-        ordered = candidates.prefix(self.limit).enumerated().map { index, suggestion in
-            SuggestionSlot(suggestion: suggestion, quoted: index > 0 && first.kind != .verbatim && suggestion.kind == .verbatim)
-        }
         middle = SuggestionSlot(suggestion: first, quoted: false)
         var rest = Array(candidates.dropFirst())
         let after: ArraySlice<Suggestion>
@@ -126,7 +118,7 @@ public struct SuggestionBar: Equatable, Sendable {
         more = after.prefix(self.limit - Self.slotCount).map { SuggestionSlot(suggestion: $0, quoted: false) }
     }
 
-    /// The bar with `emoji` in the right slot (third in `ordered`): never the middle, which space commits, so an
+    /// The bar with `emoji` in the right slot: never the middle, which space commits, so an
     /// emoji is never put in by autocorrect. The word it displaces leads `more` when the bar
     /// has room past three, else it is dropped. Nil leaves the bar as it is.
     public func withEmoji(_ emoji: String?) -> SuggestionBar {
@@ -136,31 +128,17 @@ public struct SuggestionBar: Equatable, Sendable {
             bar.more.insert(displaced, at: 0)
             bar.more = Array(bar.more.prefix(limit - Self.slotCount))
         }
-        let slot = SuggestionSlot(suggestion: Suggestion(emoji, kind: .emoji), quoted: false)
-        bar.right = slot
-        // Third, where the right slot was; never first, so space never puts it in.
-        bar.ordered.insert(slot, at: min(2, bar.ordered.count))
-        bar.ordered = Array(bar.ordered.prefix(limit))
+        bar.right = SuggestionSlot(suggestion: Suggestion(emoji, kind: .emoji), quoted: false)
         return bar
     }
 
     /// Left, middle, right; nil for an empty slot.
     public var slots: [SuggestionSlot?] { [left, middle, right] }
 
-    /// The three slots in the order the bar draws them from where reading starts: left to
-    /// right, `slots`. Right to left (a pack whose script is, `PackDescriptor.rightToLeft`),
-    /// the bar is read from its right edge: the best word there, then the other word, then
-    /// the typed word in quotes or the emoji; `more` follows further left.
-    public func drawn(rightToLeft: Bool) -> [SuggestionSlot?] {
-        guard rightToLeft else { return slots }
-        // A word first, then the quoted typed word, then an emoji; empty slots last.
-        func rank(_ slot: SuggestionSlot?) -> Int {
-            guard let slot else { return 3 }
-            return slot.suggestion.kind == .emoji ? 2 : slot.quoted ? 1 : 0
-        }
-        let others = [left, right].enumerated().sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }
-        return [middle] + others.map(\.element)
-    }
+    /// Every slot the bar lays out, in order from its leading edge: left, middle, right, then
+    /// `more`. An empty slot keeps its place, so the best is always the middle one. Right to
+    /// left the bar draws the same order mirrored (`BarFit`): left is then on the right.
+    public var laidOut: [SuggestionSlot?] { slots + more.map(Optional.some) }
 }
 
 /// Holding a bar slot asks whether to remove its word (SwiftKey's "Remove …?"). Once

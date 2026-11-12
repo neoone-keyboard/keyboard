@@ -95,31 +95,30 @@ struct RightToLeftTests {
 
     // MARK: The bar
 
-    @Test func aRightToLeftBarReadsFromTheRight() {
+    /// Right to left the bar is the same slots mirrored (`BarFit`): the best still in the
+    /// middle, the typed word, on the left in a left-to-right bar, on the right.
+    @Test func aRightToLeftBarIsTheSameSlotsMirrored() {
         let result = SuggestionResult(typed: "mera", candidates: [
             Suggestion("میرا", kind: .manglish), Suggestion("میری", kind: .manglish),
             Suggestion("mera", kind: .verbatim), Suggestion("میر", kind: .manglish),
         ])
         let bar = SuggestionBar(result, limit: 4)
-        // Left to right as ever: the typed word quoted on the left, the best in the middle.
-        #expect(bar.drawn(rightToLeft: false).map { $0?.title } == ["\u{201C}mera\u{201D}", "میرا", "میری"])
-        // Right to left, best first from the right: the other word, then the typed one.
-        #expect(bar.drawn(rightToLeft: true).map { $0?.title } == ["میرا", "میری", "\u{201C}mera\u{201D}"])
-        #expect(bar.more.map(\.title) == ["میر"], "more still follows, further left")
+        #expect(bar.laidOut.map { $0?.title } == ["\u{201C}mera\u{201D}", "میرا", "میری", "میر"])
+        let fit = BarFit(count: bar.laidOut.count, barWidth: 390, rightToLeft: true)
+        // On screen, from the left: the other word, the best, the typed word; more past the left edge.
+        let onScreen = zip(bar.laidOut, fit.items).filter { $0.1.x >= fit.startOffset }
+            .sorted { $0.1.x < $1.1.x }.map { $0.0?.title }
+        #expect(onScreen == ["میری", "میرا", "\u{201C}mera\u{201D}"])
     }
 
-    @Test func anEmojiComesAfterTheWordsRightToLeft() {
+    @Test func anEmojiIsInTheRightSlotRightToLeftToo() {
         let result = SuggestionResult(typed: "dil", candidates: [
             Suggestion("دل", kind: .manglish), Suggestion("dil", kind: .verbatim), Suggestion("دلی", kind: .manglish),
         ])
         let bar = SuggestionBar(result).withEmoji("❤️")
-        #expect(bar.drawn(rightToLeft: true).map { $0?.title } == ["دل", "\u{201C}dil\u{201D}", "❤️"])
+        #expect(bar.laidOut.map { $0?.title } == ["\u{201C}dil\u{201D}", "دل", "❤️"])
     }
 
-    @Test func emptySlotsKeepTheirPlaceRightToLeft() {
-        let bar = SuggestionBar(SuggestionResult(typed: "", candidates: [Suggestion("ہے", kind: .nextWord)]))
-        #expect(bar.drawn(rightToLeft: true).map { $0?.title } == ["ہے", nil, nil])
-    }
 
     // MARK: Punctuation
 
