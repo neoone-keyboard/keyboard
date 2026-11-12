@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "id": "ne",
+  "version": "2026.11.12",
+  "name": "Nepali",
+  "nativeName": "नेपाली",
+  "script": "deva",
+  "romanised": {
+    "name": "Romanised Nepali"
+  },
+  "minEngine": 7,
+  "files": {
+    "lexicon": "ne.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json",
+    "chatForms": "chat-forms.tsv",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
+  },
+  "sha256": {
+    "chat-forms.tsv": "34ed4926c8bd015ab341ac973e0e849da1feeec4e8c837c5fead94495ae3c419",
+    "emoji-search.txt": "e56d091e96be029c51886adec53dc69346e83424b4cb70d169eff53ebc4dbd28",
+    "emoji-words.txt": "225a4a06130d4b853534d8c361400f7c132c3432ddb80fe56ef5e3f34bafd796",
+    "lang.json": "dae3a687cc3fed0d5aaa856ac9d548c73411fd1119b394a4fdbe81d7980a97e0",
+    "layout.json": "1bb7a0558c6a2c581942b09c6ee038036934253903c7cb76c65ba6d11680833d",
+    "ne.fst": "e7b381340105ed6ded84c9247c90709565321e1cbfe9edf9fc40ea3ba4243674",
+    "next.fst": "ff5bb585b430a05550f941ec3a8186b12346eb8d24c394312d231545fa92d8fa",
+    "romanisation.json": "80f6ad6a3243aa4e559c565843e13de784e679607e72dfc1c89b7ea958982de8",
+    "romanised.fst": "f97f903171911dea9c7a39e83c44a5747a7211ac8604abfda3562c580b5ea41a",
+    "translit.mlkbnn": "e8d8e28a638412b55f96ebc2a651984f1c34ae9ff07e9107a6ddd9a30351a52b"
+  },
+  "credits": [
+    {
+      "name": "Nepali Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ne.wikipedia.org/"
+    },
+    {
+      "name": "Nepali Wikibooks",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://ne.wikibooks.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Nepali emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Nepali."
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

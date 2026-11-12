@@ -1,0 +1,21 @@
+# Chat spellings of common Nepali words that the tables don't reach: latin<TAB>nepali.
+# Hand-written for this repository from how people write Nepali in Latin letters, not taken
+# from any dataset; see data/manifests/chat-forms-ne.json. The Nepali pack's "chatForms" file,
+# read by the engine (engine/core/src/chat_forms.rs). A typed word matching a row (ignoring
+# case) offers its Nepali word as if the letters spelled it out; a swipe through a row's
+# letters offers it too.
+#
+# A word of one consonant walks without its vowel (र is r, छ is chh), and its key is that one
+# letter; typed with the vowel (ra, chha), the key keeps the a, because the skeleton drops a
+# final vowel only from three letters up. So the commonest such words, which are among the
+# most written of all, are listed as they are typed. म (I) still comes after मा (in), which
+# the text has fourteen times as often.
+ra	र
+ma	म
+na	न
+ta	त
+cha	छ
+chha	छ
+# छ is typed x in chat (xa, garxu, hunxa); the skeleton folds x to c, which reaches the longer
+# words, but xa is two letters, so it is listed too.
+xa	छ

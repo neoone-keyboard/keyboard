@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-nep",
+  "name": "Aksharantar (AI4Bharat), Nepali",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-12): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0. Includes names from Wikidata (CC0).",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Nepali files have no 'Dakshina Dataset' rows (Dakshina has no Nepali) and no 'Existing sources' rows, so the source filter drops nothing. What is used is mined (IndicCorp: CC0), Wikidata (CC0) or AI4Bharat's manual collection (AK-Freq, AK-Uni, AK-NEI, AK-NEF: CC BY).",
+  "used_for": "nep_train.json rows (IndicCorp with mining score >= -0.2, Wikidata) as transliterator training pairs for packs/ne.neopack. The manual rows of nep_valid.json (AK-Freq, AK-Uni: 804 pairs) fit the romanised Nepali tables (data/langs/ne/romanisation.json) and validate training. nep_test.json's manual rows (AK-Freq, AK-NEI, AK-NEF, CC BY) are the held-out eval set: its words are left out of every training pair.",
+  "retrieved": "2026-11-12",
+  "notes": "Fetched 2026-11-12. Extract with: unzip nep.zip -d data/raw/aksharantar-nep/extracted (data/build-ne-text.sh does). nep_train.json has 2,397,414 rows: IndicCorp 2,391,227, AK-Freq 3,539, Wikidata 2,648. nep_valid.json 2,804: IndicCorp 1,989, AK-Freq 525, AK-Uni 279, Wikidata 11. nep_test.json 4,101: AK-Freq 2,108, AK-NEI 1,176, AK-NEF 817. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/nep.zip",
+      "path": "nep.zip",
+      "sha256": "8bdcc5957d701ea36b63c00c713b43bc30902774b70736737d480e77929de92c"
+    }
+  ],
+  "status": "in packs/ne.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "extracted": {
+    "nep_train.json": "55f6ca38b30c6fab0b5b8a11eefd2bb2be3cbce633c93a3b03215ec5675810b4",
+    "nep_valid.json": "9bc1c65df08c5f41eb61ffeaf631bf1bc3820c64ef71ae54b4868c5ac3ea9be7",
+    "nep_test.json": "172c759fcbb9faeda0a23765ccd12ad0520fb535a05dca42dd9c9923ee5f554e"
+  }
+}

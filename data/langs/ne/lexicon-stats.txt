@@ -1,0 +1,10 @@
+ne tokens: 5756926, distinct forms: 393514
+ne dropped (a letter of the script, but not a word): 15770 tokens, 7023 forms
+ne dropped top 20: ः 775, ॐ 475, १९औँ 189, २०औँ 161, १८औँ 140, १३औँ 127, १६औँ 115, १२औँ 113, १४औँ 108, ११औँ 106, १५औँ 106, १०औँ 102, न् 91, १७औँ 85, ऽ 68, ९औँ 67, २१औँ 66, ७औँ 66, टि२० 64, ५औँ 54
+next.fst pairs: 146362 ne, 149977 English
+ne.fst: 110969 keys, 1196149 bytes
+next.fst: 296339 keys, 4634405 bytes
+ne top 20: र छ थियो हो मा पनि थिए एक यो रूपमा सन् भएको लागि यस को छन् तथा हुन्छ गरिएको उनले
+romanised keys skipped: 0
+romanised.fst: 110965 keys, 2007470 bytes
+ne text by source: newiki 5717703 words (92%), newikibooks 485519 words (8%)
