@@ -262,8 +262,15 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
     let packs = inPacks.filter { !unlisted.contains($0.id) }
     #expect(!packs.isEmpty)
     #expect(index.packs.allSatisfy { !unlisted.contains($0.id) })
-    let ids = index.packs.map(\.id).reduce(into: [String]()) { if $0.last != $1 { $0.append($1) } }
-    #expect(ids == packs.map(\.id), "by id, an id's entries together")
+    #expect(Set(index.packs.map(\.id)) == Set(packs.map(\.id)))
+    let versions = index.packs.map { "\($0.id) \($0.version)" }
+    #expect(Set(versions).count == versions.count, "each id and version listed once")
+    // Beta packs (site-src/beta-packs.json) are tagged, and only they.
+    struct Beta: Decodable { let ids: [String] }
+    let beta = try JSONDecoder().decode(
+        Beta.self, from: Data(contentsOf: repoRoot.appending(path: "site-src/beta-packs.json"))).ids
+    #expect(index.betaIDs == Set(beta))
+    #expect(index.packs.allSatisfy { $0.beta == beta.contains($0.id) })
     for entry in index.packs {
         #expect(entry.url.scheme == "https")
         #expect(entry.url.lastPathComponent == "\(entry.id)-\(entry.version).neopack")
@@ -285,4 +292,61 @@ private func entry(_ base: URL, data: Data, id: String = "xx", size: Int64? = ni
                     "\(kept.id) \(kept.version) is what engine \(kept.minEngine) picks")
         }
     }
+}
+
+// MARK: - Beta packs
+
+/// An index with a `beta` section (scripts/publish-packs.py): Assamese in both sections (older
+/// builds listed it before the section existed), Kannada only in `beta`.
+private let betaIndex = #"""
+{"format": 1,
+ "packs": [
+  {"id": "as", "name": "Assamese", "version": "2", "script": "beng", "size": 5, "sha256": "ef", "url": "as-2.neopack", "minEngine": 1},
+  {"id": "hi", "name": "Hindi", "version": "2", "script": "deva", "size": 5, "sha256": "ef", "url": "hi-2.neopack", "minEngine": 1}
+ ],
+ "beta": [
+  {"id": "as", "name": "Assamese", "version": "2", "script": "beng", "size": 5, "sha256": "ef", "url": "as-2.neopack", "minEngine": 1},
+  {"id": "kn", "name": "Kannada", "version": "1", "script": "deva", "size": 5, "sha256": "ef", "url": "kn-1.neopack", "minEngine": 1},
+  {"id": "zz"}
+ ]}
+"""#
+
+@Test func betaEntriesAreListedOnceAndTagged() throws {
+    let index = try PackIndex.decode(Data(betaIndex.utf8), base: URL(string: "https://example.test/packs/index.json")!)
+    #expect(index.packs.map(\.id) == ["as", "hi", "kn"])
+    #expect(index.packs.map(\.beta) == [true, false, true])
+    #expect(index.betaIDs == ["as", "kn"])
+    #expect(index.packs[2].url.absoluteString == "https://example.test/packs/kn-1.neopack")
+}
+
+@Test func anIndexWithoutBetaHasNoBetaEntries() throws {
+    let json = #"{"format": 1, "packs": [{"id": "hi", "name": "Hindi", "version": "1", "script": "deva", "size": 9, "sha256": "aa", "url": "hi.neopack", "minEngine": 1}]}"#
+    let index = try PackIndex.decode(Data(json.utf8), base: URL(string: "https://example.test/index.json")!)
+    #expect(index.packs.map(\.beta) == [false])
+    #expect(index.betaIDs.isEmpty)
+}
+
+/// What a build from before the beta section reads of the same file, with its decoder (`format`
+/// and `packs` only): the beta-only Kannada never shows, Assamese stays.
+@Test func olderBuildsReadOnlyThePacksSection() throws {
+    struct OldFile: Decodable {
+        let format: Int
+        let packs: [OldEntry]
+    }
+    struct OldEntry: Decodable { let id: String }
+    let old = try JSONDecoder().decode(OldFile.self, from: Data(betaIndex.utf8))
+    #expect(old.format == PackIndex.format)
+    #expect(old.packs.map(\.id) == ["as", "hi"])
+}
+
+/// Full languages first, then beta ones, each by name.
+@Test func betaPacksAreListedAfterTheFullLanguages() {
+    let base = host("order")
+    func e(_ id: String, _ name: String, beta: Bool) -> PackIndex.Entry {
+        PackIndex.Entry(id: id, name: name, version: "1", script: "deva", size: 1, sha256: "",
+                        url: base.appending(path: "\(id).neopack"), minEngine: 1, beta: beta)
+    }
+    let index = PackIndex(packs: [e("as", "Assamese", beta: true), e("ml", "Malayalam", beta: false),
+                                  e("kn", "Kannada", beta: true), e("hi", "Hindi", beta: false)])
+    #expect(index.newest(readableBy: support).map(\.id) == ["hi", "ml", "as", "kn"])
 }

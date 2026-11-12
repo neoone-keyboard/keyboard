@@ -1,0 +1,5 @@
+{
+  "about": "Ids of published packs listed as beta (scripts/publish-packs.py): new and still learning. Their index entries go in the index's beta section, which older app builds don't read; apps that read it tag them Beta. alsoInPacks: beta ids that stay in the index's packs section too, for older builds that listed them before there was a beta section.",
+  "ids": ["as", "gu", "kn", "ne", "pa", "ta", "te"],
+  "alsoInPacks": ["as", "ta"]
+}

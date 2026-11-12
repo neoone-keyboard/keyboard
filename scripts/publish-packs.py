@@ -34,6 +34,16 @@ Their checksums are checked like any pack's, but they get no zip in build/site-p
 in the index, no line or section on the credits page and no upload. An id there that packs/
 doesn't have is refused, so delete it; to publish the pack, take its id off the list.
 
+Beta packs: site-src/beta-packs.json names, by hand, the ids of published packs that are listed
+as beta, new and still learning. Their entries go in the index's `beta` section, which builds
+before it never read: those decode only `format` and `packs` (KeyboardCore.PackIndex since it
+was written, Android's PackIndex too), so they don't offer a beta pack as a normal language.
+Builds that read `beta` list the entries of both sections and tag those in `beta` "Beta". The
+ids in its `alsoInPacks` (Assamese and Tamil, listed before there was a beta section) stay in
+`packs` too, the same entry in both, so users of older builds keep them. The credits page marks
+beta packs. Which pack is full, beta or unlisted is the user's decision, LISTING below; --check
+fails when site-src/ lists them otherwise.
+
 Then it prints the `wrangler r2 object put` commands that upload the pack files. It runs them
 only with --deploy (`make site-deploy`), which uploads the files the site doesn't serve yet and
 then runs `wrangler deploy`. A file's name carries its version, so a published file never
@@ -71,6 +81,7 @@ R2_PREFIX = "packs/"  # hosting/worker.js serves R2 key packs/<file> at /packs/<
 INDEX_CACHE = "public, max-age=300"
 KEPT = SITE_SRC / "kept-packs.json"
 UNLISTED = SITE_SRC / "unlisted-packs.json"
+BETA = SITE_SRC / "beta-packs.json"
 LEXICON = ROOT / "apps" / "ios" / "KeyboardExtension" / "Lexicon"
 DATA_MANIFESTS = ROOT / "data" / "manifests"
 
@@ -78,6 +89,15 @@ INDEX_FORMAT = 1  # KeyboardCore PackIndex.format
 # English's own sources, as KeyboardCore's Credits.english lists them (the app's About screen).
 ENGLISH_CREDIT_IDS = ["enwiki", "scowl", "unicode-emoji", "cldr-annotations"]
 ENGLISH_FILES = ["en.fst", "en-next.fst"]
+# The user's decision (12 November 2026): which packs in packs/ are full languages, which are
+# listed as beta and which stay unlisted (trial files). alsoInPacks: beta ids that stay in the
+# index's `packs` for older builds, which listed them before the beta section existed.
+LISTING = {
+    "full": ["hi", "ml"],
+    "beta": ["as", "gu", "kn", "ne", "pa", "ta", "te"],
+    "unlisted": ["bho", "bn", "ja", "mai", "mr", "or", "ur"],
+    "alsoInPacks": ["as", "ta"],
+}
 PRIVACY_UPDATED = "8 November 2026"
 
 BY_SA_4 = "https://creativecommons.org/licenses/by-sa/4.0/"
@@ -154,6 +174,55 @@ def read_unlisted(manifests: list[tuple[Path, dict]]) -> list[str]:
     if not UNLISTED.is_file():
         return []
     return unlisted_ids(json.loads(UNLISTED.read_text(encoding="utf-8")), [m["id"] for _, m in manifests])
+
+
+def beta_ids(raw: dict, pack_ids: list[str], unlisted: list[str]) -> tuple[list[str], list[str]]:
+    """The ids site-src/beta-packs.json (`raw`) lists as beta, and those of them that stay in the
+    index's `packs` too (`alsoInPacks`). Raises SystemExit for anything but distinct ids of
+    published packs in packs/ (`pack_ids` less `unlisted`), and alsoInPacks ids that are beta."""
+    out = []
+    for key in ("ids", "alsoInPacks"):
+        ids = raw.get(key, [])
+        if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+            raise SystemExit(f"beta-packs.json: {key} must be a list of pack ids")
+        twice = sorted({i for i in ids if ids.count(i) > 1})
+        if twice:
+            raise SystemExit(f"beta-packs.json: {key}: listed twice: {', '.join(twice)}")
+        out.append(ids)
+    ids, also = out
+    unknown = [i for i in ids if i not in pack_ids]
+    if unknown:
+        raise SystemExit(f"beta-packs.json: packs/ has no pack {', '.join(unknown)}; delete the id")
+    both = [i for i in ids if i in unlisted]
+    if both:
+        raise SystemExit(f"beta-packs.json: {', '.join(both)} also in unlisted-packs.json; a beta pack is published")
+    stray = [i for i in also if i not in ids]
+    if stray:
+        raise SystemExit(f"beta-packs.json: alsoInPacks {', '.join(stray)} not in ids")
+    return ids, also
+
+
+def read_beta(manifests: list[tuple[Path, dict]], unlisted: list[str]) -> tuple[list[str], list[str]]:
+    if not BETA.is_file():
+        return [], []
+    return beta_ids(json.loads(BETA.read_text(encoding="utf-8")), [m["id"] for _, m in manifests], unlisted)
+
+
+def listing_problems(pack_ids: list[str], unlisted: list[str], beta: list[str], also: list[str],
+                     decision: dict = LISTING) -> list[str]:
+    """How the site's listing (the packs in packs/, unlisted and beta) differs from `decision`;
+    empty when it matches."""
+    wrong = []
+    got = {"unlisted": sorted(unlisted), "beta": sorted(beta), "alsoInPacks": sorted(also),
+           "full": sorted(set(pack_ids) - set(unlisted) - set(beta))}
+    for kind in ("full", "beta", "unlisted", "alsoInPacks"):
+        want = sorted(decision[kind])
+        if got[kind] != want:
+            extra = sorted(set(got[kind]) - set(want))
+            missing = sorted(set(want) - set(got[kind]))
+            wrong.append(f"{kind}: {', '.join(extra) or 'nothing'} should not be, "
+                         f"{', '.join(missing) or 'nothing'} should be")
+    return wrong
 
 
 def pack_manifests() -> list[tuple[Path, dict]]:
@@ -283,16 +352,23 @@ def index_entries(releases: list[dict], kept: list[dict]) -> list[dict]:
     return sorted(by_version, key=lambda e: e["id"])
 
 
-def index_json(releases: list[dict], kept: list[dict]) -> str:
-    packs = index_entries(releases, kept)
-    return json.dumps({"format": INDEX_FORMAT, "packs": packs}, ensure_ascii=False, indent=2) + "\n"
+def index_json(releases: list[dict], kept: list[dict], beta=(), also=()) -> str:
+    """The index: `packs`, what every build reads, without the `beta` ids but for those in
+    `also`; and, when there are beta packs, `beta`, their entries, which older builds ignore."""
+    entries = index_entries(releases, kept)
+    index = {"format": INDEX_FORMAT,
+             "packs": [e for e in entries if e["id"] not in beta or e["id"] in also]}
+    if beta:
+        index["beta"] = [e for e in entries if e["id"] in beta]
+    return json.dumps(index, ensure_ascii=False, indent=2) + "\n"
 
 
 def republished(old_index: Path, entries: list[dict]) -> list[str]:
     """Index entries whose id and version are already published with other bytes."""
     if not old_index.is_file():
         return []
-    old = {(p["id"], p["version"]): p["sha256"] for p in json.loads(old_index.read_text(encoding="utf-8"))["packs"]}
+    raw = json.loads(old_index.read_text(encoding="utf-8"))
+    old = {(p["id"], p["version"]): p["sha256"] for p in raw["packs"] + raw.get("beta", [])}
     return [f"{e['id']} {e['version']}" for e in entries
             if old.get((e["id"], e["version"]), e["sha256"]) != e["sha256"]]
 
@@ -341,7 +417,7 @@ def credit_html(c: dict) -> str:
     return "\n".join(parts)
 
 
-def credits_page(releases: list[dict], kept: list[dict], english: dict) -> str:
+def credits_page(releases: list[dict], kept: list[dict], english: dict, beta=()) -> str:
     e = html.escape
     out = ["<h1>Credits and licences</h1>",
            '<p class="lead">NeoOne Keyboard’s word lists and prediction models were built from, and '
@@ -358,6 +434,7 @@ def credits_page(releases: list[dict], kept: list[dict], english: dict) -> str:
     older = [id(k) for k in kept]
     for ent in sorted(index_entries(releases, kept), key=lambda x: x["name"]):  # stable: newest first
         note = ", for older app versions" if id(ent) in older else ""
+        note += ", beta" if ent["id"] in beta else ""
         out.append(f'<li><a href="{e(ent["url"])}">{e(ent["name"])} pack {e(ent["version"])}</a>{note} '
                    f'<span class="muted">({ent["size"] / 1e6:.1f} MB, SHA-256 <code>{ent["sha256"][:16]}…</code>)</span></li>')
     out.append(f'<li><a href="{e(english["url"])}">English base word lists</a> '
@@ -402,17 +479,18 @@ def render(page: str, content: str, cfg: dict) -> str:
     return text
 
 
-def site_files(cfg: dict, releases: list[dict], kept: list[dict], english: dict) -> dict[str, bytes]:
+def site_files(cfg: dict, releases: list[dict], kept: list[dict], english: dict,
+               beta=(), also=()) -> dict[str, bytes]:
     """Every file of site/, by path."""
     files = {
         # Workers static assets' header rules; the pack files' headers are hosting/worker.js's.
         "_headers": f"/packs/index.json\n  Cache-Control: {INDEX_CACHE}\n".encode(),
         "style.css": (SITE_SRC / "style.css").read_bytes(),
-        "packs/index.json": index_json(releases, kept).encode(),
+        "packs/index.json": index_json(releases, kept, beta, also).encode(),
     }
     for page in PAGES:
         if page == "credits.html":
-            content = credits_page(releases, kept, english)
+            content = credits_page(releases, kept, english, beta)
         else:
             content = (SITE_SRC / page).read_text(encoding="utf-8")
         files[page] = render(page, content, cfg).encode()
@@ -510,10 +588,16 @@ def main() -> int:
                     old.unlink()
         manifests = pack_manifests()
         unlisted = read_unlisted(manifests)
+        beta, also = read_beta(manifests, unlisted)
+        decision = listing_problems([m["id"] for _, m in manifests], unlisted, beta, also)
+        if decision:
+            print("the packs are not listed as decided (LISTING in scripts/publish-packs.py): "
+                  f"{'; '.join(decision)}", file=sys.stderr)
+            return 1
         releases = build_packs(pack_module, out, cfg["downloads"], manifests, unlisted)
         kept = read_kept(releases, cfg["downloads"])
         english = build_english(out, cfg["downloads"])
-        files = site_files(cfg, releases, kept, english)
+        files = site_files(cfg, releases, kept, english, beta, also)
 
         stale = republished(SITE / "packs" / "index.json", [r["entry"] for r in releases] + kept)
         if stale:
@@ -542,7 +626,8 @@ def main() -> int:
 
     for r in releases:
         ent = r["entry"]
-        print(f"{ent['id']} {ent['version']}: {ent['size']} bytes, sha256 {ent['sha256']}")
+        tag = " (beta)" if ent["id"] in beta else ""
+        print(f"{ent['id']} {ent['version']}{tag}: {ent['size']} bytes, sha256 {ent['sha256']}")
     for _, m in manifests:
         if m["id"] in unlisted:
             print(f"{m['id']} {m['version']}: unlisted (site-src/unlisted-packs.json), not published")
