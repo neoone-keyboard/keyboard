@@ -1382,6 +1382,11 @@ impl Engine {
                 - w.length * swipe::length_cost(&map, &path, letters)
         };
         let mut out: Vec<Candidate> = Vec::new();
+        // Common English words (`Weights::english_common`): their score, cost on the path and
+        // text. And each pack word's place in `out`, cost and tables: one the path fits no
+        // better than a common English word is held below it, once all are in.
+        let mut common: Vec<(f32, f32, String)> = Vec::new();
+        let mut native: Vec<(usize, f32, &crate::romanisation::Romanisation)> = Vec::new();
         if let Some(en) = self.english() {
             for f in swipe::decode(en, &map, &path, None) {
                 let Ok(text) = String::from_utf8(f.key) else {
@@ -1391,6 +1396,9 @@ impl Engine {
                     + en.log_prob(f.count)
                     + self.lm_term(scores, &text, EN)
                     + personal(&text);
+                if en.log_prob(f.count) >= w.english_common {
+                    common.push((score, f.cost, text.clone()));
+                }
                 out.push(Candidate {
                     text,
                     kind: Kind::Completion,
@@ -1408,6 +1416,9 @@ impl Engine {
                 .map(|mg| (lang, mg, p.rules.packing(), rules, p.romanisation.as_ref()))
         }) {
             let bias = priors.get(lang);
+            // Malayalam's swipe ranking is held as tuned on the Manglish eval, where loanwords
+            // drawn as English (`school` for സ്കൂൾ) are its words: the rule below leaves it out.
+            let malayalam = self.pack(lang).is_some_and(|p| p.rules.code() == "mlym");
             for f in swipe::decode(mg, &map, &path, Some(rules))
                 .into_iter()
                 .take(swipe::SKELETONS)
@@ -1435,6 +1446,9 @@ impl Engine {
                         + self.lm_term(scores, &text, lang)
                         + personal(&text)
                         - if second { w.second } else { 0.0 };
+                    if let Some(tables) = tables.filter(|_| !malayalam) {
+                        native.push((out.len(), f.cost, tables));
+                    }
                     out.push(Candidate {
                         text,
                         kind: Kind::Romanised,
@@ -1442,6 +1456,30 @@ impl Engine {
                         lang,
                     });
                 }
+            }
+        }
+        // A pack's word may outrank a common English word only by fitting the path better, by
+        // `english_margin`: not on the pack's context or frequency alone, nor by the looser
+        // drawing its skeleton allows (Assamese `hela` for হেলা, swiped as `hello`). Unless the
+        // English word's letters are the pack's word as its tables romanise it: the path spells
+        // both, and the context decides.
+        /// How far below the English word a held pack word goes: just under it.
+        const BELOW: f32 = 0.01;
+        for (i, cost, tables) in &native {
+            let written: Vec<String> = std::iter::once(tables.romanize(&out[*i].text))
+                .chain(tables.romanize_short(&out[*i].text))
+                .collect();
+            let below = common
+                .iter()
+                .filter(|(score, en_cost, text)| {
+                    *score <= out[*i].score
+                        && cost + w.english_margin >= *en_cost
+                        && !written.contains(&text.to_lowercase())
+                })
+                .map(|(score, _, _)| *score)
+                .fold(f32::NEG_INFINITY, f32::max);
+            if below.is_finite() {
+                out[*i].score = below - BELOW;
             }
         }
         // A pack's chat spellings (`chat-forms.tsv`: `kyu` for क्यों), which no skeleton holds:
