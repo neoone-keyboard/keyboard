@@ -18,6 +18,12 @@
 //! engine (`english with <id>`): what the pack's words cost an English swipe. A set with no
 //! entry in the baselines file is only printed.
 //!
+//! `swipe_mix` swipes common English words on engines with English and two packs
+//! (Hindi and Malayalam, Hindi and Assamese), with no text before and after a word of the
+//! last pack, and counts how often the English word comes first (`SWIPE_NOISE=0.35,0.08,1`
+//! for rougher paths); `swipe_mix_native` swipes the packs' own words on the same engines.
+//! Both only print.
+//!
 //! `swipe_recall` and `swipe_recall_packs` say how often the beam finishes the expected word's
 //! skeleton at all, `swipe_word` follows one word.
 
@@ -26,6 +32,9 @@ use std::time::{Duration, Instant};
 
 use mlengine_core::swipe::{KeyMap, Weights, qwerty};
 use mlengine_core::{Engine, Paths};
+
+mod paths;
+use paths::{Rng, seed as pack_seed};
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -51,70 +60,18 @@ fn engine() -> Engine {
     engine
 }
 
-/// xorshift64*, so the paths are the same on every run.
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> f32 {
-        self.0 ^= self.0 >> 12;
-        self.0 ^= self.0 << 25;
-        self.0 ^= self.0 >> 27;
-        ((self.0.wrapping_mul(0x2545_F491_4F6C_DD1D) >> 40) as f32) / (1u64 << 24) as f32
-    }
-
-    fn gauss(&mut self) -> f32 {
-        let (u, v) = (self.next().max(1e-7), self.next());
-        (-2.0 * u.ln()).sqrt() * (std::f32::consts::TAU * v).cos()
-    }
-}
-
-/// A finger's path for `word` on keys one unit wide: each key's centre moved by `aim` key
-/// widths (Gaussian), corners pulled up to `MAX_CUT` toward their neighbours, then points
-/// every quarter key with `shake` of sideways jitter.
+/// The eval's path for `word` (`paths::noisy_path`); `SWIPE_NOISE=aim,shake,cut` draws
+/// cleaner or rougher ones.
 fn noisy_path(keys: &KeyMap, word: &str, rng: &mut Rng) -> Vec<(f32, f32)> {
-    /// The farthest a corner is cut, in key widths.
-    const MAX_CUT: f32 = 0.4;
-    // SWIPE_NOISE=aim,shake,cut: for checking the decoder on cleaner or rougher paths.
-    let noise: Vec<f32> = std::env::var("SWIPE_NOISE").map_or(vec![0.22, 0.04, 1.0], |v| {
-        v.split(',').map(|x| x.parse().unwrap()).collect()
+    let noise = std::env::var("SWIPE_NOISE").map_or(paths::NOISE, |v| {
+        let v: Vec<f32> = v.split(',').map(|x| x.parse().unwrap()).collect();
+        paths::Noise {
+            aim: v[0],
+            shake: v[1],
+            cut: v[2],
+        }
     });
-    let (aim, shake, cut) = (noise[0], noise[1], noise[2]);
-    let mut targets: Vec<(f32, f32)> = Vec::new();
-    for b in word.bytes() {
-        let Some(c) = keys.centre(b) else { continue };
-        if targets.last().is_some_and(|&l| l == c) {
-            continue;
-        }
-        targets.push(c);
-    }
-    let mut aimed: Vec<(f32, f32)> = targets
-        .iter()
-        .map(|&(x, y)| (x + aim * rng.gauss(), y + aim * rng.gauss()))
-        .collect();
-    for i in 1..aimed.len().saturating_sub(1) {
-        let (a, b, c) = (aimed[i - 1], aimed[i], aimed[i + 1]);
-        let mid = ((a.0 + c.0) / 2.0, (a.1 + c.1) / 2.0);
-        // A finger rounds a corner but still reaches near the key: the bend marks the letter.
-        let (dx, dy) = (mid.0 - b.0, mid.1 - b.1);
-        let reach = (dx * dx + dy * dy).sqrt();
-        let pull = (cut * MAX_CUT * rng.next()).min(reach) / reach.max(1e-6);
-        aimed[i] = (b.0 + dx * pull, b.1 + dy * pull);
-    }
-    let mut path = Vec::new();
-    for w in aimed.windows(2) {
-        let (a, b) = (w[0], w[1]);
-        let length = ((b.0 - a.0).powi(2) + (b.1 - a.1).powi(2)).sqrt();
-        let steps = (length * 4.0).ceil().max(1.0) as usize;
-        for s in 0..steps {
-            let t = s as f32 / steps as f32;
-            path.push((
-                a.0 + (b.0 - a.0) * t + shake * rng.gauss(),
-                a.1 + (b.1 - a.1) * t + shake * rng.gauss(),
-            ));
-        }
-    }
-    path.extend(aimed.last());
-    path
+    paths::noisy_path(keys, word, rng, noise)
 }
 
 /// A row to swipe: the text before it, the Latin letters drawn, the word expected.
@@ -355,13 +312,6 @@ fn pack_rows(id: &str) -> Vec<Row> {
             })
         })
         .collect()
-}
-
-/// A seed for the pack's paths from its id (FNV-1a): the same on every run, never zero.
-fn pack_seed(id: &str) -> u64 {
-    id.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
-        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
-    }) | 1
 }
 
 /// Swipe accuracy for the packs in SWIPE_PACKS (default `hi as ta`), each on its own engine.
@@ -612,5 +562,120 @@ fn swipe_word() {
                 .collect();
             println!("  alone: {alone:?}");
         }
+    }
+}
+
+/// English, then the packs `ids` in that order, without their transliterators.
+fn mix_engine(ids: &[&str]) -> Engine {
+    let en = root().join("apps/ios/KeyboardExtension/Lexicon/en.fst");
+    let packs: Vec<mlengine_core::pack::Pack> = ids
+        .iter()
+        .map(|id| {
+            mlengine_core::pack::Pack::open(&root().join(format!("packs/{id}.neopack"))).unwrap()
+        })
+        .collect();
+    let mut paths = Paths::with_packs(Some(en), &packs, None);
+    for p in &mut paths.packs {
+        p.translit = None;
+    }
+    let mut engine = Engine::open(&paths);
+    let active: Vec<mlengine_core::lang::LangId> = std::iter::once("en")
+        .chain(ids.iter().copied())
+        .map(|id| mlengine_core::lang::LangId(id.into()))
+        .collect();
+    engine.set_active(&active).unwrap();
+    engine
+}
+
+/// Common English words, for `swipe_mix`.
+const COMMON: &str = "tomorrow hello english thanks please today about would there their \
+    because people should could where right think going really little before after again \
+    other things always never something maybe good great time work home phone money water \
+    family friend weekend morning tonight later sorry";
+
+/// Common English words (`COMMON`, or `SWIPE_MIX_WORDS`) swiped `SWIPE_MIX_N` times each
+/// (default 50) with English alone, English, Hindi and Malayalam, and English, Hindi and
+/// Assamese, with no text before and after a word of the last pack: how often the English word
+/// is first, and what beat it most. `SWIPE_NOISE` as in `swipe_eval` (`0.35,0.08,1` is rough).
+#[test]
+#[ignore]
+fn swipe_mix() {
+    let words: Vec<String> = std::env::var("SWIPE_MIX_WORDS")
+        .unwrap_or_else(|_| COMMON.into())
+        .split_whitespace()
+        .map(String::from)
+        .collect();
+    let each = std::env::var("SWIPE_MIX_WORDS").is_ok();
+    let n: usize = std::env::var("SWIPE_MIX_N").map_or(50, |v| v.parse().unwrap());
+    let keys = qwerty();
+    let map = KeyMap::new(&keys).unwrap();
+    for (set, native) in [
+        (&[][..], ""),
+        (&["hi", "ml"][..], "ഞാൻ "),
+        (&["hi", "as"][..], "আমি "),
+    ] {
+        let engine = mix_engine(set);
+        let contexts = if native.is_empty() {
+            vec![""]
+        } else {
+            vec!["", native]
+        };
+        for before in contexts {
+            let mut total = 0;
+            let mut beat: std::collections::BTreeMap<String, usize> = Default::default();
+            for word in &words {
+                let mut rng = Rng(pack_seed(word));
+                let mut first = 0;
+                for _ in 0..n {
+                    let path = noisy_path(&map, word, &mut rng);
+                    let found = engine.swipe(&path, &keys, before, None);
+                    match found.first() {
+                        Some(c) if en_same(&c.text, word) => first += 1,
+                        Some(c) if c.lang != mlengine_core::lang::EN => {
+                            *beat.entry(c.text.clone()).or_default() += 1
+                        }
+                        _ => {}
+                    }
+                }
+                if each {
+                    println!("  en+{} {before:?} {word:10} {first:4}/{n}", set.join("+"));
+                }
+                total += first;
+            }
+            let mut beat: Vec<_> = beat.into_iter().collect();
+            beat.sort_by_key(|b| std::cmp::Reverse(b.1));
+            let lost: usize = beat.iter().map(|b| b.1).sum();
+            beat.truncate(6);
+            println!(
+                "en+{:6} {before:12?} English first {total:5}/{}  native first {lost:4}  {beat:?}",
+                set.join("+"),
+                words.len() * n
+            );
+        }
+    }
+}
+
+/// Native words swiped on engines with English and two packs: Hindi's held-out words on
+/// English, Hindi and Malayalam and on English, Hindi and Assamese, Assamese's on the latter,
+/// and the Manglish rows (with their text before) on the former. Every `SWIPE_EVERY`th row
+/// (default 2).
+#[test]
+#[ignore]
+fn swipe_mix_native() {
+    let every: usize = std::env::var("SWIPE_EVERY").map_or(2, |v| v.parse().unwrap());
+    let hi_ml = mix_engine(&["hi", "ml"]);
+    let hi_as = mix_engine(&["hi", "as"]);
+    let thin = |rows: Vec<Row>| rows.into_iter().step_by(every).collect::<Vec<Row>>();
+    let hi = thin(pack_rows("hi"));
+    let as_ = thin(pack_rows("as"));
+    let ml = thin(manglish_rows());
+    let same = |a: &str, b: &str| a == b;
+    for (name, engine, rows, seed) in [
+        ("hi on en+hi+ml", &hi_ml, &hi, pack_seed("hi")),
+        ("hi on en+hi+as", &hi_as, &hi, pack_seed("hi")),
+        ("as on en+hi+as", &hi_as, &as_, pack_seed("as")),
+        ("ml on en+hi+ml", &hi_ml, &ml, 2),
+    ] {
+        report(name, name, &mut run(engine, rows, seed, same), false);
     }
 }
