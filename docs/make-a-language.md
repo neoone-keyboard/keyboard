@@ -41,10 +41,12 @@ Check three things first.
    languages. A language without Aksharantar data needs code changes (gap G6).
 
 Some examples: Marathi, Nepali or Sanskrit (Devanagari) and Bengali need only data. So do
-Tamil, Telugu, Gujarati and Kannada: their packs carry `lang.json`, which only engine 4 and
-later apps read (step 5 says how to find the engine a pack needs). Assamese's র → ৰ fold is in
-its own `lang.json`, so a Bengali pack keeps its র. `packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati,
-`packs/te.neopack` a Telugu and `packs/kn.neopack` a Kannada one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
+Tamil, Telugu, Gujarati, Kannada, Odia and Punjabi (Gurmukhi): their packs carry `lang.json`,
+which only engine 4 and later apps read (step 5 says how to find the engine a pack needs).
+Assamese's র → ৰ fold is in its own `lang.json`, so a Bengali pack keeps its র.
+`packs/ta.neopack` is a Tamil pack built this way, `packs/gu.neopack` a Gujarati,
+`packs/te.neopack` a Telugu, `packs/kn.neopack` a Kannada, `packs/or.neopack` an Odia and
+`packs/pa.neopack` a Punjabi one, and `engine/core/tests/fixtures/gu.neopack` a test-sized
 Gujarati one.
 
 ## What a pack is
@@ -347,7 +349,10 @@ local name, `104,Page,পৃষ্ঠা`, so it works whichever the dump uses. 
 bzcat data/raw/xxwikisource/*.bz2 | head -60 | grep namespace
 ```
 
-For Marathi, Page is key 104, `पान`, so the argument is `104,Page,पान`. Then run the script once
+For Marathi, Page is key 104, `पान`, so the argument is `104,Page,पान`. Newer Wikisources number
+it 250 (Odia `250,Page,ପୃଷ୍ଠା`, Punjabi `250,Page,ਪੰਨਾ`); with the wrong key the extract has only
+the main namespace, and nothing says so. Not every language has all three wikis: Odia and
+Punjabi have no Wikiquote, so their scripts read two sources. Then run the script once
 by hand:
 
 ```sh
@@ -722,7 +727,9 @@ sound the script writes that way: Assamese's letter + nukta (য়). So may a k
 `independentVowels`: Bengali writes the vowel of English "and" as অ + the -ya sign + the aa
 sign (অ্যাপ, অ্যান্ড), one key of four code points. For the lexicon to keep such words, the
 letter the signs follow must be in `lang.json`'s `bases` (Bengali lists অ and এ). The longest
-key that matches is used. One limit: `finals` are matched before consonants, so a key whose first code point
+key that matches is used. A sign written before the consonant it doubles (Gurmukhi's addak ੱ:
+ਪੱਕਾ pakka) has no table of its own; Punjabi lists each addak + consonant as a `consonants` key
+spelled with the letter doubled (`data/langs/pa/romanisation.hand.json`, gap GO3). One limit: `finals` are matched before consonants, so a key whose first code point
 is also in `finals` is never reached. Tamil lists ஃப (`f`) and ஃஜ (`z`) in `consonants`
 and ஃ in `finals`, so ஃப is read as ஃ, then ப (`p`). Typed `f` still finds those words
 only because Tamil's skeleton folds f to p (gap G35).
