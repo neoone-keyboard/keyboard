@@ -24,34 +24,44 @@ struct ContentView: View {
     /// Set once the first-launch step is done (the app's own defaults; `-chooseLanguagesDone NO`
     /// as a launch argument shows it again).
     @AppStorage("chooseLanguagesDone") private var chooseLanguagesDone = false
+    /// "Hint when there are more suggestions", in the App Group's defaults for the keyboard to
+    /// read (`SharedSettings`); Android keeps the same key.
+    @AppStorage(SharedSettings.suggestionMoreHintKey, store: UserDefaults(suiteName: PackLocations.appGroup))
+    private var suggestionMoreHint = true
     /// The Languages screen, opened by `neoone://languages` (no longer used by the keyboard,
     /// whose settings panel now switches languages itself) or, in debug builds, by `-showLanguages` at launch, for screenshots.
     #if DEBUG
     @State private var showLanguages = ProcessInfo.processInfo.arguments.contains("-showLanguages")
     /// `-showAbout`: the About screen at launch, for screenshots.
     @State private var showAbout = ProcessInfo.processInfo.arguments.contains("-showAbout")
+    /// `-showSettings`: the home screen scrolled to Settings at launch, for screenshots.
+    private let scrollToSettings = ProcessInfo.processInfo.arguments.contains("-showSettings")
     #else
     @State private var showLanguages = false
     @State private var showAbout = false
+    private let scrollToSettings = false
     #endif
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    TurnOnCard()
-                    tryIt
-                    languagesSection
-                    keyboardCard
-                    #if DEBUG
-                    // Diagnostics for development builds; a store build shows none.
-                    stability
-                    #endif
+            ScrollViewReader { reader in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        header
+                        TurnOnCard()
+                        tryIt
+                        languagesSection
+                        settingsSection.id("settings")
+                        #if DEBUG
+                        // Diagnostics for development builds; a store build shows none.
+                        stability
+                        #endif
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .onAppear { if scrollToSettings { reader.scrollTo("settings", anchor: .top) } }
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Color(.systemGroupedBackground))
@@ -161,32 +171,49 @@ struct ContentView: View {
         .onAppear { languages.reload() }
     }
 
-    private var keyboardCard: some View {
-        Card {
-            HStack(spacing: 12) {
-                Text("Keyboard settings").font(.system(size: 15))
-                Spacer(minLength: 8)
-                Text("Hold \(Text(languageKeys).foregroundStyle(.primary))")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(AppStyle.rowPadding)
-            .accessibilityElement(children: .combine)
-            .accessibilityHint("Touch and hold the language key on the keyboard to open its settings.")
-            RowDivider()
-            NavigationLink {
-                AboutView()
-            } label: {
-                HStack {
-                    Text("About and credits").font(.system(size: 15))
-                    Spacer()
-                    Chevron()
+    private var settingsSection: some View {
+        HeaderedSection(title: "Settings") {
+            Card {
+                Toggle(isOn: $suggestionMoreHint) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hint when there are more suggestions").font(.system(size: 15))
+                        Text("A small mark at the edge of the suggestions when more are a swipe away.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(AppStyle.rowPadding)
-                .contentShape(Rectangle())
+                .accessibilityIdentifier("suggestion-more-hint")
+                RowDivider()
+                keyboardRows
             }
-            .buttonStyle(.plain)
         }
+    }
+
+    @ViewBuilder private var keyboardRows: some View {
+        HStack(spacing: 12) {
+            Text("Keyboard settings").font(.system(size: 15))
+            Spacer(minLength: 8)
+            Text("Hold \(Text(languageKeys).foregroundStyle(.primary))")
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+        }
+        .padding(AppStyle.rowPadding)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Touch and hold the language key on the keyboard to open its settings.")
+        RowDivider()
+        NavigationLink {
+            AboutView()
+        } label: {
+            HStack {
+                Text("About and credits").font(.system(size: 15))
+                Spacer()
+                Chevron()
+            }
+            .padding(AppStyle.rowPadding)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// How many MetricKit reports the app has saved (crash and hang diagnostics).
