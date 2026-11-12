@@ -133,6 +133,63 @@ impl Converter {
         }
     }
 
+    /// Converts `kana` with its first segment fixed to its first `first_end` bytes, as when
+    /// the user moves the segment boundary (a shorter or longer reading for the first
+    /// segment): the first segment's candidates are for that reading, before the best
+    /// conversion of the rest, which starts a segment of its own. None when `first_end` isn't
+    /// a character boundary inside the text, or the text is longer than `MAX_KANA`.
+    pub fn convert_with_first(&self, kana: &str, first_end: usize, n: usize) -> Option<Conversion> {
+        let inside = first_end > 0 && first_end <= kana.len() && kana.is_char_boundary(first_end);
+        if n == 0 || !inside || kana.chars().count() > MAX_KANA {
+            return None;
+        }
+        let lattice = Lattice::new(&self.dict, kana);
+        // The first segment's best alone gives the rest its left neighbour; the rest's best
+        // gives the first segment its right one.
+        let span = |start, end, left, right| Span {
+            start,
+            end,
+            left,
+            right,
+        };
+        let head = lattice.best(&self.conn, span(0, first_end, 0, 0), 1, BEAM);
+        let left = head
+            .first()
+            .and_then(|p| p.nodes.last())
+            .map_or(0, |&i| lattice.node(i).rid);
+        let rest = lattice.best(&self.conn, span(first_end, kana.len(), left, 0), 1, BEAM);
+        let right = rest
+            .first()
+            .and_then(|p| p.nodes.first())
+            .map_or(0, |&i| lattice.node(i).lid);
+        let mut first: Vec<String> = lattice
+            .best(&self.conn, span(0, first_end, 0, right), n, BEAM)
+            .into_iter()
+            .map(|p| p.surface)
+            .collect();
+        add_kana(&mut first, &kana[..first_end], n);
+        let mut segments = vec![Segment {
+            reading: kana[..first_end].to_string(),
+            surface: first[0].clone(),
+        }];
+        if let Some(rest) = rest.first() {
+            let mut more = self.segments(&lattice, &rest.nodes);
+            segments.append(&mut more);
+        }
+        let mut candidates = vec![
+            segments
+                .iter()
+                .map(|s| s.surface.as_str())
+                .collect::<String>(),
+        ];
+        add_kana(&mut candidates, kana, n);
+        Some(Conversion {
+            segments,
+            candidates,
+            first,
+        })
+    }
+
     /// Text over `MAX_KANA`: the best of each piece, one after the other.
     fn convert_long(&self, pieces: &[&str], n: usize) -> Conversion {
         let mut whole = Conversion::default();
@@ -331,6 +388,33 @@ mod tests {
                 .collect::<Vec<_>>(),
             [64, 64, 22]
         );
+    }
+
+    #[test]
+    fn the_first_segment_can_be_shortened_or_lengthened() {
+        let c = converter();
+        let kana = "きょうはあめがふる";
+        assert_eq!(c.convert(kana, 5).segments[0].reading, "きょうは");
+        // Shorter: きょう alone, then the rest.
+        let short = c.convert_with_first(kana, "きょう".len(), 5).unwrap();
+        assert_eq!(short.segments[0].reading, "きょう");
+        assert_eq!(short.first[0], "今日");
+        assert!(short.first.contains(&"京".to_string()), "{:?}", short.first);
+        assert_eq!(short.candidates[0], "今日は雨が降る");
+        let readings: String = short.segments.iter().map(|s| s.reading.as_str()).collect();
+        assert_eq!(readings, kana);
+        // Longer: きょうはあめ as one segment.
+        let long = c.convert_with_first(kana, "きょうはあめ".len(), 5).unwrap();
+        assert_eq!(long.segments[0].reading, "きょうはあめ");
+        assert_eq!(long.first[0], "今日は雨");
+        // The whole text as the first segment.
+        let all = c.convert_with_first(kana, kana.len(), 5).unwrap();
+        assert_eq!(all.segments.len(), 1);
+        assert_eq!(all.first[0], "今日は雨が降る");
+        // Not a boundary inside the text.
+        assert_eq!(c.convert_with_first(kana, 1, 5), None);
+        assert_eq!(c.convert_with_first(kana, 0, 5), None);
+        assert_eq!(c.convert_with_first(kana, kana.len() + 3, 5), None);
     }
 
     #[test]
