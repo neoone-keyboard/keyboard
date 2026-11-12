@@ -1,15 +1,15 @@
 import UIKit
 import KeyboardCore
 
-/// The strip above the keys: the suggestions, or after a Malayalam consonant the best
+/// The strip above the keys: three suggestion slots, or after a Malayalam consonant the best
 /// completion on the left and the vowel signs scrolling sideways at full size beside it.
 ///
-/// Suggestions are laid out as `BarFit` says: as many whole words as fit, the default (what
-/// space commits) first at the leading edge and bold, then the rest in the engine's order, those
-/// that don't fit past the trailing edge where a finger slides the bar to them. With more past
-/// the edge, a small accent mark there (`moreHintView`) pulses briefly for each new set, then
-/// stays still until the bar is slid (`moreHintEnabled`, the app's setting). Holding a word asks
-/// whether to remove it (`SuggestionRemoval`).
+/// Suggestions are laid out as `BarFit` says: three equal slots, left, middle and right, the
+/// middle the default (what space commits) in bold, then the bar's `more` past the trailing
+/// edge, each in a slot as wide, where a finger slides the bar to them. With more past the edge,
+/// a small accent mark there (`moreHintView`) pulses briefly for each new set, then stays still
+/// until the bar is slid (`moreHintEnabled`, the app's setting). Right to left the bar is
+/// mirrored. Holding a word asks whether to remove it (`SuggestionRemoval`).
 final class TopBarView: UIView, UIScrollViewDelegate {
     var onVowelSign: (@MainActor (String) -> Void)?
     var onSuggestion: (@MainActor (SuggestionSlot) -> Void)?
@@ -26,17 +26,12 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         }
     }
 
-    /// Scrolls the suggestion buttons, each placed by `fit`. As wide as the bar when all fit.
+    /// Scrolls the suggestion slots, each placed by `fit`. As wide as the bar with three.
     private let suggestionScroll = SlotScrollView()
-    /// The suggestion buttons, made as needed and reused for every set after.
-    private var buttons: [UIButton] = []
-    /// The words the buttons show now, in the bar's order (`SuggestionBar.ordered`).
-    private var slots: [SuggestionSlot] = []
-    /// Each shown word's text width at its font, from `widths`.
-    private var textWidths: [Double] = []
-    private var widths = TextWidthCache(capacity: 512)
-    /// How many words have been measured: the cache's misses, for tests.
-    private(set) var measuredWords = 0
+    /// The slots' buttons, made as needed and reused for every set after.
+    private var buttons: [SlotButton] = []
+    /// What the slots show now, in the bar's order (`SuggestionBar.laidOut`); nil for an empty one.
+    private var slots: [SuggestionSlot?] = []
     private var fit: BarFit?
     /// The width `fit` was made for; a new width lays the bar out again.
     private var fitWidth: CGFloat = -1
@@ -211,8 +206,9 @@ final class TopBarView: UIView, UIScrollViewDelegate {
     }
 
     @objc private func slotHeld(_ hold: UILongPressGestureRecognizer) {
-        guard hold.state == .began, let index = hold.view?.tag, slots.indices.contains(index) else { return }
-        askToRemove(slots[index])
+        guard hold.state == .began, let index = hold.view?.tag, slots.indices.contains(index),
+              let slot = slots[index] else { return }
+        askToRemove(slot)
     }
 
     private func askToRemove(_ slot: SuggestionSlot) {
@@ -254,28 +250,28 @@ final class TopBarView: UIView, UIScrollViewDelegate {
 
     // MARK: Suggestions
 
-    /// The bar's words (`SuggestionBar.ordered`), as many as fit in view, the default first
-    /// and bold. Right to left, the default is at the right edge and the rest read leftward.
-    /// New words start the bar from its beginning again.
+    /// Left, middle, right (`SuggestionBar.laidOut`), the middle what space commits, so bold.
+    /// Then the bar's `more`, past the trailing edge until the bar is slid, each in a slot as
+    /// wide as the three. Right to left the bar is mirrored: left is on the right and `more`
+    /// is past the left edge. New words start the bar from its beginning again.
     func showSuggestions(_ bar: SuggestionBar) {
         let content = ["suggestions", "\(rightToLeft)", "\(bounds.height)", "\(moreHintEnabled)"]
-            + bar.ordered.map { "\($0.title)|\($0.quoted)" }
+            + bar.laidOut.map { slot in slot.map { "\($0.title)|\($0.quoted)" } ?? "" }
         guard content != shownContent else { return }
         let sameWords = shownContent.dropFirst(4) == content.dropFirst(4)
         shownContent = content
         stripBase = nil
         messageLabel.isHidden = true
-        slots = bar.ordered
+        slots = bar.laidOut
         while buttons.count < slots.count { buttons.append(makeButton(tag: buttons.count)) }
-        textWidths.removeAll(keepingCapacity: true)
         for (index, button) in buttons.enumerated() {
-            guard index < slots.count else {
+            guard index < slots.count, let slot = slots[index] else {
+                // An empty slot keeps its place, and is nothing to VoiceOver.
                 button.isHidden = true
                 button.setTitle(nil, for: .normal)
                 continue
             }
-            let font = configure(button, for: slots[index], isDefault: index == 0)
-            textWidths.append(measure(slots[index].title, font: font))
+            configure(button, for: slot, isDefault: index == 1)
         }
         // A setting or a script changed, but not the words: no new pulse.
         pulsePending = !sameWords || pulsePending
@@ -288,38 +284,26 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         layoutSuggestions(force: false)
     }
 
-    /// Places the buttons as `BarFit` says for the bar's width. Only when the words or the
+    /// Places the slots as `BarFit` says for the bar's width. Only when the words or the
     /// width changed (not as the bar scrolls), and with nothing new made.
     private func layoutSuggestions(force: Bool) {
         let width = bounds.width
         guard width > 0, force || width != fitWidth, messageLabel.isHidden else { return }
         fitWidth = width
-        let fit = BarFit(textWidths: textWidths, barWidth: width, rightToLeft: rightToLeft, hintEnabled: moreHintEnabled)
+        let fit = BarFit(count: slots.count, barWidth: width, rightToLeft: rightToLeft, hintEnabled: moreHintEnabled)
         self.fit = fit
         let height = bounds.height
         for (index, item) in fit.items.enumerated() {
             let button = buttons[index]
             button.frame = CGRect(x: item.x, y: 0, width: item.width, height: height)
-            if index == 0, let font = button.titleLabel?.font {
-                // Only ever the first, when it alone is wider than the bar.
-                let size = baseSize(for: slots[0], font: font) * fit.firstScale
-                if font.pointSize != size { button.titleLabel?.font = font.withSize(size) }
-            }
+            // The third slot's word stays clear of the hint at the trailing edge.
+            let inset = index == BarFit.visibleSlots - 1 ? fit.hintInset : 0
+            button.textInsets = rightToLeft ? (left: inset, right: 0) : (left: 0, right: inset)
         }
         suggestionScroll.contentSize = CGSize(width: fit.contentWidth, height: height)
         suggestionScroll.contentOffset = CGPoint(x: fit.startOffset, y: 0)
         updateHint(pulse: pulsePending)
         pulsePending = false
-    }
-
-    /// The size a word is drawn at before any shrinking.
-    private func baseSize(for slot: SuggestionSlot, font: UIFont) -> CGFloat {
-        if slot.suggestion.kind == .emoji { return Self.emojiSize }
-        if let script, script.writes(slot.suggestion.text), Self.barFonts[script.id] != nil,
-           let scriptFont = scriptFont(bold: false) {
-            return scriptFont.pointSize
-        }
-        return Self.wordSize
     }
 
     /// Shows the hint while words are past the edge and the setting is on; `pulse` pulses it.
@@ -351,19 +335,19 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         updateHint(pulse: false)
     }
 
-    /// A reusable button for the word at `tag` in `slots`: a tap reports it (`onSuggestion`),
-    /// a hold asks to remove it.
-    private func makeButton(tag: Int) -> UIButton {
-        let button = UIButton(type: .custom)
+    /// A reusable button for the slot at `tag` in `slots`: a tap reports its word
+    /// (`onSuggestion`), a hold asks to remove it.
+    private func makeButton(tag: Int) -> SlotButton {
+        let button = SlotButton(type: .custom)
         button.tag = tag
-        button.titleLabel?.lineBreakMode = .byClipping
+        // A long word shrinks into its slot.
         button.titleLabel?.adjustsFontSizeToFitWidth = true
-        button.titleLabel?.minimumScaleFactor = 0.5
+        button.titleLabel?.minimumScaleFactor = 0.6
         button.setTitleColor(theme?.keyText, for: .normal)
         button.setTitleColor(theme?.hintText, for: .highlighted)
         button.addAction(UIAction { [weak self, weak button] _ in
-            guard let self, let index = button?.tag, slots.indices.contains(index) else { return }
-            onSuggestion?(slots[index])
+            guard let self, let index = button?.tag, slots.indices.contains(index), let slot = slots[index] else { return }
+            onSuggestion?(slot)
         }, for: .touchUpInside)
         // Once the hold is recognised the button's touch is cancelled, so it doesn't commit.
         let hold = UILongPressGestureRecognizer(target: self, action: #selector(slotHeld(_:)))
@@ -373,8 +357,8 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         return button
     }
 
-    /// Sets `button` up for `slot` and returns the font its title is drawn in.
-    private func configure(_ button: UIButton, for slot: SuggestionSlot, isDefault: Bool) -> UIFont {
+    /// Sets `button` up for `slot`.
+    private func configure(_ button: UIButton, for slot: SuggestionSlot, isDefault: Bool) {
         button.isHidden = false
         button.setTitle(slot.title, for: .normal)
         // The word, not its drawn title (which may be in quotes).
@@ -396,16 +380,6 @@ final class TopBarView: UIView, UIScrollViewDelegate {
                 return true
             },
         ]
-        return font
-    }
-
-    /// `text`'s width in `font`, measured once per word and font (`widths`).
-    private func measure(_ text: String, font: UIFont) -> Double {
-        let key = "\(font.fontName)|\(font.pointSize)|\(text)"
-        return widths.width(of: key) { _ in
-            measuredWords += 1
-            return Double((text as NSString).size(withAttributes: [.font: font]).width.rounded(.up))
-        }
     }
 
     /// The font family a language's words are drawn in when its writing has a style of its own
@@ -438,7 +412,6 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         shownContent = content
         stripBase = nil
         slots = []
-        textWidths.removeAll(keepingCapacity: true)
         fit = nil
         buttons.forEach { $0.isHidden = true; $0.setTitle(nil, for: .normal) }
         messageLabel.text = text
@@ -487,6 +460,20 @@ final class TopBarView: UIView, UIScrollViewDelegate {
 /// starts between words does (a plain scroll view leaves a touch on a control alone).
 private final class SlotScrollView: UIScrollView {
     override func touchesShouldCancel(in view: UIView) -> Bool { true }
+}
+
+/// One suggestion slot: the whole slot is tapped, and its word is drawn in it less a little
+/// room each side, and less `textInsets` (the hint's room at the bar's trailing edge).
+private final class SlotButton: UIButton {
+    private static let padding: CGFloat = 4
+    var textInsets: (left: CGFloat, right: CGFloat) = (0, 0) {
+        didSet { if textInsets != oldValue { setNeedsLayout() } }
+    }
+
+    override func contentRect(forBounds bounds: CGRect) -> CGRect {
+        bounds.inset(by: UIEdgeInsets(
+            top: 0, left: Self.padding + textInsets.left, bottom: 0, right: Self.padding + textInsets.right))
+    }
 }
 
 /// The hint at the bar's trailing edge that more words are past it: a soft accent glow

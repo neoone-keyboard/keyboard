@@ -2,8 +2,9 @@ import XCTest
 import KeyboardCore
 
 /// Pictures of the suggestion bar (TopBarView) as the keyboard draws it on an iPhone 17, for
-/// comparing with the design: short English words, long Malayalam words with the hint at the
-/// edge, and Urdu mirrored. For screenshots only: skips without SHOTS_DIR
+/// comparing with the design: English, Malayalam for `thookkal` (the engine's ten, English
+/// and Malayalam on), Urdu mirrored, and the English bar slid to its end. For screenshots
+/// only: skips without SHOTS_DIR
 /// (`xcodebuild … TEST_RUNNER_SHOTS_DIR=<dir> test -only-testing:KeyboardAppTests/TopBarShots`).
 @MainActor
 final class TopBarShots: XCTestCase {
@@ -16,19 +17,26 @@ final class TopBarShots: XCTestCase {
         self.dir = dir
     }
 
+    /// The engine's ten for `he`, English and Malayalam on.
+    private let english: [Suggestion] = [
+        Suggestion("he", kind: .verbatim), Suggestion("the", kind: .correction), Suggestion("be", kind: .correction),
+        Suggestion("her", kind: .completion), Suggestion("she", kind: .correction), Suggestion("de", kind: .correction),
+        Suggestion("ഹേ", kind: .manglish), Suggestion("e", kind: .correction), Suggestion("us", kind: .correction),
+        Suggestion("we", kind: .correction),
+    ]
+
     func testEnglish() {
-        shot("bar_ios_english", typed: "he", [
-            Suggestion("he", kind: .verbatim), Suggestion("her", kind: .completion), Suggestion("hey", kind: .completion),
-            Suggestion("help", kind: .completion), Suggestion("here", kind: .completion), Suggestion("head", kind: .completion),
-        ])
+        shot("bar_ios_english", typed: "he", english)
+    }
+
+    func testEnglishSlid() {
+        shot("bar_ios_english_slid", typed: "he", english, slid: true)
     }
 
     func testMalayalam() {
-        shot("bar_ios_malayalam", typed: "ente", [
-            Suggestion("എന്റേതായിരുന്നു", kind: .manglish), Suggestion("ente", kind: .verbatim),
-            Suggestion("എന്തിനാണെന്നറിയില്ല", kind: .manglish), Suggestion("എന്നെക്കുറിച്ചുള്ള", kind: .manglish),
-            Suggestion("എന്നിരുന്നാലും", kind: .manglish), Suggestion("എന്റെ", kind: .manglish),
-        ])
+        shot("bar_ios_malayalam_thookkal", typed: "thookkal", [Suggestion("thookkal", kind: .verbatim)]
+            + ["തൂക്കിൽ", "തൂക്കൽ", "തുകൽ", "ടുക്കൽ", "ത്തുകൾ", "ടുകൾ", "ടുകളെ", "തുകലിൽ", "തുകലും"]
+                .map { Suggestion($0, kind: .manglish) })
     }
 
     func testUrdu() {
@@ -43,8 +51,11 @@ final class TopBarShots: XCTestCase {
         ])
     }
 
-    /// The bar over the keyboard's background, as wide as an iPhone 17's keyboard.
-    private func shot(_ name: String, typed: String, script: PackDescriptor? = nil, _ candidates: [Suggestion]) {
+    /// The bar over the keyboard's background, as wide as an iPhone 17's keyboard; `slid`
+    /// slides it to its far end, as a finger would.
+    private func shot(
+        _ name: String, typed: String, script: PackDescriptor? = nil, _ candidates: [Suggestion], slid: Bool = false
+    ) {
         let theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 56))
         window.overrideUserInterfaceStyle = .light
@@ -56,10 +67,22 @@ final class TopBarShots: XCTestCase {
         bar.setScript(script)
         bar.showSuggestions(SuggestionBar(SuggestionResult(typed: typed, candidates: candidates), limit: 10))
         window.layoutIfNeeded()
+        if slid, let scroll = scrollView(in: bar) {
+            scroll.setContentOffset(CGPoint(x: scroll.contentSize.width - scroll.bounds.width, y: 0), animated: false)
+            window.layoutIfNeeded()
+        }
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { context in
             window.layer.render(in: context.cgContext)
         }
         try? image.pngData()?.write(to: URL(fileURLWithPath: dir).appending(path: "\(name).png"))
         window.isHidden = true
+    }
+
+    private func scrollView(in view: UIView) -> UIScrollView? {
+        for sub in view.subviews {
+            if let scroll = sub as? UIScrollView, scroll.subviews.contains(where: { $0 is UIButton }) { return scroll }
+            if let found = scrollView(in: sub) { return found }
+        }
+        return nil
     }
 }
