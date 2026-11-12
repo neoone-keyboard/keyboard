@@ -962,6 +962,19 @@ pub struct Weights {
     /// `behtar` gave बेहतर 30, 137 and 159 times and `sehat` सेहत 9, 63 and 79 (59 and 56
     /// before the rule). `chehra` stays behind कहा (चेहरा 13, 19 and 64; 73 before).
     pub stand_in: f32,
+    /// An English word at least this likely (`ln p(word)` in the English lexicon: `hello`
+    /// −12.0, `tomorrow` −11.6) is a common one, which a pack's word may outrank on a swipe
+    /// only by fitting the path better (`english_margin`). Without it a word drawn loosely
+    /// through the path (টিউমাৰটো, `tiumorotu`, for `tomorrow`) won on its pack's context
+    /// and frequency. At −12, −13 and −14, common English words swiped after an Assamese
+    /// word (`swipe_mix`) came first 912, 929 and 931 times in 1,100 (682 without the rule),
+    /// and Assamese held-out words in the lexicon 0.3034, 0.3022 and 0.2980 (0.3022 without).
+    pub english_common: f32,
+    /// How much lower a pack's word's cost on the path (the beam's `Finished::cost`) must be
+    /// than a common English word's for the pack's word to be ranked above it. At 0, 1 and 2
+    /// (with `english_common` −12): English after an Assamese word first 829, 904 and 951
+    /// times in 1,100, Assamese held-out words in the lexicon 0.3022, 0.3022 and 0.2945.
+    pub english_margin: f32,
 }
 
 impl Default for Weights {
@@ -974,6 +987,8 @@ impl Default for Weights {
             learned: -12.0,
             second: 1.0,
             stand_in: 2.0,
+            english_common: -13.0,
+            english_margin: 1.0,
         }
     }
 }

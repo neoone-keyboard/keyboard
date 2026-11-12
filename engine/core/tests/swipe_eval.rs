@@ -22,7 +22,8 @@
 //! (Hindi and Malayalam, Hindi and Assamese), with no text before and after a word of the
 //! last pack, and counts how often the English word comes first (`SWIPE_NOISE=0.35,0.08,1`
 //! for rougher paths); `swipe_mix_native` swipes the packs' own words on the same engines.
-//! Both only print.
+//! Both only print. `SWIPE_RULE=common,margin` tries other `english_common` and
+//! `english_margin` weights on every engine here.
 //!
 //! `swipe_recall` and `swipe_recall_packs` say how often the beam finishes the expected word's
 //! skeleton at all, `swipe_word` follows one word.
@@ -48,6 +49,7 @@ fn engine() -> Engine {
         paths.packs[0].translit = None;
         paths
     });
+    rule(&mut engine);
     if let Ok(w) = std::env::var("SWIPE_WEIGHTS") {
         let v: Vec<f32> = w.split(',').map(|x| x.parse().unwrap()).collect();
         engine.set_swipe_weights(Weights {
@@ -285,6 +287,7 @@ fn pack_engine(pack: &mlengine_core::pack::Pack) -> Engine {
     let mut paths = Paths::with_packs(Some(en), std::slice::from_ref(pack), None);
     paths.packs[0].translit = None;
     let mut engine = Engine::open(&paths);
+    rule(&mut engine);
     if let Ok(w) = std::env::var("SWIPE_WEIGHTS") {
         let v: Vec<f32> = w.split(',').map(|x| x.parse().unwrap()).collect();
         engine.set_swipe_weights(Weights {
@@ -584,7 +587,20 @@ fn mix_engine(ids: &[&str]) -> Engine {
         .map(|id| mlengine_core::lang::LangId(id.into()))
         .collect();
     engine.set_active(&active).unwrap();
+    rule(&mut engine);
     engine
+}
+
+/// `SWIPE_RULE=common,margin`: other `Weights::english_common` and `english_margin`.
+fn rule(engine: &mut Engine) {
+    if let Ok(v) = std::env::var("SWIPE_RULE") {
+        let v: Vec<f32> = v.split(',').map(|x| x.parse().unwrap()).collect();
+        engine.set_swipe_weights(Weights {
+            english_common: v[0],
+            english_margin: v[1],
+            ..Weights::default()
+        });
+    }
 }
 
 /// Common English words, for `swipe_mix`.
