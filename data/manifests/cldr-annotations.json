@@ -21,7 +21,8 @@
     "te": "te",
     "ur": "ur",
     "or": "or",
-    "pa": "pa"
+    "pa": "pa",
+    "ne": "ne"
   },
   "files": [
     {
@@ -153,6 +154,16 @@
       "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/pa.xml",
       "sha256": "beed435c472a878bb17a7ef662404d4b5d5f3a3e577b13c2e6e757c24237d08c",
       "path": "derived-pa.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/ne.xml",
+      "sha256": "4ab6875d667bb4a12da6c540026525e3d810c716cd4bd320576d4ea27e31496f",
+      "path": "ne.xml"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/ne.xml",
+      "sha256": "dac721be8736e6b9babdbb62a8818cf1f165e2c53e233d41b46d2b1e092a7110",
+      "path": "derived-ne.xml"
     }
   ]
 }

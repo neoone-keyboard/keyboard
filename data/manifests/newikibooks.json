@@ -1,0 +1,24 @@
+{
+  "id": "newikibooks",
+  "name": "Nepali Wikibooks",
+  "homepage": "https://ne.wikibooks.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://ne.wikibooks.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Nepali Wikibooks by Wikibooks contributors.",
+  "used_for": "Nepali word frequencies, romanised Nepali lookup and next-word pairs (packs/ne.neopack; 2026-11-01 dump, main namespace). Nepali has no Wikisource or Wikiquote of its own, so this is the pack's second Wikimedia source.",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/newikibooks/20261101/newikibooks-20261101-pages-articles.xml.bz2",
+      "sha1": "688337b8686c72cc24758983358eafb0693b67c9",
+      "path": "newikibooks-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/ne.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

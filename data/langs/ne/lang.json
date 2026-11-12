@@ -1,0 +1,54 @@
+{
+  "id": "ne",
+  "name": "Nepali",
+  "script": "deva",
+  "block": ["0900", "097F"],
+  "notWord": [["0964", "0970"]],
+  "firstLetter": [
+    ["0904", "0914"],
+    ["0915", "0939"],
+    ["0958", "0961"],
+    ["0972", "097F"]
+  ],
+  "virama": "094D",
+  "signs": [
+    ["093A", "093B"],
+    ["093E", "094C"],
+    ["094E", "094F"],
+    ["0955", "0957"],
+    ["0962", "0963"],
+    ["094D", "094D"]
+  ],
+  "bases": [
+    ["0915", "0939"],
+    ["093C", "093C"],
+    ["0958", "095F"],
+    ["0978", "097F"]
+  ],
+  "apostrophe": false,
+  "replace": [
+    ["‍", ""],
+    ["‌", ""],
+    ["अा", "आ"],
+    ["अो", "ओ"],
+    ["अौ", "औ"],
+    ["एे", "ऐ"],
+    ["ोे", "ो"],
+    ["ाे", "ो"],
+    ["ाै", "ौ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "nep",
+  "notes": {
+    "about": "Nepali in Devanagari. Copied from Marathi's file (the guide's Devanagari example), not Hindi's: Hindi's lang.json lacks the builder's keys (firstLetter, signs, minCount), as hi.fst is built another way. Sources: data/manifests/newiki.json, newikibooks.json, aksharantar-nep.json.",
+    "block": "Devanagari, U+0900-U+097F. Words are runs of these letters and signs. Om ॐ is not a first letter, so a token starting with it is dropped.",
+    "notWord": "Danda, double danda, digits ०-९ and the abbreviation sign are not word letters.",
+    "replace": "The normal form is NFC with every ZWJ and ZWNJ dropped (no \"joiners\" field): the text has 396 ZWJ and 136 ZWNJ in 6.2M words, so half forms are not told apart by them. The first two entries drop them before NFC as well. Mis-encoded independent vowels (अ + sign) are mended, and so are two vowel signs typed for one: ो + े for ो (थियोे, 645 times in the text), ा + े for ो (हाे) and ा + ै for ौ.",
+    "phraseBreaks": "The danda । and double danda ॥ end a sentence.",
+    "translit": "Nepali's own transliterator, trained by `make pack-models PACK_LANG=ne` from this folder's tables and Aksharantar nep. On 4,101 held-out Aksharantar nep pairs through the engine it puts the right word first 54.4% of the time and in the bar 58.9%; the Hindi pack's model, tried in its place, 43.4% and 46.4%.",
+    "signs": "A vowel sign or virama must follow a consonant or nukta. Anusvara, candrabindu and visarga may follow a vowel (Nepali गाउँ, हुँदै) and are not in this list."
+  }
+}

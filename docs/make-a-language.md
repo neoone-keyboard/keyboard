@@ -359,7 +359,9 @@ bzcat data/raw/xxwikisource/*.bz2 | head -60 | grep namespace
 For Marathi, Page is key 104, `पान`, so the argument is `104,Page,पान`. Newer Wikisources number
 it 250 (Odia `250,Page,ପୃଷ୍ଠା`, Punjabi `250,Page,ਪੰਨਾ`); with the wrong key the extract has only
 the main namespace, and nothing says so. Not every language has all three wikis: Odia and
-Punjabi have no Wikiquote, so their scripts read two sources. Then run the script once
+Punjabi have no Wikiquote, so their scripts read two sources. Nepali has neither a Wikisource
+nor a Wikiquote of its own (a dump folder that is a 404 says so); its script reads Wikipedia and
+Wikibooks, which is CC BY-SA 4.0 too (`data/build-ne-text.sh`). Then run the script once
 by hand:
 
 ```sh
@@ -417,7 +419,9 @@ There are three files in `data/langs/xx/`:
 
 - `romanisation.hand.json`, which you write. Every letter, sign, cluster and final gets its
   spellings as `[latin, weight]` options, the most common first. Copy
-  `data/langs/as/romanisation.hand.json`. Its `about` field and the docstring of
+  `data/langs/as/romanisation.hand.json`, or, for a Devanagari language typed with Hindi's
+  habits, `data/langs/mai/romanisation.hand.json` (Nepali's started from it: Hindi's pack
+  has only its exported `romanisation.json`, no hand file). Its `about` field and the docstring of
   `training/mlkb/langs/romanisation.py` explain each table: `inCluster` and `afterVirama`
   (spellings that change by context), `inherent` (the inherent vowel), `geminateSingle` (how
   often a doubled letter is typed once), and `skeleton` (the folds that make `oxom` and
@@ -1168,7 +1172,7 @@ opt = lambda role: str(pack / f[role]) if role in f else None
 e = mlengine.Engine(english=str(root / "apps/ios/KeyboardExtension/Lexicon/en.fst"),
     malayalam=opt("lexicon"), manglish=opt("romanisedLexicon"), romanisation=opt("romanisation"),
     layout=opt("layout"), next_words=opt("nextWords"), translit=opt("translit"),
-    lang=opt("lang"), pack=m["id"], script=m["script"])
+    lang=opt("lang"), chat_forms=opt("chatForms"), pack=m["id"], script=m["script"])
 for typed in sys.argv[2:]:
     print(typed, "->", [t for t, _, _ in e.suggest(typed, "latin", True)])
 ```
