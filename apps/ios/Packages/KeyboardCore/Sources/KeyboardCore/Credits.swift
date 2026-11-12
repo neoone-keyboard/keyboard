@@ -20,6 +20,20 @@ public struct Credit: Equatable, Sendable, Identifiable {
     }
 }
 
+/// A pack's notices file as the About screen shows it: the whole text, unchanged.
+public struct PackNotice: Equatable, Sendable, Identifiable {
+    /// The pack's id.
+    public let id: String
+    public let title: String
+    public let text: String
+
+    public init(id: String, title: String, text: String) {
+        self.id = id
+        self.title = title
+        self.text = text
+    }
+}
+
 public enum Credits {
     /// The base's own sources: English's word lists and the emoji data. Each pack's are in its
     /// manifest (`PackDescriptor.credits`).
@@ -51,6 +65,17 @@ public enum Credits {
     public static func dataSources(packs: [PackDescriptor]) -> [Credit] {
         var seen = Set<String>()
         return (english + packs.flatMap(\.credits)).filter { seen.insert($0.id).inserted }
+    }
+
+    /// The licence texts packs carry to be shown as they are (`PackDescriptor.notices`), one
+    /// per pack that has them, apart from the credits: Japanese's dictionary is under the
+    /// IPAdic licence and ICOT's conditions, not CC BY-SA. A file that can't be read is left
+    /// out.
+    public static func notices(packs: [PackDescriptor]) -> [PackNotice] {
+        packs.compactMap { pack in
+            guard let url = pack.notices, let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+            return PackNotice(id: pack.id, title: "\(pack.name) dictionary notices", text: text)
+        }
     }
 
     /// Open-source Rust crates linked into the keyboard's engine. The link is each crate's

@@ -13,6 +13,16 @@ final class RecordingOutput: TextOutput {
     /// Like iOS: one code point per call, so കി loses only its vowel sign.
     func deleteBackward() { if !text.isEmpty { text.unicodeScalars.removeLast() } }
     func adjustTextPosition(byCharacterOffset offset: Int) { cursorMoves.append(offset) }
+    /// The marked (composing) text at the end of `text`, as UIKit keeps it: part of the text
+    /// before the cursor, replaced by the next `setMarkedText`, left as it is by `unmarkText`.
+    var marked = ""
+    /// The text without the marked text: what is committed.
+    var committed: String { String(text.dropLast(marked.count)) }
+    func setMarkedText(_ text: String) {
+        self.text = committed + text
+        marked = text
+    }
+    func unmarkText() { marked = "" }
 }
 
 @MainActor

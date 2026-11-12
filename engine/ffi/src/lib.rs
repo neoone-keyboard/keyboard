@@ -82,6 +82,50 @@ pub struct SwipeKey {
     pub height: f32,
 }
 
+/// The composing text of a phrase-conversion language (Japanese) as typed so far: the kana
+/// written and the letters still waiting for more (`k` of `kyouk`). The keyboard shows both,
+/// kana then letters, as marked text.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Composition {
+    pub kana: String,
+    pub pending: String,
+}
+
+/// One segment of a phrase conversion: a word and the particles or endings after it (今日は),
+/// with its reading (きょうは).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct PhraseSegment {
+    pub reading: String,
+    pub surface: String,
+}
+
+/// What converting the kana gives (`mlengine_core::convert::Conversion`).
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct PhraseConversion {
+    /// The best conversion, segment by segment; their readings join to the kana converted.
+    pub segments: Vec<PhraseSegment>,
+    /// Candidates for the whole text, best first: the first is `segments` joined, and the
+    /// text in hiragana and katakana are always among them.
+    pub candidates: Vec<String>,
+    /// Candidates for the first segment (`segments[0].reading`), best first, with its
+    /// hiragana and katakana.
+    pub first: Vec<String>,
+}
+
+impl From<mlengine_core::convert::Conversion> for PhraseConversion {
+    fn from(c: mlengine_core::convert::Conversion) -> Self {
+        Self {
+            segments: c
+                .segments
+                .into_iter()
+                .map(|s| PhraseSegment { reading: s.reading, surface: s.surface })
+                .collect(),
+            candidates: c.candidates,
+            first: c.first,
+        }
+    }
+}
+
 /// File paths of the bundled lexicons and the directory for learned words.
 /// Any of them may be nil: that source is simply switched off.
 #[derive(Debug, Clone, Default, PartialEq, uniffi::Record)]
@@ -497,6 +541,70 @@ impl Engine {
         })
     }
 
+    /// The ids of the loaded phrase-conversion packs (Japanese), in load order. They are no
+    /// languages of `suggest` or `layouts`: the keyboard types them on the Latin keys and
+    /// composes and converts with `compose` and `convert`.
+    pub fn conversion_languages(&self) -> Result<Vec<String>, EngineError> {
+        guarded(|| self.inner().conversion_languages().into_iter().map(|id| id.0).collect())
+    }
+
+    /// The composing text of `typed`, the letters typed since the composition began, in the
+    /// conversion language `language`. `finish` writes the letters still waiting too (`n` →
+    /// ん), as before converting. Nil when `language` is no conversion language.
+    pub fn compose(
+        &self,
+        language: String,
+        typed: String,
+        finish: bool,
+    ) -> Result<Option<Composition>, EngineError> {
+        guarded(|| {
+            self.inner()
+                .compose(&language, &typed, finish)
+                .map(|(kana, pending)| Composition { kana, pending })
+        })
+    }
+
+    /// Up to `limit` candidates for `kana` converted whole and for its first segment, and the
+    /// best segments. Nil when `language` is no conversion language.
+    pub fn convert(
+        &self,
+        language: String,
+        kana: String,
+        limit: u32,
+    ) -> Result<Option<PhraseConversion>, EngineError> {
+        guarded(|| {
+            self.inner()
+                .convert(&language, &kana, limit as usize)
+                .map(PhraseConversion::from)
+        })
+    }
+
+    /// `convert` with the first segment fixed to the first `first_length` characters
+    /// (Unicode scalar values) of `kana`, as when the user shrinks or grows it: the first
+    /// segment's candidates are for that reading, and the rest is converted after it. Nil when
+    /// `language` is no conversion language or `first_length` isn't from 1 to the length of
+    /// `kana`.
+    pub fn convert_with_first(
+        &self,
+        language: String,
+        kana: String,
+        first_length: u32,
+        limit: u32,
+    ) -> Result<Option<PhraseConversion>, EngineError> {
+        guarded(|| {
+            let end = match first_length as usize {
+                0 => return None,
+                n => kana.char_indices().nth(n).map_or_else(
+                    || (kana.chars().count() == n).then_some(kana.len()),
+                    |(i, _)| Some(i),
+                )?,
+            };
+            self.inner()
+                .convert_with_first(&language, &kana, end, limit as usize)
+                .map(PhraseConversion::from)
+        })
+    }
+
     /// Which sources loaded, for diagnostics ("english", "ml:lexicon", "ml:lm", ...).
     /// Why each refused pack folder was refused, one line per pack ("xx.neopack: manifest
     /// unreadable: ..."); empty when every pack opened or none was given.
@@ -778,6 +886,40 @@ mod tests {
             panic!("not an internal error")
         };
         assert_eq!(message, "unknown panic");
+    }
+
+    fn japanese() -> Arc<Engine> {
+        let ja = concat!(env!("CARGO_MANIFEST_DIR"), "/../../packs/ja.neopack");
+        Engine::new(EngineConfig { pack_dirs: vec![ja.into()], ..Default::default() }).unwrap()
+    }
+
+    #[test]
+    fn phrase_conversion_crosses_ffi() {
+        let engine = japanese();
+        assert_eq!(engine.conversion_languages().unwrap(), ["ja"]);
+        assert_eq!(
+            engine.compose("ja".into(), "kyouk".into(), false).unwrap(),
+            Some(Composition { kana: "きょう".into(), pending: "k".into() })
+        );
+        let kana = engine.compose("ja".into(), "kyouhaiitenkidesune".into(), true).unwrap().unwrap().kana;
+        assert_eq!(kana, "きょうはいいてんきですね");
+        let c = engine.convert("ja".into(), kana.clone(), 10).unwrap().unwrap();
+        assert_eq!(c.candidates[0], "今日はいい天気ですね");
+        assert!(c.candidates.contains(&"キョウハイイテンキデスネ".to_string()), "{:?}", c.candidates);
+        assert_eq!(c.segments.iter().map(|s| s.reading.as_str()).collect::<String>(), kana);
+        assert_eq!(c.segments[0].reading, "きょうは");
+        assert_eq!(c.first[0], c.segments[0].surface);
+        // The first segment as three characters (きょう), counted in characters, not bytes.
+        let moved = engine.convert_with_first("ja".into(), kana.clone(), 3, 10).unwrap().unwrap();
+        assert_eq!(moved.segments[0].reading, "きょう");
+        assert_eq!(moved.first[0], "今日");
+        assert_eq!(engine.convert_with_first("ja".into(), kana.clone(), 0, 10).unwrap(), None);
+        assert_eq!(engine.convert_with_first("ja".into(), kana.clone(), 99, 10).unwrap(), None);
+        // Not a conversion language.
+        assert_eq!(engine.compose("en".into(), "a".into(), true).unwrap(), None);
+        assert_eq!(engine.convert("xx".into(), "あ".into(), 5).unwrap(), None);
+        // The word engine never sees it.
+        assert!(engine.layouts().unwrap().iter().all(|l| l == &InputLayout::Latin));
     }
 
     #[test]

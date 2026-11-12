@@ -44,6 +44,14 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     /// suggestion bar is mirrored while this pack's conventions are followed
     /// (`InputController.scriptPack`). The keys are never mirrored.
     public let rightToLeft: Bool
+    /// A language typed as a reading and converted as a phrase (the manifest's `"conversion":
+    /// "phrase"`, Japanese): it has no word list for the bar and no keys of its own. It is
+    /// typed on the Latin keys through `PhraseInput` and converted by the engine apart from its
+    /// word languages (`Engine.conversionLanguages`).
+    public let conversion: Bool
+    /// Licence texts that must travel with the pack's data, shown as they are (the optional
+    /// `notices` role: Japanese's dictionary-notices.txt); nil when it has none.
+    public let notices: URL?
 
     /// The script's own marks for the Latin punctuation keys (`layout.json`'s `punctuation`):
     /// Urdu's `"."` to `"۔"`. Empty when the script uses the Latin marks.
@@ -65,7 +73,9 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
                 credits: [Credit] = [], layout: PackLayout?, folder: URL,
                 version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil,
                 scriptRanges: [ClosedRange<UInt32>]? = nil, emojiWords: URL? = nil, emojiSearch: URL? = nil,
-                rightToLeft: Bool? = nil) {
+                rightToLeft: Bool? = nil, conversion: Bool = false, notices: URL? = nil) {
+        self.conversion = conversion
+        self.notices = notices
         self.scriptRanges = scriptRanges ?? Self.embeddedScriptRanges[script] ?? []
         self.rightToLeft = rightToLeft ?? Self.isRightToLeft(self.scriptRanges)
         self.emojiWords = emojiWords
@@ -152,7 +162,9 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
             scriptRanges: lang?.ranges,
             emojiWords: file("emojiWords").flatMap { isFile($0) ? $0 : nil },
             emojiSearch: file("emojiSearch").flatMap { isFile($0) ? $0 : nil },
-            rightToLeft: lang?.rightToLeft
+            rightToLeft: lang?.rightToLeft,
+            conversion: manifest.conversion == "phrase",
+            notices: file("notices").flatMap { isFile($0) ? $0 : nil }
         )
     }
 
@@ -247,5 +259,6 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         let romanised: Romanised?
         let files: [String: String]
         let credits: [PackCredit]?
+        let conversion: String?
     }
 }

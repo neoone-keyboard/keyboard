@@ -101,6 +101,26 @@ fn composes_and_converts_through_the_engine() {
 }
 
 #[test]
+fn the_first_segment_moves_through_the_engine() {
+    let ja = tempfile::tempdir().unwrap();
+    write_pack(ja.path());
+    let engine = engine_with(&[ja.path()]);
+    let kana = "きょうはあめがふる";
+    let short = engine
+        .convert_with_first("ja", kana, "きょう".len(), 5)
+        .unwrap();
+    assert_eq!(short.segments[0].reading, "きょう");
+    assert_eq!(short.first[0], "今日");
+    let long = engine
+        .convert_with_first("ja", kana, "きょうはあめ".len(), 5)
+        .unwrap();
+    assert_eq!(long.segments[0].reading, "きょうはあめ");
+    // Not a boundary inside the text, or no such pack.
+    assert_eq!(engine.convert_with_first("ja", kana, 1, 5), None);
+    assert_eq!(engine.convert_with_first("xx", kana, 3, 5), None);
+}
+
+#[test]
 fn a_broken_conversion_pack_is_reported() {
     let ja = tempfile::tempdir().unwrap();
     write_pack(ja.path());

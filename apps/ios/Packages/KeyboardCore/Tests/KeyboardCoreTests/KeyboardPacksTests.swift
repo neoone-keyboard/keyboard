@@ -363,3 +363,37 @@ private let later = earlier.addingTimeInterval(60)
     try fixture.chooseInApp(["en", "hi"], at: later.addingTimeInterval(120))
     #expect(fixture.read().change(from: off) == .packs)
 }
+
+/// A phrase-conversion pack (Japanese) has a romaji layout of Latin letters: it is typed on them,
+/// joins the language key's list when it is on, and is never given to the word engine,
+/// which converts it apart (`Engine.conversionLanguages`).
+@Test func aConversionPackIsTypedOnTheLatinKeysAndKeptFromTheWordEngine() throws {
+    let fixture = try PacksFixture()
+    defer { fixture.cleanUp() }
+    try fixture.add("ml", to: fixture.bundled)
+    try fixture.add("ja", to: fixture.installed)
+    try fixture.chooseInApp(["en", "ml", "ja"], at: earlier)
+
+    let state = fixture.read()
+    let ja = try #require(state.packs.first { $0.id == "ja" })
+    #expect(ja.conversion)
+    #expect(ja.layout?.alphabet.rows.first?.first == "q", "typed on its romaji keys")
+    #expect(state.packs.first { $0.id == "ml" }?.conversion == false)
+    #expect(state.language(forPack: "ja")?.convertsPhrases == true)
+    #expect(state.defaultLanguages.map(\.id) == ["en", "ml", "ja"])
+    #expect(state.engineLanguages == ["en", "ml"])
+    #expect(state.engineLanguages(for: ActiveLanguages(["ml", "ja"])) == ["ml"])
+    // Japanese alone: the word engine still has English, and the keys too.
+    #expect(state.engineLanguages(for: ActiveLanguages(["ja"])) == ["en"])
+
+    // The engine's layouts, then the active conversion languages the engine converts.
+    let languages = state.languages(layouts: [.english, .pack(malayalamPack)], converting: ["ja"])
+    #expect(languages.map(\.id) == ["en", "ml", "ja"])
+    #expect(state.languages(layouts: [.english], converting: []).map(\.id) == ["en"], "a pack the engine couldn't open")
+
+    // Off: neither on the key nor converted.
+    try fixture.chooseInApp(["en", "ml"], at: .now)
+    let off = fixture.read()
+    #expect(off.defaultLanguages.map(\.id) == ["en", "ml"])
+    #expect(off.languages(layouts: [.english], converting: ["ja"]).map(\.id) == ["en"])
+}

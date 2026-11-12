@@ -10,6 +10,11 @@ public protocol TextOutput: AnyObject {
     var contextBefore: String? { get }
     /// Whether the field has any text, even when `contextBefore` is nil.
     var hasText: Bool { get }
+    /// Shows `text` as the host's marked (composing, underlined) text, in place of the marked
+    /// text before, with the cursor after it. Empty removes it.
+    func setMarkedText(_ text: String)
+    /// Commits the marked text as it is.
+    func unmarkText()
 }
 
 public enum AutoCapitalization: Sendable {
@@ -33,6 +38,11 @@ public enum Language: Hashable, Sendable {
     /// The native layout; nil for English.
     public var nativeLayout: PackLayout? {
         if case .pack(let pack) = self { pack.layout } else { nil }
+    }
+
+    /// Typed as a reading and converted as a phrase (Japanese, `PackDescriptor.conversion`).
+    public var convertsPhrases: Bool {
+        if case .pack(let pack) = self { pack.conversion } else { false }
     }
 }
 
@@ -131,6 +141,20 @@ public final class InputController {
     /// number with its spaces (`+91 98` of +91 55501 12345), as in the engine. May be a little stale.
     public var learnedAddresses: [String] = []
 
+    /// The composer and converter of the phrase-conversion language among `languages`
+    /// (Japanese), once the engine has opened it; nil before, and then its keys type letters.
+    /// A composition under way is committed when it changes.
+    public var phraseConverter: PhraseConverter? {
+        didSet {
+            guard phraseConverter !== oldValue else { return }
+            phrase?.commit()
+            phrase = phraseConverter.map { PhraseInput(output: output, converter: $0) }
+        }
+    }
+    private var phrase: PhraseInput?
+    /// The composition while a phrase-conversion language is typed; nil for the others.
+    public var composing: PhraseInput? { language.convertsPhrases ? phrase : nil }
+
     private let output: TextOutput
     private var lastShiftTap: TimeInterval?
     /// The automatic replacement made by the last key, which backspace can undo.
@@ -213,7 +237,10 @@ public final class InputController {
     /// and none when several are on, as they may differ.
     public var scriptPack: PackDescriptor? {
         if case .pack(let pack) = language { return pack }
-        return activePacks.count == 1 ? activePacks[0] : nil
+        // A conversion language (Japanese) isn't typed on the Latin keys' English: its marks
+        // stay on its own layout.
+        let typed = activePacks.filter { !$0.conversion }
+        return typed.count == 1 ? typed[0] : nil
     }
 
     /// The suggestion bar is mirrored: `scriptPack` is written right to left. The keys never are.
@@ -226,6 +253,7 @@ public final class InputController {
     }
 
     private func switchLanguage(to next: Language) {
+        phrase?.commit()
         suggestions = .empty
         language = next
         page = alphabetPage
@@ -236,6 +264,7 @@ public final class InputController {
 
     /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
     public func handle(_ action: KeyAction, at time: TimeInterval) {
+        if let phrase = composing, handlePhrase(action, phrase) { return }
         if let swipe = takeSwipe() {
             if action == .backspace, deleteSwipe(swipe) { return }
             settleSwipe(swipe)
@@ -301,8 +330,38 @@ public final class InputController {
         }
     }
 
+    /// A key of a phrase-conversion language: characters compose, space converts and cycles,
+    /// return commits, backspace edits the composition, each doing what it always does with
+    /// nothing composing (no word is reported: the word engine doesn't know the language).
+    /// Keys that leave the language commit the composition first. False for the keys the
+    /// usual path handles.
+    private func handlePhrase(_ action: KeyAction, _ phrase: PhraseInput) -> Bool {
+        switch action {
+        case .character(let c):
+            phrase.type(c)
+            shift = shift.afterCharacter
+        case .space:
+            if !phrase.space() { output.insertText(" ") }
+            if page == .symbols || page == .moreSymbols { page = alphabetPage }
+        case .returnKey:
+            if !phrase.confirm() { output.insertText("\n") }
+        case .backspace:
+            if !phrase.backspace() { output.deleteBackward() }
+        case .toggleLanguage, .nextKeyboard, .emoji:
+            phrase.commit()
+            return false
+        case .shift, .page:
+            return false
+        }
+        return true
+    }
+
     /// Types a long-press alternate; follows shift like a normal letter.
     public func insertAlternate(_ text: String) {
+        if let phrase = composing {
+            phrase.type(text)
+            return
+        }
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
@@ -311,6 +370,7 @@ public final class InputController {
 
     /// Types an emoji from the panel as it is, with no space. Never reported for learning.
     public func insertEmoji(_ emoji: String) {
+        composing?.commit()
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
@@ -344,6 +404,7 @@ public final class InputController {
     }
 
     public func moveCursor(by offset: Int) {
+        composing?.commit()
         forgetPendingState()
         output.adjustTextPosition(byCharacterOffset: offset)
     }
@@ -351,6 +412,10 @@ public final class InputController {
     /// Deletes the word before the cursor plus the spaces after it, or one
     /// character when there is no word (e.g. punctuation).
     public func deleteWordBackward() {
+        if let phrase = composing, phrase.isComposing {
+            phrase.cancel()
+            return
+        }
         forgetPendingState()
         let context = output.contextBefore ?? ""
         let word = Self.wordSuffix(of: context, includingSpaces: true)
@@ -370,6 +435,7 @@ public final class InputController {
     /// Call from `textDidChange` when the text isn't what this keyboard just
     /// produced (the host or the user changed it). Drops the undo and the result.
     public func textDidChangeExternally() {
+        phrase?.reset()
         forgetPendingState()
     }
 
@@ -516,6 +582,8 @@ public final class InputController {
     /// no longer applies. Never overrides caps lock or a shift the user tapped,
     /// including tapping it off, until the text context changes.
     public func applyAutoCapitalization(_ mode: AutoCapitalization) {
+        // Romaji has no capitals: the composer reads every letter as lower case.
+        guard !language.convertsPhrases else { return }
         if manualShiftPending {
             guard output.contextBefore != manualShiftContext else { return }
             manualShiftPending = false
@@ -562,7 +630,9 @@ public final class InputController {
     public func label(for action: KeyAction) -> String {
         switch action {
         case .character(let c): Self.isLoneMark(c) ? "\u{25CC}" + c : showsUppercase ? c.uppercased() : c
+        case .space where isPhraseComposing: PhraseLabels.nextCandidate
         case .space: language.nativeLayout?.spaceBar ?? "English"
+        case .returnKey where isPhraseComposing: PhraseLabels.confirm
         case .backspace: "⌫"
         case .shift:
             switch shift {
@@ -587,7 +657,9 @@ public final class InputController {
     public func spokenKey(for action: KeyAction, returnTitle: String = "return") -> SpokenKey {
         switch action {
         case .character(let c): SpokenKey(Self.isLoneMark(c) ? c : label(for: action))
+        case .space where isPhraseComposing: SpokenKey("next candidate")
         case .space: SpokenKey("space")
+        case .returnKey where isPhraseComposing: SpokenKey("confirm")
         case .backspace: SpokenKey("delete")
         case .shift:
             switch shift {
@@ -627,6 +699,10 @@ public final class InputController {
         default: return false
         }
     }
+
+    /// A phrase-conversion language has text composing: space and return label what they
+    /// do to it.
+    private var isPhraseComposing: Bool { composing?.isComposing ?? false }
 
     private var showsUppercase: Bool {
         page == .letters && shift != .off
