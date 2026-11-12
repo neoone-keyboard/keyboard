@@ -516,9 +516,11 @@ final class MoreHintView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         let resolved = color.resolvedColor(with: traitCollection)
-        glow.colors = [resolved.withAlphaComponent(0).cgColor, resolved.withAlphaComponent(0.28).cgColor]
-        glow.startPoint = CGPoint(x: rightToLeft ? 1 : 0, y: 0.5)
-        glow.endPoint = CGPoint(x: rightToLeft ? 0 : 1, y: 0.5)
+        // A half ellipse centred on the edge, fading out across the mark and up and down.
+        glow.type = .radial
+        glow.colors = [resolved.withAlphaComponent(0.34).cgColor, resolved.withAlphaComponent(0).cgColor]
+        glow.startPoint = CGPoint(x: rightToLeft ? 0 : 1, y: 0.5)
+        glow.endPoint = CGPoint(x: rightToLeft ? 1 : 0, y: 0)
         chevron.strokeColor = resolved.cgColor
         // 5 by 10 points, centred, pointing at the edge.
         let mid = CGPoint(x: bounds.midX + (rightToLeft ? -2 : 2), y: bounds.midY)
