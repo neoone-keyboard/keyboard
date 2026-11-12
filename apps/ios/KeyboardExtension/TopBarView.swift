@@ -8,8 +8,8 @@ import KeyboardCore
 /// middle the default (what space commits) in bold, then the bar's `more` past the trailing
 /// edge, each in a slot as wide, where a finger slides the bar to them. With more past the edge,
 /// a small accent mark there (`moreHintView`) pulses briefly for each new set, then stays still
-/// until the bar is slid (`moreHintEnabled`, the app's setting). Right to left the bar is
-/// mirrored. Holding a word asks whether to remove it (`SuggestionRemoval`).
+/// until the bar is slid (`moreHintEnabled`, the app's setting). On a right-to-left script's
+/// own letter keys the bar is mirrored; on the Latin keys it reads left to right. Holding a word asks whether to remove it (`SuggestionRemoval`).
 final class TopBarView: UIView, UIScrollViewDelegate {
     var onVowelSign: (@MainActor (String) -> Void)?
     var onSuggestion: (@MainActor (SuggestionSlot) -> Void)?
@@ -64,10 +64,12 @@ final class TopBarView: UIView, UIScrollViewDelegate {
     /// Whether the vowel strip is showing (rather than the suggestions).
     var showsVowelSigns: Bool { stripBase != nil }
 
-    /// The pack whose conventions the bar follows (`InputController.scriptPack`): right to
-    /// left, it is mirrored, and its script's words are drawn in its own font (`barFonts`).
+    /// The pack whose conventions the bar follows (`InputController.scriptPack`): its script's
+    /// words are drawn in its own font (`barFonts`).
     private var script: PackDescriptor?
-    private var rightToLeft: Bool { script?.rightToLeft ?? false }
+    /// The bar is mirrored (`InputController.rightToLeft`): only on a right-to-left script's
+    /// own letter keys, never on the Latin keys.
+    private var rightToLeft = false
 
     /// Width of one vowel-sign button. Wide enough to tap without zooming;
     /// the last one is cut off at the edge, which shows the row scrolls.
@@ -239,12 +241,13 @@ final class TopBarView: UIView, UIScrollViewDelegate {
         updateHint(pulse: false)
     }
 
-    /// Follows `pack`'s conventions from the next content shown: mirrored for a script written
-    /// right to left, its words in its bar font. Nil: left to right, the system font.
-    func setScript(_ pack: PackDescriptor?) {
-        guard pack?.id != script?.id || pack?.rightToLeft != script?.rightToLeft
+    /// Follows `pack`'s conventions from the next content shown: its words in its bar font
+    /// (nil: the system font), mirrored when `rightToLeft`.
+    func setScript(_ pack: PackDescriptor?, rightToLeft: Bool = false) {
+        guard pack?.id != script?.id || rightToLeft != self.rightToLeft
         else { return }
         script = pack
+        self.rightToLeft = rightToLeft
         shownContent = []
     }
 

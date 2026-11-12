@@ -243,8 +243,14 @@ public final class InputController {
         return typed.count == 1 ? typed[0] : nil
     }
 
-    /// The suggestion bar is mirrored: `scriptPack` is written right to left. The keys never are.
-    public var rightToLeft: Bool { scriptPack?.rightToLeft ?? false }
+    /// The suggestion bar is mirrored: the keys showing are a right-to-left script's own letters
+    /// (a page of Urdu's `layout.json`). On the Latin keys, Roman Urdu included, and on the
+    /// number pages it reads left to right, as SwiftKey's does; each word is still drawn right
+    /// to left in its slot. The keys are never mirrored.
+    public var rightToLeft: Bool {
+        guard case .pack(let pack) = language, page.isNative else { return false }
+        return pack.rightToLeft
+    }
 
     /// The language the language key switches to: the next in `languages`.
     private var nextLanguage: Language {

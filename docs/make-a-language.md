@@ -264,7 +264,7 @@ engine the same: one definition for both. The engine's parser is
 | `zwjForms` | `[["consonant", "letter"]]`, code points in hex: the consonant + `virama` + ZWJ is an older encoding of the letter and becomes it (Malayalam's chillus: ന + ് + ZWJ is ൻ). Optional. Engine 6. |
 | `maxChars`, `maxWords`, `minCount` | Longest word kept, lexicon size, and the fewest times a word must appear. |
 | `aksharantar` | Aksharantar's three-letter code for the language (`asm`, `mar`). |
-| `direction` | `"rtl"` or `"ltr"`: which way the script is written. The apps mirror the suggestion bar for `"rtl"`; the keys stay as listed. Optional: without it the apps take the Unicode direction of the script's letters (Arabic's is right to left). Read by the apps only, so it needs no engine level. |
+| `direction` | `"rtl"` or `"ltr"`: which way the script is written. The apps mirror the suggestion bar for `"rtl"` while the pack's own letter keys show (on the Latin keys it reads left to right); the keys stay as listed. Optional: without it the apps take the Unicode direction of the script's letters (Arabic's is right to left). Read by the apps only, so it needs no engine level. |
 
 The engine normalises typed text with this file's `replace` list, the same way the builder
 did, so typed words meet stored ones. Only `script`, and `block` or `letters`, are required by

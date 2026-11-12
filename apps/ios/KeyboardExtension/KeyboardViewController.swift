@@ -1082,8 +1082,8 @@ final class KeyboardViewController: UIInputViewController {
             return try? languageMarkBase(lang: pack.id, contextBefore: context)
         }
         if content.isForCurrentWord { barWord = state.straightWord }
-        // Mirrored for a language written right to left (Urdu), its words in its own font.
-        topBar.setScript(input.scriptPack)
+        // Its words in its own font (Nastaliq for Urdu); mirrored only on Urdu's own letter keys.
+        topBar.setScript(input.scriptPack, rightToLeft: input.rightToLeft)
         switch content {
         case .unchanged:
             break

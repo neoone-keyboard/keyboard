@@ -41,8 +41,8 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     public let emojiSearch: URL?
     /// The script is written right to left: `lang.json`'s `direction` ("rtl" or "ltr") when
     /// given, else the Unicode direction of the script's first letter (`isRightToLeft`). The
-    /// suggestion bar is mirrored while this pack's conventions are followed
-    /// (`InputController.scriptPack`). The keys are never mirrored.
+    /// suggestion bar is mirrored while this pack's own letter keys show
+    /// (`InputController.rightToLeft`), not on the Latin keys. The keys are never mirrored.
     public let rightToLeft: Bool
     /// A language typed as a reading and converted as a phrase (the manifest's `"conversion":
     /// "phrase"`, Japanese): it has no word list for the bar and no keys of its own. It is
