@@ -1048,8 +1048,9 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     /// After a Malayalam consonant: the best completion and the vowel signs,
-    /// likeliest first. Otherwise the suggestions, as many as fit, the default first, with an
-    /// emoji for the word third when there is one (`barEmoji`).
+    /// likeliest first. Otherwise the three suggestion slots, the default in the middle, with
+    /// an emoji for the word in the right one when there is one (`barEmoji`), and any more a
+    /// slide away past them.
     ///
     /// Only a result for the word now before the cursor is shown. While that
     /// result is on its way the bar stays as it is (a strip, or slots for this
