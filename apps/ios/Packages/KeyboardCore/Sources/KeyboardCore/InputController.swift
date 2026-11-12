@@ -483,7 +483,8 @@ public final class InputController {
     }
 
     /// Types a swiped word: a space first unless one is there already, the word as shift
-    /// has it, and a space after. The bar shows the word and `alternatives`.
+    /// has it, and a space after. The bar shows the word and `alternatives` as shift has them
+    /// too, as a tap would put them in: "It", never "it" for an "It" typed.
     public func insertSwipe(_ word: Suggestion, alternatives: [Suggestion]) {
         settlePendingSwipe()
         lastReplacement = nil
@@ -499,7 +500,12 @@ public final class InputController {
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
         lastSwipe = Swipe(text: text, before: before, capitalisation: capitalisation)
-        suggestions = SuggestionResult(typed: "", candidates: [word] + alternatives)
+        let shown = ([word] + alternatives).map { suggestion in
+            var cased = suggestion
+            cased.text = Self.cased(suggestion.text, capitalisation)
+            return cased
+        }
+        suggestions = SuggestionResult(typed: "", candidates: shown)
     }
 
     private func takeSwipe() -> Swipe? {
@@ -545,12 +551,20 @@ public final class InputController {
         return true
     }
 
+    /// `word` as `shift` has it. Only a Latin word takes a capital; any other script's stays.
     private static func cased(_ word: String, _ shift: ShiftState) -> String {
+        guard let first = word.unicodeScalars.first(where: \.properties.isAlphabetic),
+              isLatin(first) else { return word }
         switch shift {
-        case .off: word
-        case .once: word.prefix(1).uppercased() + word.dropFirst()
-        case .locked: word.uppercased()
+        case .off: return word
+        case .once: return word.prefix(1).uppercased() + word.dropFirst()
+        case .locked: return word.uppercased()
         }
+    }
+
+    /// The Latin blocks: Basic Latin through Latin Extended-B, and Latin Extended Additional.
+    private static func isLatin(_ scalar: Unicode.Scalar) -> Bool {
+        scalar.value < 0x0250 || (0x1E00...0x1EFF).contains(scalar.value)
     }
 
     /// The typed letters `slot` is a choice for: a correction or Malayalam word tapped
