@@ -1,0 +1,125 @@
+{
+  "format": 1,
+  "script": "arab",
+  "virama": "",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": ""
+  },
+  "independentVowels": {
+    "آ": "a",
+    "ا": "a",
+    "أ": "a",
+    "إ": "i",
+    "ای": "ai",
+    "او": "au",
+    "ؤ": "o",
+    "ے": "e"
+  },
+  "vowelSigns": {
+    "ا": "a",
+    "ی": "i",
+    "ے": "e",
+    "و": "o",
+    "ۓ": "ye"
+  },
+  "consonants": {
+    "ب": "b",
+    "پ": "p",
+    "ت": "t",
+    "ٹ": "t",
+    "ث": "s",
+    "ج": "j",
+    "چ": "ch",
+    "ح": "h",
+    "خ": "kh",
+    "د": "d",
+    "ڈ": "d",
+    "ذ": "z",
+    "ر": "r",
+    "ڑ": "r",
+    "ز": "z",
+    "ژ": "zh",
+    "س": "s",
+    "ش": "sh",
+    "ص": "s",
+    "ض": "z",
+    "ط": "t",
+    "ظ": "z",
+    "ع": "",
+    "غ": "gh",
+    "ف": "f",
+    "ق": "q",
+    "ک": "k",
+    "گ": "g",
+    "ل": "l",
+    "م": "m",
+    "ن": "n",
+    "ہ": "h",
+    "ھ": "h",
+    "و": "w",
+    "ی": "y",
+    "ئ": "y",
+    "ء": ""
+  },
+  "finals": {
+    "ں": "n",
+    "ۂ": "e",
+    "ۃ": "t"
+  },
+  "clusters": {
+    "بھ": "bh",
+    "تھ": "th",
+    "جھ": "jh",
+    "دھ": "dh",
+    "رھ": "rh",
+    "لھ": "lh",
+    "مھ": "mh",
+    "نھ": "nh",
+    "ٹھ": "th",
+    "پھ": "ph",
+    "چھ": "chh",
+    "ڈھ": "dh",
+    "ڑھ": "rh",
+    "کھ": "kh",
+    "گھ": "gh"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "h",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["chh", "c"], ["ch", "c"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["sh", "s"], ["zh", "j"], ["rh", "r"]],
+    "singles": {
+      "e": "a",
+      "i": "a",
+      "o": "a",
+      "u": "a",
+      "y": "a",
+      "w": "a",
+      "v": "a",
+      "q": "k",
+      "c": "k",
+      "f": "p",
+      "x": "ks"
+    },
+    "collapseDoubles": true,
+    "dropBetweenConsonants": "a",
+    "dropFinalVowel": {
+      "vowels": "",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "singles": {
+      "v": "w"
+    },
+    "pairs": [["ee", "i"], ["oo", "u"]],
+    "collapse": "aiu"
+  },
+  "optionalFinals": ["ں"],
+  "notes": "script: Urdu is written right to left in the Perso-Arabic script and, like Arabic, writes no short vowels: کتاب is k-t-a-b, typed kitab. The walk (format 1) gives each consonant without a following vowel letter the inherent vowel a in the middle of a word and nothing at its end, so the canonical spelling is close to what is typed (کتاب katab, کر kar), and the skeleton drops the vowel between consonants on both sides alike. vowels: ا و ی ے are vowel letters after a consonant (ا a, و o/u, ی i/e, ے e) and consonants (و w, ی y) at the start of a word or after a vowel. ای and او at the start of a word are e and o (ایک ek, اور aur). آ is a. clusters: Aspirates are a letter followed by do-chashmi he ھ: بھ bh, پھ ph, تھ th, ٹھ th, جھ jh, چھ chh, دھ dh, ڈھ dh, کھ kh, گھ gh, ڑھ rh; listed as clusters, the letters as written side by side (no virama). finals: Noon ghunna ں (a nasal vowel at the end of a word) is n, and is often left untyped (main, mai for میں; hain, hai for ہیں): optionalFinals gives such words a second key without it. ain: ع is usually silent or a vowel (علم ilm, بعد baad, شروع shuru): canonical empty. keepCanonical: The medial inherent vowel stays a in the walk, though people type no vowel as often: without it a consonant would run into the next (کہ k + h as kh, the aspirate)."
+}
