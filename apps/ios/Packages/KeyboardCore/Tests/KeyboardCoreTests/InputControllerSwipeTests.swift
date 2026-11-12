@@ -62,6 +62,37 @@ extension InputControllerTests {
         #expect(output.text == "Hello OK ")
     }
 
+    /// The bar showed "it" for a swipe that typed "It": it shows what a tap would put in.
+    @Test func theBarShowsTheSwipesWordsAsShiftHasThem() {
+        type(.shift)
+        swipe("it", "is", "in")
+        #expect(output.text == "It ")
+        #expect(SuggestionBar(input.suggestions).middle?.suggestion.text == "It")
+        #expect(input.suggestions.candidates.map(\.text) == ["It", "Is", "In"])
+        input.commitSuggestion(slot("Is"))
+        #expect(output.text == "Is ")
+        input.handle(.shift, at: 1)
+        input.handle(.shift, at: 1.1)
+        swipe("ok", "on")
+        #expect(input.suggestions.candidates.map(\.text) == ["OK", "ON"])
+    }
+
+    /// Auto-capitalisation at the start of a sentence, as the keyboard turns it on.
+    @Test func theBarShowsAnAutoCapitalisedSwipeAsItWentIn() {
+        input.applyAutoCapitalization(.sentences)
+        #expect(input.shift == .once)
+        swipe("it", "is")
+        #expect(output.text == "It ")
+        #expect(input.suggestions.candidates.map(\.text) == ["It", "Is"])
+    }
+
+    /// Only Latin words take a capital: a native-script word reads the same in the bar.
+    @Test func aNativeScriptWordInTheBarKeepsItsLetters() {
+        type(.shift)
+        swipe("it", "ഇത്", "is")
+        #expect(input.suggestions.candidates.map(\.text) == ["It", "ഇത്", "Is"])
+    }
+
     @Test func theBarShowsTheSwipedWordAndItsAlternatives() {
         swipe("hello", "help", "hell")
         #expect(input.suggestions.candidates.map(\.text) == ["hello", "help", "hell"])
