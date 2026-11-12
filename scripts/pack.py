@@ -36,6 +36,13 @@ key, long-press option or strip sign that isn't in the pack's script (its block,
 entry for a key no page has, and on a missing `spaceBar`, `languageKey` or page label. `--write`
 prints the same problems without failing.
 
+Phrase conversion (engine 9, Japanese). A pack with `"conversion": "phrase"` has no word list
+and no script rules: its roles are `kana` (`kana.json`, copied from `data/langs/<id>/` as the
+emoji words are), `conversionLexicon` and `connection`. `--check` fails when one is missing, and
+when a credit's licence names IPAdic but the pack has no `notices` file holding IPAdic's notice
+and ICOT's "NO WARRANTY" section: the IPAdic licence requires them with every copy of the
+dictionary. `notices` (`dictionary-notices.txt`) is copied from `data/langs/<id>/` too.
+
 Standard library only.
 """
 
@@ -72,7 +79,8 @@ def lang_source(manifest: dict, pack: Path | None = None) -> Path:
 
 
 # Optional pack files that are copies of data/langs/<id>/<name>: role -> file name.
-COPIED_ROLES = {"emojiWords": "emoji-words.txt", "emojiSearch": "emoji-search.txt"}
+COPIED_ROLES = {"emojiWords": "emoji-words.txt", "emojiSearch": "emoji-search.txt",
+                "kana": "kana.json", "notices": "dictionary-notices.txt"}
 
 
 def copied_source(manifest: dict, name: str, pack: Path | None = None) -> Path:
@@ -107,6 +115,8 @@ def copied_problems(pack: Path, manifest: dict) -> list[str]:
 def add_lang(pack: Path, manifest: dict) -> None:
     """lang.json from data/langs, and the role. Nothing for a pack in an embedded script that
     has no data/langs file, unless the manifest names one."""
+    if manifest.get("conversion") is not None:
+        return  # a converter has no script rules
     source = lang_source(manifest, pack)
     script = manifest["script"]
     wanted = source.is_file() or script not in EMBEDDED or "lang" in manifest["files"]
@@ -117,8 +127,37 @@ def add_lang(pack: Path, manifest: dict) -> None:
         (pack / name).write_bytes(source.read_bytes())
 
 
+CONVERSION_ROLES = ["kana", "conversionLexicon", "connection"]
+# What the IPAdic licence says must be included with any copy of the dictionary: its copyright
+# notice and the paragraphs after it, ICOT's conditions among them.
+IPADIC_NOTICE = ["Copyright 2000, 2001, 2002, 2003 Nara Institute of Science",
+                 "NO WARRANTY", "A large portion of the dictionary entries\noriginate from ICOT Free Software."]
+
+
+def conversion_problems(pack: Path, manifest: dict) -> list[str]:
+    """What a phrase-conversion pack lacks, in words; empty for a pack of words."""
+    kind = manifest.get("conversion")
+    if kind is None:
+        return []
+    if kind != "phrase":
+        return [f"conversion {kind!r}: the engine converts \"phrase\""]
+    files = manifest["files"]
+    problems = [f"no {role} file (a phrase-conversion pack needs it)"
+                for role in CONVERSION_ROLES if role not in files or not (pack / files[role]).is_file()]
+    if any("ipadic" in c.get("licence", "").lower() for c in manifest.get("credits", [])):
+        name = files.get("notices")
+        text = (pack / name).read_text(encoding="utf-8") if name and (pack / name).is_file() else ""
+        missing = [part.split("\n")[0] for part in IPADIC_NOTICE if part not in text]
+        if missing:
+            problems.append("a credit is under the IPAdic licence, whose notice must travel with the "
+                            f"dictionary: the notices file lacks {'; '.join(missing)}")
+    return problems
+
+
 def lang_problems(pack: Path, manifest: dict) -> list[str]:
     """Why the pack's script rules wouldn't load, in words; empty when they would."""
+    if manifest.get("conversion") is not None:
+        return []  # a converter has no script rules
     script = manifest["script"]
     name = manifest["files"].get("lang")
     source = lang_source(manifest, pack)
@@ -351,7 +390,8 @@ def main() -> int:
                   f"run scripts/pack.py {args.pack} --write", file=sys.stderr)
             return 1
         problems = (lang_problems(args.pack, manifest) + romanisation_problems(args.pack, manifest)
-                    + copied_problems(args.pack, manifest) + layout_problems(args.pack, manifest))
+                    + copied_problems(args.pack, manifest) + layout_problems(args.pack, manifest)
+                    + conversion_problems(args.pack, manifest))
         for problem in problems:
             print(f"{manifest_path}: {problem}", file=sys.stderr)
         return 1 if problems else 0

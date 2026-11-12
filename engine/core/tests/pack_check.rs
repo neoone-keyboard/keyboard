@@ -11,6 +11,9 @@
 //! - every key of its romanised lexicon is the skeleton its `romanisation.json` gives the word,
 //!   so what is typed folds to the key the word is stored under;
 //! - its `layout.json` parses as the keyboard parses it.
+//!
+//! A phrase-conversion pack (Japanese) has no lexicon or script rules: it opens as the engine's
+//! converter, under its id, and converts its own name's reading.
 
 use std::path::{Path, PathBuf};
 
@@ -173,6 +176,22 @@ fn keys_match_the_tables(pack: &Pack, rules: &'static dyn ScriptRules) -> Option
     Some(n)
 }
 
+/// The engine opens a phrase-conversion pack as a converter under its id, and it converts.
+fn converter_loads(pack: &Pack) {
+    let id = &pack.manifest.id;
+    let engine = Engine::open(&Paths::with_packs(None, std::slice::from_ref(pack), None));
+    let problems = engine.pack_problems();
+    assert!(problems.is_empty(), "{id}: {problems:?}");
+    assert_eq!(engine.conversion_languages().iter().map(|l| l.0.as_str()).collect::<Vec<_>>(), [id.as_str()]);
+    // Typed letters compose, and the composed text converts to at least itself.
+    let (kana, pending) = engine.compose(id, "a", true).unwrap();
+    assert!(pending.is_empty() && !kana.is_empty(), "{id}: a composes to {kana:?} {pending:?}");
+    let conversion = engine.convert(id, &kana, 5).unwrap();
+    assert!(conversion.candidates.contains(&kana), "{id}: {conversion:?}");
+    let c = engine.converter(id).unwrap();
+    eprintln!("{id}: a converter, {} readings, {} part-of-speech ids", c.dictionary().readings(), c.dictionary().ids());
+}
+
 #[test]
 #[ignore]
 fn every_pack_passes_its_checks() {
@@ -181,6 +200,11 @@ fn every_pack_passes_its_checks() {
     for dir in dirs {
         let pack = Pack::open(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
         let id = pack.manifest.id.clone();
+        if pack.manifest.conversion.is_some() {
+            declares_the_engine_it_needs(&pack).unwrap_or_else(|e| panic!("{e}"));
+            converter_loads(&pack);
+            continue;
+        }
         // The rules the engine uses for this pack, in use while it is checked as they are
         // while its engine is open, and no longer: the next pack may share its script
         // (Assamese and Bengali), and a word is read without an engine by the first in use.

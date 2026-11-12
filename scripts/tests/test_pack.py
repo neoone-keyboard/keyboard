@@ -186,6 +186,52 @@ LAYOUT = {
 }
 
 
+class Conversion(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.manifest = {"id": "zz-test", "script": "jpan", "conversion": "phrase",
+                         "files": {"kana": "kana.json", "conversionLexicon": "c.dict", "connection": "c.bin"},
+                         "credits": [{"name": "Mozc", "licence": "IPAdic licence"}]}
+        for name in self.manifest["files"].values():
+            (self.dir / name).write_text("x", encoding="utf-8")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_a_word_pack_has_no_conversion_problems(self):
+        self.assertEqual(pack.conversion_problems(self.dir, manifest()), [])
+
+    def test_a_converter_has_no_script_rules(self):
+        self.assertEqual(pack.lang_problems(self.dir, self.manifest), [])
+        pack.add_lang(self.dir, self.manifest)
+        self.assertNotIn("lang", self.manifest["files"])
+
+    def test_the_ipadic_notice_travels_with_the_dictionary(self):
+        problems = pack.conversion_problems(self.dir, self.manifest)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("notices file lacks", problems[0])
+        self.manifest["files"]["notices"] = "notices.txt"
+        (self.dir / "notices.txt").write_text("\n\n".join(pack.IPADIC_NOTICE), encoding="utf-8")
+        self.assertEqual(pack.conversion_problems(self.dir, self.manifest), [])
+        self.manifest["credits"] = []
+        (self.dir / "notices.txt").write_text("", encoding="utf-8")
+        self.assertEqual(pack.conversion_problems(self.dir, self.manifest), [], "no IPAdic data")
+
+    def test_every_conversion_file_is_needed(self):
+        self.manifest["credits"] = []
+        (self.dir / "c.bin").unlink()
+        self.assertEqual(pack.conversion_problems(self.dir, self.manifest),
+                         ["no connection file (a phrase-conversion pack needs it)"])
+        self.manifest["conversion"] = "word"
+        self.assertIn("converts", pack.conversion_problems(self.dir, self.manifest)[0])
+
+    def test_the_committed_conversion_packs_pass(self):
+        for folder in sorted((pack.ROOT / "packs").glob("*.neopack")):
+            m = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(pack.conversion_problems(folder, m), [], folder.name)
+
+
 class Layout(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
