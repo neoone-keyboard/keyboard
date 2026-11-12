@@ -39,6 +39,18 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     /// panel's search, in the formats of the app's emoji-words.txt and emoji-search.txt.
     public let emojiWords: URL?
     public let emojiSearch: URL?
+    /// The script is written right to left: `lang.json`'s `direction` ("rtl" or "ltr") when
+    /// given, else the Unicode direction of the script's first letter (`isRightToLeft`). The
+    /// suggestion bar is mirrored while this pack's conventions are followed
+    /// (`InputController.scriptPack`). The keys are never mirrored.
+    public let rightToLeft: Bool
+
+    /// The script's own marks for the Latin punctuation keys (`layout.json`'s `punctuation`):
+    /// Urdu's `"."` to `"۔"`. Empty when the script uses the Latin marks.
+    public var punctuation: [String: String] { layout?.punctuation ?? [:] }
+
+    /// The script's digits, zero to nine (`layout.json`'s `digits`); empty when it has none.
+    public var digits: [String] { layout?.digits ?? [] }
 
     /// The blocks of the scripts the engine has its own rules for (`script::supported`: packs
     /// in them were published before packs carried `lang.json`), as `block` in
@@ -52,8 +64,10 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
     public init(id: String, name: String, nativeName: String, script: String, romanisedName: String? = nil,
                 credits: [Credit] = [], layout: PackLayout?, folder: URL,
                 version: String = "0", minEngine: Int = 1, englishFingerprint: String? = nil,
-                scriptRanges: [ClosedRange<UInt32>]? = nil, emojiWords: URL? = nil, emojiSearch: URL? = nil) {
+                scriptRanges: [ClosedRange<UInt32>]? = nil, emojiWords: URL? = nil, emojiSearch: URL? = nil,
+                rightToLeft: Bool? = nil) {
         self.scriptRanges = scriptRanges ?? Self.embeddedScriptRanges[script] ?? []
+        self.rightToLeft = rightToLeft ?? Self.isRightToLeft(self.scriptRanges)
         self.emojiWords = emojiWords
         self.emojiSearch = emojiSearch
         self.id = id
@@ -67,6 +81,22 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         self.version = version
         self.minEngine = minEngine
         self.englishFingerprint = englishFingerprint
+    }
+
+    /// Whether the first letter in `ranges` is written right to left: Unicode's default
+    /// bidirectional class R or AL, which covers Hebrew, Arabic, Syriac, Thaana, N'Ko and the
+    /// other right-to-left blocks (DerivedBidiClass.txt's default ranges).
+    public static func isRightToLeft(_ ranges: [ClosedRange<UInt32>]) -> Bool {
+        let rightToLeft: [ClosedRange<UInt32>] = [
+            0x0590...0x08FF, 0xFB1D...0xFDFF, 0xFE70...0xFEFF, 0x10800...0x10FFF, 0x1E800...0x1EFFF,
+        ]
+        for range in ranges {
+            for value in range {
+                guard let scalar = Unicode.Scalar(value), scalar.properties.isAlphabetic else { continue }
+                return rightToLeft.contains { $0.contains(value) }
+            }
+        }
+        return false
     }
 
     /// Whether `text` has a character of the pack's script.
@@ -111,17 +141,18 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
         }
         let isFile = { (url: URL) in FileManager.default.fileExists(atPath: url.path) }
         let layout = file("layout").flatMap { try? PackLayout.load($0) }
-        let ranges = file("lang").flatMap { try? Data(contentsOf: $0) }
-            .flatMap { try? JSONDecoder().decode(Lang.self, from: $0) }?.ranges
+        let lang = file("lang").flatMap { try? Data(contentsOf: $0) }
+            .flatMap { try? JSONDecoder().decode(Lang.self, from: $0) }
         return PackDescriptor(
             id: manifest.id, name: manifest.name, nativeName: manifest.nativeName, script: manifest.script,
             romanisedName: manifest.romanised?.name,
             credits: manifest.credits?.map(\.credit) ?? [],
             layout: layout, folder: folder,
             version: manifest.version, minEngine: manifest.minEngine, englishFingerprint: manifest.englishFingerprint,
-            scriptRanges: ranges,
+            scriptRanges: lang?.ranges,
             emojiWords: file("emojiWords").flatMap { isFile($0) ? $0 : nil },
-            emojiSearch: file("emojiSearch").flatMap { isFile($0) ? $0 : nil }
+            emojiSearch: file("emojiSearch").flatMap { isFile($0) ? $0 : nil },
+            rightToLeft: lang?.rightToLeft
         )
     }
 
@@ -158,10 +189,21 @@ public struct PackDescriptor: Sendable, Identifiable, Hashable {
             .compactMap { try? load(folder: $0) }
     }
 
-    /// The part of a pack's `lang.json` Swift reads: the script's characters.
+    /// The part of a pack's `lang.json` Swift reads: the script's characters, and its
+    /// `direction` (the apps', which the engine ignores).
     private struct Lang: Decodable {
         let block: [String]?
         let letters: [[String]]?
+        let direction: String?
+
+        /// `direction` when it says "rtl" or "ltr"; nil leaves it to the script's letters.
+        var rightToLeft: Bool? {
+            switch direction?.lowercased() {
+            case "rtl": true
+            case "ltr": false
+            default: nil
+            }
+        }
 
         /// `block`, then `letters`, as the engine's `ScriptDef` takes them; nil when a range
         /// isn't two hex code points in order, or there is none.

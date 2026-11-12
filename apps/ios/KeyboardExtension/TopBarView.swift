@@ -40,6 +40,14 @@ final class TopBarView: UIView {
     /// Whether the vowel strip is showing (rather than the suggestion slots).
     var showsVowelSigns: Bool { stripBase != nil }
 
+    /// The pack whose conventions the bar follows (`InputController.scriptPack`): right to
+    /// left, it is mirrored, and its script's words are drawn in its own font (`barFonts`).
+    private var script: PackDescriptor?
+    private var rightToLeft: Bool { script?.rightToLeft ?? false }
+    /// Mirrors the slots and what scrolls past them; each item is mirrored back, so its text
+    /// reads as it is written, Urdu right to left and Latin left to right.
+    private static let mirrored = CGAffineTransform(scaleX: -1, y: 1)
+
     /// Width of one vowel-sign button. Wide enough to tap without zooming;
     /// the last one is cut off at the edge, which shows the row scrolls.
     private static let vowelButtonWidth: CGFloat = 52
@@ -217,25 +225,37 @@ final class TopBarView: UIView {
         vowelRow.isHidden = asking || stripBase == nil
     }
 
+    /// Follows `pack`'s conventions from the next content shown: mirrored for a script written
+    /// right to left, its words in its bar font. Nil: left to right, the system font.
+    func setScript(_ pack: PackDescriptor?) {
+        guard pack?.id != script?.id || pack?.rightToLeft != script?.rightToLeft
+        else { return }
+        script = pack
+        shownContent = []
+        suggestionScroll.transform = rightToLeft ? Self.mirrored : .identity
+    }
+
     /// Left, middle, right. The middle slot is what space commits, so it is bold. Then the
     /// bar's `more`, past the right edge until the bar is slid. New content starts the bar
-    /// from the beginning again.
+    /// from the beginning again. Right to left, the best is on the right and the rest read
+    /// leftward (`SuggestionBar.drawn`), `more` past the left edge.
     func showSuggestions(_ bar: SuggestionBar) {
-        let content = ["suggestions"] + (bar.slots + bar.more.map(Optional.some)).map { slot in
-            slot.map { "\($0.title)|\($0.quoted)" } ?? ""
-        }
+        let content = ["suggestions", "\(rightToLeft)", "\(bounds.height)"]
+            + (bar.slots + bar.more.map(Optional.some)).map { slot in
+                slot.map { "\($0.title)|\($0.quoted)" } ?? ""
+            }
         guard content != shownContent else { return }
         shownContent = content
         stripBase = nil
         updateVisibility()
-        replaceItems(in: suggestionStack, with: bar.slots.enumerated().map { index, slot in
+        replaceItems(in: suggestionStack, with: bar.drawn(rightToLeft: rightToLeft).map { slot in
             guard let slot else {
                 // An empty slot is nothing to VoiceOver.
                 let empty = UIButton(type: .custom)
                 empty.isAccessibilityElement = false
                 return empty
             }
-            return slotButton(slot, bold: index == 1)
+            return slotButton(slot, bold: slot == bar.middle)
         })
         showMore(bar.more.map { slot in
             let button = slotButton(slot, bold: false)
@@ -264,6 +284,10 @@ final class TopBarView: UIView {
         // The word, not its drawn title (which may be in quotes).
         button.accessibilityLabel = slot.suggestion.text
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: bold ? .semibold : .regular)
+        if let script, script.writes(slot.suggestion.text) {
+            if let font = scriptFont(bold: bold) { button.titleLabel?.font = font }
+            button.accessibilityLanguage = script.id
+        }
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.6
         button.setTitleColor(theme?.keyText, for: .normal)
@@ -284,6 +308,29 @@ final class TopBarView: UIView {
             return true
         }]
         return button
+    }
+
+    /// The font family a language's words are drawn in when its writing has a style of its own
+    /// that the system font doesn't draw: Urdu's Nastaliq (the system draws Arabic letters in
+    /// Naskh, which the keys and popups keep). iOS has Noto Nastaliq Urdu, which a keyboard
+    /// extension can use like any system font. By language id, as Android's `ScriptFonts`.
+    static let barFonts = ["ur": "Noto Nastaliq Urdu"]
+
+    /// The language's bar font (`barFonts`) at the size the bar's
+    /// words have, made smaller if its line would be taller than the bar: Nastaliq's tall
+    /// ascenders and deep descenders need about two and a half times its size, and a line
+    /// that doesn't fit is clipped. `bold` takes the family's Bold face (iOS has
+    /// NotoNastaliqUrdu-Bold), so the best guess looks heavier, as in English. Nil when the
+    /// phone hasn't got the font.
+    private func scriptFont(bold: Bool) -> UIFont? {
+        guard let id = script?.id, let family = Self.barFonts[id], UIFont.familyNames.contains(family) else { return nil }
+        var descriptor = UIFontDescriptor(fontAttributes: [.family: family])
+        if bold, let heavier = descriptor.withSymbolicTraits(.traitBold) { descriptor = heavier }
+        let size: CGFloat = 17
+        let font = UIFont(descriptor: descriptor, size: size)
+        let room = bounds.height > 0 ? bounds.height : KeyboardHeight.portraitBar
+        guard font.lineHeight > room else { return font }
+        return UIFont(descriptor: descriptor, size: (size * room / font.lineHeight * 2).rounded(.down) / 2)
     }
 
     /// A short note in the middle of the bar, in place of the slots ("Swipe again").
@@ -334,6 +381,10 @@ final class TopBarView: UIView {
     private func replaceItems(in stack: UIStackView, with views: [UIView]) {
         stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         views.forEach(stack.addArrangedSubview)
+        // In the mirrored bar each item is mirrored back, so it reads as written.
+        if stack === suggestionStack || stack === moreStack {
+            views.forEach { $0.transform = rightToLeft ? Self.mirrored : .identity }
+        }
     }
 }
 

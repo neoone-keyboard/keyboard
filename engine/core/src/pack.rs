@@ -62,6 +62,10 @@ pub const FORMAT: u32 = 1;
 /// as other characters and refuse the transliterator: a pack whose `lang.json` sets
 /// `charTable` needs 8, in any script. A pack without one is packed and spelled as before.
 ///
+/// No level: `lang.json`'s `direction` ("rtl" or "ltr"), which only the apps read (a mirrored
+/// suggestion bar; without it they take the Unicode direction of the script's letters). The engine
+/// ignores it, and an older app lays the bar out left to right as before, as for `APP_ROLES`.
+///
 /// Adding a pack feature an older engine would ignore or misread: raise this, say here what
 /// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's
 /// contents to the level they need (`tests/pack_check.rs` holds every pack in `packs/` to it).
@@ -249,6 +253,10 @@ enum Key {
     /// Read from this level for a pack in any script; counts when set (not false, 0, empty or
     /// null), as an older engine would ignore it.
     Set(u32),
+    /// Read by the apps, never by the engine (the script's direction, for the suggestion
+    /// bar): needs no level, as `APP_ROLES`. An older app ignores it and lays the bar out as
+    /// before.
+    App,
 }
 
 /// `lang.json`'s keys (`script::data`). The script's definition itself is the `lang` role's,
@@ -280,6 +288,7 @@ const LANG_KEYS: &[(&str, Key)] = &[
     ("joiners", Key::NotMalayalam(6)),
     ("zwjForms", Key::NotMalayalam(6)),
     ("charTable", Key::Set(8)),
+    ("direction", Key::App),
 ];
 
 /// `romanisation.json`'s keys (`romanisation::Raw`), an object's inner keys after a dot.
@@ -374,7 +383,7 @@ impl KeyNeeds<'_> {
                 ));
             };
             match key {
-                Key::Base => {}
+                Key::Base | Key::App => {}
                 Key::Fields => {
                     let inner = value
                         .as_object()
@@ -757,6 +766,18 @@ mod tests {
         assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 8);
         let lang = with_field(&own_lang("ml"), "charTable", r#"[["0D00", "0D7F"]]"#);
         assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 8);
+    }
+
+    #[test]
+    fn the_direction_needs_no_level() {
+        // Read by the apps, never the engine: an older app lays the bar out left to right
+        // as before, so the pack needs no newer engine.
+        let lang = with_field(GUJR, "direction", r#""rtl""#);
+        assert_eq!(level("gujr", &[("lang", "lang.json", &lang)]), 4);
+        let lang = with_field(&own_lang("hi"), "direction", r#""ltr""#);
+        assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 2);
+        let lang = with_field(&own_lang("ml"), "direction", r#""ltr""#);
+        assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 1);
     }
 
     #[test]

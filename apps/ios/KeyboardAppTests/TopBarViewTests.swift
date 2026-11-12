@@ -167,4 +167,73 @@ final class TopBarViewTests: XCTestCase {
         window.layoutIfNeeded()
         XCTAssertEqual(scroll.contentSize.width, bar.bounds.width, accuracy: 0.5)
     }
+
+    // MARK: Right to left (Urdu)
+
+    /// packs/ur.neopack's lang.json, as far as the bar reads it.
+    private let urdu = PackDescriptor(
+        id: "ur", name: "Urdu", nativeName: "اردو", script: "arab", layout: nil, folder: URL(fileURLWithPath: "/"),
+        scriptRanges: [0x0621...0x06D3]
+    )
+
+    private func showRoman(limit: Int = 3) {
+        let result = SuggestionResult(typed: "mera", candidates: [
+            Suggestion("میرا", kind: .manglish), Suggestion("میری", kind: .manglish),
+            Suggestion("mera", kind: .verbatim), Suggestion("میر", kind: .manglish), Suggestion("میرے", kind: .manglish),
+        ])
+        bar.showSuggestions(SuggestionBar(result, limit: limit))
+        window.layoutIfNeeded()
+    }
+
+    func testARightToLeftBarHasTheBestWordOnTheRight() throws {
+        bar.setScript(urdu)
+        showRoman()
+        // Left to right on screen: the typed word, the other word, the best on the right.
+        XCTAssertEqual(titles(), ["\u{201C}mera\u{201D}", "میری", "میرا"])
+        let best = try XCTUnwrap(slots(in: scroll).last)
+        XCTAssertTrue(inView(best))
+        XCTAssertEqual(frame(of: best).maxX, bar.bounds.width, accuracy: 0.5)
+        XCTAssertTrue(best.titleLabel?.font.fontDescriptor.symbolicTraits.contains(.traitBold) == true, "the best is bold")
+        best.sendActions(for: .touchUpInside)
+        XCTAssertEqual(tapped.map(\.suggestion.text), ["میرا"])
+    }
+
+    func testARightToLeftBarSlidesLeftToItsMoreWords() {
+        bar.setScript(urdu)
+        showRoman(limit: 10)
+        XCTAssertEqual(titles(), ["میرے", "میر", "\u{201C}mera\u{201D}", "میری", "میرا"])
+        let buttons = slots(in: scroll)
+        XCTAssertTrue(buttons.suffix(3).allSatisfy(inView))
+        XCTAssertFalse(buttons.prefix(2).contains(where: inView), "past the left edge")
+    }
+
+    func testUrduWordsAreNastaliqAndFitTheBar() throws {
+        XCTAssertNotNil(UIFont(name: "NotoNastaliqUrdu", size: 17), "iOS has Noto Nastaliq Urdu")
+        XCTAssertNotNil(UIFont(name: "NotoNastaliqUrdu-Bold", size: 17), "and its Bold")
+        bar.setScript(urdu)
+        showRoman()
+        for button in slots(in: scroll) {
+            let title = button.title(for: .normal) ?? ""
+            let font = try XCTUnwrap(button.titleLabel?.font)
+            if title.contains("mera") {
+                XCTAssertFalse(font.familyName.contains("Nastaliq"), "a Latin word keeps the system font")
+            } else {
+                XCTAssertEqual(font.familyName, "Noto Nastaliq Urdu", title)
+                // The best guess in iOS's own Bold face, so it stands out; the others Regular.
+                XCTAssertEqual(font.fontName, title == "میرا" ? "NotoNastaliqUrdu-Bold" : "NotoNastaliqUrdu", title)
+                XCTAssertLessThanOrEqual(font.lineHeight, bar.bounds.height, "\(title): not clipped")
+                XCTAssertGreaterThanOrEqual(font.pointSize, 15, "\(title): still readable")
+                XCTAssertEqual(button.accessibilityLanguage, "ur")
+            }
+        }
+    }
+
+    func testLeftToRightAgainOnceThePackIsGone() {
+        bar.setScript(urdu)
+        showRoman()
+        bar.setScript(nil)
+        showRoman()
+        XCTAssertEqual(titles(), ["\u{201C}mera\u{201D}", "میرا", "میری"])
+        XCTAssertTrue(slots(in: scroll).allSatisfy { !($0.titleLabel?.font.familyName.contains("Nastaliq") ?? true) })
+    }
 }
