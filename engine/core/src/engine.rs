@@ -1630,16 +1630,23 @@ impl Engine {
         }
     }
 
-    /// Each active pack's prior from the previous word's language: `rank::CONTEXT_AT_START`
-    /// at the start, `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM`
-    /// after the pack's own word, and 0 otherwise (another pack's word, or one in no
-    /// lexicon). English's is always 0: only the differences matter.
+    /// Each active pack's prior from the previous word's language: at the start
+    /// `rank::CONTEXT_AT_START_PACK`, or `rank::CONTEXT_AT_START` while Malayalam is active;
+    /// `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM` after the
+    /// pack's own word, and 0 otherwise (another pack's word, or one in no lexicon). English's
+    /// is always 0: only the differences matter.
     fn priors(&self, previous: Option<&str>) -> Priors {
         let previous = previous.map(|w| self.word_lang(&self.normal(w)));
+        // The same for every pack, so that none is favoured at the start (`favoured`).
+        let start = if self.packs_active().any(|(_, p)| p.rules.code() == "mlym") {
+            rank::CONTEXT_AT_START
+        } else {
+            rank::CONTEXT_AT_START_PACK
+        };
         let mut priors = Priors::default();
         for (lang, _) in self.packs_active() {
             let prior = match previous {
-                None => rank::CONTEXT_AT_START,
+                None => start,
                 Some(Some(EN)) => rank::CONTEXT_AFTER_ENGLISH,
                 Some(Some(l)) if l == lang => rank::CONTEXT_AFTER_MALAYALAM,
                 Some(_) => 0.0,
@@ -2401,7 +2408,13 @@ impl Engine {
                 -rank::MANGLISH_MISSING_PER_CHAR * missing as f32
             }
         };
+        // Words of the typed skeleton that the letters don't spell out (`kya` for کے, romanised
+        // `ke`): a confident model reading outranks them (`rank::MANGLISH_MODEL_TRAILS_STEP`).
+        let mut loose: Vec<String> = Vec::new();
         for m in manglish::lookup(r, lex, typed_n) {
+            if !m.spelled && !m.other_reading && m.missing == 0 {
+                loose.push(m.word.clone());
+            }
             // Without the fit bonus: it ranks a word against English, but
             // must not lift a rare word (a name like ജിഷ്ണു) over the floor.
             let unfitted = m.log_prob - rank::MANGLISH_DISTANCE * m.distance as f32 + bias;
@@ -2472,6 +2485,7 @@ impl Engine {
                 typed_n,
                 english_capitals,
                 &splits,
+                &loose,
                 bias,
                 another_favoured,
                 !malayalam,
@@ -2740,6 +2754,7 @@ impl Engine {
         typed_n: &str,
         english_capitals: bool,
         splits: &[ScoredSplit],
+        loose: &[String],
         bias: f32,
         another_favoured: bool,
         caps_trailing: bool,
@@ -2779,6 +2794,8 @@ impl Engine {
         let mut trailing = 0;
         // A lexicon reading has come by.
         let mut read = false;
+        // Every lexicon reading and its model score, for `loose`.
+        let mut readings: Vec<(String, f32)> = Vec::new();
         for t in model.search(&latin, ml, &split_words, &search).0 {
             if !t.in_lexicon {
                 // Best first: a lexicon reading seen before it scored higher.
@@ -2789,6 +2806,7 @@ impl Engine {
                 continue;
             }
             read = true;
+            readings.push((t.text.clone(), t.score));
             if t.score < rank::MANGLISH_MODEL_FLOOR {
                 continue;
             }
@@ -2842,6 +2860,32 @@ impl Engine {
                 spelled,
                 floor,
             );
+        }
+        // Loose skeleton matches the model doesn't read, or reads far behind its confident
+        // best reading, trail that reading too (`rank::MANGLISH_MODEL_TRAILS_STEP`).
+        if let Some((score, lead)) = best
+            .filter(|(score, _)| caps_trailing && *score >= rank::MANGLISH_MODEL_CONFIDENT)
+        {
+            let cap = lead + rank::MANGLISH_EXACT_BONUS;
+            for word in loose {
+                let close = readings
+                    .iter()
+                    .any(|(w, s)| w == word && *s >= score - rank::MANGLISH_MODEL_TRAILS);
+                if close {
+                    continue;
+                }
+                trailing += 1;
+                let cap = cap - rank::MANGLISH_MODEL_TRAILS_STEP * trailing as f32;
+                for c in found
+                    .exact
+                    .iter_mut()
+                    .map(|(c, _)| c)
+                    .chain(&mut found.side)
+                    .filter(|c| &c.text == word)
+                {
+                    c.score = c.score.min(cap);
+                }
+            }
         }
         free
     }

@@ -57,6 +57,36 @@ fn urdu_sentence_start_capitals_are_ignored() {
     capital_is_ignored_at_sentence_starts("ur", &["shukriya", "mera", "kya", "aap", "kaise"]);
 }
 
+/// The first word of a message has no word before it to say which language it is in. With a
+/// pack beside English, a common word of the pack that the letters spell (and that is not an
+/// English word) leads there as it does after a sentence end: neither the typed letters nor a
+/// weak English correction (`near` for `mera`) keeps the middle.
+#[test]
+fn the_first_word_of_a_message_is_the_packs() {
+    for (id, words) in [
+        ("ur", &[("mera", "میرا"), ("kya", "کیا"), ("kaise", "کیسے")][..]),
+        ("hi", &[("mera", "मेरा"), ("kya", "क्या"), ("kaise", "कैसे")][..]),
+    ] {
+        let e = engine(id);
+        for (typed, word) in words {
+            for context in [typed.to_string(), format!("Ok. {typed}")] {
+                assert_eq!(bar(&e, &context)[0], *word, "{id}: {context:?}");
+            }
+        }
+    }
+}
+
+/// English words typed at the start of a message stay English.
+#[test]
+fn english_words_at_the_start_stay_english() {
+    for id in ["ur", "hi"] {
+        let e = engine(id);
+        for word in ["hello", "the", "main", "Hello", "Thanks", "thanks"] {
+            assert_eq!(bar(&e, word)[0], word.to_lowercase(), "{id}: {word}");
+        }
+    }
+}
+
 #[test]
 fn urdu_shukriya_at_a_sentence_start_is_urdu() {
     let e = engine("ur");
