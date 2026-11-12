@@ -2,13 +2,13 @@
   "format": 1,
   "script": "guru",
   "language": "pa",
-  "about": "How Punjabi (Gurmukhi) is typed in Latin letters (these hand-set weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar pan (training/mlkb/langs/calibrate.py), whose only pairs outside the held-out test split are mined ones. Each table maps a letter (or a letter + nukta, or the addak + a letter, or a conjunct) to [spelling, weight] options, canonical first. Started from Maithili's table: Gurmukhi is laid out like Devanagari and typed with the same habits.",
+  "about": "How Punjabi (Gurmukhi) is typed in Latin letters (these hand-set weights describe chat; half of the transliterator's synthetic pairs are spelled from them, the other half from the fitted weights): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to the train split of Dakshina's Punjabi lexicon, romanisations typed by people (training/mlkb/langs/calibrate.py; its dev and test splits are held out), as Aksharantar pan has no typed pairs outside its held-out test split. Each table maps a letter (or a letter + nukta, or the addak + a letter, or a conjunct) to [spelling, weight] options, canonical first. Started from Maithili's table: Gurmukhi is laid out like Devanagari and typed with the same habits.",
   "virama": "੍",
   "independentVowels": {
     "ਅ": [["a", 1.0]],
-    "ਆ": [["a", 0.75], ["aa", 0.25]],
-    "ਇ": [["i", 0.95], ["e", 0.05]],
-    "ਈ": [["i", 0.7], ["ee", 0.3]],
+    "ਆ": [["a", 0.7], ["aa", 0.2], ["ya", 0.07], ["yaa", 0.03]],
+    "ਇ": [["i", 0.9], ["e", 0.05], ["yi", 0.05]],
+    "ਈ": [["i", 0.65], ["ee", 0.25], ["yi", 0.1]],
     "ਉ": [["u", 0.95], ["o", 0.05]],
     "ਊ": [["u", 0.7], ["oo", 0.3]],
     "ਏ": [["e", 0.75], ["ye", 0.2], ["ae", 0.05]],
@@ -21,16 +21,16 @@
   "vowelSigns": {
     "ਾ": [["a", 0.75], ["aa", 0.25]],
     "ਿ": [["i", 0.95], ["e", 0.05]],
-    "ੀ": [["i", 0.7], ["ee", 0.3]],
+    "ੀ": [["i", 0.7], ["ee", 0.27], ["ii", 0.03]],
     "ੁ": [["u", 0.95], ["o", 0.05]],
     "ੂ": [["u", 0.7], ["oo", 0.3]],
-    "ੇ": [["e", 0.95], ["a", 0.05]],
-    "ੈ": [["ai", 0.5], ["e", 0.3], ["ae", 0.2]],
+    "ੇ": [["e", 0.9], ["a", 0.04], ["ey", 0.03], ["ay", 0.03]],
+    "ੈ": [["ai", 0.5], ["e", 0.3], ["ae", 0.15], ["a", 0.05]],
     "ੋ": [["o", 1.0]],
-    "ੌ": [["au", 0.7], ["ou", 0.3]]
+    "ੌ": [["au", 0.6], ["ou", 0.25], ["o", 0.15]]
   },
   "consonants": {
-    "ਕ": [["k", 1.0]],
+    "ਕ": [["k", 0.9], ["q", 0.05], ["c", 0.05]],
     "ਖ": [["kh", 0.9], ["k", 0.1]],
     "ਗ": [["g", 1.0]],
     "ਘ": [["gh", 0.85], ["g", 0.15]],
@@ -44,7 +44,7 @@
     "ਠ": [["th", 0.85], ["t", 0.15]],
     "ਡ": [["d", 1.0]],
     "ਢ": [["dh", 0.85], ["d", 0.15]],
-    "ਣ": [["n", 1.0]],
+    "ਣ": [["n", 0.9], ["nn", 0.1]],
     "ਤ": [["t", 0.85], ["th", 0.15]],
     "ਥ": [["th", 0.9], ["t", 0.1]],
     "ਦ": [["d", 0.9], ["dh", 0.1]],
@@ -61,7 +61,7 @@
     "ਵ": [["v", 0.6], ["w", 0.4]],
     "ਸ": [["s", 1.0]],
     "ਹ": [["h", 1.0]],
-    "ੜ": [["r", 0.6], ["d", 0.4]],
+    "ੜ": [["r", 0.55], ["d", 0.35], ["rh", 0.1]],
     "ਸ਼": [["sh", 0.9], ["s", 0.1]],
     "ਖ਼": [["kh", 1.0]],
     "ਗ਼": [["g", 0.7], ["gh", 0.3]],
@@ -121,7 +121,7 @@
   "geminateSingle": 0.2,
   "finals": {
     "ਂ": [["n", 0.6], ["", 0.3], ["m", 0.1]],
-    "ੰ": [["n", 0.85], ["m", 0.15]],
+    "ੰ": [["n", 0.8], ["m", 0.15], ["", 0.05]],
     "ਁ": [["n", 1.0]],
     "ਃ": [["h", 0.6], ["", 0.4]]
   },
@@ -140,10 +140,10 @@
     "replace": [
       ["chh", "c"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"],
       ["dh", "d"], ["ph", "p"], ["bh", "b"], ["rh", "r"], ["aa", "a"], ["ee", "i"], ["ii", "i"],
-      ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "ai"], ["mbh", "nb"], ["mb", "nb"],
+      ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "e"], ["iy", "i"], ["ey", "e"], ["khh", "k"], ["mbh", "nb"], ["mb", "nb"],
       ["mph", "np"], ["mp", "np"], ["nm", "m"], ["ai", "e"], ["ae", "e"]
     ],
-    "letters": {"z": "j", "f": "p", "w": "v", "q": "k"},
+    "letters": {"z": "j", "f": "p", "w": "v", "q": "k", "c": "k"},
     "vowels": "aeiou",
     "dropBetweenConsonants": "a",
     "dropFinal": "a"
@@ -158,6 +158,6 @@
     "addak": "The addak ੱ doubles the consonant after it (ਪੱਕਾ pakka, ਬਿੱਲੀ billi, ਉੱਤੇ utte). The tables have no sign that spells the letter after it, so every addak + consonant is a key of `consonants` (two code points), spelled with the consonant's first letter doubled or, a fifth of the time, single; ਅੱਛਾ is achha or accha. The skeleton drops a doubled letter, so pakka and paka are one key.",
     "nasals": "The tippi ੰ is n inside a word (ਪੰਜਾਬ punjab, ਮੁੰਡਾ munda), m before a labial (mb and mp fold to nb and np). The bindi ਂ ends many words and is typed n or not at all (ਨਹੀਂ nahin / nahi, ਮੈਂ main / mai, ਹਾਂ haan / haa), so optionalFinals names it: such a word is also keyed without the n.",
     "letters": "ਸ਼ ਖ਼ ਗ਼ ਜ਼ ਫ਼ ਲ਼ are the consonant + nukta after NFC (U+0A33, 0A36 and 0A59-0A5E are composition exclusions), so their keys are two code points. ੜ is r or d (ਪੜ੍ਹਨਾ parhna / padhna). The virama is written only for the subscript letters ੍ਰ ੍ਹ ੍ਵ (ਪ੍ਰੇਮ prem, ਪੜ੍ਹ parh). ੈ is ai, ae or e (ਹੈ hai / he). ਏ after a vowel is e or ye (ਜਾਏਗਾ jaega / jayega).",
-    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; ei to ai, then ai and ae to e (ੈ is typed ai, ae or e: ਪੈਸਾ paisa / pesa, so ੇ and ੈ words share keys and are told apart by ranking); mb and mp to nb and np; nm to m (ਨਿੰਮ nimm). An a between two consonants is dropped, and a final a after a consonant."
+    "skeleton": "Aspirates fold to their plain letters, sh and chh/ch to s and c, khh (ਖ਼) to k, z to j, f to p, w to v, q and a lone c to k (ਕ typed q or c: aqbar, academy); aa, ee and oo to a, i and u; ei, ey, ai and ae to e (ੈ is typed ai, ae or e: ਪੈਸਾ paisa / pesa, so ੇ and ੈ words share keys and are told apart by ranking); mb and mp to nb and np; nm to m (ਨਿੰਮ nimm); iy to i, for the y typists put between ਿ or ੀ and the vowel after it (ਅਕਾਲੀਆਂ akaliyan, ਅਕਸਰੀਅਤ aksariyat). An a between two consonants is dropped, and a final a after a consonant."
   }
 }
