@@ -160,7 +160,9 @@ fn the_index_kept_up_by_picks_is_the_one_a_restart_builds() {
     let hi = hindi(&live);
     assert!(!bar(&live, "kshitijavar").is_empty(), "the index is read before anything is picked");
     tap(&live, "", "raubdar", OWN);
-    tap(&live, "", "kshitijavardhan", "क्षितिजवर्धन");
+    // After an English word: at the start क्षितिज takes the middle and the model's spelling
+    // isn't offered (`rank::CONTEXT_AT_START_PACK`).
+    tap(&live, "to ", "kshitijavardhan", "क्षितिजवर्धन");
     live.note_choice("roabdaar", OWN, hi.as_ref());
     live.note_choice("jhumritalaiya", "झुमरीतलैया", hi.as_ref());
     live.forget_word("क्षितिजवर्धन");
@@ -198,7 +200,8 @@ fn uses_lift_it_and_a_second_use_lets_it_replace() {
         e.note_used("", OWN, Layout::Latin);
     }
     assert!(score(&e, "raubdaar", OWN) > loose);
-    assert_eq!(place(&e, "raub", OWN), 2, "{:?}", suggest(&e, "raub"));
+    // At the start of the text, as after a sentence end, it leads the side slots (before `rain`).
+    assert_eq!(place(&e, "raub", OWN), 1, "{:?}", suggest(&e, "raub"));
     // English stays English.
     assert_eq!(bar(&e, "round")[0], "round");
     assert_eq!(bar(&e, "I said teh")[0], "the");
@@ -232,7 +235,7 @@ fn removing_it_from_the_bar_drops_it_everywhere() {
     let reopened = engine("hi", true, Some(dir.path()));
     assert!(!bar(&reopened, "raubdaar").contains(&OWN.to_string()));
     // Clearing everything drops the index too.
-    tap(&reopened, "", "kshitijavardhan", "क्षितिजवर्धन");
+    tap(&reopened, "to ", "kshitijavardhan", "क्षितिजवर्धन");
     assert!(bar(&reopened, "kshitijavar").contains(&"क्षितिजवर्धन".to_string()));
     reopened.forget_learned();
     assert!(reopened.learned_words().is_empty());

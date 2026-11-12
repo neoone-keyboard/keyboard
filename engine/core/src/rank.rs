@@ -182,6 +182,18 @@ pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
 /// lifts translit-human top-1 0.5745 → 0.6205 and costs chat_golden two rows
 /// (0.8043 → 0.7981), a trade for its own sweep.
 pub const MANGLISH_MODEL_TRAILS: f32 = 0.3;
+/// Trailing readings are scored this much apart, in the model's order.
+///
+/// A word of the typed skeleton that the letters don't spell out (a loose match: Urdu کے,
+/// romanised `ke`, for `kya`), which the model doesn't read within `MANGLISH_MODEL_TRAILS` of
+/// its best lexicon reading, trails that reading too when the model is confident of it
+/// (`MANGLISH_MODEL_CONFIDENT`). Otherwise frequency decides between them, and an abjad's
+/// commonest words share many skeletons and outweigh the distance penalty: Urdu `kya` led with
+/// کے over کیا (read at −0.09 per token), `kaise` with کسی over کیسے (−0.12). On the
+/// held-out sets (first native suggestion), Urdu 27.45% → 29.33%, Hindi 57.85% → 58.45%,
+/// Tamil 47.87% → 48.09%, Assamese 54.50% → 54.70%; the English no-harm set unchanged, and
+/// the English typo set at the start of the text unchanged but for Urdu, 145 → 148 of 176.
+/// Not for Malayalam, as above.
 pub const MANGLISH_MODEL_TRAILS_STEP: f32 = 0.01;
 /// A model spelling scoring at least this per token is a confident reading:
 /// it may take the middle with its unfitted score (log probability, bias,
@@ -308,6 +320,26 @@ pub const OWN_WORD_REPLACES_AFTER: u32 = 2;
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;
 pub const CONTEXT_AT_START: f32 = -1.0;
+/// At the start of the text, with no Malayalam pack active: nothing before the first word of
+/// a message says which language it is in, so it is read as after a sentence end (`Ok.
+/// mera`), where the previous word is in no lexicon. At `CONTEXT_AT_START` a common word the
+/// letters fit lost there to a weak English correction or to the typed letters: Urdu `mera`
+/// kept the typed word (میرا −8.27 against `near` −9.17, within `AMBIGUOUS`), and a message
+/// that starts with a Latin word is laid out left to right. Measured with
+/// `MANGLISH_MODEL_TRAILS_STEP`'s loose matches in place, held-out first native suggestion /
+/// first slot: Hindi 58.45% / 30.25% → 61.85% / 42.30%, Urdu 29.33% / 8.21% → 30.40% /
+/// 10.80%, Tamil 48.09% / 24.98% → 48.71% / 30.87%, Assamese 54.70% / 32.42% → 55.74% /
+/// 37.89%. English no-harm (1,876 words): unchanged for hi, ta, as (3, 3, 2); Urdu 4 → 3. The
+/// cost is English typos typed as the first word, 176 rows: hi 154 → 150, ur 148 → 145, ta
+/// 153 → 150, as 154 → 153, mostly the typed word kept beside both readings (`speach`, the
+/// pack's loanword स्पीच close behind `speech`), a few read as the pack's word (`helo` →
+/// हेलो, Urdu `posession` → پوزیشن), as they already were after a sentence end. A lexicon
+/// word the letters only begin now crosses `MIN_REPLACE` there too, as after a word of the
+/// pack: `kshitijavardhan` gives क्षितिज, and the model's क्षितिजवर्धन isn't offered.
+///
+/// Malayalam keeps `CONTEXT_AT_START`, its ranking held as recorded (`make golden-check`);
+/// while it is active every pack does, so that none is favoured at the start.
+pub const CONTEXT_AT_START_PACK: f32 = 0.0;
 
 /// LM context window in tokens (design §2): the oldest whole words are dropped past it.
 pub const LM_WINDOW: usize = 32;
