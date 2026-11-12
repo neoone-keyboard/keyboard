@@ -286,9 +286,13 @@ Assamese and Tamil drop them, as their published lexicons were built: keeping th
 make every stored word with such a cluster unreachable from text that has the joiner, and
 the reverse. Keep them only if your language tells words apart by a joiner, or writes common
 words that are wrong without one (Malayalam's ഛത്തീസ്‌ഗഡ്), and then leave ZWJ and ZWNJ out
-of `replace`. A Devanagari `lang.json` that drops them can say nothing; the first two
-`replace` entries below drop them before NFC as well, which mends a few mis-typed
-sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
+of `replace`. Sinhala keeps them too (`data/langs/si/lang.json`): its yansaya and
+rakaransaya are written al-lakuna + ZWJ + ය or ර (ක්‍රමය, රාජ්‍ය, ශ්‍රී), and without the ZWJ
+the al-lakuna shows. Its text has both forms (ශ්‍රී 23,731 times, ශ්රී 1,100), and a few words
+are right without the ZWJ (දුම්රිය), so `replace` can't add it everywhere; each form stays a
+word with its own count, and the commoner leads the bar. A Devanagari `lang.json` that
+drops them can say nothing; the first two `replace` entries below drop them before NFC as
+well, which mends a few mis-typed sequences earlier. `make test-pack` checks every lexicon word against the pack's normal form.
 
 A Devanagari example (Marathi). Copy this rather than the Assamese file for any `deva`
 language:
@@ -362,7 +366,9 @@ it 250 (Odia `250,Page,ପୃଷ୍ଠା`, Punjabi `250,Page,ਪੰਨਾ`); wi
 the main namespace, and nothing says so. Not every language has all three wikis: Odia and
 Punjabi have no Wikiquote, so their scripts read two sources. Nepali has neither a Wikisource
 nor a Wikiquote of its own (a dump folder that is a 404 says so); its script reads Wikipedia and
-Wikibooks, which is CC BY-SA 4.0 too (`data/build-ne-text.sh`). Then run the script once
+Wikibooks, which is CC BY-SA 4.0 too (`data/build-ne-text.sh`). So does Sinhala
+(`data/build-si-text.sh`), which has no Wikisource, Wikiquote or Wikinews; Sinhala Wikibooks is
+mostly the Tripitaka and classical poetry, 42% of its words. Then run the script once
 by hand:
 
 ```sh
@@ -1137,9 +1143,10 @@ This:
 
 1. writes the training pairs (`python -m mlkb.langs.pairs --lang xx`) to
    `training/build/xx/pairs/`: 3M rows by default, 70% spelled from your tables for the
-   lexicon's common words and 30% Aksharantar's mined rows. It also writes Aksharantar's
-   manual test rows to `data/eval/xx/translit-human.tsv`, the held-out set, which training
-   never sees. `valid-human.tsv` is step 4's calibration pairs (it prints which split they
+   lexicon's common words and 30% Aksharantar's mined rows (with pairs of your own, step 4's
+   "Your own pairs", half or all of that 30% are yours). It also writes Aksharantar's
+   manual test rows (or, without Aksharantar, your pairs' test split) to
+   `data/eval/xx/translit-human.tsv`, the held-out set, which training never sees. `valid-human.tsv` is step 4's calibration pairs (it prints which split they
    came from), and their words are left out of training too;
 2. trains (`python -m mlkb.translit.train --lang xx`) into `training/build/xx/translit.pt`.
    Training stops when validation stops improving. It resumes if interrupted: run the same
