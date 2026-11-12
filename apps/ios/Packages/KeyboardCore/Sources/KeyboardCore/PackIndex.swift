@@ -11,6 +11,11 @@ import Foundation
 /// `url` may be relative to the index's own URL. `size` and `sha256` are of the `.neopack`
 /// archive. `nativeName` and `englishFingerprint` may be left out. An entry that doesn't decode
 /// is skipped; an index of another `format` is refused.
+///
+/// Beta packs, new and still learning, are listed in a second array, `beta`, of the same
+/// entries. Builds before it decode only `format` and `packs`, so they never offer a pack listed
+/// only there. A beta pack those builds already listed is in both arrays; it is one entry here.
+/// Every entry of an id in `beta` is tagged `beta`.
 public struct PackIndex: Sendable, Equatable {
     public static let format = 1
 
@@ -26,9 +31,13 @@ public struct PackIndex: Sendable, Equatable {
         public let url: URL
         public let englishFingerprint: String?
         public let minEngine: Int
+        /// Listed as beta: new and still learning (the index's `beta` array).
+        public let beta: Bool
 
         public init(id: String, name: String, nativeName: String? = nil, version: String, script: String,
-                    size: Int64, sha256: String, url: URL, englishFingerprint: String? = nil, minEngine: Int) {
+                    size: Int64, sha256: String, url: URL, englishFingerprint: String? = nil, minEngine: Int,
+                    beta: Bool = false) {
+            self.beta = beta
             self.id = id
             self.name = name
             self.nativeName = nativeName
@@ -71,35 +80,52 @@ public struct PackIndex: Sendable, Equatable {
         self.packs = packs
     }
 
-    /// For each pack id, the highest version this build reads (`support`), by name. An index
-    /// may list an id more than once: the newest version, and older ones kept for apps whose
-    /// engine can't read it (a lower `minEngine`), so every app is offered the language.
+    /// The ids listed as beta.
+    public var betaIDs: Set<String> { Set(packs.filter(\.beta).map(\.id)) }
+
+    /// For each pack id, the highest version this build reads (`support`): the full languages by
+    /// name, then the beta ones by name. An index may list an id more than once: the newest
+    /// version, and older ones kept for apps whose engine can't read it (a lower `minEngine`), so
+    /// every app is offered the language.
     public func newest(readableBy support: PackSupport) -> [Entry] {
         var best: [String: Entry] = [:]
         for entry in packs where entry.isReadable(by: support) {
             if let other = best[entry.id], !(PackVersion(other.version) < PackVersion(entry.version)) { continue }
             best[entry.id] = entry
         }
-        return best.values.sorted { ($0.name, $0.id) < ($1.name, $1.id) }
+        return best.values.sorted { ($0.beta ? 1 : 0, $0.name, $0.id) < ($1.beta ? 1 : 0, $1.name, $1.id) }
     }
 
     /// The index in `data`, fetched from `base` (for relative pack URLs).
     public static func decode(_ data: Data, base: URL) throws -> PackIndex {
         guard let file = try? JSONDecoder().decode(File.self, from: data) else { throw Refusal.notJSON }
         guard file.format == format else { throw Refusal.format(file.format) }
-        let entries = file.packs.compactMap { lenient -> Entry? in
-            guard let raw = lenient.value, PackInstaller.allowedID(raw.id), raw.size > 0,
-                  let url = URL(string: raw.url, relativeTo: base)?.absoluteURL else { return nil }
-            return Entry(id: raw.id, name: raw.name, nativeName: raw.nativeName, version: raw.version,
-                         script: raw.script, size: raw.size, sha256: raw.sha256.lowercased(), url: url,
-                         englishFingerprint: raw.englishFingerprint, minEngine: raw.minEngine)
+        func entries(_ list: [Lenient<RawEntry>]) -> [Entry] {
+            list.compactMap { lenient -> Entry? in
+                guard let raw = lenient.value, PackInstaller.allowedID(raw.id), raw.size > 0,
+                      let url = URL(string: raw.url, relativeTo: base)?.absoluteURL else { return nil }
+                return Entry(id: raw.id, name: raw.name, nativeName: raw.nativeName, version: raw.version,
+                             script: raw.script, size: raw.size, sha256: raw.sha256.lowercased(), url: url,
+                             englishFingerprint: raw.englishFingerprint, minEngine: raw.minEngine)
+            }
         }
-        return PackIndex(packs: entries)
+        let listed = entries(file.packs)
+        let beta = entries(file.beta ?? [])
+        let betaIDs = Set(beta.map(\.id))
+        // A beta pack older builds already listed is in both arrays: once here.
+        let merged = listed + beta.filter { b in !listed.contains { $0.id == b.id && $0.version == b.version } }
+        return PackIndex(packs: merged.map { e in
+            Entry(id: e.id, name: e.name, nativeName: e.nativeName, version: e.version, script: e.script,
+                  size: e.size, sha256: e.sha256, url: e.url, englishFingerprint: e.englishFingerprint,
+                  minEngine: e.minEngine, beta: betaIDs.contains(e.id))
+        })
     }
 
     private struct File: Decodable {
         let format: Int
         let packs: [Lenient<RawEntry>]
+        /// Left out by indexes without beta packs (and by the ones before beta packs).
+        let beta: [Lenient<RawEntry>]?
     }
 
     private struct RawEntry: Decodable {

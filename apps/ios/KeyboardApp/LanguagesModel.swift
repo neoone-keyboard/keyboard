@@ -24,6 +24,8 @@ final class LanguagesModel {
         /// What the keyboard's language key shows for it ("EN", "മ"); nil when its pack has no
         /// layout of its own.
         let languageKey: String?
+        /// The pack index lists it as beta: new and still learning.
+        var beta = false
     }
 
     enum IndexState: Equatable {
@@ -72,6 +74,14 @@ final class LanguagesModel {
             return Row(id: pack.id, name: pack.name, nativeName: pack.nativeName, version: pack.version,
                        size: PackSize.of(folder: pack.folder), builtIn: !inGroup,
                        removable: installedIDs.contains(pack.id), languageKey: pack.layout?.languageKey)
+        }
+        if case .loaded(let index) = index {
+            let beta = index.betaIDs
+            rows = rows.map { row in
+                var row = row
+                row.beta = beta.contains(row.id)
+                return row
+            }
         }
         let packIDs = packs.map(\.id)
         active = .shown(storedIn: PackLocations.activeLanguagesFile(), packIDs: packIDs)
@@ -159,12 +169,16 @@ final class LanguagesModel {
     }
 
     /// The index's packs this build reads that the user doesn't have, the newest version it
-    /// reads per id (the index may also list older versions kept for older engines).
+    /// reads per id (the index may also list older versions kept for older engines): the full
+    /// languages, then the beta ones.
     var downloadable: [PackIndex.Entry] {
         guard case .loaded(let index) = index else { return [] }
         let have = Set(rows.map(\.id))
         return index.newest(readableBy: InstalledPacks.support).filter { !have.contains($0.id) }
     }
+
+    /// Whether the screen lists a beta language, mine or to download (for the footnote).
+    var listsBeta: Bool { rows.contains(where: \.beta) || downloadable.contains(where: \.beta) }
 
     func offer(for id: String) -> PackOffer? { offers.first { $0.id == id } }
 

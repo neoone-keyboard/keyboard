@@ -104,7 +104,10 @@ private struct LanguageToggle: View {
     var body: some View {
         Toggle(isOn: Binding(get: { model.isOn(row.id) }, set: { _ in model.toggle(row.id) })) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(row.nativeName).font(.headline)
+                HStack(spacing: 6) {
+                    Text(row.nativeName).font(.headline)
+                    if row.beta { BetaPill() }
+                }
                 Text(detail).font(.subheadline).foregroundStyle(.secondary)
                 if let offer = model.offer(for: row.id) {
                     Text("Update available: \(offer.offered.version)").font(.footnote).foregroundStyle(.tint)
@@ -131,7 +134,7 @@ struct PackDownloadSection: View {
     let model: LanguagesModel
 
     var body: some View {
-        Section("Download") {
+        Section {
             switch model.index {
             case .idle, .loading:
                 HStack {
@@ -151,7 +154,27 @@ struct PackDownloadSection: View {
                                     .compactMap { $0 }.joined(separator: " · "))
                 }
             }
+        } header: {
+            Text("Download")
+        } footer: {
+            if model.listsBeta {
+                Text(BetaPill.note)
+            }
         }
+    }
+}
+
+/// The small rounded tag after a beta language's name.
+struct BetaPill: View {
+    static let note = "Beta languages are new and still learning. Tell us how they type for you."
+
+    var body: some View {
+        Text("Beta")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.tint.opacity(0.14), in: Capsule())
     }
 }
 
@@ -165,7 +188,10 @@ private struct DownloadRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.nativeName ?? entry.name).font(.headline)
+                HStack(spacing: 6) {
+                    Text(entry.nativeName ?? entry.name).font(.headline)
+                    if entry.beta { BetaPill() }
+                }
                 Text(detail).font(.subheadline).foregroundStyle(.secondary)
             }
             .padding(.vertical, 2)
