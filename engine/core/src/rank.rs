@@ -253,7 +253,8 @@ pub const MANGLISH_NEIGHBOUR_PROMOTION: f32 = 0.01;
 /// that fill them.
 pub const MANGLISH_NEIGHBOUR_PENALTY: f32 = 1.0;
 /// Score of the model's free spelling (off the lexicon), which replaces the
-/// rule-based one: side slot only, and only when no Malayalam word was found.
+/// rule-based one: side slot only, and only when no word of the pack was found
+/// (beside rare ones: `MANGLISH_MODEL_FREE_BESIDE`).
 /// It is often a near-duplicate of a lexicon word (കൊല്ലമൊ beside കൊല്ലമോ)
 /// and may outscore it, so it never competes for the middle.
 pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
@@ -272,9 +273,15 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// lexicon holds, so the lexicon word keeps the lead. Beside common whole forms as well:
 /// Tamil in the bar 55.8%, Hindi 65.2%, and the free beam on every word.
 ///
-/// Not for Malayalam, whose ranking is held as recorded (`make golden-check`) and whose
-/// suffix splits reach its inflected words: there it costs translit-human in the bar
-/// 80.7% → 80.4%.
+/// Malayalam too, since `thookkal` had no തൂക്കൽ (off its lexicon; the model reads it at −0.20
+/// per token, its best lexicon reading തൂക്കിൽ at −0.90): only തൂക്കിൽ, തുകൽ and ടുക്കൽ. There
+/// the free spelling is also held under the pack's best side or completion and under a likely
+/// English word once context has moved them (`Engine::keep_free_beside`), and the lexicon beam
+/// keeps its rows. `make eval`, before → after: every top-1 unchanged; translit-human in the
+/// bar 80.25% → 80.10% (lost കുടുംബാസൂത്രണ, ഗ്രന്ഥങ്ങളിലെ, ദിവസത്തിന്, റസാക്ക് to the model's own
+/// spellings; gained മൂപ്പിച്ച്); next_manglish keystroke savings 0.2092 → 0.2084; the rest
+/// unchanged. Without the hold, `maintainance` lost `maintenance` (English typos in the bar
+/// 97.16% → 96.59%) and `Decembe` showed ഡിസംബെ in place of ഡിസംബർ.
 pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
 /// The user's own words (`own::OwnWords`): native-script words tapped in the bar that the
 /// pack's lexicon doesn't hold (the transliterator's free spelling, mostly), which from then on
