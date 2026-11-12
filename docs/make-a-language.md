@@ -528,7 +528,11 @@ report says so, and three things follow:
   chance. Judge the model by the held-out numbers of step 11, which use thousands of rows.
 
 You can't add your own typed pairs yet: the tools read human pairs only from Aksharantar
-(gap G6).
+and, for a language listed in `DAKSHINA` in `training/mlkb/langs/human.py`, from Dakshina's
+lexicon (gap G6). Punjabi is listed: Aksharantar has no typed Punjabi pairs outside its test
+split, so its tables calibrate on Dakshina's train split, its transliterator trains on those
+pairs beside Aksharantar's mined ones and validates on the dev split, and the test split is
+held out. Dakshina is CC BY-SA 4.0: a pack that uses it credits it, as Punjabi's does.
 
 **One letter, several sounds.** Some scripts write several sounds with one letter. Tamil has
 one letter for k, g and h (க), one for t and d (ட), one for th and dh (த), one for p and b

@@ -39,7 +39,7 @@
     "ਘ": "gh",
     "ਙ": "n",
     "ਚ": "ch",
-    "ਛ": "chh",
+    "ਛ": "ch",
     "ਜ": "j",
     "ਝ": "jh",
     "ਞ": "n",
@@ -72,27 +72,27 @@
     "ਫ਼": "f",
     "ਲ਼": "l",
     "ੱਕ": "kk",
-    "ੱਖ": "kkh",
+    "ੱਖ": "kh",
     "ੱਗ": "gg",
     "ੱਘ": "ggh",
     "ੱਙ": "nn",
-    "ੱਚ": "cch",
+    "ੱਚ": "ch",
     "ੱਛ": "chh",
     "ੱਜ": "jj",
-    "ੱਝ": "jjh",
+    "ੱਝ": "jh",
     "ੱਞ": "nn",
     "ੱਟ": "tt",
-    "ੱਠ": "tth",
+    "ੱਠ": "th",
     "ੱਡ": "dd",
     "ੱਢ": "ddh",
     "ੱਣ": "nn",
     "ੱਤ": "tt",
-    "ੱਥ": "tth",
+    "ੱਥ": "th",
     "ੱਦ": "dd",
-    "ੱਧ": "ddh",
+    "ੱਧ": "dh",
     "ੱਨ": "nn",
     "ੱਪ": "pp",
-    "ੱਫ": "pph",
+    "ੱਫ": "ff",
     "ੱਬ": "bb",
     "ੱਭ": "bbh",
     "ੱਮ": "mm",
@@ -103,7 +103,7 @@
     "ੱਸ": "ss",
     "ੱਹ": "hh",
     "ੱੜ": "rr",
-    "ੱਸ਼": "ssh",
+    "ੱਸ਼": "sh",
     "ੱਖ਼": "kkh",
     "ੱਗ਼": "gg",
     "ੱਜ਼": "zz",
@@ -118,7 +118,7 @@
   },
   "clusters": {
     "ਸ੍ਰ": "sr",
-    "ੜ੍ਹ": "rh"
+    "ੜ੍ਹ": "dh"
   },
   "skeleton": {
     "dropTrailing": {
@@ -126,12 +126,13 @@
       "afterVowel": true,
       "minLength": 3
     },
-    "pairs": [["chh", "c"], ["mbh", "nb"], ["mph", "np"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["rh", "r"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "ai"], ["mb", "nb"], ["mp", "np"], ["nm", "m"], ["ai", "e"], ["ae", "e"]],
+    "pairs": [["chh", "c"], ["khh", "k"], ["mbh", "nb"], ["mph", "np"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["rh", "r"], ["aa", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["ei", "e"], ["iy", "i"], ["ey", "e"], ["mb", "nb"], ["mp", "np"], ["nm", "m"], ["ai", "e"], ["ae", "e"]],
     "singles": {
       "z": "j",
       "f": "p",
       "w": "v",
-      "q": "k"
+      "q": "k",
+      "c": "k"
     },
     "collapseDoubles": true,
     "dropBetweenConsonants": "a",
@@ -146,5 +147,5 @@
     "collapse": "aiu"
   },
   "optionalFinals": ["ਂ"],
-  "notes": "inherent: The inherent vowel is typed 'a' inside a word and dropped at its end (ਘਰ ghar). Speech drops it inside words too (ਕਰਦਾ karda, ਸਮਝ samajh), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key. addak: The addak ੱ doubles the consonant after it (ਪੱਕਾ pakka, ਬਿੱਲੀ billi, ਉੱਤੇ utte). The tables have no sign that spells the letter after it, so every addak + consonant is a key of `consonants` (two code points), spelled with the consonant's first letter doubled or, a fifth of the time, single; ਅੱਛਾ is achha or accha. The skeleton drops a doubled letter, so pakka and paka are one key. nasals: The tippi ੰ is n inside a word (ਪੰਜਾਬ punjab, ਮੁੰਡਾ munda), m before a labial (mb and mp fold to nb and np). The bindi ਂ ends many words and is typed n or not at all (ਨਹੀਂ nahin / nahi, ਮੈਂ main / mai, ਹਾਂ haan / haa), so optionalFinals names it: such a word is also keyed without the n. letters: ਸ਼ ਖ਼ ਗ਼ ਜ਼ ਫ਼ ਲ਼ are the consonant + nukta after NFC (U+0A33, 0A36 and 0A59-0A5E are composition exclusions), so their keys are two code points. ੜ is r or d (ਪੜ੍ਹਨਾ parhna / padhna). The virama is written only for the subscript letters ੍ਰ ੍ਹ ੍ਵ (ਪ੍ਰੇਮ prem, ਪੜ੍ਹ parh). ੈ is ai, ae or e (ਹੈ hai / he). ਏ after a vowel is e or ye (ਜਾਏਗਾ jaega / jayega). skeleton: Aspirates fold to their plain letters, sh and chh/ch to s and c, z to j, f to p, w to v, q to k; aa, ee and oo to a, i and u; ei to ai, then ai and ae to e (ੈ is typed ai, ae or e: ਪੈਸਾ paisa / pesa, so ੇ and ੈ words share keys and are told apart by ranking); mb and mp to nb and np; nm to m (ਨਿੰਮ nimm). An a between two consonants is dropped, and a final a after a consonant."
+  "notes": "inherent: The inherent vowel is typed 'a' inside a word and dropped at its end (ਘਰ ghar). Speech drops it inside words too (ਕਰਦਾ karda, ਸਮਝ samajh), and typists follow speech or the letters; the skeleton drops every a between two consonants so both give one key. addak: The addak ੱ doubles the consonant after it (ਪੱਕਾ pakka, ਬਿੱਲੀ billi, ਉੱਤੇ utte). The tables have no sign that spells the letter after it, so every addak + consonant is a key of `consonants` (two code points), spelled with the consonant's first letter doubled or, a fifth of the time, single; ਅੱਛਾ is achha or accha. The skeleton drops a doubled letter, so pakka and paka are one key. nasals: The tippi ੰ is n inside a word (ਪੰਜਾਬ punjab, ਮੁੰਡਾ munda), m before a labial (mb and mp fold to nb and np). The bindi ਂ ends many words and is typed n or not at all (ਨਹੀਂ nahin / nahi, ਮੈਂ main / mai, ਹਾਂ haan / haa), so optionalFinals names it: such a word is also keyed without the n. letters: ਸ਼ ਖ਼ ਗ਼ ਜ਼ ਫ਼ ਲ਼ are the consonant + nukta after NFC (U+0A33, 0A36 and 0A59-0A5E are composition exclusions), so their keys are two code points. ੜ is r or d (ਪੜ੍ਹਨਾ parhna / padhna). The virama is written only for the subscript letters ੍ਰ ੍ਹ ੍ਵ (ਪ੍ਰੇਮ prem, ਪੜ੍ਹ parh). ੈ is ai, ae or e (ਹੈ hai / he). ਏ after a vowel is e or ye (ਜਾਏਗਾ jaega / jayega). skeleton: Aspirates fold to their plain letters, sh and chh/ch to s and c, khh (ਖ਼) to k, z to j, f to p, w to v, q and a lone c to k (ਕ typed q or c: aqbar, academy); aa, ee and oo to a, i and u; ei, ey, ai and ae to e (ੈ is typed ai, ae or e: ਪੈਸਾ paisa / pesa, so ੇ and ੈ words share keys and are told apart by ranking); mb and mp to nb and np; nm to m (ਨਿੰਮ nimm); iy to i, for the y typists put between ਿ or ੀ and the vowel after it (ਅਕਾਲੀਆਂ akaliyan, ਅਕਸਰੀਅਤ aksariyat). An a between two consonants is dropped, and a final a after a consonant."
 }

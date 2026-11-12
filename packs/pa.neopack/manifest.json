@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "pa",
-  "version": "2026.11.12",
+  "version": "2026.11.13",
   "name": "Punjabi",
   "nativeName": "ਪੰਜਾਬੀ",
   "script": "guru",
@@ -27,9 +27,9 @@
     "layout.json": "eed93c677dc90baef4f05e30c228e4d9512a9337171f67a6ef441c6c6aa68669",
     "next.fst": "5096c872a2238cba88799d341d653bff85fff8abb765bc4a7df338356f7de441",
     "pa.fst": "173a6f58111e7b6bbc30b4aadac81338d1c27e9c0893ea1151976b2fe84a85b9",
-    "romanisation.json": "2300ede7dfeeb6aa8c7d9b8dcd30df6a7d4758c11ed1022df5571299098bbb27",
-    "romanised.fst": "791d7612e02de98df46988c593d0c4d6e403eb8159756bb2c43f2fd32afb9a30",
-    "translit.mlkbnn": "ba7be8d8f261d74a476d46dc3b7b6b760f47d805d3333e089aba750ea8eeb1da"
+    "romanisation.json": "ba511c7b60964938e8f087a6a10fd2e54bf9d8513ebe95e3cc2bd05217546864",
+    "romanised.fst": "68a0632b04809d859f25c0cd7d4b029360744a7fa48a589e266c0755fb29647a",
+    "translit.mlkbnn": "e92da5dca977195fee52ebe07642d1a805ee7200886ee693bdbd6712b63751f7"
   },
   "credits": [
     {
@@ -41,6 +41,14 @@
       "name": "Punjabi Wikisource",
       "licence": "CC BY-SA 4.0",
       "url": "https://pa.wikisource.org/"
+    },
+    {
+      "id": "dakshina",
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Punjabi romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator and to fit the romanisation tables. https://github.com/google-research-datasets/dakshina"
     },
     {
       "name": "Aksharantar (AI4Bharat)",

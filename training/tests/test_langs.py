@@ -431,3 +431,54 @@ def test_a_lang_that_lists_its_letters():
     assert not lang.in_block("َ") and not lang.in_block("ك") and not lang.in_block("۱")
     assert lang.is_word("پاکستان") and not lang.is_word("ںا")
     assert lang.normalize("كتاب") == "کتاب" and lang.normalize("کِتاب") == "کتاب"
+
+
+# ---- Dakshina's lexicon for a pack language (Punjabi): train trains and calibrates, dev
+# validates, test is held out ----
+
+DAKSHINA_PA = {
+    "train": ["ਪਾਣੀ\tpani\t3", "ਪਾਣੀ\tpaani\t1", "ਘਰ\tghar\t2", "ਕੱਲ੍ਹ\tkal\t1"],
+    "dev": ["ਦਿਨ\tdin\t2"],
+    "test": ["ਰਾਤ\traat\t1", "ਰਾਤ\trat\t1"],
+}
+
+
+def _fake_dakshina(monkeypatch, tmp_path, splits: dict[str, list[str]]) -> None:
+    lexicons = tmp_path / "dakshina/dakshina_dataset_v1.0/pa/lexicons"
+    lexicons.mkdir(parents=True)
+    for split, lines in splits.items():
+        text = "".join(f"{line}\n" for line in lines)
+        (lexicons / f"pa.translit.sampled.{split}.tsv").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(human, "RAW", tmp_path)
+
+
+def test_dakshina_rows_keep_their_annotator_counts(monkeypatch, tmp_path):
+    _fake_dakshina(monkeypatch, tmp_path, DAKSHINA_PA)
+    rows = human.dakshina("pa", "train")
+    assert [(h.latin, h.native, h.count) for h in rows][:2] == [("pani", "ਪਾਣੀ", 3), ("paani", "ਪਾਣੀ", 1)]
+    assert all(h.source == "Dakshina" for h in rows)
+    assert human.dakshina("as", "train") == [], "a language without Dakshina has none"
+
+
+def test_dakshina_dev_and_test_words_are_held_out(monkeypatch, tmp_path):
+    _fake_dakshina(monkeypatch, tmp_path, DAKSHINA_PA)
+    held = human.held_out_words("pa", [_hp("ਘਰ", latin="ghar")])
+    assert held == {"ਘਰ", "ਦਿਨ", "ਰਾਤ"}
+    rows, where = human.calibration("pa", held)
+    assert "Dakshina's train split" in where
+    assert {h.native for h in rows} == {"ਪਾਣੀ", "ਕੱਲ੍ਹ"}, "calibrates on train, never a held-out word"
+
+
+def test_pairs_train_on_dakshina_and_validate_on_its_dev_split(monkeypatch, tmp_path):
+    from mlkb.langs import pairs
+
+    _fake_dakshina(monkeypatch, tmp_path, DAKSHINA_PA)
+    mined = [_hp("ਪਾਣੀ", "IndicCorp", "pani"), _hp("ਦਿਨ", "IndicCorp", "din"), _hp("ਰਾਤ", "IndicCorp", "raat")]
+    _fake_aksharantar(monkeypatch, {"train": mined, "test": [_hp("ਘਰ", latin="ghar")]})
+    monkeypatch.setattr(pairs, "write_eval", lambda *a, **k: None)
+    out = tmp_path / "pairs"
+    pairs.main(["--lang", "pa", "--out", str(out), "--rows", "3000", "--words", "3000"])
+    train = [line.split("\t") for line in (out / "train.tsv").read_text(encoding="utf-8").splitlines()]
+    assert not {native for _, native in train} & {"ਘਰ", "ਦਿਨ", "ਰਾਤ"}, "no held-out word in any training pair"
+    assert ["kal", "ਕੱਲ੍ਹ"] in train, "Dakshina's train pairs train"
+    assert (out / "valid-human.tsv").read_text(encoding="utf-8") == "din\tਦਿਨ\n"
