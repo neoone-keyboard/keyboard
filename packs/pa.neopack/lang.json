@@ -1,0 +1,29 @@
+{
+  "id": "pa",
+  "name": "Punjabi",
+  "script": "guru",
+  "block": ["0A00", "0A7F"],
+  "notWord": [["0A66", "0A6F"], ["0A74", "0A74"], ["0A76", "0A76"]],
+  "firstLetter": [["0A05", "0A14"], ["0A15", "0A39"], ["0A59", "0A5E"], ["0A72", "0A73"]],
+  "virama": "0A4D",
+  "signs": [["0A3E", "0A4D"], ["0A51", "0A51"], ["0A75", "0A75"]],
+  "bases": [["0A15", "0A39"], ["0A3C", "0A3C"], ["0A59", "0A5E"]],
+  "apostrophe": false,
+  "replace": [
+    ["ਅਾ", "ਆ"], ["ਅੈ", "ਐ"], ["ਅੌ", "ਔ"], ["ੲਿ", "ਇ"], ["ੲੀ", "ਈ"], ["ੲੇ", "ਏ"],
+    ["ੳੁ", "ਉ"], ["ੳੂ", "ਊ"], ["ੳੋ", "ਓ"]
+  ],
+  "phraseBreaks": ["।", "॥"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "aksharantar": "pan",
+  "notes": {
+    "about": "Punjabi in Gurmukhi, a script the engine has no rules of its own for: this file is all it knows. Sources: data/manifests/pawiki.json, pawikisource.json, aksharantar-pan.json.",
+    "notWord": "The digits ੦-੯, ek onkar ੴ (a symbol, not a word) and the abbreviation sign ੶.",
+    "firstLetter": "Independent vowels, consonants, the nukta letters (U+0A59-0A5E; ਖ਼ ਗ਼ ਜ਼ ਫ਼ are their consonant + nukta after NFC, ੜ is its own letter), and the vowel bearers ੲ ੳ. Never a sign, the bindi, tippi or addak.",
+    "signs": "Vowel signs, the virama (written only for the subscript ੍ਰ ੍ਹ ੍ਵ ੍ਯ), udaat and yakash must follow a consonant. The bindi ਂ, tippi ੰ, adak bindi ਁ and visarga ਃ are left out: they follow independent vowels as well (ਉਂ, ਅੰਦਰ). So is the addak ੱ, which doubles the consonant after it and may follow an independent vowel (ਉੱਤੇ, ਉੱਪਰ).",
+    "replace": "Independent vowels typed as their bearer (ਅ ੲ ੳ) plus a vowel sign are mended to the letter Unicode has for them (ੲਿ is ਇ, ੳੁ is ਉ); ੲ and ੳ alone stay as they are. ਲ਼ and ਸ਼ are ਲ and ਸ + nukta after NFC (composition exclusions), like ਖ਼ ਗ਼ ਜ਼ ਫ਼. Every ZWJ and ZWNJ is dropped (no joiners field): the text has fewer than 100 of each.",
+    "phraseBreaks": "Punjabi ends a sentence with the danda । (U+0964); ॥ ends verse."
+  }
+}

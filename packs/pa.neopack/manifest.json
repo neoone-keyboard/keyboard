@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "id": "pa",
+  "version": "2026.11.12",
+  "name": "Punjabi",
+  "nativeName": "ਪੰਜਾਬੀ",
+  "script": "guru",
+  "romanised": {
+    "name": "Romanised Punjabi"
+  },
+  "minEngine": 7,
+  "files": {
+    "lexicon": "pa.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
+  },
+  "sha256": {
+    "emoji-search.txt": "130024552a6f4a24475b38d04cbe6af911fecf266d7acef0d988209c832ae630",
+    "emoji-words.txt": "27a3e1162f9f26eb3092f403a207e7ff53e67f535fe0582d85976d588fa5e766",
+    "lang.json": "2738abf192bdd23dc1fdd5368baa39f3a28b19ead03f9ca501ae1554e9dd4f5f",
+    "layout.json": "eed93c677dc90baef4f05e30c228e4d9512a9337171f67a6ef441c6c6aa68669",
+    "next.fst": "5096c872a2238cba88799d341d653bff85fff8abb765bc4a7df338356f7de441",
+    "pa.fst": "173a6f58111e7b6bbc30b4aadac81338d1c27e9c0893ea1151976b2fe84a85b9",
+    "romanisation.json": "2300ede7dfeeb6aa8c7d9b8dcd30df6a7d4758c11ed1022df5571299098bbb27",
+    "romanised.fst": "791d7612e02de98df46988c593d0c4d6e403eb8159756bb2c43f2fd32afb9a30",
+    "translit.mlkbnn": "ba7be8d8f261d74a476d46dc3b7b6b760f47d805d3333e089aba750ea8eeb1da"
+  },
+  "credits": [
+    {
+      "name": "Punjabi Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://pa.wikipedia.org/"
+    },
+    {
+      "name": "Punjabi Wikisource",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://pa.wikisource.org/"
+    },
+    {
+      "name": "Aksharantar (AI4Bharat)",
+      "licence": "CC BY and CC0 1.0",
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Punjabi emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Punjabi."
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}

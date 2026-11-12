@@ -1,0 +1,24 @@
+{
+  "id": "pawiki",
+  "name": "Punjabi Wikipedia",
+  "homepage": "https://pa.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://pa.wikipedia.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Punjabi Wikipedia articles by Wikipedia contributors.",
+  "used_for": "Punjabi word frequencies, romanised Punjabi lookup and next-word pairs (packs/pa.neopack; 2026-11-01 dump, less the paragraphs that are mostly repeated text, which data/build-pa-text.sh drops with data/pipeline/drop_repeats.py).",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/pawiki/20261101/pawiki-20261101-pages-articles.xml.bz2",
+      "sha1": "f2a9db0be39367ee30e9522bb3bcc8fad92882dc",
+      "path": "pawiki-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/pa.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}
