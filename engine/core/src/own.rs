@@ -176,7 +176,7 @@ impl OwnWords {
 /// with a shorter spelling); None for a word it could not key: one with no skeleton, or with
 /// a character outside the script.
 fn word_skeletons(r: &Romanisation, word: &str) -> Option<Vec<String>> {
-    manglish::pack(word, manglish::block_base(r)?)?;
+    manglish::pack(word, manglish::packing(r)?)?;
     Some(r.word_skeletons(word)).filter(|skeletons| !skeletons.is_empty())
 }
 

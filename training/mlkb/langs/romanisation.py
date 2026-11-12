@@ -112,6 +112,18 @@ class Tables:
                 return key
         return None
 
+    def _cluster_at(self, word: str, i: int) -> str | None:
+        """The `clusters` key at `word[i:]`, longest first (a script without a virama)."""
+        for key in self._cluster_keys:
+            if word.startswith(key, i):
+                return key
+        return None
+
+    def _cluster_parts(self, key: str) -> list[str]:
+        """A `clusters` key's consonants: split at the virama, or, in a script without one, the
+        whole key (its letters stand side by side, matched by `_cluster_at`)."""
+        return key.split(self.virama) if self.virama else [key]
+
     def _consonant_at(self, word: str, i: int) -> str | None:
         """The consonant table key at `word[i:]` (a letter, or a letter + nukta), longest first."""
         for key in self._consonant_keys:
@@ -135,18 +147,25 @@ class Tables:
                 out.append(Slot("F", t["finals"][c], "finals", c))
                 i += 1
                 continue
-            first = self._consonant_at(word, i)
+            # A script without a virama (Urdu's) writes its clusters as letters side by side
+            # (بھ, b + do-chashmi he): a `clusters` key is then that text, matched longest first
+            # where it stands, as the format-1 walk matches every cluster.
+            joined = None if self.virama else self._cluster_at(word, i)
+            first = joined or self._consonant_at(word, i)
             if first is not None:
                 # The cluster: consonant (virama consonant)*.
                 cluster = [first]
                 j = i + len(first)
-                while j + 1 < n and word[j] == self.virama:
+                while self.virama and j + 1 < n and word[j] == self.virama:
                     nxt = self._consonant_at(word, j + 1)
                     if nxt is None:
                         break
                     cluster.append(nxt)
                     j += 1 + len(nxt)
-                out.extend(self._pieces(cluster))
+                if joined is not None:
+                    out.append(Slot("C", t["clusters"][joined], "clusters", joined))
+                else:
+                    out.extend(self._pieces(cluster))
                 # The vowel it carries.
                 if j < n and word[j] in t["vowelSigns"]:
                     out.append(Slot("V", t["vowelSigns"][word[j]], "vowelSigns", word[j]))
@@ -154,7 +173,7 @@ class Tables:
                 elif j < n and self.apostrophe and word[j] == self.apostrophe:
                     out.append(Slot("V", _options(self.data["apostropheVowel"]), "apostropheVowel", "'"))
                     j += 1
-                elif j < n and word[j] == self.virama:
+                elif self.virama and j < n and word[j] == self.virama:
                     j += 1  # a virama with nothing after it: no vowel
                 else:
                     at_end = j >= n or all(ch in "‌‍" for ch in word[j:])
@@ -217,13 +236,13 @@ class Tables:
         while k < len(cluster):
             joined = None
             for key in self._cluster_keys:
-                parts = key.split(self.virama)
+                parts = self._cluster_parts(key)
                 if cluster[k : k + len(parts)] == parts:
                     joined = key
                     break
             if joined is not None:
                 out.append(Slot("C", t["clusters"][joined], "clusters", joined))
-                k += len(joined.split(self.virama))
+                k += len(self._cluster_parts(joined))
                 continue
             letter = cluster[k]
             after_virama = k > 0

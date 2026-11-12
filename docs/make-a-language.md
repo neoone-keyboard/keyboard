@@ -28,9 +28,14 @@ Check three things first.
    three files, used only for a pack in `mlym`, `deva` or `beng` that has no `lang` file (the
    packs published before packs carried one). Its `beng` copy is Assamese's, so a Bengali
    pack must carry its own file.
-2. **The script is Brahmic and fits one 128-code-point Unicode block.** The romanisation
-   format (consonants with an inherent vowel, vowel signs, a virama), the transliterator's
-   vocabulary and the romanised lexicon's encoding all assume this (gap G3).
+2. **The script's words are letters the romanisation format can walk.** The format reads a
+   word as consonants, each with an inherent vowel unless a vowel sign or letter follows, and
+   clusters (gap G3). A Brahmic script fits it directly. A script that writes no short vowels
+   and has no virama fits too, as Urdu does (`data/langs/ur`): its vowel letters are the
+   `vowelSigns`, `virama` is `""`, the aspirates are `clusters` written side by side, and the
+   skeleton drops the vowels it can't see. A script in one 128-code-point block packs its
+   romanised keys and transliterator vocabulary from the block start; a script spread over a
+   larger block lists its letters as `charTable` instead (at most 225 characters, engine 8).
 3. **There are human romanisations to learn from.** The tools read them from
    [Aksharantar](https://huggingface.co/datasets/ai4bharat/Aksharantar), which covers 21
    languages. A language without Aksharantar data needs code changes (gap G6).
@@ -234,6 +239,7 @@ engine the same: one definition for both. The engine's parser is
 | `id`, `name`, `script` | The pack id, English name, and ISO 15924 script code in lower case (`gujr`, `taml`; a private-use code such as `qaaa` for an invented script). |
 | `block` | The script's Unicode block, first and last code point in hex. |
 | `letters` | More ranges of the script's characters, `[["first", "last"], …]`, for a script not in one block. `block`, `letters` or both. |
+| `charTable` | `[["first", "last"], …]`: every character a word of the script may hold, in the order the romanised lexicon and the transliterator number them (at most 225). For a script whose letters are not one 128-code-point block: Urdu's 47 letters are scattered over the 256 of Arabic. The ranges must lie inside `block` and `letters`. Don't change it once a pack is published: its transliterator and romanised lexicon are only read with the same table. Optional: without it, characters are numbered from the block start. Engine 8. |
 | `notWord` | Ranges in the block that are not letters (digits, currency signs). |
 | `firstLetter` | Ranges a word may start with: independent vowels, consonants, and any other letter that starts a written word, even if only in loanwords (Tamil lists aytham ஃ for ஃபேஸ்புக்). Never signs. A token that starts with anything else is dropped. Optional: any letter that isn't a sign. |
 | `virama` | The virama's code point. Optional. |
@@ -431,7 +437,13 @@ When speech drops them and typists do either, also set `"dropBetweenConsonants":
 hand file's `skeleton`: every `a` with a consonant on both sides then leaves the key, so
 `karanar` and `karnar` find the same word. Hindi's file has it, and Marathi, Bengali, Maithili
 and Bhojpuri use it (Marathi's calibration skeleton went from 96.2% to 98.0%, and the held-out
-rows, whose typists drop far more of them, from 52.0% to 70.3%). The cost is the one every
+rows, whose typists drop far more of them, from 52.0% to 70.3%). Urdu, which writes no short
+vowels at all, has it too, with every vowel folded to `a` first, so its skeleton is the
+consonants and whether the word starts or ends with a vowel. The fit puts first whatever
+spelling the typists used most; to keep a slot's canonical spelling first whatever they typed,
+name the slot in the hand file's `keepCanonical` (`"inherent.medial"`, or a whole table).
+Urdu keeps the medial `a`: typists usually leave it out, but a walk without it would run
+ک and ہ together as `kh`, the aspirate. The cost is the one every
 fold has: words that differ only by such a vowel share a key.
 
 **Calibrate.** Fit the weights to the human pairs:
@@ -871,7 +883,8 @@ writes its checksums, and stops at the start if it is missing. Copy
   new packs need 6, as every `romanisation.json` has `looseSpelling`, and a pack that uses
   Hindi's habits (`optionalFinals`, the skeleton's `alsoBetweenConsonants`,
   `alsoBesideConsonant`, `dropTrailing.alsoKept`) or a `deva` or `beng` pack whose
-  `lang.json` isn't Hindi's or Assamese's needs 7. Malayalam's own pack stays at 1: engine 1
+  `lang.json` isn't Hindi's or Assamese's needs 7, and one whose `lang.json` has a
+  `charTable` (Urdu's) needs 8. Malayalam's own pack stays at 1: engine 1
   has its rules in code. A field or role the engine has no level for is an error too: an
   engine change that adds one raises `PACK_ENGINE`, says in its comment what the new level
   reads, and gives the field its level in `Pack::needs`.

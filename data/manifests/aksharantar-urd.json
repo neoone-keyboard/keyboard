@@ -1,0 +1,27 @@
+{
+  "id": "aksharantar-urd",
+  "name": "Aksharantar (AI4Bharat), Urdu",
+  "homepage": "https://huggingface.co/datasets/ai4bharat/Aksharantar",
+  "licence": "CC BY and CC0 1.0",
+  "licence_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licence_source": "https://huggingface.co/datasets/ai4bharat/Aksharantar/raw/main/README.md (Licensing Information, read 2026-11-12): \"Manually collected data: Released under CC-BY license. Mined dataset (from Samanantar and IndicCorp): Released under CC0 license. Existing sources: Released under CC0 license.\" Same terms as the Malayalam file (aksharantar.json); the same source filter is applied.",
+  "attribution": "Aksharantar by AI4Bharat (Madhani et al., 2022), CC BY and CC0.",
+  "verdict": "use (filtered)",
+  "verdict_reason": "The Urdu files have 'Dakshina' and 'Existing' rows, which the filter in training/mlkb/data/human.py drops (the project's licence audit keeps them out of a pack): 73,666 Dakshina and 2,554 Existing rows of urd_train.json are dropped by the filter. What is used is mined (IndicCorp: CC0) or AI4Bharat's manual collection (AK-Uni: CC BY).",
+  "used_for": "urd_train.json rows (IndicCorp with mining score >= -0.2, and the manual AK-Uni rows) as transliterator training pairs for packs/ur.neopack (30% of train.tsv; the rest is spelled from the romanisation tables, mlkb.langs.pairs). urd_valid.json has no manual rows, so a held-out 25% (by word) of urd_train.json's AK-Uni rows calibrates the romanised Urdu tables (data/langs/ur/romanisation-weights.json) and validates training (valid-human.tsv); those words are in no training pair. urd_test.json's manual rows (AK-Uni, AK-NEI, AK-NEF, CC BY; 4,427, of which 4,408 distinct pairs after cleaning) are the held-out eval set, data/eval/ur/translit-human.tsv: its words are left out of every training pair.",
+  "retrieved": "2026-11-12",
+  "notes": "Fetched 2026-11-12. Extract with: unzip urd.zip -d data/raw/aksharantar-urd/extracted (data/build-ur-text.sh does). urd_train.json has 699,024 rows: IndicCorp 620,359, Dakshina 73,666, Existing 2,554, AK-Uni 2,445. urd_valid.json 12,419: Dakshina 9,627, IndicCorp 2,792 (no manual rows). urd_test.json 14,878: Dakshina 10,451, AK-Uni 2,437, AK-NEI 1,174, AK-NEF 816. Aksharantar's Urdu native side almost never writes short-vowel marks (zer, zabar, pesh), as Urdu is usually written: 798 of the 713,902 rows of urd_train.json and urd_test.json have one, which data/langs/ur/lang.json's replace pairs strip. The CC0 statement says 'We do not own any of the text from which this data has been extracted': mined pairs are single words, which we treat as unprotectable on their own.",
+  "files": [
+    {
+      "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar/resolve/main/urd.zip",
+      "sha256": "5d2b06eccefdfa457b27c03120aec2131e1316368d3439631396f7d3defb7e3a",
+      "path": "urd.zip"
+    }
+  ],
+  "status": "in packs/ur.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "extracted": {
+    "urd_train.json": "94a3a21c94cd7963cb9d7ca9f25d2ab54c94b50c5c869a2204affddd6abab14b",
+    "urd_valid.json": "31ae3b72e12958d57cc8848967a4d838191a2dc3206de23d7933a8fe1da1a675",
+    "urd_test.json": "e687fc30510bfdcb3b6c4de1bcf3ccd01c3f76ab8350ec74e1a9aaf3f8308cd2"
+  }
+}

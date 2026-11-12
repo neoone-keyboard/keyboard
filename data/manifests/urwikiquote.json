@@ -1,0 +1,24 @@
+{
+  "id": "urwikiquote",
+  "name": "Urdu Wikiquote",
+  "homepage": "https://ur.wikiquote.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://ur.wikiquote.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Quotations on Urdu Wikiquote, collected by Wikiquote contributors.",
+  "used_for": "Urdu word frequencies and next-word pairs (packs/ur.neopack; whole 2026-11-01 dump).",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/urwikiquote/20261101/urwikiquote-20261101-pages-articles.xml.bz2",
+      "sha1": "cc7613e2199fa7bedc8e777d77dfdfb68fd72fa2",
+      "path": "urwikiquote-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/ur.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

@@ -11,8 +11,8 @@
 //!
 //! Normal form: `ScriptDef::normalize` (the config's `replace` pairs, the engine's `normalize`,
 //! the pairs again). The romanised lookup keys are packed one byte per character like
-//! `manglish.fst`'s (`pack`), from the first code point of the script, so they need a script of
-//! at most 128 code points.
+//! `manglish.fst`'s (`pack`), by the script's packing: from the first code point of the script,
+//! which needs a script of at most 128 code points, or by its `charTable`.
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -20,6 +20,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use mlengine_core::lexicon::SEPARATOR;
+use mlengine_core::packing::Packing;
 use mlengine_core::script::data::ScriptDef;
 use serde::Deserialize;
 
@@ -98,9 +99,9 @@ impl Lang {
         &self.def.code
     }
 
-    /// The first code point of the script: `pack`'s base.
-    pub fn base(&self) -> char {
-        *self.def.span().start()
+    /// How `pack` packs the script's characters (`ScriptDef::packing`).
+    pub fn packing(&self) -> Packing {
+        self.def.packing()
     }
 
     fn in_block(&self, c: char) -> bool {
@@ -163,12 +164,14 @@ impl Lang {
             && chars.last() != Some(&'\'')
     }
 
-    /// The script fits `pack`'s one byte per character.
+    /// The script fits `pack`'s one byte per character: it has a `charTable`, or spans at
+    /// most 128 code points.
     fn packable(&self) -> io::Result<()> {
         let span = self.def.span();
-        if *span.end() as u32 - *span.start() as u32 >= 0x80 {
+        if self.def.char_table.is_none() && *span.end() as u32 - *span.start() as u32 >= 0x80 {
             return Err(io::Error::other(
-                "romanised keys pack one byte per character: the script must span at most 128 code points",
+                "romanised keys pack one byte per character: a script that spans more than 128 \
+                 code points lists its characters in charTable",
             ));
         }
         Ok(())
@@ -237,36 +240,25 @@ pub fn vocab(lang: &Lang, counts: &Counts, listed: &HashSet<String>) -> Vec<(Str
     vocab
 }
 
-/// One byte per character: the block becomes 0x80 and up, ZWNJ 0x01, ZWJ 0x02, the
-/// apostrophe 0x27. None if the word has any other character. `manglish::pack` with the
-/// block base as a parameter.
+/// One byte per character (`mlengine_core::manglish::pack` by the script's `packing`): the
+/// script's characters become 0x80 and up, ZWNJ 0x01, ZWJ 0x02, the apostrophe 0x27 where the
+/// language writes one inside words. None if the word has any other character.
 pub fn pack(lang: &Lang, word: &str) -> Option<Vec<u8>> {
-    word.chars()
-        .map(|c| match c {
-            ZWNJ => Some(0x01),
-            ZWJ => Some(0x02),
-            '\'' if lang.def.apostrophe => Some(b'\''),
-            c if lang.in_block(c) => {
-                let offset = c as u32 - lang.base() as u32;
-                (offset < 0x80).then(|| 0x80 + offset as u8)
-            }
-            _ => None,
-        })
-        .collect()
+    let foreign = word
+        .chars()
+        .any(|c| !matches!(c, ZWNJ | ZWJ) && !lang.in_block(c) && (c != '\'' || !lang.def.apostrophe));
+    if foreign {
+        return None;
+    }
+    lang.packing().pack(word)
 }
 
 /// The inverse of `pack`.
 pub fn unpack(lang: &Lang, bytes: &[u8]) -> Option<String> {
-    bytes
-        .iter()
-        .map(|&b| match b {
-            0x01 => Some(ZWNJ),
-            0x02 => Some(ZWJ),
-            b'\'' if lang.def.apostrophe => Some('\''),
-            0x80..=0xFF => char::from_u32(lang.base() as u32 + u32::from(b - 0x80)),
-            _ => None,
-        })
-        .collect()
+    if bytes.contains(&b'\'') && !lang.def.apostrophe {
+        return None;
+    }
+    lang.packing().unpack(bytes)
 }
 
 /// Romanised lookup entries (`skeleton\0packed-word` → count) from a TSV of

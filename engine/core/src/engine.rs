@@ -321,9 +321,8 @@ impl Sources {
             .romanisation
             .as_deref()
             .and_then(|p| Romanisation::load(p).ok())
-            // The romanised lexicon packs each word from the first code point of the pack's
-            // own rules.
-            .map(|r| r.packed_from(*rules.block().start()));
+            // The romanised lexicon packs each word as the pack's own rules say.
+            .map(|r| r.packed_by(rules.packing()));
         // Tables for another script would unpack every key as other words.
         if let Some(r) = romanisation.as_ref().filter(|r| r.script() != rules.code()) {
             return Err(format!(
@@ -1319,11 +1318,11 @@ impl Engine {
         }
         // A pack's skeletons are drawn through the keys its own tables fold into each letter.
         let plain = swipe::SkeletonRules::default();
-        for (lang, mg, base, rules, tables) in self.packs_active().filter_map(|(lang, p)| {
+        for (lang, mg, packing, rules, tables) in self.packs_active().filter_map(|(lang, p)| {
             let rules = p.romanisation.as_ref().map_or(&plain, |r| r.swipe_rules());
             p.romanised
                 .as_ref()
-                .map(|mg| (lang, mg, *p.rules.block().start(), rules, p.romanisation.as_ref()))
+                .map(|mg| (lang, mg, p.rules.packing(), rules, p.romanisation.as_ref()))
         }) {
             let bias = priors.get(lang);
             for f in swipe::decode(mg, &map, &path, Some(rules))
@@ -1338,7 +1337,7 @@ impl Engine {
                 // e of `kehte` for कहते) is as often the letter itself (चेहरा, `chehra`).
                 let stood_in = if rules.stood_in(&f.key, &drawing) { w.stand_in } else { 0.0 };
                 let shape = fit(f.cost, &drawing) - stood_in;
-                for (text, count) in manglish::same_skeleton(mg, skeleton, base)
+                for (text, count) in manglish::same_skeleton(mg, skeleton, packing)
                     .into_iter()
                     .take(swipe::WORDS_PER_SKELETON)
                 {

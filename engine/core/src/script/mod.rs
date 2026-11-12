@@ -91,6 +91,12 @@ pub trait ScriptRules: Send + Sync + std::fmt::Debug {
     fn joiners(&self) -> Option<&crate::normalize::Joiners> {
         None
     }
+    /// How its words are packed in a romanised-lexicon key and spelled by a transliterator
+    /// (`packing`): the 128 code points from the block's first unless the script lists its
+    /// own characters (`lang.json`'s `charTable`).
+    fn packing(&self) -> crate::packing::Packing {
+        crate::packing::Packing::Block(*self.block().start())
+    }
 }
 
 /// The `lang.json` of the packs published without one, by script: Malayalam's, Hindi's and

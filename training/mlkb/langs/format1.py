@@ -83,7 +83,7 @@ class Format1:
                 if sign is not None:
                     out.append(d["vowelSigns"][sign])
                     i += len(sign)
-                elif word.startswith(virama, i):
+                elif virama and word.startswith(virama, i):
                     i += len(virama)
                     if i >= n:
                         out.append(end["virama"])
@@ -208,7 +208,9 @@ def export(t: Tables) -> dict:
     # Letters whose `inCluster` spelling holds in every two-letter cluster they are in (Assamese's
     # sibilants শ ষ স: x alone, s in a cluster).
     sibilants = [c for c in hand.get("inClusterLetters", "") if c in in_cluster]
-    for first, first_latin in consonants.items():
+    # Only a script with a virama: without one (Urdu's), letters side by side are a cluster
+    # only where `clusters` lists them.
+    for first, first_latin in consonants.items() if virama else ():
         for second, second_latin in consonants.items():
             key = first + virama + second
             if key in clusters:
@@ -268,7 +270,18 @@ def export(t: Tables) -> dict:
 
 
 def _plain(key: str, consonants: dict[str, str], virama: str) -> str:
-    return "".join(consonants.get(part, "?") for part in key.split(virama))
+    """What the walk spells a cluster key as without its entry: its consonants' own spellings,
+    split at the virama, or, in a script without one, read longest first (بھ is ب then ھ)."""
+    if virama:
+        return "".join(consonants.get(part, "?") for part in key.split(virama))
+    out, i = [], 0
+    while i < len(key):
+        part = _longest(consonants, key, i)
+        if part is None:
+            return "?"
+        out.append(consonants[part])
+        i += len(part)
+    return "".join(out)
 
 
 def dumps(data: dict) -> str:

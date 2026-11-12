@@ -2,7 +2,9 @@
 
 Latin: `pad bos eos`, then `a`–`z`. A native script: `pad bos eos`, then every code point of its
 128-code-point block (U+0D00–U+0D7F for Malayalam, U+0900–U+097F for Devanagari, U+0980–U+09FF
-for Bengali-Assamese), then ZWJ and ZWNJ, then any extra characters the language writes inside
+for Bengali-Assamese), or, for a language whose `lang.json` lists its script's characters
+(`charTable`, engine 8: Urdu's, whose letters span more than 128 code points), those in the
+table's order; then ZWJ and ZWNJ, then any extra characters the language writes inside
 words (Assamese's apostrophe, হ'ল: 134 tokens, one more than Malayalam's). `native(lang)` builds
 it from the language's config. Token ids are what the exported model file and the Rust forward
 pass use, so never reorder them. `MALAYALAM` is the default target everywhere; the functions
@@ -41,6 +43,17 @@ def block(start: int, extra: tuple[str, ...] = ()) -> Vocab:
     return Vocab(tuple(chr(c) for c in range(start, start + 0x80)) + ("\u200d", "\u200c") + extra)
 
 
+def table(chars: tuple[str, ...], extra: tuple[str, ...] = ()) -> Vocab:
+    """A native vocabulary from a character table: `chars` in order, ZWJ, ZWNJ, then `extra`
+    (the engine's `vocab::Target` for a script with a `charTable`)."""
+    return Vocab(tuple(chars) + ("\u200d", "\u200c") + extra)
+
+
+def char_table(ranges: list[list[str]]) -> tuple[str, ...]:
+    """The characters of a lang.json `charTable`: hex code point ranges, in order."""
+    return tuple(chr(c) for a, b in ranges for c in range(int(a, 16), int(b, 16) + 1))
+
+
 LATIN = Vocab(tuple(chr(c) for c in range(ord("a"), ord("z") + 1)))
 MALAYALAM = block(0x0D00)
 BENGALI_ASSAMESE = block(0x0980, ("'",))
@@ -54,10 +67,11 @@ def _index(chars: tuple[str, ...]) -> dict[str, int]:
     return {c: i + 3 for i, c in enumerate(chars)}
 
 
-def _config(lang_id: str) -> tuple[tuple[int, int], tuple[str, ...]]:
-    """A language's script block and extra word characters: from its training config
-    (`mlkb/langs/<id>.json`, e.g. hi) or else its pack-language config
-    (`data/langs/<id>/lang.json`, e.g. as, whose `"apostrophe": true` adds `'`)."""
+def _config(lang_id: str) -> tuple[tuple[int, int] | tuple[str, ...], tuple[str, ...]]:
+    """A language's script block, or its character table, and extra word characters: from its
+    training config (`mlkb/langs/<id>.json`, e.g. hi) or else its pack-language config
+    (`data/langs/<id>/lang.json`, e.g. as, whose `"apostrophe": true` adds `'`; ur, whose
+    `charTable` lists its characters)."""
     from mlkb import langs
 
     try:
@@ -68,8 +82,11 @@ def _config(lang_id: str) -> tuple[tuple[int, int], tuple[str, ...]]:
     if not path.exists():
         raise ValueError(f"{lang_id}: no mlkb/langs/{lang_id}.json or data/langs/{lang_id}/lang.json")
     raw = json.loads(path.read_text(encoding="utf-8"))
+    extra = ("'",) if raw.get("apostrophe") else ()
+    if raw.get("charTable"):
+        return char_table(raw["charTable"]), extra
     first, last = (int(c, 16) for c in raw["block"])
-    return (first, last), ("'",) if raw.get("apostrophe") else ()
+    return (first, last), extra
 
 
 @cache
@@ -77,9 +94,12 @@ def native(lang_id: str = "ml") -> Vocab:
     """The target vocabulary of a language's transliterator (`MALAYALAM` for `ml`)."""
     if lang_id == "ml":
         return MALAYALAM
-    (first, last), extra = _config(lang_id)
+    body, extra = _config(lang_id)
+    if body and isinstance(body[0], str):
+        return table(body, extra)
+    first, last = body
     if last - first != 0x7F:
-        raise ValueError(f"{lang_id}: a script block must be 128 code points")
+        raise ValueError(f"{lang_id}: a script block must be 128 code points (or list them in charTable)")
     return block(first, extra)
 
 

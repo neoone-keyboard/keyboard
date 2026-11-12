@@ -20,7 +20,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use super::vocab::{self, BOS, EOS, PAD, Target};
-use super::{DecoderState, ModelFile, NnError, Transformer};
+use super::{DecoderState, ModelFile, NnError, TensorRef, Transformer};
 use crate::lexicon::Lexicon;
 use crate::own;
 
@@ -55,9 +55,21 @@ pub struct Translit {
 
 impl Translit {
     /// Opens a `.mlkbnn` transliterator trained to spell in `target` (a pack's is
-    /// `Target::for_script` of the pack's script).
+    /// `Target::for_script` of the pack's script). A file that names its characters
+    /// (`vocab.tgt`, which `export.py` writes for every language but Malayalam) must name
+    /// `target`'s, in order: a model trained on another table spells other letters.
     pub fn open(path: &Path, target: Target) -> Result<Self, NnError> {
-        Self::new(Transformer::new(&ModelFile::open(path)?)?, target)
+        let file = ModelFile::open(path)?;
+        if let Some(TensorRef::Bytes(named)) = file.tensor("vocab.tgt") {
+            let want: String = target.chars().collect();
+            if named != want.as_bytes() {
+                return Err(NnError::Shape(format!(
+                    "the model spells in {:?}, the pack's script in {want:?}",
+                    String::from_utf8_lossy(named)
+                )));
+            }
+        }
+        Self::new(Transformer::new(&file)?, target)
     }
 
     /// Checks that `model` reads Latin and writes `target`'s tokens.

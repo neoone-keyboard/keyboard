@@ -1,0 +1,24 @@
+{
+  "id": "urwikisource",
+  "name": "Urdu Wikisource",
+  "homepage": "https://ur.wikisource.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://ur.wikisource.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Texts on Urdu Wikisource, transcribed by Wikisource contributors. Most works are in the public domain; the site's text is CC BY-SA 4.0.",
+  "used_for": "Urdu word frequencies and next-word pairs (packs/ur.neopack; 2026-11-01 dump, main and Page namespaces).",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/urwikisource/20261101/urwikisource-20261101-pages-articles.xml.bz2",
+      "sha1": "f85cff1938f63459b172524d26331c60a172c9d2",
+      "path": "urwikisource-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/ur.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

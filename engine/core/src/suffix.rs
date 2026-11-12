@@ -237,9 +237,9 @@ pub fn splits(
     typed: &str,
     min_log_prob: f32,
 ) -> Vec<Split> {
-    let base = *rules.block().start();
+    let packing = rules.packing();
     splits_with(rules, r, suffixes, typed, |key| {
-        let mut stems: Vec<(String, f32)> = manglish::same_skeleton(lexicon, key, base)
+        let mut stems: Vec<(String, f32)> = manglish::same_skeleton(lexicon, key, packing)
             .into_iter()
             .map(|(word, count)| (word, lexicon.log_prob(count)))
             .filter(|(_, lp)| *lp >= min_log_prob)

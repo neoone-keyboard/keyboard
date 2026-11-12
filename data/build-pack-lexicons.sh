@@ -116,6 +116,9 @@ build_lang_config() {
   mkdir -p "$PACK"
   cp "$BUNDLE/$LANG_ID.fst" "$BUNDLE/next.fst" "$BUNDLE/romanised.fst" "$PACK/"
   cp "$config/romanisation.json" "$PACK/"
+  # lexbuild-rekey reads the script's rules from the lang.json beside the tables: a new pack
+  # has none until pack.py --write (below) copies this same file in.
+  cp "$config/lang.json" "$PACK/"
   # Tables that give some words a second key (optionalFinals, dropTrailing.alsoKept): the keys
   # above are one per word, so the romanised lexicon is rebuilt from the tables, which adds them.
   if grep -qE '"optionalFinals"|"alsoKept": *true' "$PACK/romanisation.json"; then

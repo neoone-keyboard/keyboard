@@ -1,0 +1,24 @@
+{
+  "id": "urwiki",
+  "name": "Urdu Wikipedia",
+  "homepage": "https://ur.wikipedia.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://ur.wikipedia.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Urdu Wikipedia articles by Wikipedia contributors.",
+  "used_for": "Urdu word frequencies, romanised Urdu lookup and next-word pairs (packs/ur.neopack; 2026-11-01 dump, cleaned by data/build-ur-text.sh: NFKC for presentation forms, diacritics stripped, run-together words dropped).",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/urwiki/20261101/urwiki-20261101-pages-articles.xml.bz2",
+      "sha1": "b1c0924c8f3cc8d2cb5840ded0156e9a3601b213",
+      "path": "urwiki-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/ur.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

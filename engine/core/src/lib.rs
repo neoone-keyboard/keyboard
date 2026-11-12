@@ -12,6 +12,7 @@ pub mod nn;
 pub mod normalize;
 pub mod own;
 pub mod pack;
+pub mod packing;
 pub mod pack_layout;
 pub mod personal;
 pub mod rank;

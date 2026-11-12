@@ -1,0 +1,742 @@
+{
+  "format": 1,
+  "script": "arab",
+  "language": "ur",
+  "about": "How Urdu is typed in Latin letters (Roman Urdu, as people chat): native word -> canonical romanisation (the first spelling of every slot), weighted chat spellings, and the skeleton folds the romanised lookup keys on. Read by training/mlkb/langs/romanisation.py; the weights are fitted to Aksharantar urd (training/mlkb/langs/calibrate.py). Each table maps a letter (or letters) to [spelling, weight] options, canonical first.",
+  "virama": "",
+  "independentVowels": {
+    "آ": [
+      [
+        "a",
+        0.5
+      ],
+      [
+        "aa",
+        0.5
+      ]
+    ],
+    "ا": [
+      [
+        "a",
+        0.6
+      ],
+      [
+        "i",
+        0.2
+      ],
+      [
+        "u",
+        0.2
+      ]
+    ],
+    "أ": [
+      [
+        "a",
+        1.0
+      ]
+    ],
+    "إ": [
+      [
+        "i",
+        1.0
+      ]
+    ],
+    "ای": [
+      [
+        "e",
+        0.5
+      ],
+      [
+        "ai",
+        0.2
+      ],
+      [
+        "i",
+        0.2
+      ],
+      [
+        "ae",
+        0.1
+      ]
+    ],
+    "او": [
+      [
+        "o",
+        0.5
+      ],
+      [
+        "au",
+        0.3
+      ],
+      [
+        "u",
+        0.2
+      ]
+    ],
+    "ؤ": [
+      [
+        "o",
+        0.6
+      ],
+      [
+        "u",
+        0.4
+      ]
+    ],
+    "ے": [
+      [
+        "e",
+        0.7
+      ],
+      [
+        "ay",
+        0.3
+      ]
+    ]
+  },
+  "vowelSigns": {
+    "ا": [
+      [
+        "a",
+        0.7
+      ],
+      [
+        "aa",
+        0.3
+      ]
+    ],
+    "ی": [
+      [
+        "i",
+        0.6
+      ],
+      [
+        "ee",
+        0.15
+      ],
+      [
+        "e",
+        0.1
+      ],
+      [
+        "y",
+        0.1
+      ],
+      [
+        "ai",
+        0.05
+      ]
+    ],
+    "ے": [
+      [
+        "e",
+        0.6
+      ],
+      [
+        "ay",
+        0.15
+      ],
+      [
+        "ai",
+        0.15
+      ],
+      [
+        "ey",
+        0.1
+      ]
+    ],
+    "و": [
+      [
+        "o",
+        0.5
+      ],
+      [
+        "u",
+        0.3
+      ],
+      [
+        "oo",
+        0.1
+      ],
+      [
+        "au",
+        0.05
+      ],
+      [
+        "w",
+        0.05
+      ]
+    ],
+    "ۓ": [
+      [
+        "ye",
+        0.6
+      ],
+      [
+        "e",
+        0.4
+      ]
+    ]
+  },
+  "consonants": {
+    "ب": [
+      [
+        "b",
+        1.0
+      ]
+    ],
+    "پ": [
+      [
+        "p",
+        1.0
+      ]
+    ],
+    "ت": [
+      [
+        "t",
+        1.0
+      ]
+    ],
+    "ٹ": [
+      [
+        "t",
+        1.0
+      ]
+    ],
+    "ث": [
+      [
+        "s",
+        1.0
+      ]
+    ],
+    "ج": [
+      [
+        "j",
+        1.0
+      ]
+    ],
+    "چ": [
+      [
+        "ch",
+        0.9
+      ],
+      [
+        "c",
+        0.1
+      ]
+    ],
+    "ح": [
+      [
+        "h",
+        1.0
+      ]
+    ],
+    "خ": [
+      [
+        "kh",
+        0.95
+      ],
+      [
+        "k",
+        0.05
+      ]
+    ],
+    "د": [
+      [
+        "d",
+        1.0
+      ]
+    ],
+    "ڈ": [
+      [
+        "d",
+        1.0
+      ]
+    ],
+    "ذ": [
+      [
+        "z",
+        1.0
+      ]
+    ],
+    "ر": [
+      [
+        "r",
+        1.0
+      ]
+    ],
+    "ڑ": [
+      [
+        "r",
+        0.9
+      ],
+      [
+        "d",
+        0.1
+      ]
+    ],
+    "ز": [
+      [
+        "z",
+        1.0
+      ]
+    ],
+    "ژ": [
+      [
+        "zh",
+        0.6
+      ],
+      [
+        "z",
+        0.4
+      ]
+    ],
+    "س": [
+      [
+        "s",
+        1.0
+      ]
+    ],
+    "ش": [
+      [
+        "sh",
+        1.0
+      ]
+    ],
+    "ص": [
+      [
+        "s",
+        1.0
+      ]
+    ],
+    "ض": [
+      [
+        "z",
+        1.0
+      ]
+    ],
+    "ط": [
+      [
+        "t",
+        1.0
+      ]
+    ],
+    "ظ": [
+      [
+        "z",
+        1.0
+      ]
+    ],
+    "ع": [
+      [
+        "",
+        0.6
+      ],
+      [
+        "a",
+        0.25
+      ],
+      [
+        "i",
+        0.1
+      ],
+      [
+        "u",
+        0.05
+      ]
+    ],
+    "غ": [
+      [
+        "gh",
+        1.0
+      ]
+    ],
+    "ف": [
+      [
+        "f",
+        1.0
+      ]
+    ],
+    "ق": [
+      [
+        "q",
+        0.6
+      ],
+      [
+        "k",
+        0.4
+      ]
+    ],
+    "ک": [
+      [
+        "k",
+        1.0
+      ]
+    ],
+    "گ": [
+      [
+        "g",
+        1.0
+      ]
+    ],
+    "ل": [
+      [
+        "l",
+        1.0
+      ]
+    ],
+    "م": [
+      [
+        "m",
+        1.0
+      ]
+    ],
+    "ن": [
+      [
+        "n",
+        1.0
+      ]
+    ],
+    "ہ": [
+      [
+        "h",
+        1.0
+      ]
+    ],
+    "ھ": [
+      [
+        "h",
+        1.0
+      ]
+    ],
+    "و": [
+      [
+        "w",
+        0.8
+      ],
+      [
+        "v",
+        0.2
+      ]
+    ],
+    "ی": [
+      [
+        "y",
+        1.0
+      ]
+    ],
+    "ئ": [
+      [
+        "y",
+        0.5
+      ],
+      [
+        "",
+        0.3
+      ],
+      [
+        "i",
+        0.2
+      ]
+    ],
+    "ء": [
+      [
+        "",
+        1.0
+      ]
+    ]
+  },
+  "inCluster": {},
+  "afterVirama": {},
+  "clusters": {
+    "بھ": [
+      [
+        "bh",
+        1.0
+      ]
+    ],
+    "پھ": [
+      [
+        "ph",
+        0.8
+      ],
+      [
+        "f",
+        0.2
+      ]
+    ],
+    "تھ": [
+      [
+        "th",
+        1.0
+      ]
+    ],
+    "ٹھ": [
+      [
+        "th",
+        1.0
+      ]
+    ],
+    "جھ": [
+      [
+        "jh",
+        1.0
+      ]
+    ],
+    "چھ": [
+      [
+        "chh",
+        0.5
+      ],
+      [
+        "ch",
+        0.5
+      ]
+    ],
+    "دھ": [
+      [
+        "dh",
+        1.0
+      ]
+    ],
+    "ڈھ": [
+      [
+        "dh",
+        1.0
+      ]
+    ],
+    "کھ": [
+      [
+        "kh",
+        1.0
+      ]
+    ],
+    "گھ": [
+      [
+        "gh",
+        1.0
+      ]
+    ],
+    "ڑھ": [
+      [
+        "rh",
+        1.0
+      ]
+    ],
+    "رھ": [
+      [
+        "rh",
+        1.0
+      ]
+    ],
+    "لھ": [
+      [
+        "lh",
+        1.0
+      ]
+    ],
+    "مھ": [
+      [
+        "mh",
+        1.0
+      ]
+    ],
+    "نھ": [
+      [
+        "nh",
+        1.0
+      ]
+    ]
+  },
+  "geminateSingle": 0.0,
+  "finals": {
+    "ں": [
+      [
+        "n",
+        0.8
+      ],
+      [
+        "",
+        0.2
+      ]
+    ],
+    "ۂ": [
+      [
+        "e",
+        0.6
+      ],
+      [
+        "a",
+        0.4
+      ]
+    ],
+    "ۃ": [
+      [
+        "t",
+        0.6
+      ],
+      [
+        "h",
+        0.4
+      ]
+    ]
+  },
+  "inherent": {
+    "medial": [
+      [
+        "a",
+        0.55
+      ],
+      [
+        "",
+        0.2
+      ],
+      [
+        "i",
+        0.15
+      ],
+      [
+        "u",
+        0.1
+      ]
+    ],
+    "final": [
+      [
+        "",
+        0.9
+      ],
+      [
+        "a",
+        0.1
+      ]
+    ],
+    "finalAfterCluster": [
+      [
+        "",
+        0.9
+      ],
+      [
+        "a",
+        0.1
+      ]
+    ],
+    "only": [
+      [
+        "",
+        1.0
+      ]
+    ]
+  },
+  "variantCounts": [
+    0.4,
+    0.3,
+    0.2,
+    0.1
+  ],
+  "canonicalShare": 0.1,
+  "keepCanonical": [
+    "inherent.medial"
+  ],
+  "optionalFinals": [
+    "ں"
+  ],
+  "skeleton": {
+    "about": "Applied to typed Latin and to the canonical romanisation alike: lowercase a-z only; a final h after a vowel dropped (dropTrailing: yeh, ye); the longest `replace` key at each position (else `letters`, else the letter itself); a symbol equal to the one before it is dropped; then every a between two consonants is dropped (dropBetweenConsonants). Urdu writes no short vowels, so a typed vowel can't say whether a letter stands for it: every vowel, and y and w (ی and و are vowels after a consonant and consonants elsewhere), is one symbol a, which survives only at the start or end of a word or next to another vowel. What is left is the consonants and where the word starts and ends with a vowel: is, us and as (اس) are as; kya, kiya (کیا) ka; mein, main (میں) man.",
+    "replace": [
+      [
+        "chh",
+        "c"
+      ],
+      [
+        "ch",
+        "c"
+      ],
+      [
+        "kh",
+        "k"
+      ],
+      [
+        "gh",
+        "g"
+      ],
+      [
+        "jh",
+        "j"
+      ],
+      [
+        "th",
+        "t"
+      ],
+      [
+        "dh",
+        "d"
+      ],
+      [
+        "ph",
+        "p"
+      ],
+      [
+        "bh",
+        "b"
+      ],
+      [
+        "sh",
+        "s"
+      ],
+      [
+        "zh",
+        "j"
+      ],
+      [
+        "rh",
+        "r"
+      ]
+    ],
+    "letters": {
+      "e": "a",
+      "i": "a",
+      "o": "a",
+      "u": "a",
+      "y": "a",
+      "w": "a",
+      "v": "a",
+      "q": "k",
+      "c": "k",
+      "f": "p",
+      "x": "ks"
+    },
+    "vowels": "a",
+    "dropFinal": "",
+    "dropTrailing": {
+      "letters": "h",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "dropBetweenConsonants": "a"
+  },
+  "looseSpelling": {
+    "about": "Which typed spellings spell a word out, for ranking (the engine's Romanisation::relaxed): vowel length, and v for w.",
+    "singles": {
+      "v": "w"
+    },
+    "pairs": [
+      [
+        "ee",
+        "i"
+      ],
+      [
+        "oo",
+        "u"
+      ]
+    ],
+    "collapse": "aiu"
+  },
+  "notes": {
+    "script": "Urdu is written right to left in the Perso-Arabic script and, like Arabic, writes no short vowels: کتاب is k-t-a-b, typed kitab. The walk (format 1) gives each consonant without a following vowel letter the inherent vowel a in the middle of a word and nothing at its end, so the canonical spelling is close to what is typed (کتاب katab, کر kar), and the skeleton drops the vowel between consonants on both sides alike.",
+    "vowels": "ا و ی ے are vowel letters after a consonant (ا a, و o/u, ی i/e, ے e) and consonants (و w, ی y) at the start of a word or after a vowel. ای and او at the start of a word are e and o (ایک ek, اور aur). آ is a.",
+    "clusters": "Aspirates are a letter followed by do-chashmi he ھ: بھ bh, پھ ph, تھ th, ٹھ th, جھ jh, چھ chh, دھ dh, ڈھ dh, کھ kh, گھ gh, ڑھ rh; listed as clusters, the letters as written side by side (no virama).",
+    "finals": "Noon ghunna ں (a nasal vowel at the end of a word) is n, and is often left untyped (main, mai for میں; hain, hai for ہیں): optionalFinals gives such words a second key without it.",
+    "ain": "ع is usually silent or a vowel (علم ilm, بعد baad, شروع shuru): canonical empty.",
+    "keepCanonical": "The medial inherent vowel stays a in the walk, though people type no vowel as often: without it a consonant would run into the next (کہ k + h as kh, the aspirate)."
+  }
+}

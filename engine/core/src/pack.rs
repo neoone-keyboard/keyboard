@@ -54,11 +54,18 @@ pub const FORMAT: u32 = 1;
 /// (Marathi's, Bengali's: engines before 4 read it by the copy, 4 to 6 by whichever pack of
 /// the script loaded last) needs 7. Engine behaviour that came with 7 but needs no level: a
 /// swipe fits each `chatForms` row too (older engines still offer the rows when typed).
+/// 8: `lang.json`'s `charTable` (`packing`), the characters of a script whose letters span
+/// more than 128 code points (Urdu's, across the Arabic block), in order: the romanised
+/// lexicon packs a word one byte per character by its place in the table, and a
+/// transliterator spells in the table's characters (`nn::vocab::Target`). An older engine
+/// packs from the script's first code point instead, so it would unpack every romanised key
+/// as other characters and refuse the transliterator: a pack whose `lang.json` sets
+/// `charTable` needs 8, in any script. A pack without one is packed and spelled as before.
 ///
 /// Adding a pack feature an older engine would ignore or misread: raise this, say here what
 /// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's
 /// contents to the level they need (`tests/pack_check.rs` holds every pack in `packs/` to it).
-pub const PACK_ENGINE: u32 = 7;
+pub const PACK_ENGINE: u32 = 8;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -272,6 +279,7 @@ const LANG_KEYS: &[(&str, Key)] = &[
     ("suffixJoins", Key::NotMalayalam(5)),
     ("joiners", Key::NotMalayalam(6)),
     ("zwjForms", Key::NotMalayalam(6)),
+    ("charTable", Key::Set(8)),
 ];
 
 /// `romanisation.json`'s keys (`romanisation::Raw`), an object's inner keys after a dot.
@@ -735,6 +743,20 @@ mod tests {
         assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 2);
         let lang = with_field(&own_lang("ml"), "notes", r#""another note""#);
         assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 1, "the same rules");
+    }
+
+    #[test]
+    fn needs_level_8_for_a_character_table() {
+        let urdu = r#"{"script": "arab", "block": ["0600", "06FF"],
+            "charTable": [["0621", "063A"], ["0641", "064A"], ["06A9", "06A9"], ["06D2", "06D2"]]}"#;
+        let (_dir, pack) = pack_of("arab", &[("lang", "lang.json", urdu)]);
+        assert_eq!(pack.needed_engine().unwrap(), 8);
+        assert_eq!(pack.needs().unwrap()[0].what, "lang.json sets charTable");
+        // In any script: an older engine packs from the block whatever rules it has.
+        let lang = with_field(&own_lang("hi"), "charTable", r#"[["0900", "097F"]]"#);
+        assert_eq!(level("deva", &[("lang", "lang.json", &lang)]), 8);
+        let lang = with_field(&own_lang("ml"), "charTable", r#"[["0D00", "0D7F"]]"#);
+        assert_eq!(level("mlym", &[("lang", "lang.json", &lang)]), 8);
     }
 
     #[test]
