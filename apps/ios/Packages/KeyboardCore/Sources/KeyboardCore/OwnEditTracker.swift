@@ -47,6 +47,12 @@ public struct OwnEditTracker: Sendable {
         expected = text
     }
 
+    /// Marked text `old` at the end of the text was replaced by `new` (`setMarkedText`).
+    public mutating func replacedMarked(_ old: String, with new: String) {
+        guard let text = expected else { return }
+        expected = (text.hasSuffix(old) ? String(text.dropLast(old.count)) : text) + new
+    }
+
     /// The cursor moved: nothing after this is known until the next edit starts.
     public mutating func movedCursor() {
         expected = nil

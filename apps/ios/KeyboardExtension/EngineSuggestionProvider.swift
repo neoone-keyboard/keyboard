@@ -83,14 +83,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
 
     /// The keyboard's languages for the engine's layouts, in order: Latin is English, a
     /// native layout its pack's language. A pack the keyboard can't draw is left out.
-    static func languages(for layouts: [InputLayout]) -> [Language] {
+    static func languages(for layouts: [InputLayout], converting: [String] = []) -> [Language] {
         let state = packState
-        return layouts.compactMap { layout in
+        let typed: [Language] = layouts.compactMap { layout in
             switch layout {
             case .latin: return .english
             case .native(let id): return state.language(forPack: id)
             }
         }
+        return state.languages(layouts: typed, converting: converting)
     }
 
     /// What the engine is told the text was typed on.
@@ -227,6 +228,20 @@ actor EngineSuggestionProvider: SuggestionProvider {
     /// before, or when it can't say.
     func layouts() -> [InputLayout]? {
         try? engine?.layouts()
+    }
+
+    /// The phrase-conversion languages the open engine converts (Japanese); empty before it
+    /// opens, or when it can't say.
+    func conversionLanguages() -> [String] {
+        (try? engine?.conversionLanguages()) ?? []
+    }
+
+    /// The composer and converter of the conversion language `id`, opening the engine if need
+    /// be; nil when it can't be used or doesn't convert `id`. The keyboard calls it on the main
+    /// thread, key by key: a conversion takes well under a millisecond.
+    func phraseConverter(for id: String) -> EnginePhraseConverter? {
+        guard let engine = try? loadedEngine(), (try? engine.conversionLanguages())?.contains(id) == true else { return nil }
+        return EnginePhraseConverter(engine: engine, language: id)
     }
 
     /// Opens the lexicons ahead of the first request, once the keys are showing, and fills the
@@ -457,7 +472,9 @@ actor EngineSuggestionProvider: SuggestionProvider {
             for problem in created.packProblems() {
                 log.error("Pack refused: \(problem)")
             }
-            if let active = Self.configuredActive {
+            if Self.configuredActive != nil {
+                // Without the conversion languages, which the word engine keeps apart.
+                let active = Self.packState.engineLanguages
                 do {
                     try created.setActiveLanguages(languages: active)
                 } catch {
@@ -487,6 +504,40 @@ actor EngineSuggestionProvider: SuggestionProvider {
         case .correction: .correction
         case .manglish: .manglish
         case .nextWord: .nextWord
+        }
+    }
+}
+
+/// One conversion language of the engine (`Engine.compose`, `convert`, `convertWithFirst`),
+/// for `PhraseInput`. The engine is safe to call from any thread; a failure is nil.
+final class EnginePhraseConverter: PhraseConverter {
+    private let engine: Engine
+    let language: String
+
+    init(engine: Engine, language: String) {
+        self.engine = engine
+        self.language = language
+    }
+
+    func compose(_ typed: String, finish: Bool) -> ComposingText? {
+        guard let c = try? engine.compose(language: language, typed: typed, finish: finish) else { return nil }
+        return ComposingText(kana: c.kana, pending: c.pending)
+    }
+
+    func convert(_ kana: String, limit: Int) -> ConvertedPhrase? {
+        (try? engine.convert(language: language, kana: kana, limit: UInt32(clamping: limit))).flatMap(Self.phrase)
+    }
+
+    func convert(_ kana: String, firstLength: Int, limit: Int) -> ConvertedPhrase? {
+        guard firstLength > 0 else { return nil }
+        return (try? engine.convertWithFirst(language: language, kana: kana, firstLength: UInt32(clamping: firstLength),
+                                             limit: UInt32(clamping: limit))).flatMap(Self.phrase)
+    }
+
+    private static func phrase(_ c: PhraseConversion?) -> ConvertedPhrase? {
+        c.map { c in
+            ConvertedPhrase(segments: c.segments.map { ConvertedSegment(reading: $0.reading, surface: $0.surface) },
+                            candidates: c.candidates, first: c.first)
         }
     }
 }
