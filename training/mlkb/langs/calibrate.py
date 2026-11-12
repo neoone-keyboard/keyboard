@@ -27,10 +27,12 @@ The report, on the calibration pairs and on the held-out test pairs:
 Pairs: Aksharantar's manual rows (AK-Uni, AK-Freq: typed by people) in `<lang>_valid.json`
 calibrate, or, when that split has none, a held-out slice of `<lang>_train.json`'s manual rows
 (`mlkb.langs.human.calibration`); the manual rows of `<lang>_test.json` (AK-Freq, AK-NEI, AK-NEF)
-are the test. A language in `human.DAKSHINA` (Punjabi) calibrates on Dakshina's train split instead,
-each pair counted once per annotator who typed it, and reports Dakshina's test split as a second
-test; no word of Dakshina's dev or test split calibrates. Tune the hand tables on the calibration numbers only. The test numbers are for the
-pull request; tuning on them makes them meaningless. No calibration pairs at all is an error.
+are the test. A language with its own pairs (`data/langs/<id>/pairs.json`, `mlkb.langs.human.PairSource`:
+Dakshina's lexicon for Punjabi and Sinhala) calibrates on their train split instead, each pair counted
+once per person who typed it; their test split is the test when the language has no Aksharantar data
+(Sinhala), else a second test (Punjabi). No word of their dev or test split calibrates. Tune the hand
+tables on the calibration numbers only. The test numbers are for the pull request; tuning on them
+makes them meaningless. No calibration pairs at all is an error.
 
 `--misses [N]` lists, after the report, the calibration pairs the fitted tables fail on (all of
 them, or the first N): first the ones the tables can't spell at all ("does not align"), then the
@@ -224,7 +226,7 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
     hand = args.tables or LANGS / args.lang / "romanisation.hand.json"
     tables = Tables.load(hand)
-    test = human.manual(human.aksharantar(args.lang, "test"))
+    test = human.held_out_pairs(args.lang)
     rows, where = human.calibration(args.lang, human.held_out_words(args.lang, test))
     calib = [(h.native, h.latin) for h in rows for _ in range(h.count)]
     by_source: dict[str, list[tuple[str, str]]] = defaultdict(list)
@@ -252,10 +254,11 @@ def main(argv: list[str] | None = None) -> None:
     _print("test (after)", report(tables, all_test))
     for source, pairs in sorted(by_source.items()):
         _print(f"  test {source}", report(tables, pairs))
-    dakshina_test = [(h.native, h.latin) for h in human.dakshina(args.lang, "test")]
-    if dakshina_test:
-        _print("test Dakshina (before)", report(Tables.load(hand), dakshina_test))
-        _print("test Dakshina (after)", report(tables, dakshina_test))
+    second = human.second_test_pairs(args.lang)
+    if second:
+        name, pairs = second[0].source, [(h.native, h.latin) for h in second]
+        _print(f"test {name} (before)", report(Tables.load(hand), pairs))
+        _print(f"test {name} (after)", report(tables, pairs))
     print("^ held out: for the pull request's description; never tune on these")
     if args.write:
         path = hand.with_name("romanisation-weights.json")

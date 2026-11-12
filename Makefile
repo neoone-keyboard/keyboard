@@ -236,7 +236,7 @@ lexicons:
 #    extracts, see data/manifests); held-out accuracy by mlkb.translit.accuracy into
 #    data/eval/$(PACK_LANG)/translit-accuracy.json.
 #  - data/langs/$(PACK_LANG)/lang.json (as): lexicons by lexbuild-native and the romanisation
-#    tables there; pairs by mlkb.langs.pairs (Aksharantar); held-out accuracy printed by
+#    tables there; pairs by mlkb.langs.pairs (Aksharantar, and the files data/langs/$(PACK_LANG)/pairs.json names); held-out accuracy printed by
 #    mlkb.langs.eval_translit.
 # pack-lexicons builds the lexicons (`lexicons` first if en.fst changed); pack-models the
 # transliterator: training pairs, training (about 1.5 hours; skipped when

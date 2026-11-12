@@ -305,6 +305,10 @@ def main(argv: list[str] | None = None) -> None:
     out.write_text(dumps(data), encoding="utf-8")
     print(f"wrote {out}: {len(data['consonants'])} consonants, {len(data['clusters'])} clusters")
     f = Format1(data)
+    if not human.has_aksharantar(args.lang):
+        # A language whose held-out pairs are its own (data/langs/<id>/pairs.json).
+        _report("test", f, [(h.native, h.latin) for h in human.held_out_pairs(args.lang)])
+        return
     for source in ("AK-Freq", "AK-NEI", "AK-NEF", None):
         pairs = [(h.native, h.latin) for h in human.aksharantar(args.lang, "test")
                  if h.source.startswith("AK-") and (source is None or h.source == source)]

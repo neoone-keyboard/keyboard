@@ -10,11 +10,19 @@ Aksharantar (`data/raw/aksharantar-<code>/extracted/<code>_{train,valid,test}.js
 whose source is Dakshina or Existing are dropped, mined IndicCorp rows below the mining score
 cut too.
 
-A language in `DAKSHINA` also has Dakshina's human-typed lexicon (`data/raw/dakshina/
-dakshina_dataset_v1.0/<code>/lexicons/<code>.translit.sampled.{train,dev,test}.tsv`: native word,
-romanisation, annotator count; see `data/manifests/dakshina.json`), used as Malayalam uses its own:
-the train split trains the transliterator and calibrates the tables, the dev split validates, and
-the test split is held out. No dev or test word is in any training pair.
+A language may also have human pairs from files of its own, named in `data/langs/<id>/pairs.json`
+(`PairSource`): Dakshina's typed lexicon for Punjabi and Sinhala, or any list of words as people
+typed them. Each file is a split, read as Malayalam reads Dakshina's: the train split trains the
+transliterator and calibrates the tables, the dev split validates, and the test split is held out
+(the held-out eval set itself when the language has no Aksharantar data). No dev or test word is in
+any training pair. The files are TSV, one pair per line, as Dakshina's lexicons are:
+
+    native word<TAB>romanisation<TAB>count
+
+`count` is how many people typed that romanisation for the word (Dakshina's annotator count);
+it may be left out (then 1). Blank lines and lines starting with `#` are skipped. Rows are cleaned
+as Aksharantar's are (`clean`): lower-cased, `a`-`z` only, the native word in the pack's normal
+form and a word of its script.
 """
 
 import hashlib
@@ -170,8 +178,11 @@ def aksharantar_dir(lang: Lang) -> Path:
 
 
 def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None) -> list[HumanPair]:
-    """Aksharantar rows of `split` whose source the licence audit allows, cleaned."""
+    """Aksharantar rows of `split` whose source the licence audit allows, cleaned; [] for a
+    language whose lang.json names no Aksharantar code."""
     lang = load(lang_id)
+    if not lang.data.get("aksharantar"):
+        return []  # a language with no Aksharantar data: its pairs are its own (`pairs.json`)
     stats = stats if stats is not None else Counter()
     out = []
     path = aksharantar_dir(lang) / f"{lang.data['aksharantar']}_{split}.json"
@@ -198,46 +209,112 @@ def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None
     return out
 
 
-# Pack languages whose human pairs include Dakshina's lexicon: pack id to Dakshina's code.
-DAKSHINA = {"pa": "pa"}
-DAKSHINA_SOURCE = "Dakshina"
+# The file that names a language's own human pairs (`PairSource`), beside its lang.json. Not
+# shipped in the pack: only the builder reads it.
+PAIRS_FILE = "pairs.json"
+SPLITS = ("train", "dev", "test")
 
 
-def dakshina_path(lang_id: str, split: str) -> Path:
-    code = DAKSHINA[lang_id]
-    return RAW / f"dakshina/dakshina_dataset_v1.0/{code}/lexicons/{code}.translit.sampled.{split}.tsv"
+@dataclass(frozen=True)
+class PairSource:
+    """A language's own human pairs, from `data/langs/<id>/pairs.json`:
+
+        {"source": "Dakshina",
+         "credit": "Dakshina dataset v1.0 (Google Research), CC BY-SA 4.0",
+         "files": {"train": "data/raw/…/xx.train.tsv", "dev": "…", "test": "…"},
+         "missing": "how to get the files when one is missing"}
+
+    `source` names the rows (`HumanPair.source`, and the eval set's section); `credit` heads the
+    eval set written from the test split; `files` maps a split to a TSV file (see the module's
+    docstring), a path from the repository root. Every split is optional: without `dev`,
+    validation uses the calibration pairs; without `test`, the held-out set is Aksharantar's."""
+
+    name: str
+    credit: str
+    files: dict[str, str]
+    missing: str = ""
+
+    def path(self, split: str) -> Path:
+        return ROOT / self.files[split]
 
 
-def dakshina(lang_id: str, split: str, stats: Counter | None = None) -> list[HumanPair]:
-    """Dakshina lexicon rows of `split` (train, dev or test), cleaned, each with its annotator
-    count; [] for a language not in `DAKSHINA`."""
-    if lang_id not in DAKSHINA:
-        return []
-    lang = load(lang_id)
-    stats = stats if stats is not None else Counter()
-    path = dakshina_path(lang_id, split)
+def pair_source(lang_id: str) -> PairSource | None:
+    """The language's `pairs.json`, or None when it has none."""
+    path = LANGS / lang_id / PAIRS_FILE
     if not path.exists():
-        raise SystemExit(
-            f"{path} is missing. Extract it from the Dakshina tar (data/manifests/dakshina.json): tar -xf "
-            "data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina "
-            f"'dakshina_dataset_v1.0/{DAKSHINA[lang_id]}/lexicons/*'"
-        )
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    files = data.get("files", {})
+    unknown = set(files) - set(SPLITS)
+    if unknown or not files:
+        raise SystemExit(f"{path}: \"files\" maps {', '.join(SPLITS)} to TSV files; got {sorted(files) or 'none'}")
+    return PairSource(data["source"], data.get("credit", data["source"]), dict(files), data.get("missing", ""))
+
+
+def read_pairs_file(path: Path) -> list[tuple[str, str, int]]:
+    """(native, latin, count) for every row of a pairs TSV (module docstring), uncleaned."""
     out = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        native, latin, count = line.split("\t")
-        pair = clean(lang, latin, native)
-        if not pair:
-            stats[f"dropped Dakshina {split} (not a-z / not a word / too long)"] += 1
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip() or line.startswith("#"):
             continue
-        stats[f"kept Dakshina {split}"] += 1
-        out.append(HumanPair(pair[0], pair[1], DAKSHINA_SOURCE, int(count)))
+        fields = line.split("\t")
+        if len(fields) not in (2, 3):
+            raise SystemExit(f"{path}:{n}: want native<TAB>romanisation[<TAB>count], got {len(fields)} fields")
+        out.append((fields[0], fields[1], int(fields[2]) if len(fields) == 3 else 1))
     return out
 
 
+def file_pairs(lang_id: str, split: str, stats: Counter | None = None) -> list[HumanPair]:
+    """The rows of the language's own pairs file for `split` (train, dev or test), cleaned, each
+    with its count; [] for a language without `pairs.json` or without that split."""
+    src = pair_source(lang_id)
+    if src is None or split not in src.files:
+        return []
+    lang = load(lang_id)
+    stats = stats if stats is not None else Counter()
+    path = src.path(split)
+    if not path.exists():
+        hint = f" {src.missing}" if src.missing else ""
+        raise SystemExit(f"{path} is missing (data/langs/{lang_id}/{PAIRS_FILE}).{hint}")
+    out = []
+    for native, latin, count in read_pairs_file(path):
+        pair = clean(lang, latin, native)
+        if not pair:
+            stats[f"dropped {src.name} {split} (not a-z / not a word / too long)"] += 1
+            continue
+        stats[f"kept {src.name} {split}"] += 1
+        out.append(HumanPair(pair[0], pair[1], src.name, count))
+    return out
+
+
+def has_aksharantar(lang_id: str) -> bool:
+    return bool(load(lang_id).data.get("aksharantar"))
+
+
+def held_out_pairs(lang_id: str, stats: Counter | None = None) -> list[HumanPair]:
+    """The held-out eval pairs: Aksharantar's manual test rows, or, for a language without
+    Aksharantar data, the test split of its own pairs file."""
+    if has_aksharantar(lang_id):
+        return manual(aksharantar(lang_id, "test", stats))
+    rows = file_pairs(lang_id, "test", stats)
+    if not rows:
+        raise SystemExit(
+            f"{lang_id} has no held-out pairs: lang.json names no Aksharantar code and "
+            f"data/langs/{lang_id}/{PAIRS_FILE} no test split. Hold out some typed pairs as \"test\"."
+        )
+    return rows
+
+
+def second_test_pairs(lang_id: str) -> list[HumanPair]:
+    """The test split of the language's own pairs when the main held-out set is Aksharantar's
+    (a second measurement, as Punjabi's Dakshina test); [] otherwise."""
+    return file_pairs(lang_id, "test") if has_aksharantar(lang_id) else []
+
+
 def held_out_words(lang_id: str, test: list[HumanPair]) -> set[str]:
-    """Words no training pair may have: the held-out `test` rows' and, for a language in
-    `DAKSHINA`, every word of Dakshina's dev and test splits."""
-    return {h.native for h in test} | {h.native for split in ("dev", "test") for h in dakshina(lang_id, split)}
+    """Words no training pair may have: the held-out `test` rows' and every word of the
+    language's own dev and test splits."""
+    return {h.native for h in test} | {h.native for split in ("dev", "test") for h in file_pairs(lang_id, split)}
 
 
 # Calibration pairs: what `calibrate` fits the romanisation weights to and `pairs` writes as
@@ -296,11 +373,17 @@ def calibration(
     lang_id: str, test_words: set[str], train: list[HumanPair] | None = None
 ) -> tuple[list[HumanPair], str]:
     """`calibration_split` for a language's Aksharantar files (`train` if already read); for a
-    language in `DAKSHINA`, Dakshina's train split instead (no word of `test_words`)."""
-    if lang_id in DAKSHINA:
-        rows = [h for h in dakshina(lang_id, "train") if h.native not in test_words]
-        code = DAKSHINA[lang_id]
-        return rows, f"Dakshina's train split ({code}.translit.sampled.train.tsv, typed by people)"
+    language with its own train split (`pairs.json`), that split instead (no word of `test_words`)."""
+    src = pair_source(lang_id)
+    if src is not None and "train" in src.files:
+        rows = [h for h in file_pairs(lang_id, "train") if h.native not in test_words]
+        return rows, f"{src.name}'s train split ({src.path('train').name}, typed by people)"
+    if not has_aksharantar(lang_id):
+        raise SystemExit(
+            f"no calibration pairs: {lang_id}'s lang.json names no Aksharantar code and "
+            f"data/langs/{lang_id}/{PAIRS_FILE} no train split. A language without human pairs can't be "
+            "calibrated: copy romanisation.hand.json to romanisation-weights.json (docs/make-a-language.md step 4)."
+        )
     valid = aksharantar(lang_id, "valid")
     if not manual(valid) and train is None:
         train = aksharantar(lang_id, "train")
