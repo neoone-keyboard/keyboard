@@ -1,0 +1,24 @@
+{
+  "id": "siwikibooks",
+  "name": "Sinhala Wikibooks",
+  "homepage": "https://si.wikibooks.org/",
+  "licence": "CC BY-SA 4.0",
+  "licence_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "terms_url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+  "licence_source": "https://si.wikibooks.org/ page footer (checked 2026-11-12): text is available under the Creative Commons Attribution-ShareAlike 4.0 License.",
+  "attribution": "Text of Sinhala Wikibooks by Wikibooks contributors.",
+  "used_for": "Sinhala word frequencies, romanised Sinhala lookup and next-word pairs (packs/si.neopack; 2026-11-01 dump, main namespace). Sinhala has no Wikisource, Wikiquote or Wikinews of its own (their dump folders are 404s), so this is the pack's second Wikimedia source.",
+  "retrieved": "2026-11-12",
+  "mirrors": [
+    "https://dumps.wikimedia.your.org/",
+    "https://ftp.acc.umu.se/mirror/wikimedia.org/dumps/"
+  ],
+  "files": [
+    {
+      "url": "https://dumps.wikimedia.org/siwikibooks/20261101/siwikibooks-20261101-pages-articles.xml.bz2",
+      "sha1": "978dab8baa2888c80a68e5bafc892d7444a037f6",
+      "path": "siwikibooks-20261101-pages-articles.xml.bz2"
+    }
+  ],
+  "status": "in packs/si.neopack, a file handed out for a trial (credited in its manifest), not offered for download, not in the app"
+}

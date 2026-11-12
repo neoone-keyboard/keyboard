@@ -215,7 +215,7 @@ class Listing(unittest.TestCase):
     def test_the_decision(self):
         self.assertEqual(pp.LISTING["full"], ["hi", "ml"])
         self.assertEqual(pp.LISTING["beta"], ["as", "gu", "kn", "ne", "pa", "ta", "te"])
-        self.assertEqual(pp.LISTING["unlisted"], ["bho", "bn", "ja", "mai", "mr", "or", "ur"])
+        self.assertEqual(pp.LISTING["unlisted"], ["bho", "bn", "ja", "mai", "mr", "or", "si", "ur"])
         self.assertEqual(pp.LISTING["alsoInPacks"], ["as", "ta"])
 
     def test_the_site_src_files_match_it(self):

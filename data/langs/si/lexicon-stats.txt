@@ -1,0 +1,10 @@
+si tokens: 16329570, distinct forms: 1070390
+si dropped (a letter of the script, but not a word): 187631 tokens, 65386 forms
+si dropped top 20: ක් 21778, ත් 20207, න් 17346, ල් 3032, ම් 1939, ස් 1891, දැ'යි 1064, ව් 701, ය'යි 585, 2ක් 560, ර් 492, ද් 487, 3ක් 476, 000ක් 462, මෙි 398, 5ක් 392, 4ක් 359, Iවන 359, විස්සයි20 325, IIIවන 314
+next.fst pairs: 146383 si, 149977 English
+si.fst: 256078 keys, 2621199 bytes
+next.fst: 296360 keys, 4475459 bytes
+si top 20: සහ වූ ද අතර වන හා ඒ ඇති ලෙස මේ ය නම් විසින් විය කරන වේ දී මෙම සඳහා ඇත
+romanised keys skipped: 0
+romanised.fst: 256078 keys, 4626425 bytes
+si text by source: siwiki 10477621 words (58%), siwikibooks 7675281 words (42%)

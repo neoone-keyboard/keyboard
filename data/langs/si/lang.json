@@ -1,0 +1,29 @@
+{
+  "id": "si",
+  "name": "Sinhala",
+  "script": "sinh",
+  "block": ["0D80", "0DFF"],
+  "notWord": [["0DE6", "0DEF"], ["0DF4", "0DF4"]],
+  "firstLetter": [["0D85", "0D96"], ["0D9A", "0DC6"]],
+  "virama": "0DCA",
+  "joiners": "afterVirama",
+  "signs": [["0DCA", "0DCA"], ["0DCF", "0DD4"], ["0DD6", "0DD6"], ["0DD8", "0DDF"], ["0DF2", "0DF3"]],
+  "bases": [["0D9A", "0DC6"]],
+  "apostrophe": false,
+  "replace": [["‌", ""]],
+  "phraseBreaks": ["෴"],
+  "maxChars": 30,
+  "maxWords": 300000,
+  "minCount": 3,
+  "notes": {
+    "block": "Sinhala, U+0D80-U+0DFF. Words are runs of its letters and signs.",
+    "notWord": "The Sinhala lith digits ෦-෯ (U+0DE6-U+0DEF) and the kunddaliya ෴ (U+0DF4), a punctuation mark, are not word letters.",
+    "firstLetter": "Independent vowels අ-ඖ and consonants ක-ෆ start a word. The anusvara ං and visarga ඃ follow a vowel (අං), so they are neither first letters nor signs.",
+    "virama": "The al-lakuna ් (U+0DCA).",
+    "joiners": "Kept after the al-lakuna: Sinhala writes its yansaya and rakaransaya as al-lakuna + ZWJ + ය or ර (ක්‍රමය, රාජ්‍ය, ශ්‍රී), and without the ZWJ the al-lakuna shows. Text has both forms (ශ්‍රී 23,731 times in the pack's text, ශ්රී 1,100), and some words are right without it (දුම්රිය, a compound), so neither is folded into the other: each is a word with its own count, and the commoner leads. A ZWJ before the al-lakuna (touching letters, ප‍්‍රධාන) is dropped by the engine's normal form.",
+    "signs": "The al-lakuna and the vowel signs ා-ු, ූ, ෘ-ෟ, ෲ ෳ must follow a consonant. NFC joins the two-part signs (ෙ + ා is ො, ෙ + ් is ේ, ො + ් is ෝ, ෙ + ෟ is ෞ).",
+    "replace": "ZWNJ is dropped (it appears after an al-lakuna at the end of a word, or in Pali text).",
+    "phraseBreaks": "Sinhala ends sentences with Latin punctuation; the kunddaliya ෴ is listed for older text.",
+    "aksharantar": "Aksharantar has no Sinhala. The human pairs are Dakshina's Sinhala lexicon: data/langs/si/pairs.json."
+  }
+}

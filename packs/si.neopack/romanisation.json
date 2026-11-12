@@ -1,0 +1,129 @@
+{
+  "format": 1,
+  "script": "sinh",
+  "virama": "්",
+  "inherent": "a",
+  "atWordEnd": {
+    "virama": "",
+    "inherent": "a"
+  },
+  "independentVowels": {
+    "අ": "a",
+    "ආ": "a",
+    "ඇ": "ae",
+    "ඈ": "a",
+    "ඉ": "i",
+    "ඊ": "i",
+    "උ": "u",
+    "ඌ": "u",
+    "ඍ": "ru",
+    "ඎ": "ru",
+    "ඏ": "lu",
+    "ඐ": "lu",
+    "එ": "e",
+    "ඒ": "e",
+    "ඓ": "ai",
+    "ඔ": "o",
+    "ඕ": "o",
+    "ඖ": "au"
+  },
+  "vowelSigns": {
+    "ා": "a",
+    "ැ": "ae",
+    "ෑ": "a",
+    "ි": "i",
+    "ී": "i",
+    "ු": "u",
+    "ූ": "u",
+    "ෘ": "r",
+    "ෲ": "ru",
+    "ෟ": "lu",
+    "ෳ": "lu",
+    "ෙ": "e",
+    "ේ": "e",
+    "ෛ": "ai",
+    "ො": "o",
+    "ෝ": "o",
+    "ෞ": "au"
+  },
+  "consonants": {
+    "ක": "k",
+    "ඛ": "kh",
+    "ග": "g",
+    "ඝ": "gh",
+    "ඞ": "n",
+    "ඟ": "ng",
+    "ච": "ch",
+    "ඡ": "ch",
+    "ජ": "j",
+    "ඣ": "jh",
+    "ඤ": "gn",
+    "ඥ": "gn",
+    "ඦ": "nj",
+    "ට": "t",
+    "ඨ": "th",
+    "ඩ": "d",
+    "ඪ": "dh",
+    "ණ": "n",
+    "ඬ": "nd",
+    "ත": "th",
+    "ථ": "th",
+    "ද": "d",
+    "ධ": "dh",
+    "න": "n",
+    "ඳ": "nd",
+    "ප": "p",
+    "ඵ": "ph",
+    "බ": "b",
+    "භ": "bh",
+    "ම": "m",
+    "ඹ": "mb",
+    "ය": "y",
+    "ර": "r",
+    "ල": "l",
+    "ව": "v",
+    "ශ": "s",
+    "ෂ": "sh",
+    "ස": "s",
+    "හ": "h",
+    "ළ": "l",
+    "ෆ": "f"
+  },
+  "finals": {
+    "ං": "n",
+    "ඃ": "h",
+    "ඁ": "n"
+  },
+  "clusters": {
+    "ක්ෂ": "ks",
+    "ච්ච": "chch",
+    "ඥ": "gn",
+    "ත්ත": "tt"
+  },
+  "skeleton": {
+    "dropTrailing": {
+      "letters": "",
+      "afterVowel": true,
+      "minLength": 3
+    },
+    "pairs": [["ngchh", "nc"], ["mchh", "nc"], ["ngkh", "nk"], ["ngch", "nc"], ["ngjh", "nj"], ["ngth", "nt"], ["ngdh", "nd"], ["ngsh", "ns"], ["nggh", "ng"], ["chh", "c"], ["ksh", "ks"], ["ayi", "ai"], ["eyi", "ei"], ["oyi", "oi"], ["uyi", "ui"], ["mkh", "nk"], ["mgh", "ng"], ["mch", "nc"], ["mjh", "nj"], ["mth", "nt"], ["mdh", "nd"], ["msh", "ns"], ["ngk", "nk"], ["ngc", "nc"], ["ngj", "nj"], ["ngt", "nt"], ["ngd", "nd"], ["ngs", "ns"], ["ngv", "nv"], ["ngw", "nv"], ["ngy", "ny"], ["ngr", "nr"], ["ngl", "nl"], ["ngg", "ng"], ["ngh", "ng"], ["ch", "c"], ["sh", "s"], ["kh", "k"], ["gh", "g"], ["jh", "j"], ["th", "t"], ["dh", "d"], ["ph", "p"], ["bh", "b"], ["aa", "a"], ["ae", "a"], ["ee", "i"], ["ii", "i"], ["oo", "u"], ["uu", "u"], ["ou", "au"], ["mk", "nk"], ["mg", "ng"], ["mc", "nc"], ["mj", "nj"], ["mt", "nt"], ["md", "nd"], ["ms", "ns"], ["mh", "nh"], ["mv", "nv"], ["mw", "nv"], ["my", "ny"], ["mr", "nr"], ["ml", "nl"]],
+    "singles": {
+      "z": "j",
+      "w": "v",
+      "q": "k",
+      "x": "ks",
+      "c": "c"
+    },
+    "collapseDoubles": true,
+    "dropFinalVowel": {
+      "vowels": "",
+      "afterConsonant": true,
+      "minLength": 3
+    }
+  },
+  "looseSpelling": {
+    "pairs": [["ee", "i"], ["oo", "u"], ["aa", "a"], ["ae", "a"]],
+    "collapse": "aiu"
+  },
+  "notes": "inherent: Sinhala keeps its inherent vowel in speech and in typing, inside a word and at its end (ගෙදර gedara, මම mama); a consonant with al-lakuna ends without one (අකුරක් akurak). letters: Typists write ත (dental) as th or t and ට (retroflex) as t; ද as d or dh, ඩ as d. Aspirates (ඛ ඝ ඨ ඪ ථ ධ ඵ භ) are typed with or without h. The prenasalised ඟ ඬ ඳ ඹ are ng, nd, nd, mb. ැ and ෑ are a, ae or e. ව is v or w, ශ and ෂ sh or s. The anusvara ං is n, m or ng (අංක anka, amka). Yansaya and rakaransaya (ක්‍ය, ක්‍ර) are a virama, a ZWJ and ය or ර: the walk drops the ZWJ, so they spell ky, kr. skeleton: Aspirates fold to their plain letters, ch and chh to c, sh to s, w to v; aa, ae to a, ee to i, oo to u; an anusvara spelled m or ng before k or g folds to n."
+}

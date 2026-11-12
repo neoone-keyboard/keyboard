@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "id": "si",
+  "version": "2026.11.13",
+  "name": "Sinhala",
+  "nativeName": "සිංහල",
+  "script": "sinh",
+  "romanised": {
+    "name": "Romanised Sinhala"
+  },
+  "minEngine": 6,
+  "files": {
+    "lexicon": "si.fst",
+    "romanisedLexicon": "romanised.fst",
+    "nextWords": "next.fst",
+    "translit": "translit.mlkbnn",
+    "romanisation": "romanisation.json",
+    "layout": "layout.json",
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
+  },
+  "sha256": {
+    "emoji-search.txt": "ae9d2e6c6e263aa15aa21dcefc7e0d8fdde2267962cb0e0ab0572844e4d5e5bf",
+    "emoji-words.txt": "b3b2d011a7c0fb62e0529ee9f40b52daa66d06b5b9757268a0d73f173e53c474",
+    "lang.json": "8431a81ebc09133d45eeb4d7a54668ad158ed646d9b3fa355172bf22b94166a3",
+    "layout.json": "154ad44c81747dc89711d1ec4dc8d9b7669fec7d14f67d09e3596aebf7ced99c",
+    "next.fst": "7bfeffffdf85f4993458896cc0511530d5ab60d190b2b89df23121dcc1bdf1f1",
+    "romanisation.json": "42211b4e91cc79dab4182b74e49ef7544e3d9e314c1f2c920e1be084eb66c2a3",
+    "romanised.fst": "2c03b61c5c3b5cb9958a1583dc9d17e793413eb596936d59e499de390896e8cd",
+    "si.fst": "d7c28a0310317e7e5b12bd612a6a428ecb2d857cdcba928d4174e2caf3c73b67",
+    "translit.mlkbnn": "3d793c5e142280b8127bc185fab2cb49887445987dca38f4e6500c63ff15c6a3"
+  },
+  "credits": [
+    {
+      "name": "Sinhala Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://si.wikipedia.org/"
+    },
+    {
+      "name": "Sinhala Wikibooks",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://si.wikibooks.org/"
+    },
+    {
+      "id": "dakshina",
+      "name": "Dakshina dataset (Google Research)",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://github.com/google-research-datasets/dakshina",
+      "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Sinhala romanisations from the Dakshina dataset by Google Research (Roark et al., 2020), used to train the transliterator and to fit the romanisation tables. https://github.com/google-research-datasets/dakshina"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Sinhala emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Sinhala."
+    },
+    {
+      "name": "English Wikipedia",
+      "licence": "CC BY-SA 4.0",
+      "url": "https://en.wikipedia.org/"
+    }
+  ]
+}
