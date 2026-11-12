@@ -984,6 +984,9 @@ final class KeyboardViewController: UIInputViewController {
         theme = KeyboardTheme.resolve(settings, style: traitCollection.userInterfaceStyle)
         view.backgroundColor = theme.background
         topBar.apply(theme)
+        // The app's "Hint when there are more suggestions", in the App Group.
+        topBar.moreHintEnabled = SharedSettings.suggestionMoreHint(
+            defaults: SharedSettings.appGroupDefaults(), preferencesFile: SharedSettings.appGroupPreferencesFile())
         candidateBar.apply(theme)
         candidateGrid?.apply(theme)
         if !settingsPanel.isHidden { settingsPanel.apply(theme) }
@@ -1045,8 +1048,8 @@ final class KeyboardViewController: UIInputViewController {
     }
 
     /// After a Malayalam consonant: the best completion and the vowel signs,
-    /// likeliest first. Otherwise the three suggestion slots, with an emoji for the
-    /// word in the right one when there is one (`barEmoji`).
+    /// likeliest first. Otherwise the suggestions, as many as fit, the default first, with an
+    /// emoji for the word third when there is one (`barEmoji`).
     ///
     /// Only a result for the word now before the cursor is shown. While that
     /// result is on its way the bar stays as it is (a strip, or slots for this
