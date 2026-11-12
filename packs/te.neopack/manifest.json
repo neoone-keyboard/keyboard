@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "te",
-  "version": "2026.11.11",
+  "version": "2026.11.13",
   "name": "Telugu",
   "nativeName": "తెలుగు",
   "script": "telu",
@@ -16,9 +16,13 @@
     "translit": "translit.mlkbnn",
     "romanisation": "romanisation.json",
     "layout": "layout.json",
-    "lang": "lang.json"
+    "lang": "lang.json",
+    "emojiWords": "emoji-words.txt",
+    "emojiSearch": "emoji-search.txt"
   },
   "sha256": {
+    "emoji-search.txt": "8f0a560d180a1a62ee397132a7d8a950eea6227e0ecf15b9b3dfae797f0e3bb5",
+    "emoji-words.txt": "f8afb48a5ec22a683e0c378ae5f4d20bdec73afa160eb1a4064d136b55bde4e3",
     "lang.json": "9e58715780c7056060d49d6035c14236ddb2036f5d4bc48a33860e115f2f15ba",
     "layout.json": "f62b1040e653aadfde146f12d10928dc290b215c7596f4eb41a19b531c126051",
     "next.fst": "9060222591fbf4732422e190cbd227cdbc0d4cc3e4214a545c3786dcf51b7acf",
@@ -47,6 +51,14 @@
       "name": "Aksharantar (AI4Bharat)",
       "licence": "CC BY and CC0 1.0",
       "url": "https://huggingface.co/datasets/ai4bharat/Aksharantar"
+    },
+    {
+      "id": "cldr-annotations",
+      "name": "Unicode CLDR emoji annotations",
+      "licence": "Unicode License v3",
+      "url": "https://cldr.unicode.org/",
+      "licenceUrl": "https://www.unicode.org/license.txt",
+      "attribution": "Copyright © 1991-2026 Unicode, Inc. Telugu emoji keywords and names from the Unicode Common Locale Data Repository (CLDR) 49, used for the emoji suggestions and the emoji search in Telugu."
     },
     {
       "name": "English Wikipedia",
