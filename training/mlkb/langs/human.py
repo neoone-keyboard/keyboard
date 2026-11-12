@@ -9,6 +9,12 @@ Aksharantar (`data/raw/aksharantar-<code>/extracted/<code>_{train,valid,test}.js
 `data/manifests/aksharantar-asm.json`) is filtered as for Malayalam (`mlkb.data.human`): rows
 whose source is Dakshina or Existing are dropped, mined IndicCorp rows below the mining score
 cut too.
+
+A language in `DAKSHINA` also has Dakshina's human-typed lexicon (`data/raw/dakshina/
+dakshina_dataset_v1.0/<code>/lexicons/<code>.translit.sampled.{train,dev,test}.tsv`: native word,
+romanisation, annotator count; see `data/manifests/dakshina.json`), used as Malayalam uses its own:
+the train split trains the transliterator and calibrates the tables, the dev split validates, and
+the test split is held out. No dev or test word is in any training pair.
 """
 
 import hashlib
@@ -144,6 +150,7 @@ class HumanPair:
     latin: str
     native: str
     source: str
+    count: int = 1  # how many annotators typed it (Dakshina), else 1
 
 
 def clean(lang: Lang, latin: str, native: str) -> tuple[str, str] | None:
@@ -189,6 +196,48 @@ def aksharantar(lang_id: str, split: str = "train", stats: Counter | None = None
         stats[f"kept {source}"] += 1
         out.append(HumanPair(pair[0], pair[1], source))
     return out
+
+
+# Pack languages whose human pairs include Dakshina's lexicon: pack id to Dakshina's code.
+DAKSHINA = {"pa": "pa"}
+DAKSHINA_SOURCE = "Dakshina"
+
+
+def dakshina_path(lang_id: str, split: str) -> Path:
+    code = DAKSHINA[lang_id]
+    return RAW / f"dakshina/dakshina_dataset_v1.0/{code}/lexicons/{code}.translit.sampled.{split}.tsv"
+
+
+def dakshina(lang_id: str, split: str, stats: Counter | None = None) -> list[HumanPair]:
+    """Dakshina lexicon rows of `split` (train, dev or test), cleaned, each with its annotator
+    count; [] for a language not in `DAKSHINA`."""
+    if lang_id not in DAKSHINA:
+        return []
+    lang = load(lang_id)
+    stats = stats if stats is not None else Counter()
+    path = dakshina_path(lang_id, split)
+    if not path.exists():
+        raise SystemExit(
+            f"{path} is missing. Extract it from the Dakshina tar (data/manifests/dakshina.json): tar -xf "
+            "data/raw/dakshina/dakshina_dataset_v1.0.tar -C data/raw/dakshina "
+            f"'dakshina_dataset_v1.0/{DAKSHINA[lang_id]}/lexicons/*'"
+        )
+    out = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        native, latin, count = line.split("\t")
+        pair = clean(lang, latin, native)
+        if not pair:
+            stats[f"dropped Dakshina {split} (not a-z / not a word / too long)"] += 1
+            continue
+        stats[f"kept Dakshina {split}"] += 1
+        out.append(HumanPair(pair[0], pair[1], DAKSHINA_SOURCE, int(count)))
+    return out
+
+
+def held_out_words(lang_id: str, test: list[HumanPair]) -> set[str]:
+    """Words no training pair may have: the held-out `test` rows' and, for a language in
+    `DAKSHINA`, every word of Dakshina's dev and test splits."""
+    return {h.native for h in test} | {h.native for split in ("dev", "test") for h in dakshina(lang_id, split)}
 
 
 # Calibration pairs: what `calibrate` fits the romanisation weights to and `pairs` writes as
@@ -246,7 +295,12 @@ def calibration_split(
 def calibration(
     lang_id: str, test_words: set[str], train: list[HumanPair] | None = None
 ) -> tuple[list[HumanPair], str]:
-    """`calibration_split` for a language's Aksharantar files (`train` if already read)."""
+    """`calibration_split` for a language's Aksharantar files (`train` if already read); for a
+    language in `DAKSHINA`, Dakshina's train split instead (no word of `test_words`)."""
+    if lang_id in DAKSHINA:
+        rows = [h for h in dakshina(lang_id, "train") if h.native not in test_words]
+        code = DAKSHINA[lang_id]
+        return rows, f"Dakshina's train split ({code}.translit.sampled.train.tsv, typed by people)"
     valid = aksharantar(lang_id, "valid")
     if not manual(valid) and train is None:
         train = aksharantar(lang_id, "train")

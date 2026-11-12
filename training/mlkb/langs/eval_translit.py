@@ -62,11 +62,12 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--model", type=Path, required=True)
     p.add_argument("--beam", type=int, default=8)
     p.add_argument("--limit", type=int, default=0, help="first N rows only (0: all)")
+    p.add_argument("--set", type=Path, dest="rows", help="the held-out set (default data/eval/<lang>/translit-human.tsv)")
     args = p.parse_args(argv)
     torch.set_num_threads(4)
     vocab = native(args.lang)
     model = dequantised_model(args.model)
-    data = rows(ROOT / f"data/eval/{args.lang}/translit-human.tsv")
+    data = rows(args.rows or ROOT / f"data/eval/{args.lang}/translit-human.tsv")
     if args.limit:
         data = data[: args.limit]
     lexicon = {w for w, _ in mlengine.malayalam_words(str(ROOT / f"packs/{args.lang}.neopack/{args.lang}.fst"), 10**7)}

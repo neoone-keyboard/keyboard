@@ -9,7 +9,9 @@ each drawn in proportion to `count ** 0.5`, spelled by `Tables.variants` from th
 the hand-set ones (`romanisation.hand.json`), whose weights allow more chat shortcuts.
 
 Human rows make up `--human-share` of `train.tsv`: Aksharantar `<code>_train.json`, filtered
-(`mlkb.langs.human.aksharantar`).
+(`mlkb.langs.human.aksharantar`). For a language in `human.DAKSHINA` (Punjabi), `--dakshina-share`
+of them are Dakshina's train pairs instead, drawn by annotator count; `valid-human.tsv` is then
+Dakshina's dev pairs, and neither its dev nor its test words are in `train.tsv`.
 
 1% of the lexicon words (not rows) go to `valid.tsv`. `valid-human.tsv` is the calibration pairs
 (`mlkb.langs.human.calibration`): Aksharantar's manual valid rows (AK-Uni, AK-Freq), or a held-out
@@ -112,6 +114,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--lexicon", type=Path)
     p.add_argument("--chat-share", type=float, default=0.5, help="draws that use the hand-set tables")
     p.add_argument("--human-share", type=float, default=0.3, help="share of train rows that are human pairs")
+    p.add_argument(
+        "--dakshina-share", type=float, default=0.5,
+        help="share of the human rows from Dakshina's train split (a language in human.DAKSHINA)",
+    )
     p.add_argument("--eval-only", action="store_true", help="write only data/eval/<lang>/translit-human.tsv")
     args = p.parse_args(argv)
     if args.eval_only:
@@ -128,9 +134,15 @@ def main(argv: list[str] | None = None) -> None:
     stats: Counter = Counter()
     test = human.manual(human.aksharantar(args.lang, "test", stats))
     train_rows = human.aksharantar(args.lang, "train", stats)
-    valid_human, where = human.calibration(args.lang, {h.native for h in test}, train=train_rows)
+    held_out = human.held_out_words(args.lang, test)
+    dakshina_train = human.dakshina(args.lang, "train", stats)
+    if args.lang in human.DAKSHINA:
+        valid_human = human.dakshina(args.lang, "dev", stats)
+        where = f"Dakshina's dev split ({human.DAKSHINA[args.lang]}.translit.sampled.dev.tsv)"
+    else:
+        valid_human, where = human.calibration(args.lang, held_out, train=train_rows)
     print(f"valid-human: {where}")
-    excluded = {h.native for h in test} | {h.native for h in valid_human}
+    excluded = held_out | {h.native for h in valid_human}
 
     words = mlengine.malayalam_words(str(lexicon), args.words)  # any lexicon: UTF-8 keys by count
     left_out = sum(w in excluded for w, _ in words)
@@ -143,8 +155,12 @@ def main(argv: list[str] | None = None) -> None:
     mined = [(latin, w) for latin, w in mined if w not in excluded and w not in valid_words]
     n_human = round(len(train) * args.human_share / (1 - args.human_share))
     rng = random.Random(args.seed + 1)
-    # Fewer distinct human pairs than wanted: each is repeated, so they keep their share.
-    humans = [mined[i % len(mined)] for i in range(n_human)] if mined else []
+    typed = [h for h in dakshina_train if h.native not in excluded and h.native not in valid_words]
+    n_typed = round(n_human * args.dakshina_share) if typed else 0
+    # Dakshina's pairs by how many annotators typed each, as Malayalam's (mlkb.data.pairs).
+    humans = [(h.latin, h.native) for h in rng.choices(typed, weights=[h.count for h in typed], k=n_typed)]
+    # Fewer distinct mined pairs than wanted: each is repeated, so they keep their share.
+    humans += [mined[i % len(mined)] for i in range(n_human - n_typed)] if mined else []
     train += humans
     rng.shuffle(train)
 
@@ -156,7 +172,9 @@ def main(argv: list[str] | None = None) -> None:
 
     for key, value in sorted(stats.items()):
         print(f"  {key}: {value:,}")
-    print(f"distinct human pairs {len(set(mined)):,}; human rows in train {len(humans):,} ({len(humans) / len(train):.1%})")
+    print(f"distinct mined pairs {len(set(mined)):,}; human rows in train {len(humans):,} ({len(humans) / len(train):.1%})")
+    if typed:
+        print(f"distinct Dakshina train pairs {len(typed):,}; Dakshina rows in train {n_typed:,} ({n_typed / len(train):.1%})")
     for name, pairs in (("train", train), ("valid", valid), ("valid-human", [(h.latin, h.native) for h in valid_human])):
         lengths = [len(latin) for latin, _ in pairs]
         print(
