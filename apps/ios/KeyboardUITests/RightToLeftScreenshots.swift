@@ -1,7 +1,7 @@
 import XCTest
 
 /// Screenshots of Roman Urdu typed into Messages, a host whose field takes the direction of
-/// what is typed: the mirrored suggestion bar in Nastaliq, Urdu's ۔ and ؟, the symbols page
+/// what is typed: the suggestion bar in Nastaliq (left to right on the Latin keys), Urdu's ۔ and ؟, the symbols page
 /// with Urdu's marks, the full stop key's options. For screenshots only: skips without
 /// SHOTS_DIR. Run on an iPhone 17 Pro Max simulator as `AppStoreScreenshots` says (a Release
 /// build, NeoOne Keyboard added, the memory budget raised for the run and not committed),

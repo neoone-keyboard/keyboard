@@ -44,17 +44,21 @@ final class TopBarShots: XCTestCase {
             id: "ur", name: "Urdu", nativeName: "اردو", script: "arab", layout: nil, folder: URL(fileURLWithPath: "/"),
             scriptRanges: [0x0621...0x06D3], rightToLeft: true
         )
-        shot("bar_ios_urdu", typed: "mera", script: urdu, [
+        let words = [
             Suggestion("میرا", kind: .manglish), Suggestion("mera", kind: .verbatim), Suggestion("میری", kind: .manglish),
             Suggestion("میرے", kind: .manglish), Suggestion("میراث", kind: .manglish), Suggestion("میرپور", kind: .manglish),
             Suggestion("میرزا", kind: .manglish), Suggestion("میراثی", kind: .manglish),
-        ])
+        ]
+        // Roman Urdu on the Latin keys reads left to right; on Urdu's own letters, mirrored.
+        shot("bar_ios_urdu_latin_keys", typed: "mera", script: urdu, words)
+        shot("bar_ios_urdu_urdu_keys", typed: "mera", script: urdu, rightToLeft: true, words)
     }
 
     /// The bar over the keyboard's background, as wide as an iPhone 17's keyboard; `slid`
     /// slides it to its far end, as a finger would.
     private func shot(
-        _ name: String, typed: String, script: PackDescriptor? = nil, _ candidates: [Suggestion], slid: Bool = false
+        _ name: String, typed: String, script: PackDescriptor? = nil, rightToLeft: Bool = false,
+        _ candidates: [Suggestion], slid: Bool = false
     ) {
         let theme = KeyboardTheme.resolve(KeyboardSettings(), style: .light)
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 56))
@@ -64,7 +68,7 @@ final class TopBarShots: XCTestCase {
         window.addSubview(bar)
         window.isHidden = false
         bar.apply(theme)
-        bar.setScript(script)
+        bar.setScript(script, rightToLeft: rightToLeft)
         bar.showSuggestions(SuggestionBar(SuggestionResult(typed: typed, candidates: candidates), limit: 10))
         window.layoutIfNeeded()
         if slid, let scroll = scrollView(in: bar) {

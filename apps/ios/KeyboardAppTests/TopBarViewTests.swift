@@ -278,8 +278,26 @@ final class TopBarViewTests: XCTestCase {
         window.layoutIfNeeded()
     }
 
-    func testARightToLeftBarIsMirroredWithTheDefaultInTheMiddle() throws {
+    /// On the Latin keys (Roman Urdu) the bar reads left to right, as SwiftKey's does: the
+    /// typed word on the left, the default bold in the middle, more past the right edge. Each
+    /// Urdu word is still Nastaliq.
+    func testUrduOnTheLatinKeysIsLeftToRight() throws {
         bar.setScript(urdu)
+        showRoman(limit: 10)
+        XCTAssertEqual(Array(titles().prefix(3)), ["\u{201C}mera\u{201D}", "میرا", "میری"])
+        let buttons = slots(in: scroll)
+        XCTAssertEqual(buttons.filter(inView), Array(buttons.prefix(3)), "the three slots, from the left")
+        XCTAssertEqual(frame(of: buttons[0]).minX, 0, accuracy: 0.5)
+        let best = buttons[1]
+        XCTAssertEqual(frame(of: best).midX, bar.bounds.midX, accuracy: 0.5)
+        XCTAssertTrue(isBold(best), "the default is bold")
+        XCTAssertEqual(best.titleLabel?.font.familyName, "Noto Nastaliq Urdu")
+        XCTAssertTrue(hintShows)
+        XCTAssertEqual(bar.moreHintView.frame.maxX, bar.bounds.width, accuracy: 0.5, "the hint on the right")
+    }
+
+    func testARightToLeftBarIsMirroredWithTheDefaultInTheMiddle() throws {
+        bar.setScript(urdu, rightToLeft: true)
         showRoman()
         // Left to right on screen: the other word, the default, the typed word on the right.
         XCTAssertEqual(titles(), ["میری", "میرا", "\u{201C}mera\u{201D}"])
@@ -293,7 +311,7 @@ final class TopBarViewTests: XCTestCase {
     }
 
     func testARightToLeftBarSlidesLeftToItsMoreWords() throws {
-        bar.setScript(urdu)
+        bar.setScript(urdu, rightToLeft: true)
         showRoman(limit: 10)
         XCTAssertEqual(titles(), ["میراثی", "میرزا", "میرپور", "میراث", "میرٹھ", "میرے", "میر", "میری", "میرا", "\u{201C}mera\u{201D}"])
         let buttons = slots(in: scroll)
@@ -335,8 +353,17 @@ final class TopBarViewTests: XCTestCase {
         }
     }
 
-    func testLeftToRightAgainOnceThePackIsGone() {
+    func testLeftToRightAgainOnTheLatinKeys() {
+        bar.setScript(urdu, rightToLeft: true)
+        showRoman()
         bar.setScript(urdu)
+        showRoman()
+        XCTAssertEqual(titles(), ["\u{201C}mera\u{201D}", "میرا", "میری"])
+        XCTAssertEqual(slots(in: scroll)[1].titleLabel?.font.familyName, "Noto Nastaliq Urdu", "still Urdu's font")
+    }
+
+    func testLeftToRightAgainOnceThePackIsGone() {
+        bar.setScript(urdu, rightToLeft: true)
         showRoman()
         bar.setScript(nil)
         showRoman()

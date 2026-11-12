@@ -71,9 +71,11 @@ struct RightToLeftTests {
 
     // MARK: Which pack the keys and bar follow
 
-    @Test func theLatinKeysFollowTheOnePackTypedBesideEnglish() {
+    /// The Latin keys follow Urdu's conventions (its marks, its font) but the bar reads left
+    /// to right there, as SwiftKey's does: only a right-to-left script's own keys mirror it.
+    @Test func theLatinKeysFollowTheOnePackTypedBesideEnglishLeftToRight() {
         #expect(input.scriptPack?.id == "ur")
-        #expect(input.rightToLeft)
+        #expect(!input.rightToLeft, "Roman Urdu on the Latin keys")
         input.activePacks = [urdu, pack("hi")]
         #expect(input.scriptPack == nil, "two packs: neither's conventions")
         #expect(!input.rightToLeft)
@@ -81,16 +83,25 @@ struct RightToLeftTests {
         #expect(!input.rightToLeft)
     }
 
-    @Test func aPacksOwnLayoutFollowsThatPack() {
+    @Test func onlyAPacksOwnRightToLeftLettersMirrorTheBar() {
         let input = InputController(output: output, languages: [.english, .pack(urdu), malayalam])
         input.activePacks = [urdu, malayalamPack]
         #expect(!input.rightToLeft)
         input.handle(.toggleLanguage, at: 0)
         #expect(input.language.id == "ur")
+        #expect(input.rightToLeft, "Urdu's letters")
+        input.handle(.page(.native("more")), at: 1)
+        #expect(input.rightToLeft, "Urdu's second page of letters")
+        input.handle(.page(.symbols), at: 2)
+        #expect(!input.rightToLeft, "the number keys")
+        input.handle(.page(.letters), at: 3)
         #expect(input.rightToLeft)
-        input.handle(.toggleLanguage, at: 1)
+        input.handle(.toggleLanguage, at: 4)
         #expect(input.language.id == "ml")
         #expect(!input.rightToLeft)
+        input.handle(.toggleLanguage, at: 5)
+        #expect(input.language.id == "en")
+        #expect(!input.rightToLeft, "back on the Latin keys")
     }
 
     // MARK: The bar
