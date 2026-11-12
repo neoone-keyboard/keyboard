@@ -1731,6 +1731,8 @@ impl Engine {
         let mut names: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut completions = Vec::new();
         let mut manglish: Option<ManglishCandidates> = None;
+        // What the typed capitals say (`Capitals`).
+        let capitals = Capitals::of(typed_n, mid_sentence);
 
         if let Some(lex) = self.english() {
             let score_of = |count: u64| lex.log_prob(count) + rank::KNOWN_BONUS;
@@ -1762,7 +1764,14 @@ impl Engine {
                 }
             }
 
-            let found = self.manglish(typed_n, priors, favoured, known_score.is_some(), deadline);
+            let found = self.manglish(
+                typed_n,
+                capitals.english,
+                priors,
+                favoured,
+                known_score.is_some(),
+                deadline,
+            );
             // Letters that spell a Malayalam word are not a mistyped English one: the
             // long-word search's extra reach (`rank::LONG_WORD`) is not used for them.
             let long = typed_n.len() >= rank::LONG_WORD && found.exact.is_empty();
@@ -1979,7 +1988,9 @@ impl Engine {
         let mut dominant = dominant.filter(|c| !self.is_removed(c));
 
         let mut manglish =
-            manglish.unwrap_or_else(|| self.manglish(typed_n, priors, favoured, false, deadline));
+            manglish.unwrap_or_else(|| {
+                self.manglish(typed_n, capitals.english, priors, favoured, false, deadline)
+            });
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
         // Floors were checked on scores without it; the final one below takes it back out.
@@ -2076,7 +2087,6 @@ impl Engine {
         );
         // A real word (or a learned one) is never replaced, and only a
         // correction may replace: space never commits an unfinished word.
-        let capitals = Capitals::of(typed_n, mid_sentence);
         let may_replace = autocorrect && !learned && !capitals.acronym;
         // A pack's word the typed letters spell out counts for more against English, unless
         // English is likely for that pack (`rank::MANGLISH_SPELLED_OVER_CORRECTION`).
@@ -2315,10 +2325,12 @@ impl Engine {
     /// likeliest first (highest prior; the active order between equals): they share the
     /// transliterator's `deadline`, and on a slow request the last ones get none of it.
     /// `favoured`: as in `suggest_latin`; the other packs get no lexicon readings from the
-    /// model (`add_model`).
+    /// model (`add_model`). `english_capitals`: the typed capitals hint at English or a name
+    /// (`Capitals::english`).
     fn manglish(
         &self,
         typed_n: &str,
+        english_capitals: bool,
         priors: &Priors,
         favoured: Option<Lang>,
         english_word: bool,
@@ -2336,6 +2348,7 @@ impl Engine {
                 pack,
                 self.own_of(&own, pack),
                 typed_n,
+                english_capitals,
                 bias,
                 another_favoured,
                 english_word,
@@ -2352,7 +2365,7 @@ impl Engine {
     /// `pack`'s words for a Latin word, scored to compete with English.
     /// `english_word`: the typed word is in the English lexicon, so it isn't
     /// split into stem and suffix. `another_favoured`: another pack is favoured
-    /// (`Engine::favoured`), as in `add_model`.
+    /// (`Engine::favoured`), as in `add_model`. `english_capitals`: as in `manglish`.
     /// `deadline`: as in `suggest_until`. `own`: the user's own words of the pack
     /// (`own_of`), found and scored as its lexicon's words are, each standing in for a word of
     /// `rank::OWN_WORD_LOG_PROB`; one takes the middle only once it has been used
@@ -2364,6 +2377,7 @@ impl Engine {
         pack: &PackSources,
         own: Option<&OwnWords>,
         typed_n: &str,
+        english_capitals: bool,
         bias: f32,
         another_favoured: bool,
         english_word: bool,
@@ -2428,7 +2442,10 @@ impl Engine {
                 );
             }
         }
-        Self::add_chat_form(pack, typed_n, bias, &mut found);
+        // Malayalam keeps its recorded ranking: any capital first letter hints at English.
+        let english_capitals = english_capitals
+            || (malayalam && typed_n.starts_with(|c: char| c.is_ascii_uppercase()));
+        Self::add_chat_form(pack, typed_n, english_capitals, bias, &mut found);
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
         let splits = match &pack.suffixes {
             Some(suffixes) if found.exact.is_empty() && !english_word => {
@@ -2453,6 +2470,7 @@ impl Engine {
                 pack,
                 own.as_ref(),
                 typed_n,
+                english_capitals,
                 &splits,
                 bias,
                 another_favoured,
@@ -2512,8 +2530,15 @@ impl Engine {
     /// typed letters spelled it out, scored like a skeleton match with no distance. The
     /// table is curated evidence, not a guess, so the word may take the middle a little
     /// below `MIN_REPLACE` (`rank::MANGLISH_CHAT_FORM_RELIEF`), except where English is
-    /// likely (after an English word, or a capital), as for the model's confident readings.
-    fn add_chat_form(pack: &PackSources, typed_n: &str, bias: f32, found: &mut ManglishCandidates) {
+    /// likely (after an English word, or capitals that hint at it: `english_capitals`), as for
+    /// the model's confident readings.
+    fn add_chat_form(
+        pack: &PackSources,
+        typed_n: &str,
+        english_capitals: bool,
+        bias: f32,
+        found: &mut ManglishCandidates,
+    ) {
         let (Some(word), ml) = (
             pack.chat_forms.as_ref().and_then(|f| f.lookup(typed_n)),
             &pack.lexicon,
@@ -2523,8 +2548,7 @@ impl Engine {
         let Some(count) = ml.get(word.as_bytes()) else {
             return;
         };
-        let english_likely = bias <= rank::CONTEXT_AFTER_ENGLISH
-            || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
+        let english_likely = bias <= rank::CONTEXT_AFTER_ENGLISH || english_capitals;
         let floor = if english_likely {
             rank::MIN_REPLACE
         } else {
@@ -2692,8 +2716,9 @@ impl Engine {
     /// model scores it at least as well as every lexicon reading. A lexicon word
     /// scores its log probability, a split its stem's (as in `add_splits`), plus
     /// `MANGLISH_MODEL_WEIGHT` × the model's per-token score, in place of the skeleton
-    /// lookup's romanisation-distance penalty, except where English is likely
-    /// (see `rank::MANGLISH_MODEL_WEIGHT`). One the skeleton lookup or a split found too
+    /// lookup's romanisation-distance penalty, except where English is likely (after an
+    /// English word, or `english_capitals` as in `manglish`; see
+    /// `rank::MANGLISH_MODEL_WEIGHT`). One the skeleton lookup or a split found too
     /// appears twice, and the better score wins (`arrange`, and the max over `exact`).
     /// Nothing without the model or the pack lexicon it is held to. `another_favoured`:
     /// another pack is favoured (`Engine::favoured`, by the previous word or the habit), and
@@ -2713,6 +2738,7 @@ impl Engine {
         pack: &PackSources,
         own: Option<&Own<'_>>,
         typed_n: &str,
+        english_capitals: bool,
         splits: &[ScoredSplit],
         bias: f32,
         another_favoured: bool,
@@ -2730,8 +2756,7 @@ impl Engine {
         };
         let split_words: Vec<String> = splits.iter().map(|s| s.word.clone()).collect();
         let latin = typed_n.to_ascii_lowercase();
-        let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH
-            || typed_n.starts_with(|c: char| c.is_ascii_uppercase());
+        let keeps_distance = bias <= rank::CONTEXT_AFTER_ENGLISH || english_capitals;
         let search = Search {
             // Beside rare whole forms the free beam takes one of the lexicon beam's rows, so
             // the search costs what it did (Hindi's suggest p99 was 2.56 ms, 2.82 ms with a
@@ -3388,6 +3413,12 @@ struct Capitals {
     /// not `Fish`, `Lunar` or `Rail`), and not replaced by Malayalam after an English
     /// word (`Add Rahul`).
     deliberate: bool,
+    /// The capitals hint at English or a name: `deliberate`, or a capital past the first
+    /// letter (`SHUKRIYA`, `McDonald`). Where it does, the pack's readings keep the costs
+    /// they pay where English is likely (`rank::MANGLISH_MODEL_WEIGHT`). A capital first
+    /// letter alone at the start of the text or of a sentence is the keyboard's, and is
+    /// ignored: `Shukriya` there gets what `shukriya` gets.
+    english: bool,
 }
 
 impl Capitals {
@@ -3397,9 +3428,11 @@ impl Capitals {
             && letters == typed.chars().count()
             && typed.chars().all(|c| c.is_ascii_uppercase());
         let capital = typed.starts_with(|c: char| c.is_ascii_uppercase());
+        let deliberate = acronym || (capital && mid_sentence);
         Self {
             acronym,
-            deliberate: acronym || (capital && mid_sentence),
+            deliberate,
+            english: deliberate || typed.chars().skip(1).any(|c| c.is_ascii_uppercase()),
         }
     }
 }

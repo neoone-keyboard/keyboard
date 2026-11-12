@@ -145,10 +145,19 @@ pub const MANGLISH_SPLIT_STEM_MIN: f32 = -12.5;
 ///
 /// Where English is likely, the model's spellings keep the `MANGLISH_DISTANCE`
 /// penalty as well: after an English word (`CONTEXT_AFTER_ENGLISH`), and for a
-/// typed word with a capital (a name in English text: `Anjali`, `to Wayanad`).
-/// There the model only widens what the skeleton lookup reaches; without this,
-/// English wrong-replacements rose from 0.0064 to 0.0075, and `I kazhicho`
-/// became കഴിച്ചോ. A sentence start the keyboard capitalised keeps the penalty too.
+/// typed word with capitals the user typed on purpose (a name in English text:
+/// `to Wayanad`; an acronym, a run of capitals: `engine::Capitals`). There the model
+/// only widens what the skeleton lookup reaches; without this, English
+/// wrong-replacements rose from 0.0064 to 0.0075, and `I kazhicho` became കഴിച്ചോ.
+///
+/// A capital first letter alone at the start of the text or of a sentence is the
+/// keyboard's own (it turns Shift on there), so it says nothing: `Shukriya` gets what
+/// `shukriya` gets (Urdu: شکریہ first, where it had been third). On the English no-harm
+/// set with each pack beside English, wrong replacements stayed 3/1876 for hi, ta, mr and
+/// bn and 2 for as (Anjali for Arun); Urdu went 3 → 4 (`Anjali` → انجلی, a name at a
+/// sentence start, which an Urdu writer would want so). Malayalam, whose ranking is held
+/// as recorded (`make golden-check`), keeps the penalty for a sentence start too: without
+/// it, 31 English sentence-start prefixes of its golden moved (`Wh` offered വി).
 pub const MANGLISH_MODEL_WEIGHT: f32 = 0.25;
 /// Model spellings scoring below this per token are dropped: the constrained
 /// beam fills its width with whatever lexicon words it can reach, and the
@@ -179,7 +188,7 @@ pub const MANGLISH_MODEL_TRAILS_STEP: f32 = 0.01;
 /// model term) up to `MANGLISH_MODEL_CONFIDENT_RELIEF` below `MIN_REPLACE`.
 /// `MIN_REPLACE` keeps a rare word from replacing on a guess; a model this
 /// sure of a lexicon word is the evidence the floor asks for. Not where the
-/// model keeps `MANGLISH_DISTANCE` (after an English word, or a capital), and
+/// model keeps `MANGLISH_DISTANCE` (after an English word, or capitals the user typed), and
 /// never for a typed English word, so English stays as typed.
 ///
 /// User-reported on device: `avishyam` and `avshyam` mean ആവിശ്യം, log
