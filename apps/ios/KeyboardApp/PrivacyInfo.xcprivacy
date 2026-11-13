@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The app's binary: KeyboardApp's sources, KeyboardCore, and MLEngine with the Rust engine
+     (linked statically from MLEngineFFI.xcframework). The keyboard extension has its own manifest.
+     No tracking and no collected data: the app only downloads (the pack index and packs) and
+     sends nothing. MetricKit reports stay on the device (MetricsSubscriber saves them under
+     Application Support and uploads nothing), so they are not collected data.
+     The app calls no system boot time API (no systemUptime, no mach_absolute_time; the Rust
+     engine's Instant uses clock_gettime), no disk space API and no active keyboards API. -->
 <plist version="1.0">
 <dict>
 	<key>NSPrivacyTracking</key>
@@ -10,33 +17,31 @@
 	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
-		<!-- @AppStorage and KeyboardSettings: UserDefaults.standard, the app's own settings. -->
+		<!-- CA92.1: @AppStorage("chooseLanguagesDone") in UserDefaults.standard (KeyboardApp.swift).
+		     1C8F.1: @AppStorage(SharedSettings.suggestionMoreHintKey) in the App Group's defaults,
+		     UserDefaults(suiteName: PackLocations.appGroup), for the keyboard to read
+		     (KeyboardApp.swift; KeyboardCore BarFit.swift, SharedSettings). -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
 			</array>
 		</dict>
-		<!-- KeyboardCore: the App Group's active-languages file dated by its modification date;
-		     fstat on bundled files; the diagnostics report shows when the binary was built. -->
+		<!-- C617.1: stat, fstat, fstatat and lstat in the Rust engine's file reads (std::fs and
+		     memmap2 read a file's size before reading or mapping it), when it checks a pack being
+		     installed: a copy in the app's temporary directory, then the App Group's Packs/.
+		     KeyboardCore, linked in, also reads the App Group's active-languages file's
+		     contentModificationDateKey (ActiveLanguages.swift). All are files inside the app
+		     container or the App Group container. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>C617.1</string>
-				<string>DDA9.1</string>
-			</array>
-		</dict>
-		<!-- ProcessInfo.systemUptime: key-press timing (double taps, long presses). -->
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>35F9.1</string>
 			</array>
 		</dict>
 	</array>

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The keyboard extension's binary: KeyboardExtension's sources, KeyboardCore, and MLEngine with
+     the Rust engine (linked statically from MLEngineFFI.xcframework). The app has its own manifest.
+     No tracking and no collected data: the keyboard asks for no Full Access and has no network.
+     It calls no disk space API and no active keyboards API. -->
 <plist version="1.0">
 <dict>
 	<key>NSPrivacyTracking</key>
@@ -10,27 +14,40 @@
 	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
-		<!-- @AppStorage and KeyboardSettings: UserDefaults.standard, the app's own settings. -->
+		<!-- CA92.1: UserDefaults.standard, the keyboard's own settings and language choice
+		     (KeyboardSettings, KeyboardLanguageChoice; KeyboardViewController, SettingsPanelView,
+		     EngineSuggestionProvider).
+		     1C8F.1: the App Group's defaults, UserDefaults(suiteName: PackLocations.appGroup), for
+		     the setting the app writes there (KeyboardCore BarFit.swift,
+		     SharedSettings.appGroupDefaults, read in KeyboardViewController). -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
 			</array>
 		</dict>
-		<!-- KeyboardCore: the App Group's active-languages file dated by its modification date;
-		     fstat on bundled files; the diagnostics report shows when the binary was built. -->
+		<!-- C617.1: the App Group's active-languages file's contentModificationDateKey, to tell
+		     whether the app's choice or the keyboard's is newer (KeyboardCore ActiveLanguages.swift,
+		     via KeyboardPacks.read); the modificationDate of the extension's own executable in its
+		     bundle, the build time in the diagnostics report (Diagnostics.swift); and stat, fstat,
+		     fstatat and lstat in the Rust engine's file reads (std::fs and memmap2 read a file's
+		     size) of the lexicons and packs in the bundle and the App Group's Packs/. All are
+		     files inside the app container or the App Group container. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>C617.1</string>
-				<string>DDA9.1</string>
 			</array>
 		</dict>
-		<!-- ProcessInfo.systemUptime: key-press timing (double taps, long presses). -->
+		<!-- 35F9.1: ProcessInfo.systemUptime for the time between events within the keyboard: key
+		     presses and touch ticks (double tap, long press, key repeat; KeyboardView,
+		     KeyboardViewController), and the spacing of memory checks and warnings
+		     (KeyboardViewController). It stays on the device. -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>

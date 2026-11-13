@@ -354,11 +354,14 @@ final class EmojiFontFile: @unchecked Sendable {
         let descriptor = open(url.path, O_RDONLY)
         guard descriptor >= 0 else { return (nil, "Emoji font file \(url.path) unreadable (errno \(errno))") }
         defer { close(descriptor) }
-        var status = stat()
-        guard fstat(descriptor, &status) == 0, status.st_size > 0 else {
+        // The size by seeking to the end, not fstat: fstat is a file-timestamp API in Apple's
+        // required-reason list, and this is a system font, outside any container a declared
+        // reason covers (PrivacyInfo.xcprivacy). mmap takes the offset, so no seek back.
+        let end = lseek(descriptor, 0, SEEK_END)
+        guard end > 0 else {
             return (nil, "Emoji font file \(url.path) has no size (errno \(errno))")
         }
-        let count = Int(status.st_size)
+        let count = Int(end)
         guard let bytes = mmap(nil, count, PROT_READ, MAP_SHARED, descriptor, 0), bytes != MAP_FAILED else {
             return (nil, "Emoji font file \(url.path) could not be mapped (errno \(errno))")
         }
