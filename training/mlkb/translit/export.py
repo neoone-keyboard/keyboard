@@ -16,7 +16,7 @@ The Rust forward pass is tested against such a file.
 
 For a language other than Malayalam (`--lang`), the file also carries `vocab.tgt` (raw bytes):
 the UTF-8 of the target characters in token order after the three specials, so a reader can
-take the vocabulary from the file (M6 design, Engine changes). The Malayalam file is unchanged.
+take the vocabulary from the file (docs/design/pack-format.md, "Engine changes"). The Malayalam file is unchanged.
 """
 
 import argparse

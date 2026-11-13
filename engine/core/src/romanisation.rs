@@ -2,7 +2,7 @@
 //! that collapses the spellings people type inconsistently. The romanised lexicon
 //! (`manglish.fst`, `hinglish.fst` …) is keyed by `skeleton(romanize(word))`; the engine looks up
 //! `skeleton(typed)`. The format, the walk and the skeleton are specified in
-//! `docs/design/2026-11-06-m6-romanisation-format.md`.
+//! `docs/design/romanisation-format.md`.
 //!
 //! `lexbuild` and the Python twin (`training/mlkb/data/romanisation.py`) read the same file, so
 //! the builder and the engine can't disagree about a key.

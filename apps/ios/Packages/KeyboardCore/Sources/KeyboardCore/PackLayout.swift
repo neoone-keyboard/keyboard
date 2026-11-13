@@ -1,7 +1,7 @@
 import Foundation
 
 /// A pack's `layout.json` (format 1): the native-script keyboard. The format is in
-/// docs/design/2026-11-06-m6-language-packs-design.md ("layout.json"); the engine
+/// docs/design/pack-format.md ("layout.json"); the engine
 /// reads the same file for the strip's order (engine/core/src/pack_layout.rs).
 public struct PackLayout: Equatable, Sendable {
     public struct Page: Equatable, Sendable, Decodable {

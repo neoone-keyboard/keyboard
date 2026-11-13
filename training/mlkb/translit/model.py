@@ -1,6 +1,6 @@
 """The transliterator: a small pre-norm transformer encoder–decoder over characters.
 
-Layout (the `state_dict` keys, which Task 6 exports one by one and Task 7 re-implements):
+Layout (the `state_dict` keys, which `export.py` writes one by one and the engine's Rust forward pass re-implements):
 - `src_emb.weight [src_vocab, d]`, `src_pos.weight [max_len, d]`: Latin token + learned position.
 - `enc.{i}.*`: `nn.TransformerEncoderLayer` (pre-norm, ReLU): `self_attn.in_proj_{weight,bias}`
   (packed q, k, v: `[3d, d]`), `self_attn.out_proj.*`, `linear1.*`, `linear2.*`, `norm1.*`, `norm2.*`.

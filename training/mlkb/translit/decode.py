@@ -1,6 +1,6 @@
 """Decoding without the lexicon: beam search for one word, greedy for a batch.
 
-The lexicon-constrained search the keyboard uses is in Rust (Task 9); these are for
+The lexicon-constrained search the keyboard uses is in Rust (`engine/core`); these are for
 training-time validation and for measuring the model alone.
 """
 

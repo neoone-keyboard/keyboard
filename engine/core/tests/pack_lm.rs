@@ -1,4 +1,4 @@
-//! The Hindi pack with its LM (docs/design/2026-11-10-hindi-lm.md), opened through
+//! The Hindi pack with its LM (docs/design/hindi-lm.md), opened through
 //! the pack's manifest as the keyboard opens it, with English from the bundle.
 //!
 //! The LM is MLENGINE_HI_LM, else `packs/hi.neopack/lm.mlkbnn`, else the training output

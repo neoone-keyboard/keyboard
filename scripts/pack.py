@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Language pack checksums and archives (M6 design, "Pack format").
+"""Language pack checksums and archives (docs/design/pack-format.md, "Pack format").
 
     scripts/pack.py packs/ml.neopack --write      fill in manifest.json's sha256 for every listed file
     scripts/pack.py packs/ml.neopack --check      fail if any checksum is missing or stale

@@ -3,7 +3,7 @@
     uv run python -m mlkb.data.human   # writes data/eval/translit-human.tsv
     uv run python -m mlkb.data.human --lang hi   # writes data/eval/hi/translit-human.tsv
 
-Sources and the rules for using them are in `docs/design/2026-11-03-m3-licence-audit.md`:
+Sources and the rules for using them are in `docs/design/licence-audit.md`:
 - **Dakshina** (`ml/lexicons/ml.translit.sampled.{train,dev,test}.tsv`: native word, romanisation,
   annotator count). Train trains; dev validates; test is the human eval set. Neither dev nor test
   words may appear in any training pair.

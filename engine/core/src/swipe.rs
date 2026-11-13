@@ -1,4 +1,4 @@
-//! Swipe typing (design `2026-11-06-m4-swipe-design.md`): the finger's path across the QWERTY
+//! Swipe typing (docs/design/swipe.md): the finger's path across the QWERTY
 //! keys becomes the words it could have drawn.
 //!
 //! The path is resampled to evenly spaced points, then a beam walks a lexicon's FST one letter

@@ -3,7 +3,7 @@ import Testing
 import KeyboardCore
 
 /// The native keyboard comes from packs/ml.neopack: its manifest (`PackDescriptor`) and its
-/// layout.json (`PackLayout`, format in docs/design/2026-11-06-m6-language-packs-design.md).
+/// layout.json (`PackLayout`, format in docs/design/pack-format.md).
 @MainActor
 struct PackLayoutTests {
     @Test func theManifestDescribesMalayalam() throws {
@@ -67,7 +67,7 @@ struct PackLayoutTests {
         #expect(PackDescriptor.scan(packsFolder.appending(path: "nonexistent")).isEmpty)
     }
 
-    /// Hindi's and Assamese's layouts (plan docs/design/2026-11-07-m6-phase4-hi-as-layouts.md):
+    /// Hindi's and Assamese's layouts (docs/design/pack-format.md, "layout.json"):
     /// with English, the language key goes EN → the pack's letter and back, and every page draws
     /// what the file lists, as Malayalam's does, with no code of their own.
     @Test(arguments: [

@@ -2,7 +2,7 @@
 //! people's spellings collapse to, and the romanised-lexicon keys built from both.
 //!
 //! The format, its walk and its skeleton are specified in
-//! `docs/design/2026-11-06-m6-romanisation-format.md`; the phase-2 engine computes
+//! `docs/design/romanisation-format.md`; the engine computes
 //! the same skeleton of what was typed, so a typed word and a stored key meet.
 //! `training/mlkb/data/romanisation.py` implements the same; `tests/romanisation.rs` checks the
 //! two agree on a fixture written by the Python.

@@ -1,6 +1,6 @@
 """Native word -> Latin with weighted spellings, driven by tables instead of code: the training
 side of a pack's romanisation. (The pack's own `romanisation.json` is the format-1 file of
-`docs/design/2026-11-06-m6-romanisation-format.md`, exported from these tables'
+`docs/design/romanisation-format.md`, exported from these tables'
 canonical spellings by `mlkb.langs.format1`; that is what the engine and the romanised lookup
 keys use.)
 
@@ -11,8 +11,8 @@ keys use.)
     t.skeleton("axom")               # the lookup key both sides collapse to
 
 The same walk as `engine/core/src/romanize.rs` and `mlkb.data.romanise` do for Malayalam,
-with the letters in tables (M6 design: "romanisation.json holds the tables now in
-romanize.rs"). A word splits into slots, each with weighted spellings, canonical first:
+with the letters in tables (`romanisation.json` holds what `romanize.rs` had as code;
+docs/design/romanisation-format.md). A word splits into slots, each with weighted spellings, canonical first:
 
 - a consonant cluster (consonants joined by viramas) becomes one slot per piece: a listed
   conjunct (`clusters`, ক্ষ), a doubled letter (ক্ক: doubled or, `geminateSingle` of the time,

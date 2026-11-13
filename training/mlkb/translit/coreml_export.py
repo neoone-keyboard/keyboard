@@ -1,6 +1,6 @@
 """The runtime spike's models: one seeded random full-size transliterator, written both as
 `.mlkbnn` (for the Rust forward pass) and as an int8 Core ML model, so the app can time the two
-on the device (plan Task 8, design §5).
+on the device.
 
     make spike-assets   # from the repo root; or, from training/:
     UV_PROJECT_ENVIRONMENT=build/spike-venv uv run --python 3.13 --group spike --group train \

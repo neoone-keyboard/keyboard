@@ -63,8 +63,7 @@ fn mb(bytes: isize) -> String {
 const EXPECTED: &[(&str, &str, usize)] = &[
     ("nihongo", "日本語", 1),
     // Second: Mozc's dictionary has フル (full), one of the katakana words it collected from
-    // the web, cheaper than 降る after が. Costs adjusted from a corpus are the fix
-    // (docs/next-languages.md, B4).
+    // the web, cheaper than 降る after が. Costs adjusted from a corpus are the fix.
     ("kyouhaamegafuru", "今日は雨が降る", 2),
     ("watashihagakuseidesu", "私は学生です", 1),
     ("toukyou", "東京", 1),
