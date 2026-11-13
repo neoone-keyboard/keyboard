@@ -44,7 +44,7 @@ UP TO FOUR LANGUAGES AT ONCE
 Turn on up to four languages, English included. One language key switches between their layouts, and the suggestion bar works across all of them, so you can mix languages in the same message.
 
 LANGUAGES
-English is built in. Download the languages you want, free, from the Languages screen in the app; languages so far include Hindi, Malayalam and Assamese, with more to come. Or build your own language pack and import it from Files. Each language works offline once it is on your phone.
+English is built in. Download the languages you want, free, from the Languages screen in the app; languages so far include Hindi, Malayalam, Tamil and Assamese, with more to come. Or build your own language pack and import it from Files. Each language works offline once it is on your phone.
 
 PRIVATE BY DESIGN
 - Everything runs on your iPhone, and the keyboard works offline.
@@ -76,7 +76,7 @@ NeoOne Keyboard is open source. Read the code, check that nothing you type leave
 ## Keywords (94 / 100)
 
 ```
-Malayalam,Hindi,Assamese,Manglish,Hinglish,phonetic,transliteration,typing,swipe,emoji,offline
+Malayalam,Hindi,Assamese,Tamil,Manglish,Hinglish,phonetic,transliteration,typing,swipe,emoji,offline
 ```
 
 ## URLs
