@@ -13,8 +13,8 @@ by following this guide. Hindi and Malayalam appear where they differ.
 
 No step needs an edit to the engine, the app or the training code. A pack is data, plus one
 short shell script that fetches its text. Some steps only work for certain kinds of language.
-The guide says so where it happens, and [make-a-language-gaps.md](make-a-language-gaps.md)
-lists each one with a proposed fix.
+The guide says so where it happens, and [known-limits.md](known-limits.md) lists what doesn't
+work yet, with the workaround where there is one.
 
 ## Before you start: can your language be a pack today?
 
@@ -30,7 +30,7 @@ Check three things first.
    pack must carry its own file.
 2. **The script's words are letters the romanisation format can walk.** The format reads a
    word as consonants, each with an inherent vowel unless a vowel sign or letter follows, and
-   clusters (gap G3). A Brahmic script fits it directly. A script that writes no short vowels
+   clusters ([known limits](known-limits.md#scripts-the-spelling-format-does-not-cover)). A Brahmic script fits it directly. A script that writes no short vowels
    and has no virama fits too, as Urdu does (`data/langs/ur`): its vowel letters are the
    `vowelSigns`, `virama` is `""`, the aspirates are `clusters` written side by side, and the
    skeleton drops the vowels it can't see. A script in one 128-code-point block packs its
@@ -417,7 +417,7 @@ stays. Say so in the source's manifest (`used_for`).
 
 The lexicon build in step 7 runs this script again, so it must be safe to re-run. The
 Assamese one skips work that is already done: a second run only checks the downloads'
-checksums and prints the counts again. This script is per language today (gap G4).
+checksums and prints the counts again. This script is per language today ([known limits](known-limits.md#text-is-fetched-by-a-script-per-language)).
 
 ### 4. Write the romanisation tables
 
@@ -792,10 +792,10 @@ sign (অ্যাপ, অ্যান্ড), one key of four code points. For 
 letter the signs follow must be in `lang.json`'s `bases` (Bengali lists অ and এ). The longest
 key that matches is used. A sign written before the consonant it doubles (Gurmukhi's addak ੱ:
 ਪੱਕਾ pakka) has no table of its own; Punjabi lists each addak + consonant as a `consonants` key
-spelled with the letter doubled (`data/langs/pa/romanisation.hand.json`, gap GO3). One limit: `finals` are matched before consonants, so a key whose first code point
+spelled with the letter doubled (`data/langs/pa/romanisation.hand.json`; [known limits](known-limits.md#doubling-signs-and-doubled-letters)). One limit: `finals` are matched before consonants, so a key whose first code point
 is also in `finals` is never reached. Tamil lists ஃப (`f`) and ஃஜ (`z`) in `consonants`
 and ஃ in `finals`, so ஃப is read as ஃ, then ப (`p`). Typed `f` still finds those words
-only because Tamil's skeleton folds f to p (gap G35).
+only because Tamil's skeleton folds f to p ([known limits](known-limits.md#a-consonant-key-that-starts-with-a-final-sign)).
 
 **What the fitting changes.** The fit reorders each option list by how often people typed it,
 so the canonical spelling (the first option) becomes the most typed one. For Marathi it
@@ -889,7 +889,7 @@ the `nasal` ending (`m`) before it looks the stem up; and a stem typed with its 
 
 ### 5. The manifest
 
-Write `packs/xx.neopack/manifest.json` by hand now (gap G8): the lexicon build in step 7
+Write `packs/xx.neopack/manifest.json` by hand ([known limits](known-limits.md#the-manifest-is-written-by-hand)): the lexicon build in step 7
 writes its checksums, and stops at the start if it is missing. Copy
 `packs/as.neopack/manifest.json`:
 
@@ -1205,7 +1205,7 @@ notes in step 5), and `--check` fails when the pack lacks it or its copy differs
 
 ### 11. Try it on your computer
 
-There is no single command for a new pack yet (gap G10). This script loads a pack in the
+There is no command to try a new pack yet ([known limits](known-limits.md#no-command-to-try-a-pack)). This script loads a pack in the
 engine through its Python bindings and prints what the suggestion bar would show. Save it
 anywhere as `try_pack.py`:
 
@@ -1304,7 +1304,7 @@ word is lost, with the model alone beside the engine (it needs torch, so
 `uv run --group train python -m mlkb.eval.pack --lang xx --stages`). Report both.
 
 The full evaluation (`python -m mlkb.eval`: transliteration, next words, English no-harm, with
-baselines and gates) has entries for Malayalam and Hindi only (gap G11).
+baselines and gates) has entries for Malayalam, Hindi, Assamese and Tamil only ([known limits](known-limits.md#full-evaluation-for-a-few-languages-only)).
 
 **Record your pack's suggestion bars.** An accuracy score says how many words changed, not
 which. Once the pack types the way you want, record the exact bar it gives for every prefix of
@@ -1381,9 +1381,10 @@ If the import fails, the app shows one sentence:
 | "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, a file in the zip with no checksum, a script other than `mlym`, `deva` and `beng` without `lang.json`, or a `lang.json` the engine refuses (it names another script, has no characters, or overlaps another script's). |
 | "You already have a newer version of this language." | The installed pack has a higher `version`. Raise yours. |
 
-The installer doesn't check `name`, `nativeName` or `layout.json`. A manifest without
-`nativeName`, or a broken layout, installs and then doesn't load in the keyboard, with no
-message (gap G13). Copy the Assamese manifest's fields and you won't hit this.
+The app opens the pack with the engine before it installs it, so a manifest the engine can't
+read is refused. A `layout.json` the app can't read is not: the pack installs and has no
+native-script keys, with no message ([known limits](known-limits.md#a-broken-layout-installs-without-a-word)).
+`pack.py --check` catches it.
 
 To test with a build of your own instead, `make twopacks` builds a Debug app with extra packs
 copied in. Its device ID is in the `Makefile` (`DEVICE`), and `scripts/debug-packs.sh`
@@ -1451,7 +1452,7 @@ because Import from Files takes it directly.
 
 The app's Download section reads one pack index, `index.json`, whose URL is set when the app
 is built (`apps/ios/PackIndex.xcconfig`, generated from `site-src/site.json`). There is no
-setting in the app for another index (gap G14). So hosting your own index means building your
+setting in the app for another index ([known limits](known-limits.md#one-pack-index-per-app-build)). So hosting your own index means building your
 own app with your URL. The index is plain JSON and any https host works:
 
 ```json
