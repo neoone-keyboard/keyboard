@@ -215,8 +215,9 @@ into a `.neopack` file. The folder holds `manifest.json` and data files.
 
   - `startBelowEnglish`: at the start of a message the pack's words start a step behind
     English (`rank::CONTEXT_AT_START`). Without it they start level with English
-    (`rank::CONTEXT_AT_START_PACK`), as after a sentence end. While any active pack sets
-    it, every active pack starts behind English, so that none is favoured at the start.
+    (`rank::CONTEXT_AT_START_PACK`), as after a sentence end. Each pack's start is its own:
+    which pack is favoured at the start (`Engine::favoured`) is decided as if every pack
+    started level, so one pack's setting never makes another pack favoured.
   - `swipeIgnoresEnglishMargin`: a swiped word of the pack competes with a common English
     word on its score alone. Without it, it may outrank one only by fitting the path better by
     `swipe::Weights::english_margin`.

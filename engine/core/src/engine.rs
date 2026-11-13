@@ -1656,7 +1656,7 @@ impl Engine {
                 let after_english =
                     previous.is_some_and(|w| self.word_lang(&self.normal(w)) == Some(EN));
                 let priors = self.add_habit(self.with_lm(self.priors(previous), scores));
-                let favoured = self.favoured(&self.add_habit(self.priors(previous)));
+                let favoured = self.favoured(&self.add_habit(self.priors_level(previous)));
                 self.suggest_latin(
                     typed,
                     &typed_n,
@@ -1761,17 +1761,28 @@ impl Engine {
         }
     }
 
-    /// Each active pack's prior from the previous word's language: at the start
-    /// `start_prior`; `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM`
-    /// after the pack's own word, and 0 otherwise (another pack's word, or one in no lexicon).
-    /// English's is always 0: only the differences matter.
+    /// Each active pack's prior from the previous word's language: at the start its own
+    /// (`Ranking::start_prior`: `rank::CONTEXT_AT_START_PACK`, or `rank::CONTEXT_AT_START` for
+    /// a pack that sets `startBelowEnglish`); `rank::CONTEXT_AFTER_ENGLISH` after English,
+    /// `rank::CONTEXT_AFTER_MALAYALAM` after the pack's own word, and 0 otherwise (another
+    /// pack's word, or one in no lexicon). English's is always 0: only the differences matter.
     fn priors(&self, previous: Option<&str>) -> Priors {
+        self.priors_from(previous, |p| p.ranking.start_prior())
+    }
+
+    /// `priors` with every pack level at the start (`rank::CONTEXT_AT_START_PACK`), for
+    /// `favoured`: a pack's own start prior says how it competes with English there, not that
+    /// another pack's words are meant, so no pack is favoured at the start.
+    fn priors_level(&self, previous: Option<&str>) -> Priors {
+        self.priors_from(previous, |_| rank::CONTEXT_AT_START_PACK)
+    }
+
+    fn priors_from(&self, previous: Option<&str>, start: impl Fn(&PackSources) -> f32) -> Priors {
         let previous = previous.map(|w| self.word_lang(&self.normal(w)));
-        let start = self.start_prior();
         let mut priors = Priors::default();
-        for (lang, _) in self.packs_active() {
+        for (lang, pack) in self.packs_active() {
             let prior = match previous {
-                None => start,
+                None => start(pack),
                 Some(Some(EN)) => rank::CONTEXT_AFTER_ENGLISH,
                 Some(Some(l)) if l == lang => rank::CONTEXT_AFTER_MALAYALAM,
                 Some(_) => 0.0,
@@ -1779,18 +1790,6 @@ impl Engine {
             priors.set(lang, prior);
         }
         priors
-    }
-
-    /// Every active pack's prior at the start of the text (`priors`): the same for every pack,
-    /// so that none is favoured there (`favoured`): `rank::CONTEXT_AT_START` while an active
-    /// pack sets `startBelowEnglish` (`Ranking::start_prior`), else
-    /// `rank::CONTEXT_AT_START_PACK`.
-    fn start_prior(&self) -> f32 {
-        if self.packs_active().any(|(_, p)| p.ranking.start_below_english) {
-            rank::CONTEXT_AT_START
-        } else {
-            rank::CONTEXT_AT_START_PACK
-        }
     }
 
     /// `priors` with the LM's bias (`ContextScores::manglish_bias`), when it is ready, in
@@ -2547,7 +2546,7 @@ impl Engine {
         // (`lifted_words_stay_rare`). The others read nothing there, as recorded (`make
         // golden-check-packs`).
         if ranking.lifted_words_stay_rare {
-            found.lift = (bias - self.start_prior()).max(0.0);
+            found.lift = (bias - ranking.start_prior()).max(0.0);
         }
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
