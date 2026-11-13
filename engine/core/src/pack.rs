@@ -76,10 +76,16 @@ pub const FORMAT: u32 = 1;
 /// suggestion bar; without it they take the Unicode direction of the script's letters). The engine
 /// ignores it, and an older app lays the bar out left to right as before, as for `APP_ROLES`.
 ///
+/// 10: the manifest's `ranking` (`Ranking`), a pack's own ranking choices, which engines before
+/// it made by the script code: every choice for a pack in Malayalam's script, none for any
+/// other. An older engine ignores the object, so a `mlym` pack that sets every choice
+/// (Malayalam's) or a pack in another script that sets none needs no level for it, and any
+/// other combination needs 10.
+///
 /// Adding a pack feature an older engine would ignore or misread: raise this, say here what
 /// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's
 /// contents to the level they need (`tests/pack_check.rs` holds every pack in `packs/` to it).
-pub const PACK_ENGINE: u32 = 9;
+pub const PACK_ENGINE: u32 = 10;
 
 /// `manifest.json`. Keys are camelCase in the file.
 #[derive(Debug, Clone, Deserialize)]
@@ -111,6 +117,80 @@ pub struct Manifest {
     /// words.
     #[serde(default)]
     pub conversion: Option<String>,
+    /// The pack's own ranking choices (engine 10); all off when left out.
+    #[serde(default)]
+    pub ranking: Ranking,
+}
+
+/// `manifest.json`'s `ranking`: how this pack's words are ranked where packs may differ, one
+/// choice per field, each for this pack alone (another active pack is ranked by its own).
+/// Every field is false when left out, as every pack but Malayalam is ranked; Malayalam's
+/// manifest sets them all, the choices its recorded results were tuned with (`make
+/// golden-check`). Fields this engine doesn't know are ignored when a pack opens, and refused
+/// by `Pack::needs`, so none ships without a level. docs/design/pack-format.md and
+/// docs/make-a-language.md say what each does for a pack's author.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Ranking {
+    /// At the start of the text the pack's prior is `rank::CONTEXT_AT_START`, a step behind
+    /// English; else `rank::CONTEXT_AT_START_PACK`, level with it (`Ranking::start_prior`).
+    pub start_below_english: bool,
+    /// A swiped word of the pack competes with a common English word on its score alone; else
+    /// it may outrank one only by fitting the path better (`swipe::Weights::english_margin`).
+    pub swipe_ignores_english_margin: bool,
+    /// The transliterator's lexicon readings and the skeleton's loose matches are ranked by
+    /// frequency however far the model puts them behind its best reading; else those
+    /// `rank::MANGLISH_MODEL_TRAILS` behind it trail it (`rank::MANGLISH_MODEL_TRAILS_STEP`).
+    pub readings_by_frequency: bool,
+    /// The lexicon beam keeps all its rows when the free beam runs beside rare words; else it
+    /// gives one up (`Engine::add_model`).
+    pub keep_lexicon_beam: bool,
+    /// A rare word that only the previous word lifted over the floor of words that may replace
+    /// is still rare: the free spelling runs and is offered beside it
+    /// (`ManglishCandidates::lift`).
+    pub lifted_words_stay_rare: bool,
+    /// The free spelling offered beside rare words is held under the pack's best word and a
+    /// likely English word once context has moved them (`Engine::keep_free_beside`).
+    pub hold_own_spelling: bool,
+}
+
+impl Ranking {
+    /// The fields as `manifest.json` names them, with their values.
+    pub fn fields(&self) -> [(&'static str, bool); 6] {
+        [
+            ("startBelowEnglish", self.start_below_english),
+            ("swipeIgnoresEnglishMargin", self.swipe_ignores_english_margin),
+            ("readingsByFrequency", self.readings_by_frequency),
+            ("keepLexiconBeam", self.keep_lexicon_beam),
+            ("liftedWordsStayRare", self.lifted_words_stay_rare),
+            ("holdOwnSpelling", self.hold_own_spelling),
+        ]
+    }
+
+    /// The pack's prior at the start of the text (`Engine::priors`).
+    pub fn start_prior(&self) -> f32 {
+        if self.start_below_english {
+            crate::rank::CONTEXT_AT_START
+        } else {
+            crate::rank::CONTEXT_AT_START_PACK
+        }
+    }
+
+    /// The `ranking` of the `manifest.json` in the folder that holds `file`, for a pack's paths
+    /// given one by one rather than by its manifest (`PackPaths`): all off without a readable
+    /// manifest there.
+    pub fn beside(file: &Path) -> Self {
+        #[derive(Deserialize)]
+        struct Only {
+            #[serde(default)]
+            ranking: Ranking,
+        }
+        file.parent()
+            .and_then(|dir| std::fs::read_to_string(dir.join("manifest.json")).ok())
+            .and_then(|text| serde_json::from_str::<Only>(&text).ok())
+            .map(|m| m.ranking)
+            .unwrap_or_default()
+    }
 }
 
 /// The one kind of conversion this engine does: the typed reading of a whole phrase converted
@@ -243,6 +323,7 @@ impl Pack {
             layout: self.file("layout"),
             lang: self.file("lang"),
             conversion: self.conversion_paths(),
+            ranking: self.manifest.ranking,
         }
     }
 
@@ -546,8 +627,40 @@ impl Pack {
             let keys = KeyNeeds { file: "romanisation.json", table: ROMANISATION_KEYS, malayalam };
             keys.of_file(&path, &mut needs)?;
         }
+        self.ranking_needs(malayalam, &mut needs)?;
         needs.sort_by(|a, b| b.level.cmp(&a.level).then_with(|| a.what.cmp(&b.what)));
         Ok(needs)
+    }
+
+    /// What the manifest's `ranking` needs: 10 for each choice an older engine makes the other
+    /// way (`PACK_ENGINE`), which for a pack in Malayalam's script is each one left off and for
+    /// any other each one set. An error for a field no level is known for.
+    fn ranking_needs(&self, malayalam: bool, needs: &mut Vec<Need>) -> Result<(), String> {
+        let text = std::fs::read_to_string(self.dir.join("manifest.json"))
+            .map_err(|e| format!("manifest.json: {e}"))?;
+        let raw: serde_json::Value =
+            serde_json::from_str(&text).map_err(|e| format!("manifest.json: {e}"))?;
+        let fields = self.manifest.ranking.fields();
+        if let Some(ranking) = raw.get("ranking") {
+            let object = ranking.as_object().ok_or("manifest.json: ranking is not an object")?;
+            if let Some(name) = object.keys().find(|k| !fields.iter().any(|(f, _)| f == k)) {
+                return Err(format!(
+                    "manifest.json has ranking.{name}, which no engine level is known to read: \
+                     give it one in pack.rs (PACK_ENGINE, Pack::needs)"
+                ));
+            }
+        }
+        for (name, on) in fields {
+            if on != malayalam {
+                let what = if on {
+                    format!("manifest.json sets ranking.{name}")
+                } else {
+                    format!("manifest.json leaves ranking.{name} off, which older engines set for script mlym")
+                };
+                needs.push(Need { level: 10, what });
+            }
+        }
+        Ok(())
     }
 
     /// The lowest engine level that reads everything in the pack right: the `minEngine` it
@@ -569,8 +682,17 @@ mod tests {
       "files": {"lexicon": "ml.fst", "romanisedLexicon": "manglish.fst", "nextWords": "next.fst",
                 "translit": "translit.mlkbnn", "lm": "lm.mlkbnn"},
       "sha256": {"ml.fst": "00"},
-      "credits": [{"name": "Malayalam Wikipedia", "licence": "CC BY-SA 4.0"}]
+      "credits": [{"name": "Malayalam Wikipedia", "licence": "CC BY-SA 4.0"}],
+      "ranking": {"startBelowEnglish": true, "swipeIgnoresEnglishMargin": true,
+                  "readingsByFrequency": true, "keepLexiconBeam": true,
+                  "liftedWordsStayRare": true, "holdOwnSpelling": true}
     }"#;
+
+    /// Every ranking choice set, as Malayalam's manifest has them (what engines before 10 do
+    /// for a pack in script mlym).
+    const EVERY_CHOICE: &str = r#"{"startBelowEnglish": true, "swipeIgnoresEnglishMargin": true,
+        "readingsByFrequency": true, "keepLexiconBeam": true, "liftedWordsStayRare": true,
+        "holdOwnSpelling": true}"#;
 
     fn pack_dir(manifest: &str, files: &[&str]) -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
@@ -660,8 +782,15 @@ mod tests {
         assert_eq!(ml.lm, Some(dir.path().join("lm.mlkbnn")));
     }
 
-    /// A pack in `script` with `files` (role, file name, contents); its lexicon is "x".
+    /// A pack in `script` with `files` (role, file name, contents); its lexicon is "x". A pack
+    /// in mlym has Malayalam's ranking choices (`EVERY_CHOICE`), any other none.
     fn pack_of(script: &str, files: &[(&str, &str, &str)]) -> (tempfile::TempDir, Pack) {
+        let ranking = if script == "mlym" { EVERY_CHOICE } else { "{}" };
+        pack_ranked(script, files, ranking)
+    }
+
+    /// `pack_of` with `ranking` (JSON) as the manifest's `ranking`.
+    fn pack_ranked(script: &str, files: &[(&str, &str, &str)], ranking: &str) -> (tempfile::TempDir, Pack) {
         let dir = tempfile::tempdir().unwrap();
         fs::write(dir.path().join("x.fst"), b"x").unwrap();
         let mut roles = vec![r#""lexicon": "x.fst""#.to_string()];
@@ -671,7 +800,7 @@ mod tests {
         }
         let manifest = format!(
             r#"{{"format": 1, "id": "xx", "version": "1", "name": "X", "nativeName": "X",
-                "script": "{script}", "minEngine": 1, "files": {{{}}}}}"#,
+                "script": "{script}", "minEngine": 1, "files": {{{}}}, "ranking": {ranking}}}"#,
             roles.join(", ")
         );
         fs::write(dir.path().join("manifest.json"), manifest).unwrap();
@@ -925,13 +1054,59 @@ mod tests {
         let lang = with_field(GUJR, "newRule", "1");
         let (_dir, pack) = pack_of("gujr", &[("lang", "lang.json", &lang)]);
         assert!(pack.needs().unwrap_err().contains("newRule"));
+        let (_dir, pack) = pack_ranked("deva", &[], r#"{"newChoice": true}"#);
+        assert!(pack.needs().unwrap_err().contains("ranking.newChoice"));
+        // Unknown when the pack opens: ignored, as an older engine ignores the object.
+        assert_eq!(pack.manifest.ranking, Ranking::default());
+    }
+
+    /// Engines before 10 made every ranking choice for script mlym and none for any other: a
+    /// pack that wants the same needs nothing, any other choice needs 10.
+    #[test]
+    fn ranking_choices_need_10_where_older_engines_made_them_otherwise() {
+        assert_eq!(pack_ranked("deva", &[], "{}").1.needed_engine().unwrap(), 2);
+        assert_eq!(pack_ranked("mlym", &[], EVERY_CHOICE).1.needed_engine().unwrap(), 1);
+        let (_dir, pack) = pack_ranked("deva", &[], r#"{"startBelowEnglish": true}"#);
+        assert_eq!(
+            pack.needs().unwrap()[0],
+            Need { level: 10, what: "manifest.json sets ranking.startBelowEnglish".into() }
+        );
+        let (_dir, pack) = pack_ranked("deva", &[], r#"{"holdOwnSpelling": false}"#);
+        assert_eq!(pack.needed_engine().unwrap(), 2, "false is as left out");
+        let off = EVERY_CHOICE.replace(r#""keepLexiconBeam": true"#, r#""keepLexiconBeam": false"#);
+        let (_dir, pack) = pack_ranked("mlym", &[], &off);
+        let needs = pack.needs().unwrap();
+        assert_eq!(needs.len(), 1, "{needs:?}");
+        assert_eq!(needs[0].level, 10);
+        assert!(needs[0].what.contains("ranking.keepLexiconBeam off"), "{needs:?}");
+        assert_eq!(pack_ranked("mlym", &[], "{}").1.needed_engine().unwrap(), 10);
+    }
+
+    #[test]
+    fn ranking_is_read_from_the_manifest_and_beside_a_file() {
+        let (dir, pack) = pack_ranked("deva", &[], r#"{"startBelowEnglish": true, "keepLexiconBeam": true}"#);
+        let want = Ranking { start_below_english: true, keep_lexicon_beam: true, ..Ranking::default() };
+        assert_eq!(pack.manifest.ranking, want);
+        assert_eq!(pack.paths().ranking, want);
+        assert_eq!(Ranking::beside(&dir.path().join("x.fst")), want);
+        assert_eq!(Ranking::beside(Path::new("/no/such/x.fst")), Ranking::default());
+        assert_eq!(pack_of("deva", &[]).1.manifest.ranking, Ranking::default());
+        let ml = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack");
+        let ml = Pack::open(&ml).unwrap().manifest.ranking;
+        assert!(ml.fields().iter().all(|(_, on)| *on), "Malayalam's: {ml:?}");
+        assert_eq!(ml.start_prior(), crate::rank::CONTEXT_AT_START);
+        assert_eq!(Ranking::default().start_prior(), crate::rank::CONTEXT_AT_START_PACK);
     }
 
     #[test]
     fn no_committed_pack_needs_more_than_this_engine() {
         let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
         for entry in fs::read_dir(packs).unwrap() {
-            let pack = Pack::open(&entry.unwrap().path()).unwrap();
+            let path = entry.unwrap().path();
+            if !path.is_dir() {
+                continue; // README.md
+            }
+            let pack = Pack::open(&path).unwrap();
             assert!(pack.needed_engine().unwrap() <= PACK_ENGINE, "{}", pack.manifest.id);
         }
     }

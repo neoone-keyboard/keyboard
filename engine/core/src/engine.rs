@@ -17,6 +17,7 @@ use crate::manglish;
 use crate::nn::{Deadline, Lm, Search, Target, Translit};
 use crate::normalize::{Joiners, normalize_with};
 use crate::own::OwnWords;
+use crate::pack::Ranking;
 use crate::pack_layout::PackLayout;
 use crate::personal::FOLLOWERS_PER_CONTEXT;
 use crate::rank::{self, apply_case, capitalize};
@@ -137,6 +138,8 @@ pub struct PackSources {
     /// `layout.json`'s vowel-sign strip, in the order shown when nothing is preferred; empty
     /// without a layout, and then there is no strip.
     pub vowel_sign_strip: Vec<char>,
+    /// The manifest's ranking choices, for this pack's words alone.
+    pub ranking: Ranking,
 }
 
 impl PackSources {
@@ -156,6 +159,7 @@ impl PackSources {
             suffixes: None,
             chat_forms: None,
             vowel_sign_strip: Vec::new(),
+            ranking: Ranking::default(),
         }
     }
 }
@@ -235,6 +239,9 @@ pub struct PackPaths {
     /// A phrase-conversion pack's files (engine 9): such a pack is opened as a `Converter`
     /// (`Engine::convert`), not as a word list, and its word files are not read.
     pub conversion: Option<ConversionPaths>,
+    /// The manifest's `ranking`: all off unless set (`Ranking::beside` reads it for paths
+    /// given one by one).
+    pub ranking: Ranking,
 }
 
 impl PackPaths {
@@ -255,6 +262,7 @@ impl PackPaths {
             layout: None,
             lang: None,
             conversion: None,
+            ranking: Ranking::default(),
         }
     }
 }
@@ -369,6 +377,7 @@ impl Sources {
                 .and_then(|p| PackLayout::load(p).ok())
                 .map(|l| l.vowel_sign_strip)
                 .unwrap_or_default(),
+            ranking: paths.ranking,
         }))
     }
 
@@ -1416,9 +1425,10 @@ impl Engine {
                 .map(|mg| (lang, mg, p.rules.packing(), rules, p.romanisation.as_ref()))
         }) {
             let bias = priors.get(lang);
-            // Malayalam's swipe ranking is held as tuned on the Manglish eval, where loanwords
-            // drawn as English (`school` for സ്കൂൾ) are its words: the rule below leaves it out.
-            let malayalam = self.pack(lang).is_some_and(|p| p.rules.code() == "mlym");
+            // A pack whose swipe ranking was tuned with loanwords drawn as English as its words
+            // (Malayalam's, `school` for സ്കൂൾ) is left out of the rule below
+            // (`Ranking::swipe_ignores_english_margin`).
+            let unheld = self.pack(lang).is_some_and(|p| p.ranking.swipe_ignores_english_margin);
             for f in swipe::decode(mg, &map, &path, Some(rules))
                 .into_iter()
                 .take(swipe::SKELETONS)
@@ -1446,7 +1456,7 @@ impl Engine {
                         + self.lm_term(scores, &text, lang)
                         + personal(&text)
                         - if second { w.second } else { 0.0 };
-                    if let Some(tables) = tables.filter(|_| !malayalam) {
+                    if let Some(tables) = tables.filter(|_| !unheld) {
                         native.push((out.len(), f.cost, tables));
                     }
                     out.push(Candidate {
@@ -1752,10 +1762,9 @@ impl Engine {
     }
 
     /// Each active pack's prior from the previous word's language: at the start
-    /// `rank::CONTEXT_AT_START_PACK`, or `rank::CONTEXT_AT_START` while Malayalam is active;
-    /// `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM` after the
-    /// pack's own word, and 0 otherwise (another pack's word, or one in no lexicon). English's
-    /// is always 0: only the differences matter.
+    /// `start_prior`; `rank::CONTEXT_AFTER_ENGLISH` after English, `rank::CONTEXT_AFTER_MALAYALAM`
+    /// after the pack's own word, and 0 otherwise (another pack's word, or one in no lexicon).
+    /// English's is always 0: only the differences matter.
     fn priors(&self, previous: Option<&str>) -> Priors {
         let previous = previous.map(|w| self.word_lang(&self.normal(w)));
         let start = self.start_prior();
@@ -1773,9 +1782,11 @@ impl Engine {
     }
 
     /// Every active pack's prior at the start of the text (`priors`): the same for every pack,
-    /// so that none is favoured there (`favoured`).
+    /// so that none is favoured there (`favoured`): `rank::CONTEXT_AT_START` while an active
+    /// pack sets `startBelowEnglish` (`Ranking::start_prior`), else
+    /// `rank::CONTEXT_AT_START_PACK`.
     fn start_prior(&self) -> f32 {
-        if self.packs_active().any(|(_, p)| p.rules.code() == "mlym") {
+        if self.packs_active().any(|(_, p)| p.ranking.start_below_english) {
             rank::CONTEXT_AT_START
         } else {
             rank::CONTEXT_AT_START_PACK
@@ -2528,13 +2539,14 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // Four ranking choices below are Malayalam's alone, to keep its recorded results;
-        // none is pack data yet.
-        let malayalam = pack.rules.code() == "mlym";
-        // How far context lifted Malayalam's words over where the start of the text puts them
-        // (`ManglishCandidates::lift`). The other packs read nothing beside a word context
-        // lifted, as recorded (`make golden-check-packs`).
-        if malayalam {
+        // The ranking choices below are the pack's own (`Ranking`, its manifest's); Malayalam's
+        // sets them all, to keep its recorded results.
+        let ranking = pack.ranking;
+        // How far context lifted the pack's words over where the start of the text puts them
+        // (`ManglishCandidates::lift`), for a pack that reads them beside a word context lifted
+        // (`lifted_words_stay_rare`). The others read nothing there, as recorded (`make
+        // golden-check-packs`).
+        if ranking.lifted_words_stay_rare {
             found.lift = (bias - self.start_prior()).max(0.0);
         }
         // One letter matches half the lexicon; an apostrophe is English.
@@ -2627,7 +2639,6 @@ impl Engine {
                 &loose,
                 bias,
                 another_favoured,
-                !malayalam,
                 want_free,
                 deadline,
                 &mut found,
@@ -2638,7 +2649,8 @@ impl Engine {
         Self::add_standard_neighbour(pack, &mut found);
         // A word the lexicon doesn't have, beside rare words the letters loosely fit: the
         // model's free spelling when it prefers it to every lexicon reading, just under the
-        // best of them. Malayalam's is held there, and under English (`keep_free_beside`).
+        // best of them. A pack that sets `hold_own_spelling` (Malayalam's) has it held there,
+        // and under English (`keep_free_beside`).
         if let Some(free) = free.as_ref().filter(|f| f.leads)
             && found.only_lifted()
             && !found.side.iter().any(|c| c.text == free.text)
@@ -2657,7 +2669,7 @@ impl Engine {
                     score: best - rank::MANGLISH_MODEL_FREE_BESIDE,
                     lang,
                 });
-                if malayalam {
+                if ranking.hold_own_spelling {
                     found.free_beside.push(free.text.clone());
                 }
             }
@@ -2688,7 +2700,8 @@ impl Engine {
         found
     }
 
-    /// Puts each free spelling offered beside rare whole forms (`free_beside`, Malayalam's)
+    /// Puts each free spelling offered beside rare whole forms (`free_beside`, a pack's that
+    /// sets `Ranking::hold_own_spelling`)
     /// just under its pack's best lexicon word among the whole forms, side slots and
     /// completions, and under `english_best` (the best English correction or completion
     /// likelier than an unknown word, `rank::UNKNOWN`), once context and habits have moved
@@ -2931,9 +2944,10 @@ impl Engine {
     /// frequencies don't compare across packs, and a frequent word of a small pack read
     /// confidently (Assamese আছে for `acha`, −5.4 against the Malayalam user's അച്ഛൻ at
     /// −10.6; −8.3 even with the distance penalty kept) beat the favoured pack's by more than
-    /// `rank::FAVOURED_MARGIN`. `caps_trailing`: a reading far behind the model's best lexicon
-    /// reading is scored just under it (`rank::MANGLISH_MODEL_TRAILS`; not for Malayalam, whose
-    /// ranking is held as recorded). `free`: run the free beam too. `deadline`: as in
+    /// `rank::FAVOURED_MARGIN`. A reading far behind the model's best lexicon reading is scored
+    /// just under it (`rank::MANGLISH_MODEL_TRAILS`), unless the pack ranks its readings by
+    /// frequency (`Ranking::readings_by_frequency`, Malayalam's, whose ranking is held as
+    /// recorded). `free`: run the free beam too. `deadline`: as in
     /// `suggest_until`. `own`: the user's own words of the pack, which the model may read as
     /// it reads the lexicon's, each scored as a word of `rank::OWN_WORD_LOG_PROB`; one not yet
     /// used `rank::OWN_WORD_REPLACES_AFTER` times is offered beside the typed word, however
@@ -2948,11 +2962,11 @@ impl Engine {
         loose: &[String],
         bias: f32,
         another_favoured: bool,
-        caps_trailing: bool,
         free: bool,
         deadline: Option<Deadline<'_>>,
         found: &mut ManglishCandidates,
     ) -> Option<FreeSpelling> {
+        let caps_trailing = !pack.ranking.readings_by_frequency;
         let (Some(model), ml, Some(r)) = (
             pack.translit.as_ref(),
             &pack.lexicon,
@@ -2966,12 +2980,12 @@ impl Engine {
         let search = Search {
             // Beside rare whole forms the free beam takes one of the lexicon beam's rows, so
             // the search costs what it did (Hindi's suggest p99 was 2.56 ms, 2.82 ms with a
-            // fifth row, 2.55 ms so); the held-out sets moved by 0.1 points at most. Malayalam
-            // keeps all its lexicon rows (`caps_trailing` is false for it alone): with one
-            // taken, words it had read well (പതിവായി for `pathivaay`) lost the middle.
+            // fifth row, 2.55 ms so); the held-out sets moved by 0.1 points at most. A pack
+            // that sets `keep_lexicon_beam` keeps all its lexicon rows: Malayalam's, which with
+            // one taken lost the middle for words it had read well (പതിവായി for `pathivaay`).
             width: if another_favoured {
                 0
-            } else if free && !found.side.is_empty() && caps_trailing {
+            } else if free && !found.side.is_empty() && !pack.ranking.keep_lexicon_beam {
                 MODEL_WIDTH - 1
             } else {
                 MODEL_WIDTH
@@ -3932,13 +3946,16 @@ mod tests {
     }
 
     /// A Malayalam pack over `lexicon` (an empty one for None), with the pack's tables
-    /// (suffixes, chat forms, the vowel-sign strip) and no other file loaded.
+    /// (suffixes, chat forms, the vowel-sign strip) and ranking choices, and no other file
+    /// loaded.
     fn ml_pack(lexicon: Option<Lexicon>) -> PackSources {
         let lexicon = lexicon.or_else(|| lex(&[])).unwrap();
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs/ml.neopack/manifest.json");
         PackSources {
             suffixes: Some(crate::suffix::load_ml()),
             chat_forms: Some(crate::chat_forms::load_ml()),
             vowel_sign_strip: crate::pack_layout::load_ml().vowel_sign_strip,
+            ranking: Ranking::beside(&manifest),
             ..PackSources::new(LangId("ml".into()), script::rules("mlym").unwrap(), lexicon)
         }
     }

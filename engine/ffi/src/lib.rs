@@ -248,6 +248,10 @@ impl From<&EngineConfig> for mlengine_core::Paths {
             next_words: path(&c.next_words),
             translit: path(&c.translit),
             lm: path(&c.lm),
+            // The ranking choices of the manifest beside them, as in the pack folder.
+            ranking: path(&c.manglish)
+                .map(|m| mlengine_core::pack::Ranking::beside(&m))
+                .unwrap_or_default(),
             ..mlengine_core::PackPaths::new("ml", "mlym")
         };
         Self {

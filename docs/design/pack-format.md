@@ -195,8 +195,51 @@ into a `.neopack` file. The folder holds `manifest.json` and data files.
   - Hindi: space bar हिन्दी, language key हि, pages कख / शष / अआ. Assamese: অসমীয়া, অ,
     pages কখ / শষ / অআ. Nukta letters are base + nukta (ज़ = ज + U+093C), so a key may
     type more than one code point. The strips are the orders under "Script plug-ins".
-- Per-pack ranking constants (`MANGLISH_*`, `LM_WEIGHT_ML`, `CONTEXT_AFTER_MALAYALAM`) move
-  into an optional `"tuning"` object in the manifest. Defaults are today's values.
+- `ranking` (engine 10, optional): the pack's own ranking choices, each a `true`/`false`
+  named for one behaviour (`pack::Ranking`). Each one changes how this pack's words are
+  ranked and nothing else: another active pack is ranked by its own manifest. Every field is
+  `false` when left out, which is how every pack but Malayalam is ranked; Malayalam's
+  manifest sets all six to `true`, the choices its recorded results were tuned with
+  (`make golden-check`). No code in the engine knows a language by name.
+
+  ```json
+  "ranking": {
+    "startBelowEnglish": true,
+    "swipeIgnoresEnglishMargin": true,
+    "readingsByFrequency": true,
+    "keepLexiconBeam": true,
+    "liftedWordsStayRare": true,
+    "holdOwnSpelling": true
+  }
+  ```
+
+  - `startBelowEnglish`: at the start of a message the pack's words start a step behind
+    English (`rank::CONTEXT_AT_START`). Without it they start level with English
+    (`rank::CONTEXT_AT_START_PACK`), as after a sentence end. While any active pack sets
+    it, every active pack starts behind English, so that none is favoured at the start.
+  - `swipeIgnoresEnglishMargin`: a swiped word of the pack competes with a common English
+    word on its score alone. Without it, it may outrank one only by fitting the path better by
+    `swipe::Weights::english_margin`.
+  - `readingsByFrequency`: the transliterator's lexicon readings, and the skeleton's loose
+    matches, are ordered by how common their words are, however far behind the model's best
+    reading the model puts them. Without it, a reading `rank::MANGLISH_MODEL_TRAILS` per
+    token behind the best, or a loose match the model doesn't read, is put just under the
+    best reading (`rank::MANGLISH_MODEL_TRAILS_STEP`).
+  - `keepLexiconBeam`: when the transliterator's own spelling is searched for beside rare
+    words, the lexicon search keeps all its rows (`MODEL_WIDTH`). Without it, it gives one to
+    the free spelling, so the search costs what it did.
+  - `liftedWordsStayRare`: a word that only the previous word lifted over the floor of words
+    that may replace is still read as a rare word: the transliterator's own spelling is
+    searched for and offered beside it (`ManglishCandidates::lift`).
+  - `holdOwnSpelling`: the transliterator's own spelling, offered beside rare words, is kept
+    just under the pack's best word and under a likely English word once context has moved
+    them (`Engine::keep_free_beside`). Without it, it stays where it was placed.
+
+  An engine before 10 ignores the object. It ranks a pack in script `mlym` as all six set,
+  and every other pack as none set; so a `mlym` pack with all six, and any other pack with
+  none, needs no level for it, and any other combination needs 10 (`Pack::needs`).
+- Per-pack ranking constants (`MANGLISH_*`, `LM_WEIGHT_ML`, `CONTEXT_AFTER_MALAYALAM`) may
+  later move into the same object. Defaults would be today's values.
 
 ## Where packs live
 

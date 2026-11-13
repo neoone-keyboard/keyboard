@@ -29,6 +29,7 @@ fn open(model: bool) -> Engine {
             next_words: Some(pack.join("next.fst")),
             lm: None,
             translit: model.then(|| root().join("packs/ml.neopack/translit.mlkbnn")),
+            ranking: mlengine_core::pack::Ranking::beside(&pack.join("manifest.json")),
             ..PackPaths::new("ml", "mlym")
         }],
         user_dir: None,
