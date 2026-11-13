@@ -1676,7 +1676,7 @@ impl Engine {
     }
 
     /// The word being typed (`text::current_word`), and whether it is an address. Letters
-    /// and punctuation that begin a learned address are one too (`neo.9` of
+    /// and punctuation that begin a learned address are one too (`sam.2` of
     /// sam.2024@example.com), back to the whitespace: their full stop is no word break. So are
     /// the digits that begin a learned phone number (`begun_number`).
     fn current_word<'a>(&self, context_before: &'a str) -> (&'a str, bool) {
@@ -2071,7 +2071,7 @@ impl Engine {
             }
         }
         // The latest learned address the letters begin takes the first side slot, shown as
-        // learned (`Neo` → sam.2024@example.com): it is one thing typed before, not letters to
+        // learned (`Sam` → sam.2024@example.com): it is one thing typed before, not letters to
         // finish, so its length costs nothing. It never replaces, nor holds back a correction.
         let (addresses, words): (Vec<String>, Vec<String>) = self
             .user()

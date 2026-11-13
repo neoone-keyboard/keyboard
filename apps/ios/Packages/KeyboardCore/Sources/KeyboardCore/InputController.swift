@@ -137,7 +137,7 @@ public final class InputController {
     /// A password field: nothing typed is reported for learning or use.
     public var secureTextEntry = false
     /// The engine's learned emails, URLs and phone numbers. Letters that begin one are one
-    /// word with their punctuation (`neo.9` of sam.2024@example.com), and digits that begin a
+    /// word with their punctuation (`sam.2` of sam.2024@example.com), and digits that begin a
     /// number with its spaces (`+91 98` of +91 55501 12345), as in the engine. May be a little stale.
     public var learnedAddresses: [String] = []
 
@@ -892,7 +892,7 @@ public final class InputController {
 
     /// The address at the end of `context`: digits that begin a learned phone number
     /// (`learnedNumber`), a `token` that `isAddress`, or one of two characters or more that
-    /// begins a learned address and runs past the plain word (`neo.9`). Matches the engine's
+    /// begins a learned address and runs past the plain word (`sam.2`). Matches the engine's
     /// `Engine::current_word`.
     private func address(endingAt context: String) -> Substring? {
         if let number = learnedNumber(endingAt: context) { return number }

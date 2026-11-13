@@ -28,8 +28,8 @@ const ENGLISH: &[(&str, u64)] = &[
     ("preference", 20_000), ("preferences", 8_000), ("definitely", 50_000),
     ("also", 1_500_000), ("apostle", 5_000), ("apostrophe", 2_000), ("apostrophes", 500),
     // Words that begin like a learned email (`sam.2024@example.com`).
-    ("new", 2_000_000), ("need", 900_000), ("never", 800_000), ("next", 700_000),
-    ("neo", 5_000), ("neon", 10_000), ("neoliberal", 2_000),
+    ("said", 2_000_000), ("say", 900_000), ("sat", 800_000), ("save", 700_000),
+    ("sam", 5_000), ("same", 10_000), ("sample", 2_000),
 ];
 
 fn english() -> Option<Lexicon> {
@@ -315,16 +315,16 @@ fn an_email_committed_twice_is_learned_whole_and_completed() {
     let dir = tempfile::tempdir().unwrap();
     let engine = engine_in(dir.path());
     engine.note_committed("priya@example.com");
-    assert!(!texts(&engine, "jis").contains(&"priya@example.com".to_string()));
+    assert!(!texts(&engine, "pri").contains(&"priya@example.com".to_string()));
     engine.note_committed("priya@example.com");
     drop(engine);
     let engine = engine_in(dir.path());
     for typed in [
-        "jis",
-        "jishnu",
-        "jishnu@",
+        "pri",
+        "priya",
+        "priya@",
         "mail me at priya@e",
-        "It rains. jis",
+        "It rains. pri",
     ] {
         let s = engine.suggest(typed, Layout::Latin, true);
         if typed.contains('@') {
@@ -338,7 +338,7 @@ fn an_email_committed_twice_is_learned_whole_and_completed() {
         );
     }
     // Shown as learned: an address is not recased after a capital or at a sentence start.
-    assert!(texts(&engine, "Jishnu@").contains(&"priya@example.com".to_string()));
+    assert!(texts(&engine, "Priya@").contains(&"priya@example.com".to_string()));
 }
 
 #[test]
@@ -346,7 +346,7 @@ fn punctuation_around_an_address_is_not_learned() {
     let engine = engine();
     engine.note_committed("priya@example.com.");
     engine.note_committed("priya@example.com,");
-    assert!(texts(&engine, "jis").contains(&"priya@example.com".to_string()));
+    assert!(texts(&engine, "pri").contains(&"priya@example.com".to_string()));
     engine.learn("(www.example.com)");
     assert!(texts(&engine, "www.ex").contains(&"www.example.com".to_string()));
 }
@@ -391,15 +391,15 @@ fn a_learned_email_is_offered_from_its_first_letters() {
     engine.note_committed("sam.2024@example.com");
     engine.note_committed("sam.2024@example.com");
     for typed in [
-        "n",
-        "ne",
-        "neo",
-        "Neo",
-        "neo.",
-        "neo.9",
-        "sam.2024@g",
-        "hi neo.98",
-        "It rains. Neo.9",
+        "s",
+        "sa",
+        "sam",
+        "Sam",
+        "sam.",
+        "sam.2",
+        "sam.2024@e",
+        "hi sam.20",
+        "It rains. Sam.2",
     ] {
         let s = engine.suggest(typed, Layout::Latin, true);
         assert!(
@@ -411,17 +411,17 @@ fn a_learned_email_is_offered_from_its_first_letters() {
     }
     // What was typed so far is one word: the full stop in it is no word break.
     assert_eq!(
-        engine.suggest("hi neo.9", Layout::Latin, true).typed,
-        "neo.9"
+        engine.suggest("hi sam.2", Layout::Latin, true).typed,
+        "sam.2"
     );
-    assert_eq!(engine.suggest("Neo.", Layout::Latin, true).typed, "Neo.");
+    assert_eq!(engine.suggest("Sam.", Layout::Latin, true).typed, "Sam.");
     // It is offered, never put in for what was typed.
-    for typed in ["neo", "neo.", "neo.9"] {
+    for typed in ["sam", "sam.", "sam.2"] {
         assert_eq!(middle(&engine, typed), (typed.into(), Kind::Verbatim));
     }
     // Letters it doesn't begin are ordinary words again.
-    assert_eq!(engine.suggest("neon.", Layout::Latin, true).typed, "");
-    assert_eq!(engine.suggest("n.", Layout::Latin, true).typed, "");
+    assert_eq!(engine.suggest("same.", Layout::Latin, true).typed, "");
+    assert_eq!(engine.suggest("s.", Layout::Latin, true).typed, "");
     assert_eq!(
         engine.learned_addresses(),
         ["sam.2024@example.com", "sam.2024@example.con"]
@@ -431,7 +431,7 @@ fn a_learned_email_is_offered_from_its_first_letters() {
 #[test]
 fn without_a_learned_address_punctuation_ends_a_word() {
     let engine = engine();
-    assert_eq!(engine.suggest("neo.", Layout::Latin, true).typed, "");
+    assert_eq!(engine.suggest("sam.", Layout::Latin, true).typed, "");
     assert_eq!(engine.suggest("x.com", Layout::Latin, true).typed, "x.com");
     assert!(engine.learned_addresses().is_empty());
 }
