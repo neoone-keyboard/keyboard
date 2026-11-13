@@ -6,7 +6,8 @@
 # dictionary-notices.txt from data/langs/ja). `make ja-pack`.
 #
 # Licence: the dictionary files are under the IPAdic licence with ICOT's conditions, which
-# data/langs/ja/dictionary-notices.txt carries verbatim (Mozc's LICENSE at this commit, unchanged) and which travels in the pack.
+# data/langs/ja/dictionary-notices.txt carries verbatim (Mozc's LICENSE at this commit,
+# unchanged) and which travels in the pack.
 set -eu
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.cargo/bin:$PATH"

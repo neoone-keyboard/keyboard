@@ -11,8 +11,8 @@ keys use.)
     t.skeleton("axom")               # the lookup key both sides collapse to
 
 The same walk as `engine/core/src/romanize.rs` and `mlkb.data.romanise` do for Malayalam,
-with the letters in tables (M6 design: "romanisation.json holds the tables now in
-romanize.rs"). A word splits into slots, each with weighted spellings, canonical first:
+with the letters in tables (`romanisation.json` holds what `romanize.rs` had as code;
+docs/design/romanisation-format.md). A word splits into slots, each with weighted spellings, canonical first:
 
 - a consonant cluster (consonants joined by viramas) becomes one slot per piece: a listed
   conjunct (`clusters`, ক্ষ), a doubled letter (ক্ক: doubled or, `geminateSingle` of the time,

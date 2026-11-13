@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The download site and its pack index (M6 design, "Where packs live", hosting).
+"""The download site and its pack index (docs/design/pack-format.md, "Where packs live", hosting).
 
     python3 -I scripts/publish-packs.py           build the packs, write site/ and the app's index URL
     python3 -I scripts/publish-packs.py --check   fail if site/ or the xcconfig is out of date
@@ -41,7 +41,7 @@ was written, Android's PackIndex too), so they don't offer a beta pack as a norm
 Builds that read `beta` list the entries of both sections and tag those in `beta` "Beta". The
 ids in its `alsoInPacks` (Assamese and Tamil, listed before there was a beta section) stay in
 `packs` too, the same entry in both, so users of older builds keep them. The credits page marks
-beta packs. Which pack is full, beta or unlisted is the user's decision, LISTING below; --check
+beta packs. Which pack is full, beta or unlisted is the maintainer's decision, LISTING below; --check
 fails when site-src/ lists them otherwise.
 
 Then it prints the `wrangler r2 object put` commands that upload the pack files. It runs them
@@ -89,7 +89,7 @@ INDEX_FORMAT = 1  # KeyboardCore PackIndex.format
 # English's own sources, as KeyboardCore's Credits.english lists them (the app's About screen).
 ENGLISH_CREDIT_IDS = ["enwiki", "scowl", "unicode-emoji", "cldr-annotations"]
 ENGLISH_FILES = ["en.fst", "en-next.fst"]
-# The user's decision (12 November 2026): which packs in packs/ are full languages, which are
+# The maintainer's decision: which packs in packs/ are full languages, which are
 # listed as beta and which stay unlisted (trial files; Sinhala, a trial, unlisted too).
 # alsoInPacks: beta ids that stay in the index's `packs` for older builds, which listed them
 # before the beta section existed.

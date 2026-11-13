@@ -31,7 +31,7 @@ network access, and nothing typed leaves the phone.
 | `data/` | Per-language rules (`data/langs/`), word lists, evaluation sets, recorded suggestion bars (`data/golden/`) and the scripts that fetch and build text. Downloaded text goes to `data/raw/`, which is not tracked. |
 | `site-src/` | Source of the website (https://neoone.jishnu.me); `site/` is the site as published. |
 | `hosting/` | The Cloudflare Worker that serves the site and the packs. |
-| `docs/` | Guides (`docs/make-a-language.md`), the App Store listing, and design specs and plans. |
+| `docs/` | The guide to making a language (`docs/make-a-language.md`) and its known limits (`docs/known-limits.md`), the design of the pack and romanisation formats (`docs/design/`), and the maintainer's App Store notes (`docs/maintainers/`). |
 | `scripts/` | Build and check scripts: the xcframework build, pack checks, pack publishing. |
 
 ## Build and test

@@ -72,7 +72,7 @@ testflight: tools project $(XCFRAMEWORK)
 	xcodebuild -exportArchive -archivePath $(ARCHIVE) -exportOptionsPlist $(EXPORT_OPTIONS) \
 	  -exportPath build/export -allowProvisioningUpdates $(ASC_AUTH)
 
-# Debug-only (M6 phase 2, task 12): the device app with packs/hi.neopack and as.neopack beside
+# Debug-only: the device app with packs/hi.neopack and as.neopack beside
 # Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
 # build is untouched. Builds only; install it by hand:
 #   xcrun devicectl device install app --device $(DEVICE) build/DerivedData-twopacks/Build/Products/Debug-iphoneos/KeyboardApp.app
@@ -305,7 +305,7 @@ LM_LANG ?= ml
 LM_BUILD := build/$(if $(filter ml,$(LM_LANG)),lm,lm-$(LM_LANG))
 LM_EVAL := data/eval$(if $(filter ml,$(LM_LANG)),,/$(LM_LANG))
 
-# The LM's training text, vocabulary and token shards in training/$(LM_BUILD) (design §5; needs
+# The LM's training text, vocabulary and token shards in training/$(LM_BUILD) (needs
 # data/fetch.sh and the lexicon text in data/raw/text, about 2 hours: ml.txt from
 # data/build-lexicons.sh, hi.txt from data/build-pack-lexicons.sh hi). Also writes the native
 # next-word eval sets (next-ml.tune.txt and next-ml.heldout.txt; data/eval/hi/next-hi.*).
@@ -318,7 +318,7 @@ lm-data:
 
 # A pack's LM other than Malayalam's (`make models` builds that one): training (`make lm-data
 # LM_LANG=hi` first; 4-5 hours, skipped when training/$(LM_BUILD).pt exists), export, the
-# memorisation check (design §10) into $(LM_EVAL)/memorisation.json, and the eval's LM ship gates
+# memorisation check (training/mlkb/lm/memorise.py) into $(LM_EVAL)/memorisation.json, and the eval's LM ship gates
 # against the pack without an LM ($(LM_EVAL)/baselines-nolm.json, `python -m mlkb.eval --lang hi
 # --translit … --record-nolm`). Each must pass before the copy into packs/$(LM_LANG).neopack.
 lm:
@@ -339,7 +339,7 @@ lm:
 # Aksharantar extracts in data/raw, see data/manifests), training (several hours; skipped when
 # training/build/translit.pt exists), int8 export, then the copy into the keyboard bundle. Then
 # the LM: training (`make lm-data` first; 4-5 hours, skipped when training/build/lm.pt exists),
-# export, and the memorisation check (design §10), which must pass before the copy.
+# export, and the memorisation check (training/mlkb/lm/memorise.py), which must pass before the copy.
 models:
 	@if [ ! -f training/build/translit.pt ]; then \
 	  cd training && uv run --group train python -m mlkb.data.pairs && \
@@ -418,7 +418,7 @@ test-app: tools project $(XCFRAMEWORK)
 icon:
 	./tools/icon/render.sh
 
-# Runtime spike (M3 design §5): a seeded random full-size transliterator as .mlkbnn and as an
+# Runtime spike: a seeded random full-size transliterator as .mlkbnn and as an
 # int8 Core ML model, copied into the app (not the keyboard) for the debug "Runtime check"
 # screen. Git-ignored; run before `make device` for the spike. coremltools 9 has no native
 # libraries for Python 3.14, so this uses its own Python 3.13 environment.

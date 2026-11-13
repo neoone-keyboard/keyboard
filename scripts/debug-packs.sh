@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The packs bundled in the keyboard extension, for Debug builds only (M6 spec, "Where packs
-# live"). Run by Xcode as the extension's last build phase. A Debug build bundles
+# The packs bundled in the keyboard extension, for Debug builds only (docs/design/pack-format.md,
+# "Where packs live"). Run by Xcode as the extension's last build phase. A Debug build bundles
 # packs/ml.neopack, plus packs/<id>.neopack for each id in ML_DEBUG_PACKS (space-separated,
 # "hi as"). A Release build bundles none: its languages are downloaded or imported in the app.
 # Any pack left in the bundle by an earlier build that isn't wanted now is removed.

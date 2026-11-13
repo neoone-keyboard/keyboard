@@ -6,7 +6,7 @@ The format and its walk and skeleton are specified in
 `docs/design/romanisation-format.md`. `Romanisation.key(word)` is what
 the romanised lexicon (`hinglish.fst`) is keyed by: the skeleton of the walk. lexbuild
 (`engine/lexbuild/src/romanisation.rs`) implements the same; the fixture written by
-`mlkb.data.romanisation_fixture` keeps the two in step, and phase 2's engine computes the same
+`mlkb.data.romanisation_fixture` keeps the two in step, and the engine computes the same
 skeleton of what was typed.
 
 Prints how often the human romanisations of the Dakshina lexicon meet the walk's skeleton.

@@ -210,7 +210,7 @@ class Beta(unittest.TestCase):
 
 
 class Listing(unittest.TestCase):
-    """The user's decision of which packs are full languages, beta or unlisted."""
+    """The maintainer's decision of which packs are full languages, beta or unlisted."""
 
     def test_the_decision(self):
         self.assertEqual(pp.LISTING["full"], ["hi", "ml"])
