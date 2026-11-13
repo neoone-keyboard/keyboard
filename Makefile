@@ -15,8 +15,11 @@ APP_BUNDLE_ID := $(call signing_setting,BUNDLE_ID_PREFIX)
 EXPORT_PROFILE_PREFIX := $(call signing_setting,EXPORT_PROFILE_PREFIX)
 CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
-# Stamped into the keyboard extension for its diagnostics report.
-GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
+# Stamped into the app and the keyboard (Info.plist MLGitCommit) for the version they show and
+# the diagnostics report: the short commit, "+" after it when the working tree has changes
+# ("8e49416+"). Every target that builds the app passes it (build, device, testflight, twopacks,
+# test-app).
+GIT_COMMIT := $(shell git describe --always --dirty=+ 2>/dev/null)
 # data/langs/{ml,hi,as}/lang.json are compiled into the engine (engine/core/src/script/mod.rs),
 # and packs/ml.neopack/romanisation.json for its fromLatin (engine/core/src/translit.rs).
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \

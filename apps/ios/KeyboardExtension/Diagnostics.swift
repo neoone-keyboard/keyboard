@@ -51,25 +51,22 @@ struct Diagnostics: Sendable {
         return String(format: "%.1f ms", Double(seconds) * 1000 + Double(attoseconds) / 1e15)
     }
 
-    /// Version, build, the commit it was built from (when `make` passed it) and when the
-    /// extension binary was built.
+    /// Version, build and the commit it was built from (when `make` passed it), as the settings
+    /// panel shows them (`AppVersion`), and when the extension binary was built:
+    /// "1.0 (9) · 8e49416 built 2026-11-13T09:12:00Z".
     static var buildDescription: String {
-        let info = Bundle.main.infoDictionary ?? [:]
-        let version = info["CFBundleShortVersionString"] as? String ?? "?"
-        let build = info["CFBundleVersion"] as? String ?? "?"
-        let commit = (info["MLGitCommit"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "unknown"
         var built = "?"
         if let path = Bundle.main.executablePath,
            let date = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date {
             built = date.formatted(.iso8601)
         }
-        return "v\(version) (\(build)) commit \(commit) built \(built)"
+        return "\(AppVersion.number(info: Bundle.main.infoDictionary ?? [:])) built \(built)"
     }
 
     /// A report to type into a field: one header line, then the newest log lines, at most
     /// `maxBytes` in all.
     static func report(header: String, maxLines: Int = 60, maxBytes: Int = 6_000) -> String {
-        let head = "MLKB diagnostics: \(header)\n"
+        let head = "NeoOne diagnostics: \(header)\n"
         // Time of day only ("12:34:56.789Z"): the header has the date.
         let lines = (file?.recentLines(maxLines * 2) ?? []).map { line in
             line.count > 11 && line.dropFirst(10).first == "T" ? String(line.dropFirst(11)) : line
