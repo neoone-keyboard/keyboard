@@ -1,6 +1,9 @@
 SIM ?= iPhone 17
-# Physical iPhone UDID for `make device` (list with: xcrun devicectl list devices)
-DEVICE ?= <your-device-id>
+# Physical iPhone UDID for `make device` and `make twopacks` (list with: xcrun devicectl list
+# devices). Empty by default: pass DEVICE=<your-device-id>, or set it in local.mk beside this
+# file (untracked), e.g. `DEVICE := <your-device-id>`.
+-include local.mk
+DEVICE ?=
 PROJECT := apps/ios/MLKeyboard.xcodeproj
 CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
@@ -11,7 +14,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: need-device pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -31,7 +34,11 @@ build: tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp \
 	  -destination 'platform=iOS Simulator,name=$(SIM)' CODE_SIGNING_ALLOWED=NO ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 
-device: tools project $(XCFRAMEWORK)
+# Fails first, before anything is built, when no device is named.
+need-device:
+	@test -n "$(DEVICE)" || { echo "DEVICE is not set. Pass DEVICE=<your-device-id> or set it in local.mk (list devices with: xcrun devicectl list devices)"; exit 1; }
+
+device: need-device tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
@@ -69,7 +76,7 @@ testflight: tools project $(XCFRAMEWORK)
 # Malayalam and active ["ml","hi"] (English off), built into its own DerivedData so the normal
 # build is untouched. Builds only; install it by hand:
 #   xcrun devicectl device install app --device $(DEVICE) build/DerivedData-twopacks/Build/Products/Debug-iphoneos/KeyboardApp.app
-twopacks: tools project $(XCFRAMEWORK)
+twopacks: need-device tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData-twopacks -allowProvisioningUpdates \
 	  ML_GIT_COMMIT=$(GIT_COMMIT) ML_DEBUG_PACKS="hi as" ML_ACTIVE_LANGUAGES=ml,hi build -quiet
