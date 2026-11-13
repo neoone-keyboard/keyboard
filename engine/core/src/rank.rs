@@ -155,9 +155,14 @@ pub const MANGLISH_SPLIT_STEM_MIN: f32 = -12.5;
 /// `shukriya` gets (Urdu: شکریہ first, where it had been third). On the English no-harm
 /// set with each pack beside English, wrong replacements stayed 3/1876 for hi, ta, mr and
 /// bn and 2 for as (Anjali for Arun); Urdu went 3 → 4 (`Anjali` → انجلی, a name at a
-/// sentence start, which an Urdu writer would want so). Malayalam, whose ranking is held
-/// as recorded (`make golden-check`), keeps the penalty for a sentence start too: without
-/// it, 31 English sentence-start prefixes of its golden moved (`Wh` offered വി).
+/// sentence start, which an Urdu writer would want so). Malayalam too: `Sreelakshmi` at the
+/// start of a message had kept the typed letters in the middle and ശ്രീലക്ഷ്മി beside them,
+/// so the first word of every message got the worse bar. Measured with English (`make
+/// eval`): chat_golden top-1 0.8043 → 0.8075 (`Jishnu` → ജിഷ്ണു), Manglish human, English
+/// typos and language choice unchanged; English wrong replacements 2 → 3/1876 (`Anjali` →
+/// അഞ്ജലി, as for Urdu), English next-word keystroke savings 0.2757 → 0.2739 (31
+/// sentence-start prefixes of the golden lose an English completion to a Malayalam reading,
+/// as their lowercase letters already did: `Wh` offers വി beside `Who`).
 pub const MANGLISH_MODEL_WEIGHT: f32 = 0.25;
 /// Model spellings scoring below this per token are dropped: the constrained
 /// beam fills its width with whatever lexicon words it can reach, and the

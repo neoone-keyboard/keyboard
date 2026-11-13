@@ -2595,9 +2595,6 @@ impl Engine {
                 );
             }
         }
-        // Malayalam keeps its recorded ranking: any capital first letter hints at English.
-        let english_capitals = english_capitals
-            || (malayalam && typed_n.starts_with(|c: char| c.is_ascii_uppercase()));
         Self::add_chat_form(pack, typed_n, english_capitals, bias, &mut found);
         // No common whole form fits: read it as stem + suffixes (സുഖം + ആണോ).
         let splits = match &pack.suffixes {
