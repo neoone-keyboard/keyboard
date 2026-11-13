@@ -1,9 +1,10 @@
 {
   "id": "indian-english",
   "name": "Indian English vocabulary (hand-written)",
-  "licence": "Written for this project",
+  "licence": "Apache-2.0 (own work)",
+  "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
   "verdict": "own work",
-  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; the app credits third-party sources only.",
+  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; licensed like the code (NOTICE); the app credits third-party sources only.",
   "attribution": "Festivals, places, foods and abbreviations of Indian and Kerala English (Onam, Munnar, biryani, PNR), written for this keyboard. No third-party data.",
   "used_for": "Kept in the English lexicon (en.fst) whatever their Wikipedia count, so autocorrect leaves them alone (lexbuild --english-list).",
   "local": "data/indian-english.txt",

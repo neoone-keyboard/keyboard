@@ -1,9 +1,10 @@
 {
   "id": "chat-forms-ne",
   "name": "Nepali chat spellings (hand-written)",
-  "licence": "Written for this project",
+  "licence": "Apache-2.0 (own work); also CC BY-SA 4.0 inside a language pack",
+  "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
   "verdict": "own work",
-  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; the app credits third-party sources only.",
+  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; licensed like the code (NOTICE); the app credits third-party sources only.",
   "attribution": "A short table of Nepali chat spellings the tables don't reach (ma for म, ra for र, xa for छ, k for के), written for this keyboard. No third-party data.",
   "used_for": "The Nepali pack's chatForms file (packs/ne.neopack/chat-forms.tsv): a typed or swiped chat spelling offers its Nepali word (engine/core/src/chat_forms.rs).",
   "local": "packs/ne.neopack/chat-forms.tsv",

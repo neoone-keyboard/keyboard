@@ -4,11 +4,22 @@ Copyright 2026 Jishnu Viswanath
 The source code in this repository is licensed under the Apache License,
 Version 2.0 (see LICENSE).
 
-Data is not covered by that licence. The language packs (packs/), the
-English word lists and the trained models are built from third-party
-sources and keep those sources' licences, for example Wikipedia text under
-CC BY-SA 4.0. Each pack lists its sources and their licences in its
-manifest.json ("credits"); the apps show them under About and credits, and
+Data written for this project is licensed under the Apache License,
+Version 2.0, the same as the code. This covers, among others,
+data/langs/*/lang.json and romanisation.hand.json, the packs' layout.json,
+chat-forms.tsv and suffixes.tsv, data/indian-english.txt, and the
+hand-written eval sets in data/eval/ (chat-golden.tsv,
+english-sentences.txt, english-typos*.tsv, language-choice*.tsv). Where
+such a file also ships inside a language pack, it is also offered under
+that pack's CC BY-SA 4.0.
+
+Other data is not covered by the Apache licence. The language packs
+(packs/), the English word lists and the trained models are built from
+third-party sources and keep those sources' licences, for example
+Wikipedia text under CC BY-SA 4.0. Each pack as a whole is CC BY-SA 4.0,
+except the Japanese pack's dictionary files (see packs/README.md). Each
+pack lists its sources and their licences in its manifest.json
+("credits"); the apps show them under About and credits, and
 https://neoone.jishnu.me/credits lists them too.
 
 Third-party software built into the apps is listed, with its licence, in

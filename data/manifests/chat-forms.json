@@ -1,9 +1,10 @@
 {
   "id": "chat-forms",
   "name": "Malayalam chat spellings (hand-written)",
-  "licence": "Written for this project",
+  "licence": "Apache-2.0 (own work); also CC BY-SA 4.0 inside a language pack",
+  "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
   "verdict": "own work",
-  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; the app credits third-party sources only.",
+  "verdict_reason": "Written by hand for this repository, so there is no third-party licence to follow or credit; licensed like the code (NOTICE); the app credits third-party sources only.",
   "attribution": "A short table of irregular Manglish chat spellings (nanni for നന്ദി, nte for എന്റെ), written for this keyboard. No third-party data.",
   "used_for": "The Malayalam pack's chatForms file (packs/ml.neopack/chat-forms.tsv): a typed chat spelling offers its Malayalam word (engine/core/src/chat_forms.rs).",
   "local": "packs/ml.neopack/chat-forms.tsv",
