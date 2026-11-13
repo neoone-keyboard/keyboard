@@ -19,9 +19,17 @@ fn root() -> PathBuf {
 
 /// English and Malayalam, as the keyboard opens them.
 fn engine() -> Engine {
-    let pack = Pack::open(&root().join("packs/ml.neopack")).unwrap();
+    engine_with(&["ml"])
+}
+
+/// English and the packs `ids`, in that load order.
+fn engine_with(ids: &[&str]) -> Engine {
+    let packs: Vec<Pack> = ids
+        .iter()
+        .map(|id| Pack::open(&root().join(format!("packs/{id}.neopack"))).unwrap())
+        .collect();
     let en = root().join("apps/ios/KeyboardExtension/Lexicon/en.fst");
-    Engine::open(&Paths::with_packs(Some(en), &[pack], None))
+    Engine::open(&Paths::with_packs(Some(en), &packs, None))
 }
 
 /// The bar's first three words for `context`.
@@ -72,5 +80,32 @@ fn a_leading_spelling_off_the_lexicon_is_offered() {
             bar(&e, typed).iter().any(|w| w == want),
             "{typed}: {want} not in the first three"
         );
+    }
+}
+
+/// The same after a sentence's end, after an English word and after a Malayalam word, with
+/// Malayalam alone and with Hindi and Assamese beside it. After `Ok.` the capital kept the
+/// distance penalty on തൂക്കിൽ and the LM put തുകൽ over it, and തൂക്കൽ, held just under
+/// തൂക്കിൽ, went with it to fourth. After എന്റെ the context lifted തൂക്കിൽ and തുകൽ over the
+/// floor of words that may replace, and the model's free spelling was never read beside them.
+#[test]
+fn thookkal_offers_its_own_spelling_in_every_context() {
+    for packs in [&["ml"][..], &["ml", "hi", "as"]] {
+        let e = engine_with(packs);
+        for context in [
+            "Ok. Thookkal",
+            "ok. thookkal",
+            "ok thookkal",
+            "Ok thookkal",
+            "ente thookkal",
+            "Ente thookkal",
+            "എന്റെ thookkal",
+            "ente veettil thookkal",
+        ] {
+            assert!(
+                bar(&e, context).iter().any(|w| w == "തൂക്കൽ"),
+                "{packs:?}, {context:?}: no തൂക്കൽ in the first three"
+            );
+        }
     }
 }

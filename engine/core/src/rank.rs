@@ -282,6 +282,15 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// spellings; gained മൂപ്പിച്ച്); next_manglish keystroke savings 0.2092 → 0.2084; the rest
 /// unchanged. Without the hold, `maintainance` lost `maintenance` (English typos in the bar
 /// 97.16% → 96.59%) and `Decembe` showed ഡിസംബെ in place of ഡിസംബർ.
+///
+/// For Malayalam, a rare form the previous word lifted over the floor of words that may
+/// replace (തൂക്കിൽ after എന്റെ) is still a rare one: the free spelling runs and is offered
+/// beside it (`ManglishCandidates::lift`), and it follows the best lexicon word once context
+/// has moved them, not the one it was put under (`Ok. Thookkal`). `make eval`, before →
+/// after: every top-1 unchanged; translit-human in the bar 80.10% → 80.05% (lost താരിഖ് for
+/// `tareeq` to തരീക്); next_manglish keystroke savings 0.2084 → 0.2043 (in a sentence, a
+/// begun word's own spelling takes the third slot: സന്തോഷമുൻ for `valare santhoshamun`, as
+/// at the start, and ബീച്ചുക് for `kurachu beachuk`); the rest unchanged.
 pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
 /// The user's own words (`own::OwnWords`): native-script words tapped in the bar that the
 /// pack's lexicon doesn't hold (the transliterator's free spelling, mostly), which from then on

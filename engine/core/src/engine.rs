@@ -1758,12 +1758,7 @@ impl Engine {
     /// is always 0: only the differences matter.
     fn priors(&self, previous: Option<&str>) -> Priors {
         let previous = previous.map(|w| self.word_lang(&self.normal(w)));
-        // The same for every pack, so that none is favoured at the start (`favoured`).
-        let start = if self.packs_active().any(|(_, p)| p.rules.code() == "mlym") {
-            rank::CONTEXT_AT_START
-        } else {
-            rank::CONTEXT_AT_START_PACK
-        };
+        let start = self.start_prior();
         let mut priors = Priors::default();
         for (lang, _) in self.packs_active() {
             let prior = match previous {
@@ -1775,6 +1770,16 @@ impl Engine {
             priors.set(lang, prior);
         }
         priors
+    }
+
+    /// Every active pack's prior at the start of the text (`priors`): the same for every pack,
+    /// so that none is favoured there (`favoured`).
+    fn start_prior(&self) -> f32 {
+        if self.packs_active().any(|(_, p)| p.rules.code() == "mlym") {
+            rank::CONTEXT_AT_START
+        } else {
+            rank::CONTEXT_AT_START_PACK
+        }
     }
 
     /// `priors` with the LM's bias (`ContextScores::manglish_bias`), when it is ready, in
@@ -2523,9 +2528,15 @@ impl Engine {
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
             return found;
         };
-        // Three ranking choices below are Malayalam's alone, to keep its recorded results;
+        // Four ranking choices below are Malayalam's alone, to keep its recorded results;
         // none is pack data yet.
         let malayalam = pack.rules.code() == "mlym";
+        // How far context lifted Malayalam's words over where the start of the text puts them
+        // (`ManglishCandidates::lift`). The other packs read nothing beside a word context
+        // lifted, as recorded (`make golden-check-packs`).
+        if malayalam {
+            found.lift = (bias - self.start_prior()).max(0.0);
+        }
         // One letter matches half the lexicon; an apostrophe is English.
         if typed_n.len() < 2 || typed_n.contains('\'') {
             return found;
@@ -2603,11 +2614,13 @@ impl Engine {
         // spelling is a fallback for when nothing else is found (below), and nothing is ever
         // taken out of `found`. It runs beside rare whole forms too, and is offered there when
         // the model prefers it to every lexicon reading (`rank::MANGLISH_MODEL_FREE_BESIDE`):
-        // a word off the lexicon (തൂക്കൽ for `thookkal`) must stay reachable.
+        // a word off the lexicon (തൂക്കൽ for `thookkal`) must stay reachable. A rare form the
+        // previous word lifted into `exact` is still a rare one (`only_lifted`): after എന്റെ,
+        // തൂക്കിൽ and തുകൽ may take the middle, and the free beam must run all the same.
         let free = if english_word {
             None
         } else {
-            let want_free = found.exact.is_empty();
+            let want_free = found.only_lifted();
             Self::add_model(
                 pack,
                 own.as_ref(),
@@ -2630,10 +2643,16 @@ impl Engine {
         // model's free spelling when it prefers it to every lexicon reading, just under the
         // best of them. Malayalam's is held there, and under English (`keep_free_beside`).
         if let Some(free) = free.as_ref().filter(|f| f.leads)
-            && found.exact.is_empty()
+            && found.only_lifted()
             && !found.side.iter().any(|c| c.text == free.text)
         {
-            let best = found.side.iter().map(|c| c.score).fold(f32::NEG_INFINITY, f32::max);
+            let best = found
+                .exact
+                .iter()
+                .map(|(c, _)| c)
+                .chain(&found.side)
+                .map(|c| c.score)
+                .fold(f32::NEG_INFINITY, f32::max);
             if best.is_finite() {
                 found.side.push(Candidate {
                     text: free.text.clone(),
@@ -2672,15 +2691,18 @@ impl Engine {
         found
     }
 
-    /// Holds each free spelling offered beside rare whole forms (`free_beside`, Malayalam's)
-    /// under its pack's best lexicon word among the side slots and completions, and under
-    /// `english_best` (the best English correction or completion likelier than an unknown
-    /// word, `rank::UNKNOWN`), once context and habits have moved them: the model's guess is a
-    /// word no lexicon holds, so it follows the words that are there and never pushes the
-    /// best of them out. Without this, a word the letters only begin (`Decembe`) put its own
-    /// spelling (ഡിസംബെ) over the word it begins (ഡിസംബർ); the LM, which has no term for a
-    /// word off the lexicon, lifted the guess over every word it marked down after English;
-    /// and `maintainance` lost `maintenance` from the bar to മെയിന്റൈനൻസ്.
+    /// Puts each free spelling offered beside rare whole forms (`free_beside`, Malayalam's)
+    /// just under its pack's best lexicon word among the whole forms, side slots and
+    /// completions, and under `english_best` (the best English correction or completion
+    /// likelier than an unknown word, `rank::UNKNOWN`), once context and habits have moved
+    /// them: the model's guess is a word no lexicon holds, so it follows the words that are
+    /// there and never pushes the best of them out, but it follows the best of them, not the
+    /// one it was put under: after `Ok.`, the LM put തുകൽ over തൂക്കിൽ, and `Thookkal`'s
+    /// തൂക്കൽ, held under തൂക്കിൽ, fell out of the bar. Without the hold, a word the letters
+    /// only begin (`Decembe`) put its own spelling (ഡിസംബെ) over the word it begins
+    /// (ഡിസംബർ); the LM, which has no term for a word off the lexicon, lifted the guess over
+    /// every word it marked down after English; and `maintainance` lost `maintenance` from
+    /// the bar to മെയിന്റൈനൻസ്.
     fn keep_free_beside(found: &mut ManglishCandidates, english_best: f32) {
         if found.free_beside.is_empty() {
             return;
@@ -2692,8 +2714,10 @@ impl Engine {
             }
             let lang = found.side[i].lang;
             let best = found
-                .side
+                .exact
                 .iter()
+                .map(|(c, _)| c)
+                .chain(&found.side)
                 .filter(|c| c.lang == lang && !is_free(c, &found.free_beside))
                 .chain(found.completions.iter().filter(|c| c.lang == lang))
                 .map(|c| c.score)
@@ -2705,7 +2729,7 @@ impl Engine {
                 } else {
                     best
                 } - rank::MANGLISH_MODEL_FREE_BESIDE;
-                found.side[i].score = found.side[i].score.min(cap);
+                found.side[i].score = cap;
             }
         }
     }
@@ -3558,9 +3582,16 @@ struct ManglishCandidates {
     /// most one per pack: its text, the rare form's, and its score's offset from the rare form's.
     neighbours: Vec<(String, String, f32)>,
     /// The model's free spellings offered beside rare whole forms (`Engine::romanised`): each
-    /// stays under its pack's best lexicon word in the side slots and completions, whatever
-    /// context says (`Engine::keep_free_beside`).
+    /// stays just under its pack's best lexicon word, whatever context says
+    /// (`Engine::keep_free_beside`).
     free_beside: Vec<String>,
+    /// How far context lifted this pack's words over where the start of the text puts them
+    /// (`Engine::romanised`), which `push` takes back out to tell a common word from a rare one.
+    lift: f32,
+    /// Words filed in `exact` that would be there without context's lift. A word in `exact`
+    /// only because context lifted it over its floor is a rare whole form all the same, beside
+    /// which the model's free spelling is still read and offered (`only_lifted`).
+    common: Vec<String>,
 }
 
 /// A long typed word read as a near match of a key's first letters (`matched`) plus a
@@ -3580,7 +3611,15 @@ impl ManglishCandidates {
             side: Vec::new(),
             neighbours: Vec::new(),
             free_beside: Vec::new(),
+            lift: 0.0,
+            common: Vec::new(),
         }
+    }
+
+    /// Whether every word in `exact` is a rare one context lifted there (none is `common`),
+    /// or there are none.
+    fn only_lifted(&self) -> bool {
+        !self.exact.iter().any(|(c, _)| self.common.contains(&c.text))
     }
 
     /// Adds another pack's candidates to these.
@@ -3590,6 +3629,7 @@ impl ManglishCandidates {
         self.side.extend(other.side);
         self.neighbours.extend(other.neighbours);
         self.free_beside.extend(other.free_beside);
+        self.common.extend(other.common);
     }
 
     /// Files a Malayalam word by role. `unfitted` is its score before the
@@ -3615,6 +3655,9 @@ impl ManglishCandidates {
         if missing > 0 {
             self.completions.push(candidate);
         } else if unfitted >= floor {
+            if unfitted - self.lift >= floor {
+                self.common.push(candidate.text.clone());
+            }
             self.exact.push((candidate, spelled));
         } else {
             self.side.push(candidate);
