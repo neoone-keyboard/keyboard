@@ -93,7 +93,12 @@ struct AboutView: View {
                     AppLogo(size: 44)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("NeoOne Keyboard").font(.system(size: 17, weight: .semibold))
-                        Text("Version \(Self.version) · free and open source")
+                        Text(AppVersion.short(info: Self.info))
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel(AppVersion.spoken(info: Self.info))
+                            .accessibilityIdentifier("about-version")
+                        Text("Free and open source")
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                     }
@@ -108,13 +113,8 @@ struct AboutView: View {
         }
     }
 
-    /// "1.0 (1)", from the bundle.
-    static var version: String {
-        let info = Bundle.main.infoDictionary ?? [:]
-        let short = info["CFBundleShortVersionString"] as? String ?? "?"
-        let build = info["CFBundleVersion"] as? String
-        return build.map { "\(short) (\($0))" } ?? short
-    }
+    /// The app's Info.plist: its version, build and commit (`AppVersion`).
+    static var info: [String: Any] { Bundle.main.infoDictionary ?? [:] }
 }
 
 /// A pack's notices file, verbatim: its line breaks kept, in a fixed-width font, selectable.

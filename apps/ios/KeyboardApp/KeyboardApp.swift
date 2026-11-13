@@ -56,6 +56,7 @@ struct ContentView: View {
                         // Diagnostics for development builds; a store build shows none.
                         stability
                         #endif
+                        versionLine
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -214,6 +215,18 @@ struct ContentView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    /// "NeoOne Keyboard 1.0 (9) · 8e49416" at the foot of the screen, so a screenshot says
+    /// which build it is.
+    private var versionLine: some View {
+        Text(AppVersion.display(info: AboutView.info))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .accessibilityLabel(AppVersion.spoken(info: AboutView.info))
+            .accessibilityIdentifier("app-version")
     }
 
     /// How many MetricKit reports the app has saved (crash and hang diagnostics).

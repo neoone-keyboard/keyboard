@@ -50,6 +50,9 @@ targets:
         CFBundleDisplayName: NeoOne Keyboard
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # The commit `make` built from, shown with the version on the home screen and in
+        # About (KeyboardCore AppVersion; empty otherwise).
+        MLGitCommit: $(ML_GIT_COMMIT)
         UILaunchScreen: {}
         # HTTPS through URLSession only (the pack downloads): exempt from export documentation.
         ITSAppUsesNonExemptEncryption: false
@@ -120,7 +123,8 @@ targets:
         CFBundleDisplayName: NeoOne Keyboard
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # The commit `make` built from, for the diagnostics report (empty otherwise).
+        # The commit `make` built from, for the settings panel's version line and the
+        # diagnostics report (empty otherwise).
         MLGitCommit: $(ML_GIT_COMMIT)
         # Debug only: the active languages to set at open ("ml,hi"); empty keeps the engine's
         # default. `make twopacks` sets it with ML_DEBUG_PACKS.
