@@ -1707,7 +1707,7 @@ impl Engine {
 
     /// The longest end of `context_before` (`text::number_tails`) with `NUMBER_PREFIX_DIGITS`
     /// or more that begins a learned phone number, its spaces, `-` and `.` and all
-    /// (`+91 98` of +91 55501 12345). Fewer digits would offer a number while typing an
+    /// (`+91 55` of +91 55501 12345). Fewer digits would offer a number while typing an
     /// ordinary one (`20` of a year).
     fn begun_number<'a>(&self, context_before: &'a str) -> Option<&'a str> {
         let mut tails = text::number_tails(context_before)
@@ -4928,12 +4928,12 @@ mod tests {
         assert_eq!(bar(&engine, "call 55501"), ["55501"]);
         commit(&engine, "call 5550112345", Layout::Latin);
         assert_eq!(bar(&engine, "call 55501"), ["55501", "5550112345"]);
-        assert_eq!(bar(&engine, "call 984"), ["984", "5550112345"]);
-        assert_eq!(bar(&engine, "call 98"), ["98"], "two digits are too few");
+        assert_eq!(bar(&engine, "call 555"), ["555", "5550112345"]);
+        assert_eq!(bar(&engine, "call 55"), ["55"], "two digits are too few");
         assert_eq!(engine.learned_addresses(), ["5550112345"]);
         for layout in [Layout::Latin, ML] {
-            let (typed, shown) = typed_and_bar(&engine, "9847", layout);
-            assert_eq!((typed.as_str(), shown[1].as_str()), ("9847", "5550112345"));
+            let (typed, shown) = typed_and_bar(&engine, "5550", layout);
+            assert_eq!((typed.as_str(), shown[1].as_str()), ("5550", "5550112345"));
         }
     }
 
@@ -4944,10 +4944,10 @@ mod tests {
             commit(&engine, "call +91 55501 12345", Layout::Latin);
         }
         assert_eq!(engine.learned_words(), ["+91 55501 12345"]);
-        let (typed, shown) = typed_and_bar(&engine, "call +91 98", Layout::Latin);
-        assert_eq!(typed, "+91 98", "the groups typed are one word");
-        assert_eq!(shown, ["+91 98", "+91 55501 12345"]);
-        assert_eq!(typed_and_bar(&engine, "ring +91 9", Layout::Latin).0, "+91 9");
+        let (typed, shown) = typed_and_bar(&engine, "call +91 55", Layout::Latin);
+        assert_eq!(typed, "+91 55", "the groups typed are one word");
+        assert_eq!(shown, ["+91 55", "+91 55501 12345"]);
+        assert_eq!(typed_and_bar(&engine, "ring +91 5", Layout::Latin).0, "+91 5");
         assert_eq!(typed_and_bar(&engine, "+91", Layout::Latin).0, "91");
         assert_eq!(bar(&engine, "+91 55501 12345")[0], "+91 55501 12345");
         // The keyboard reports the word after the last break: `-` is one too.
@@ -4984,7 +4984,7 @@ mod tests {
     #[test]
     fn digits_are_never_replaced_by_words() {
         let engine = hello_engine();
-        for typed in ["55501", "100", "3.14", "+91 98", "2nd"] {
+        for typed in ["55501", "100", "3.14", "+91 55", "2nd"] {
             let shown = bar(&engine, typed);
             assert_eq!(shown[0], typed.rsplit(' ').next().unwrap(), "{typed}");
             assert_eq!(shown.len(), 1, "{typed}");
@@ -5003,7 +5003,7 @@ mod tests {
         };
         learn("+91 55501 12345");
         engine.remove_word("+91 55501 12345");
-        assert_eq!(bar(&engine, "+91 98"), ["98"]);
+        assert_eq!(bar(&engine, "+91 55"), ["55"]);
         assert_eq!(engine.removed_words(), ["+91 55501 12345"]);
         assert!(engine.learned_addresses().is_empty());
         learn("5550112345");

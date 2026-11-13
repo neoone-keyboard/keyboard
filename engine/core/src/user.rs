@@ -736,7 +736,7 @@ mod tests {
         store.note_typed("+91 55501 12345");
         store.learn("55501 12345");
         store.learn("two words");
-        assert_eq!(store.completions("+91 98", 5), ["+91 55501 12345"]);
+        assert_eq!(store.completions("+91 55", 5), ["+91 55501 12345"]);
         assert_eq!(store.completions("55501", 5), ["55501 12345"]);
         let reopened = UserStore::open(dir.path());
         assert!(reopened.is_learned("+91 55501 12345"));
