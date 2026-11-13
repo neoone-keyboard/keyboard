@@ -389,10 +389,9 @@ bench-pack-lm:
 	cd engine && NEOPACK_LM=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test pack_lm_any -- --include-ignored --nocapture --test-threads=1
 	cd engine && MLENGINE_LM_LANG=$(LM_LANG) $(CARGO) test --release -p mlengine-core --test lm_reference -- --include-ignored --nocapture --test-threads=1 lm_latency ring_matches
 
-# Japanese, a phrase-conversion pack (engine 9, engine/core/src/convert; docs/next-languages.md,
-# track B). ja-pack builds packs/ja.neopack's dictionary and connection matrix from the Mozc OSS
-# dictionary at a fixed commit (scripts/ja-pack.sh; downloads about 100 MB into build/ja/mozc
-# once). eval-ja converts the held-out Tatoeba sentences of data/eval/ja/tatoeba-convert.tsv
+# Japanese, a phrase-conversion pack (engine 9, engine/core/src/convert). ja-pack builds
+# packs/ja.neopack's dictionary and connection matrix from the Mozc OSS dictionary at a fixed
+# commit (scripts/ja-pack.sh; downloads about 100 MB into build/ja/mozc once). eval-ja converts the held-out Tatoeba sentences of data/eval/ja/tatoeba-convert.tsv
 # (scripts/ja-eval-set.py) and prints how many come out exactly right, whole and phrase by
 # phrase; JA_EVAL_SHOW=20 prints the first 20 wrong. bench-ja converts expected phrases and
 # times 64 kana, with the heap a conversion takes.

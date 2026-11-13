@@ -922,8 +922,9 @@ writes its checksums, and stops at the start if it is missing. Copy
 }
 ```
 
-- `version` is a date, `YYYY.MM.DD`, compared part by part. Raise it on every change you
-  publish. The app won't install an older version over a newer one.
+- `version` is shaped like a date, `YYYY.MM.DD`, and compared part by part as numbers. Raise
+  it each time the pack is published with any change. The app won't install an older version
+  over a newer one.
 - `minEngine` is the oldest engine that reads everything in the pack right. An app whose engine
   is older refuses the pack; an app that accepts it but is older than a feature the pack uses
   would ignore that feature without a word (Hindi's `optionalFinals` on an engine 6 app: typed
@@ -1377,7 +1378,7 @@ If the import fails, the app shows one sentence:
 | "This file is damaged or isn't a language pack." | Not a zip, or a zip64, encrypted, or larger than 1 GiB unpacked. |
 | "This file isn't a NeoOne Keyboard language pack." | No `manifest.json` in the zip. |
 | "This pack is damaged. Download it again." | Invalid manifest JSON, a checksum that differs (run `pack.py --write`), or a checksum for a file that isn't in the zip. |
-| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (7 today); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
+| "This pack needs a newer NeoOne Keyboard." | `format` isn't 1, or `minEngine` is above the app's engine (`PACK_ENGINE` in `engine/core/src/pack.rs` is the newest app's level); on an app before engine 4, a `script` other than `mlym`, `deva` and `beng`. |
 | "This pack wasn't made correctly, so it can't be added." | A bad `id`, a file name with a path in it, no lexicon file, a file in the zip with no checksum, a script other than `mlym`, `deva` and `beng` without `lang.json`, or a `lang.json` the engine refuses (it names another script, has no characters, or overlaps another script's). |
 | "You already have a newer version of this language." | The installed pack has a higher `version`. Raise yours. |
 
@@ -1387,14 +1388,16 @@ native-script keys, with no message ([known limits](known-limits.md#a-broken-lay
 `pack.py --check` catches it.
 
 To test with a build of your own instead, `make twopacks` builds a Debug app with extra packs
-copied in. Its device ID is in the `Makefile` (`DEVICE`), and `scripts/debug-packs.sh`
-explains the `ML_DEBUG_PACKS` setting.
+copied in. Set your device's ID yourself: `make twopacks DEVICE=<your-device-id>`, or
+`DEVICE := <your-device-id>` in an untracked `local.mk` beside the `Makefile`
+(`xcrun devicectl list devices` lists them). `scripts/debug-packs.sh` explains the
+`ML_DEBUG_PACKS` setting.
 
 ### 14. Android
 
-There is no Android app yet. The engine is plain Rust and nothing in it depends on iOS, so
-the planned Android app will read the same `.neopack` files. A pack you build today is the
-pack you will import there.
+An Android app is in progress. It is not in this repository yet. The engine is plain Rust
+and nothing in it depends on iOS, so the Android app reads the same `.neopack` files: a pack
+you build today is the pack you will import there.
 
 ## Contribute your pack
 
@@ -1402,7 +1405,8 @@ Open a pull request with:
 
 - `data/manifests/*.json` for every new source;
 - `data/langs/xx/` (`lang.json`, `romanisation.hand.json`, `romanisation-weights.json`,
-  `romanisation.json`, `lexicon-stats.txt`);
+  `romanisation.json`, `lexicon-stats.txt`, the emoji files `emoji-words.txt` and
+  `emoji-search.txt` from step 8b, and `pairs.json` if you have pairs of your own);
 - `data/build-xx-text.sh`;
 - `data/eval/xx/translit-human.tsv`;
 - `data/golden/packs/xx.tsv.gz`, the pack's recorded suggestion bars (step 11);
@@ -1432,7 +1436,8 @@ nothing for the others.
 
 Two checks fail for a pack that isn't published yet, and both are for a maintainer to clear
 with `make site-packs`, which publishes the language: the last step of `make test-data`
-(`publish-packs.py --check`: "out of date: packs/index.json"), which runs after every other
+(`publish-packs.py --check`: "out of date: packs/index.json", meaning
+`site/packs/index.json`, as it names files relative to `site/`), which runs after every other
 check there, and `PackIndexTests` in `make test-swift`. Leave them.
 
 A pack that should be in the repository but not on the site yet (a trial pack for a few
