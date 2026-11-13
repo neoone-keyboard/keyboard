@@ -1,6 +1,6 @@
 """Native word -> Latin with weighted spellings, driven by tables instead of code: the training
 side of a pack's romanisation. (The pack's own `romanisation.json` is the format-1 file of
-`docs/design/2026-11-06-m6-romanisation-format.md`, exported from these tables'
+`docs/design/romanisation-format.md`, exported from these tables'
 canonical spellings by `mlkb.langs.format1`; that is what the engine and the romanised lookup
 keys use.)
 

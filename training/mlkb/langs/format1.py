@@ -1,4 +1,4 @@
-"""The pack file `romanisation.json`, format 1 (docs/design/2026-11-06-m6-romanisation-format.md):
+"""The pack file `romanisation.json`, format 1 (docs/design/romanisation-format.md):
 the walk and skeleton exactly as the spec says the engine computes them, and the export of a
 language's weighted tables (`romanisation.Tables`) to that format.
 

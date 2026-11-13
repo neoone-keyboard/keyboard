@@ -376,7 +376,7 @@ impl Engine {
     }
 
     /// The words a swipe across the letter keys could have drawn, best first (design
-    /// `2026-11-06-m4-swipe-design.md`): English words and Manglish words in Malayalam script.
+    /// docs/design/swipe.md): English words and Manglish words in Malayalam script.
     /// The LM's context is filled within `lm_after_space_ms`, as after a space.
     pub fn swipe(
         &self,

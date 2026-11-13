@@ -76,7 +76,7 @@ packs/as.neopack/
 |---|---|---|---|
 | `lexicon` | `as.fst` | Native words and counts. Completions, corrections and the native keyboard's suggestions come from it. | **Yes.** A pack without it is refused. |
 | `romanisedLexicon` | `romanised.fst` | Each native word under the key its romanised spelling folds to. This is what turns `oxom` into অসম without any model. | No, but without it Latin typing finds nothing unless there is a transliterator. |
-| `romanisation` | `romanisation.json` | The letter-by-letter spelling table and the skeleton folds. The engine folds what you type with it. Format: [romanisation spec](design/2026-11-06-m6-romanisation-format.md). | Needed with `romanisedLexicon`. |
+| `romanisation` | `romanisation.json` | The letter-by-letter spelling table and the skeleton folds. The engine folds what you type with it. Format: [romanisation spec](design/romanisation-format.md). | Needed with `romanisedLexicon`. |
 | `nextWords` | `next.fst` | Word pairs for the next-word suggestions after a space. | No |
 | `translit` | `translit.mlkbnn` | The transliterator (about 4.5M parameters, 4.7 MB int8). Spells words the lexicon has never seen. | No |
 | `lm` | `lm.mlkbnn` | A bilingual neural language model (about 9.5 MB) that ranks suggestions by context. Malayalam, Hindi, Assamese and Tamil have one (step 12). | No |
@@ -132,7 +132,7 @@ before it starts. Training (step 9) needs the lexicon (step 7).
 ### 1. Choose sources and check their licences
 
 Packs are published under CC BY-SA 4.0, so every source must allow that. The project's rules
-come from its [licence audit](design/2026-11-03-m3-licence-audit.md):
+come from its [licence audit](design/licence-audit.md):
 
 - **Use:** CC BY-SA, CC BY, CC0 and public domain. Wikipedia, Wikisource, Wikiquote and
   Wikinews are the usual base. Aksharantar's manual rows are CC BY and its mined rows CC0.
@@ -981,7 +981,7 @@ writes its checksums, and stops at the start if it is missing. Copy
 
 This is the native-script keyboard, and the manifest lists it, so write it before the
 build. The format is in the
-[packs design](design/2026-11-06-m6-language-packs-design.md), under "Pack format".
+[pack format](design/pack-format.md), under "Pack format".
 Copy `packs/as.neopack/layout.json`:
 
 ```json

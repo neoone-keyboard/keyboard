@@ -3,7 +3,7 @@
     uv run python -m mlkb.data.romanisation --lang hi [--misses 20] [words…]
 
 The format and its walk and skeleton are specified in
-`docs/design/2026-11-06-m6-romanisation-format.md`. `Romanisation.key(word)` is what
+`docs/design/romanisation-format.md`. `Romanisation.key(word)` is what
 the romanised lexicon (`hinglish.fst`) is keyed by: the skeleton of the walk. lexbuild
 (`engine/lexbuild/src/romanisation.rs`) implements the same; the fixture written by
 `mlkb.data.romanisation_fixture` keeps the two in step, and phase 2's engine computes the same

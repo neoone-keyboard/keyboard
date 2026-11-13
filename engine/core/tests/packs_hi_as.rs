@@ -384,8 +384,8 @@ fn lexicon_chars(id: &str, file: &str) -> HashSet<char> {
     chars
 }
 
-/// Hindi's and Assamese's native keyboards (M6 phase 4, plan
-/// docs/design/2026-11-07-m6-phase4-hi-as-layouts.md): Malayalam's three pages, every
+/// Hindi's and Assamese's native keyboards (docs/design/pack-format.md, "layout.json"):
+/// Malayalam's three pages, every
 /// key a letter or sign of the pack's script in the normal form its lexicon is stored in (so
 /// Assamese has ৰ, never the Bengali র, and nukta letters are base + nukta), or punctuation,
 /// and the strip in the design's order.

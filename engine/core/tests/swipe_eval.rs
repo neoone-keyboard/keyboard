@@ -1,4 +1,4 @@
-//! Swipe accuracy on synthetic paths (design `2026-11-06-m4-swipe-design.md` §7). Ignored by
+//! Swipe accuracy on synthetic paths (docs/design/swipe.md §7). Ignored by
 //! default; `make eval-swipe` runs it in release:
 //!
 //!     cargo test -p mlengine-core --release --test swipe_eval -- --ignored --nocapture

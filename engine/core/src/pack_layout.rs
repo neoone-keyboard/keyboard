@@ -1,5 +1,5 @@
 //! A pack's `layout.json` (manifest role `layout`, format 1): the native-script keyboard. The
-//! format is specified in `docs/design/2026-11-06-m6-language-packs-design.md`
+//! format is specified in `docs/design/pack-format.md`
 //! ("layout.json"). The engine uses only `vowel_sign_strip`, to order the strip
 //! (`Engine::suggest`'s `vowel_signs`); the keyboard reads the rest.
 
