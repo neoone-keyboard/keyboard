@@ -102,6 +102,22 @@ fn start_below_english_keeps_the_typed_word_first_at_the_start() {
     assert_eq!(bar(&hi, "mera angraji"), bar(&hi_on, "mera angraji"));
 }
 
+/// Each pack starts at its own prior: Malayalam's choice no longer puts Hindi a step behind
+/// English at the start, so a Hindi name gets what it gets without Malayalam. Malayalam's own
+/// start is unchanged.
+#[test]
+fn another_packs_start_prior_does_not_move_hindi() {
+    let en_hi = engine(&[shipped("hi")]);
+    let en_ml_hi = engine(&[shipped("ml"), shipped("hi")]);
+    for typed in ["reyansh", "Reyansh"] {
+        let alone = bar(&en_hi, typed);
+        assert_eq!(alone[0], "रेयांश", "{typed} with English and Hindi");
+        assert_eq!(middle(&en_ml_hi, typed), "रेयांश", "{typed} with Malayalam active too");
+    }
+    // Malayalam's own word at the start is still a step behind English.
+    assert_eq!(middle(&en_ml_hi, "athbuthamaanu"), "athbuthamaanu");
+}
+
 /// `readingsByFrequency`: the transliterator's readings are ordered by frequency, however far
 /// behind its best the model reads them; without it, a far reading trails the best one.
 #[test]

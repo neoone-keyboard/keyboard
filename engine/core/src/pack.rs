@@ -80,7 +80,9 @@ pub const FORMAT: u32 = 1;
 /// it made by the script code: every choice for a pack in Malayalam's script, none for any
 /// other. An older engine ignores the object, so a `mlym` pack that sets every choice
 /// (Malayalam's) or a pack in another script that sets none needs no level for it, and any
-/// other combination needs 10.
+/// other combination needs 10. Engine behaviour that came with 10 but needs no level: each
+/// active pack's prior at the start of the text is its own (`startBelowEnglish`), where before
+/// every pack had Malayalam's while a Malayalam pack was active.
 ///
 /// Adding a pack feature an older engine would ignore or misread: raise this, say here what
 /// the new level reads, and add its rule to `Pack::needs`, the one place that maps a pack's

@@ -363,8 +363,18 @@ pub const CONTEXT_AT_START: f32 = -1.0;
 /// pack: `kshitijavardhan` gives क्षितिज, and the model's क्षितिजवर्धन isn't offered.
 ///
 /// Malayalam's pack sets `startBelowEnglish` and keeps `CONTEXT_AT_START`, its ranking held as
-/// recorded (`make golden-check`); while it is active every pack does, so that none is
-/// favoured at the start.
+/// recorded (`make golden-check`). Each pack starts at its own prior, whatever else is active;
+/// which pack is favoured at the start (`Engine::favoured`) is decided as if every pack started
+/// level (`Engine::priors_level`), so none is favoured there by another's choice. Until engine
+/// 10 every pack started at `CONTEXT_AT_START` while Malayalam was active; each its own
+/// (`tests/multi_pack_sets.rs`, held-out sets at the start of the text, first native suggestion
+/// / first slot / in the three shown), with English, Malayalam and Hindi: Hindi 53.60% / 28.50%
+/// / 58.90% → 59.30% / 40.90% / 65.35% (`reyansh` gives रेयांश, as without Malayalam), Malayalam
+/// 65.95% / 54.95% / 76.40% → 64.80% / 52.50% / 74.80% and its chat set 86.34% / 79.19% /
+/// 92.24% → 84.47% / 76.40% / 90.37% (Hindi's words, now level with English, take some of
+/// Malayalam's first slots). With Assamese too: Assamese 41.48% / 29.34% → 51.42% / 33.70%,
+/// Hindi 48.45% / 26.10% → 54.45% / 37.05%, Malayalam 65.10% / 54.10% → 62.70% / 51.60%. With
+/// English and one pack nothing moved (`make golden-check`, `make golden-check-packs`).
 pub const CONTEXT_AT_START_PACK: f32 = 0.0;
 
 /// LM context window in tokens (design §2): the oldest whole words are dropped past it.
