@@ -1,6 +1,6 @@
 import XCTest
 
-/// The App Store screenshots (docs/appstore/screenshots/6.9), for screenshots only: skips
+/// The App Store screenshots (docs/maintainers/appstore/screenshots/6.9), for screenshots only: skips
 /// without SHOTS_DIR. Run on an iPhone 17 Pro Max simulator with:
 /// - a Release build (ARCHS=arm64): a Debug keyboard has no packs and is far over memory;
 /// - NeoOne Keyboard added in the simulator's Settings;
