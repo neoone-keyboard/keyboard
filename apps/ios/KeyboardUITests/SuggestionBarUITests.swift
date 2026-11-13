@@ -13,6 +13,13 @@ import XCTest
 final class SuggestionBarUITests: XCTestCase {
     private var app: XCUIApplication!
 
+    /// The keyboard's bundle id, `<BUNDLE_ID_PREFIX>.extension`, from this test bundle's
+    /// `<BUNDLE_ID_PREFIX>.uitests` (project.yml, apps/ios/Signing.xcconfig).
+    private static var keyboardBundleIdentifier: String {
+        let tests = Bundle(for: SuggestionBarUITests.self).bundleIdentifier ?? ""
+        return tests.replacingOccurrences(of: #"\.uitests$"#, with: ".extension", options: .regularExpression)
+    }
+
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
@@ -147,7 +154,7 @@ final class SuggestionBarUITests: XCTestCase {
     private func showEnglishKeyboard() throws {
         // The keyboard's process outlives the app; one that has already turned prediction off
         // for memory has no words for a swipe. A fresh one starts with the field's first tap.
-        XCUIApplication(bundleIdentifier: "me.jishnu.keyboard.extension").terminate()
+        XCUIApplication(bundleIdentifier: Self.keyboardBundleIdentifier).terminate()
         app.launch()
         XCTAssertTrue(field.waitForExistence(timeout: 20))
         field.tap()

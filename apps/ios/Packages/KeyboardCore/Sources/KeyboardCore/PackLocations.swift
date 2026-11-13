@@ -5,8 +5,20 @@ import Foundation
 /// keyboard only reads it, which works without Full Access (tested on iOS 26; undocumented, so
 /// the keyboard keeps working from its bundle and English if it ever stops).
 public enum PackLocations {
-    /// The App Group on both targets (project.yml).
-    public static let appGroup = "group.me.jishnu.keyboard"
+    /// The App Group on both targets: `NeoAppGroup` in the app's and the keyboard's Info.plist,
+    /// the APP_GROUP build setting (apps/ios/Signing.xcconfig). A process with no such key (the
+    /// package's tests on the Mac) gets `defaultAppGroup`.
+    public static let appGroup: String = appGroup(infoDictionary: Bundle.main.infoDictionary)
+
+    /// The published app's App Group, Signing.xcconfig's default.
+    public static let defaultAppGroup = "group.me.jishnu.keyboard"
+    static let appGroupInfoKey = "NeoAppGroup"
+
+    /// The App Group an Info.plist names, else `defaultAppGroup`.
+    static func appGroup(infoDictionary: [String: Any]?) -> String {
+        guard let value = infoDictionary?[appGroupInfoKey] as? String, !value.isEmpty else { return defaultAppGroup }
+        return value
+    }
     public static let packsFolderName = "Packs"
 
     /// The App Group's `Packs/` folder; nil when this process has no App Group (an unsigned

@@ -4,11 +4,12 @@ import UIKit
 /// Opens and closes the keyboard over and over, typing a few words each time, so the
 /// extension's memory can be watched across sessions (iOS keeps the extension process and
 /// makes a new view controller per session). In the Simulator, make this keyboard the only
-/// one before the first launch and reboot the device:
+/// one before the first launch and reboot the device (BUNDLE_ID_PREFIX is the app's bundle id,
+/// from apps/ios/Signing.xcconfig):
 ///
-///     xcrun simctl spawn <udid> defaults write -g AppleKeyboards -array me.jishnu.keyboard.extension
+///     xcrun simctl spawn <udid> defaults write -g AppleKeyboards -array <BUNDLE_ID_PREFIX>.extension
 ///
-/// then launch the app with `-keyboardCycles 40` (`xcrun simctl launch <udid> me.jishnu.keyboard
+/// then launch the app with `-keyboardCycles 40` (`xcrun simctl launch <udid> <BUNDLE_ID_PREFIX>
 /// -keyboardCycles 40`). The extension's Library/Caches/diagnostics.log has a "Keyboard loaded
 /// … footprint" and a "Keyboard released … footprint" line per session; `heap <pid>` on the
 /// Mac counts what each session left behind. The text goes in through the field, as a host

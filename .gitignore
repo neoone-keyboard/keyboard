@@ -3,6 +3,13 @@
 engine/target/
 DerivedData/
 apps/ios/MLKeyboard.xcodeproj/
+# Written by xcodegen (`make project`) from apps/ios/project.yml.
+apps/ios/KeyboardApp/Info.plist
+apps/ios/KeyboardApp/KeyboardApp.entitlements
+apps/ios/KeyboardExtension/Info.plist
+apps/ios/KeyboardExtension/KeyboardExtension.entitlements
+# A contributor's own team and identifiers (apps/ios/Signing.xcconfig).
+apps/ios/Signing.local.xcconfig
 apps/ios/Packages/*/.build/
 apps/ios/Packages/MLEngine/MLEngineFFI.xcframework/
 apps/ios/Packages/MLEngine/Sources/MLEngine/mlengine_ffi.swift

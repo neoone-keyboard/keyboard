@@ -5,6 +5,14 @@ SIM ?= iPhone 17
 -include local.mk
 DEVICE ?=
 PROJECT := apps/ios/MLKeyboard.xcodeproj
+# The signing team and the app's bundle id, from apps/ios/Signing.xcconfig and the untracked
+# apps/ios/Signing.local.xcconfig that overrides it (its last `KEY = value` line wins), the
+# same values the Xcode project is built with.
+SIGNING_FILES := apps/ios/Signing.xcconfig $(wildcard apps/ios/Signing.local.xcconfig)
+signing_setting = $(shell sed -n 's/^[[:space:]]*$(1)[[:space:]]*=[[:space:]]*//p' $(SIGNING_FILES) | sed 's/[[:space:]]*$$//' | tail -n 1)
+TEAM_ID := $(call signing_setting,DEVELOPMENT_TEAM)
+APP_BUNDLE_ID := $(call signing_setting,BUNDLE_ID_PREFIX)
+EXPORT_PROFILE_PREFIX := $(call signing_setting,EXPORT_PROFILE_PREFIX)
 CARGO := PATH="$$HOME/.cargo/bin:$$PATH" cargo
 XCFRAMEWORK := apps/ios/Packages/MLEngine/MLEngineFFI.xcframework
 # Stamped into the keyboard extension for its diagnostics report.
@@ -14,7 +22,7 @@ GIT_COMMIT := $(shell git describe --always --dirty 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: need-device pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: need-device export-options pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -42,7 +50,7 @@ device: need-device tools project $(XCFRAMEWORK)
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Debug \
 	  -destination 'id=$(DEVICE)' -derivedDataPath build/DerivedData -allowProvisioningUpdates ML_GIT_COMMIT=$(GIT_COMMIT) build -quiet
 	xcrun devicectl device install app --device $(DEVICE) build/DerivedData/Build/Products/Debug-iphoneos/KeyboardApp.app
-	xcrun devicectl device process launch --device $(DEVICE) me.jishnu.keyboard
+	xcrun devicectl device process launch --device $(DEVICE) $(APP_BUNDLE_ID)
 
 # A Release archive (no bundled pack, no spike models) exported and uploaded to App Store
 # Connect for TestFlight, signed automatically with the Xcode-logged-in account. Each upload
@@ -62,9 +70,15 @@ ASC_AUTH := $(if $(ASC_KEY_PATH),-authenticationKeyPath $(ASC_KEY_PATH) -authent
 ARCHIVE := build/NeoOne.xcarchive
 # With an API key the upload signs by hand: the key's App Manager role can't use Xcode's
 # cloud-managed certificate, so the export names the local Apple Distribution certificate and
-# the two "NeoOne AppStore <bundle id>" profiles made for it (apps/ios/ExportOptions-key.plist).
-EXPORT_OPTIONS := $(if $(ASC_KEY_PATH),apps/ios/ExportOptions-key.plist,apps/ios/ExportOptions.plist)
-testflight: tools project $(XCFRAMEWORK)
+# the two "<EXPORT_PROFILE_PREFIX> <bundle id>" profiles made for it ("NeoOne AppStore
+# me.jishnu.keyboard" and "… .extension" by default). Both export options files are written
+# into build/ from apps/ios/Signing.xcconfig (scripts/export-options.sh).
+EXPORT_OPTIONS := $(if $(ASC_KEY_PATH),build/ExportOptions-key.plist,build/ExportOptions.plist)
+export-options:
+	./scripts/export-options.sh automatic "$(TEAM_ID)" build/ExportOptions.plist
+	./scripts/export-options.sh manual "$(TEAM_ID)" "$(APP_BUNDLE_ID)" "$(EXPORT_PROFILE_PREFIX)" build/ExportOptions-key.plist
+
+testflight: tools project export-options $(XCFRAMEWORK)
 	rm -rf $(ARCHIVE) build/export
 	xcodebuild -project $(PROJECT) -scheme KeyboardApp -configuration Release \
 	  -destination 'generic/platform=iOS' -archivePath $(ARCHIVE) -allowProvisioningUpdates $(ASC_AUTH) \

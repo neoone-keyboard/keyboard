@@ -41,7 +41,7 @@ final class LanguagesModel {
         let text: String
     }
 
-    private let log = Logger(subsystem: "me.jishnu.keyboard", category: "languages")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "KeyboardApp", category: "languages")
 
     private(set) var rows: [Row] = []
     /// The active languages: the stored choice, else the engine's default for these packs.
