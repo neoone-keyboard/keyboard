@@ -341,12 +341,12 @@ struct InputControllerTests {
 
     @Test func punctuationInsideAnAddressNeitherCorrectsNorCommits() {
         let reported = events {
-            output.text = "jishnu"
-            input.updateSuggestions(SuggestionResult(typed: "jishnu", candidates: [Suggestion("Kishan", kind: .correction)]))
-            typeText("@gmial")
+            output.text = "priya"
+            input.updateSuggestions(SuggestionResult(typed: "priya", candidates: [Suggestion("price", kind: .correction)]))
+            typeText("@exmaple")
             #expect(output.text == "priya@exmaple")
             for mark in [".", ",", "?", "!"] {
-                input.updateSuggestions(SuggestionResult(typed: input.currentWord, candidates: [Suggestion("gmail", kind: .correction)]))
+                input.updateSuggestions(SuggestionResult(typed: input.currentWord, candidates: [Suggestion("example", kind: .correction)]))
                 typeText(mark)
             }
             #expect(output.text == "priya@exmaple.,?!")
@@ -409,15 +409,15 @@ struct InputControllerTests {
     @Test func lettersThatBeginALearnedAddressAreOneWord() {
         input.learnedAddresses = ["sam.2024@example.com"]
         let reported = events {
-            output.text = "hi neo"
-            input.updateSuggestions(SuggestionResult(typed: "neo", candidates: [Suggestion("new", kind: .correction)]))
+            output.text = "hi sam"
+            input.updateSuggestions(SuggestionResult(typed: "sam", candidates: [Suggestion("same", kind: .correction)]))
             typeText(".")
-            #expect(output.text == "hi neo.")
-            #expect(input.currentWord == "neo.")
-            input.updateSuggestions(SuggestionResult(typed: "neo.", candidates: [Suggestion("neo", kind: .correction)]))
-            typeText("9")
-            #expect(input.currentWord == "neo.9")
-            #expect(SuggestionResult(typed: "neo.9", candidates: []).isFor(word: input.currentWord))
+            #expect(output.text == "hi sam.")
+            #expect(input.currentWord == "sam.")
+            input.updateSuggestions(SuggestionResult(typed: "sam.", candidates: [Suggestion("sam", kind: .correction)]))
+            typeText("2")
+            #expect(input.currentWord == "sam.2")
+            #expect(SuggestionResult(typed: "sam.2", candidates: []).isFor(word: input.currentWord))
         }
         #expect(reported.isEmpty)
         input.commitSuggestion("sam.2024@example.com")
@@ -426,13 +426,13 @@ struct InputControllerTests {
 
     @Test func aLearnedAddressIsMatchedInAnyCase() {
         input.learnedAddresses = ["sam.2024@example.com"]
-        output.text = "Neo.9"
-        #expect(input.currentWord == "Neo.9")
+        output.text = "Sam.2"
+        #expect(input.currentWord == "Sam.2")
     }
 
     @Test func otherLettersStillEndAtPunctuation() {
         input.learnedAddresses = ["sam.2024@example.com"]
-        for (text, word) in [("neon.", ""), ("n.", ""), ("neo", "neo"), ("neon. x", "x")] {
+        for (text, word) in [("same.", ""), ("s.", ""), ("sam", "sam"), ("same. x", "x")] {
             output.text = text
             #expect(input.currentWord == word, "\(text)")
         }
@@ -662,7 +662,7 @@ struct InputControllerTests {
             input.handle(.space, at: 0)
             output.text = "see www.x.com"
             input.handle(.returnKey, at: 0)
-            output.text = "hi neo"
+            output.text = "hi sam"
             input.commitSuggestion("sam.2024@example.com")
         }
         #expect(reported.isEmpty)

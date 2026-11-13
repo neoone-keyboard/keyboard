@@ -283,20 +283,20 @@ fn a_used_word_rises_among_the_completions_in_any_context() {
 }
 
 /// A learned email is in the bar from its first letters, though they begin common English
-/// words (reported: `neo` hid sam.2024@example.com behind neon and never).
+/// words (`sam` must not hide sam.2024@example.com behind same and sample).
 #[test]
 fn a_learned_email_beats_english_completions() {
     for engine in engines() {
         engine.note_committed("sam.2024@example.com");
         engine.note_committed("sam.2024@example.com");
-        for context in ["n", "ne", "neo", "Neo", "neo.", "neo.9", "hi neo.98"] {
+        for context in ["s", "sa", "sam", "Sam", "sam.", "sam.2", "hi sam.20"] {
             let bar = texts(&engine, context);
             assert!(
                 bar.contains(&"sam.2024@example.com".to_string()),
                 "{context}: {bar:?}"
             );
         }
-        assert_eq!(middle(&engine, "neo").0, "neo");
+        assert_eq!(middle(&engine, "sam").0, "sam");
     }
 }
 

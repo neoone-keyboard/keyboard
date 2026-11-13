@@ -934,7 +934,7 @@ mod tests {
             store.note_typed("sam.2024@example.com");
             assert!(!store.is_removed("sam.2024@example.com"));
             assert!(store.is_learned("sam.2024@example.com"));
-            assert_eq!(store.completions("neo", 1), ["sam.2024@example.com"], "as re-typed");
+            assert_eq!(store.completions("sam", 1), ["sam.2024@example.com"], "as re-typed");
         }
         let store = UserStore::open(dir.path());
         assert!(!store.is_removed("sam.2024@example.com"), "the log replays in order");

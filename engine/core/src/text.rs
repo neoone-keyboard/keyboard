@@ -31,7 +31,7 @@ fn address_at_end(context_before: &str) -> Option<&str> {
 }
 
 /// The text after the last whitespace in `context_before`, less opening brackets and
-/// quotes: what an address being typed would be (`neo.9` of a learned sam.2024@example.com).
+/// quotes: what an address being typed would be (`sam.2` of a learned sam.2024@example.com).
 pub fn last_token(context_before: &str) -> &str {
     let start = context_before
         .trim_end_matches(|c: char| !c.is_whitespace())
@@ -546,7 +546,7 @@ mod tests {
     fn an_address_is_one_word() {
         assert_eq!(current_word("mail priya@example.com"), "priya@example.com");
         assert_eq!(current_word("mail priya@example."), "priya@example.");
-        assert_eq!(current_word("mail jishnu@"), "jishnu@");
+        assert_eq!(current_word("mail priya@"), "priya@");
         assert_eq!(current_word("see https://x.com/a-b"), "https://x.com/a-b");
         assert_eq!(current_word("see http://x"), "http://x");
         assert_eq!(current_word("Www.x.com"), "Www.x.com");
@@ -579,8 +579,8 @@ mod tests {
 
     #[test]
     fn last_token_runs_to_the_whitespace() {
-        assert_eq!(last_token("hi neo.9"), "neo.9");
-        assert_eq!(last_token("(neo."), "neo.");
+        assert_eq!(last_token("hi sam.2"), "sam.2");
+        assert_eq!(last_token("(sam."), "sam.");
         assert_eq!(last_token("a\nb.c"), "b.c");
         assert_eq!(last_token("hi "), "");
     }
@@ -588,7 +588,7 @@ mod tests {
     #[test]
     fn addresses() {
         assert!(is_address("priya@example.com"));
-        assert!(is_address("@jishnu"));
+        assert!(is_address("@priya"));
         assert!(is_address("HTTPS://x"));
         assert!(is_address("www.x"));
         assert!(!is_address("@"));
