@@ -18,7 +18,7 @@
       "sha256": "a0c18fa0a8bf06b34d413b09c3e7b9505b74ba3f7f1fa2ae724793fc3fc7d650"
     }
   ],
-  "status": "in packs/kn.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/kn.neopack, a beta download on the site (credited in its manifest), not in the app",
   "extracted": {
     "kan_train.json": "64fd9eee186cc310d43776c1d549e0a6d4bdaaf438ba66bc80b9914558228c85",
     "kan_valid.json": "09d1e8e9c76768d2b98cb961db136957a1de211d7878878802081f13087bbef8",

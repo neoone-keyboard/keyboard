@@ -18,7 +18,7 @@
       "sha256": "8bdcc5957d701ea36b63c00c713b43bc30902774b70736737d480e77929de92c"
     }
   ],
-  "status": "in packs/ne.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/ne.neopack, a beta download on the site (credited in its manifest), not in the app",
   "extracted": {
     "nep_train.json": "55f6ca38b30c6fab0b5b8a11eefd2bb2be3cbce633c93a3b03215ec5675810b4",
     "nep_valid.json": "9bc1c65df08c5f41eb61ffeaf631bf1bc3820c64ef71ae54b4868c5ac3ea9be7",

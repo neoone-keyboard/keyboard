@@ -18,7 +18,7 @@
       "path": "guj.zip"
     }
   ],
-  "status": "in packs/gu.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/gu.neopack, a beta download on the site (credited in its manifest), not in the app",
   "extracted": {
     "guj_train.json": "12322061ca2be1c6fbb0f40ae69f9ef6f3c001bf4740c25ccff68ca80b31cc18",
     "guj_valid.json": "4ff42353a59b9f85e446c85996f36fb1265386f18fd93c23b73bba1f2f49f312",

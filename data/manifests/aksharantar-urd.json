@@ -18,7 +18,7 @@
       "path": "urd.zip"
     }
   ],
-  "status": "in packs/ur.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/ur.neopack (credited in its manifest), not listed on the download site yet, not in the app",
   "extracted": {
     "urd_train.json": "94a3a21c94cd7963cb9d7ca9f25d2ab54c94b50c5c869a2204affddd6abab14b",
     "urd_valid.json": "31ae3b72e12958d57cc8848967a4d838191a2dc3206de23d7933a8fe1da1a675",
