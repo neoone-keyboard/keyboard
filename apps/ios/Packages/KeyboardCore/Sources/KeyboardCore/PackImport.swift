@@ -5,9 +5,30 @@ import UniformTypeIdentifiers
 /// from Files"). The app's document picker hands over a URL; this reads it and runs the
 /// installer. No screen calls it yet.
 public enum PackImport {
-    /// The `.neopack` type the app declares (project.yml, `UTExportedTypeDeclarations`): a zip,
-    /// so a picker for it also offers zips.
-    public static let typeIdentifier = "me.jishnu.keyboard.neopack"
+    /// The `.neopack` type the app declares (project.yml, `UTExportedTypeDeclarations`, named
+    /// from BUNDLE_ID_PREFIX in apps/ios/Signing.xcconfig): a zip, so a picker for it also
+    /// offers zips. Read back from the app's Info.plist; `defaultTypeIdentifier` where nothing
+    /// declares it (the package's tests on the Mac).
+    public static let typeIdentifier: String = typeIdentifier(infoDictionary: Bundle.main.infoDictionary)
+
+    /// The published app's pack type, from Signing.xcconfig's default BUNDLE_ID_PREFIX.
+    public static let defaultTypeIdentifier = "me.jishnu.keyboard.neopack"
+    static let fileExtension = "neopack"
+
+    /// The identifier of the exported type an Info.plist declares for `.neopack` files, else
+    /// `defaultTypeIdentifier`.
+    static func typeIdentifier(infoDictionary: [String: Any]?) -> String {
+        let declarations = infoDictionary?["UTExportedTypeDeclarations"] as? [[String: Any]] ?? []
+        for declaration in declarations {
+            let tags = declaration["UTTypeTagSpecification"] as? [String: Any]
+            let extensions = tags?["public.filename-extension"] as? [String] ?? []
+            if extensions.contains(fileExtension), let identifier = declaration["UTTypeIdentifier"] as? String,
+               !identifier.isEmpty {
+                return identifier
+            }
+        }
+        return defaultTypeIdentifier
+    }
 
     public static var contentType: UTType {
         UTType(exportedAs: typeIdentifier, conformingTo: .zip)

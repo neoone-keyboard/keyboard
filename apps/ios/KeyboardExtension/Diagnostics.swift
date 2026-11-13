@@ -5,8 +5,10 @@ import UIKit
 
 /// The extension's events, to the unified log and to `Library/Caches/diagnostics.log` in the
 /// extension's own container (readable with `xcrun devicectl device copy from … --domain-type
-/// appDataContainer --domain-identifier me.jishnu.keyboard.extension`, or typed into a field
-/// from the settings panel). Messages must never contain typed text: lengths and kinds only.
+/// appDataContainer --domain-identifier <BUNDLE_ID_PREFIX>.extension`, the keyboard's bundle id
+/// from apps/ios/Signing.xcconfig, or typed into a field from the settings panel). The log's
+/// subsystem is the keyboard's bundle id. Messages must never contain typed text: lengths and
+/// kinds only.
 struct Diagnostics: Sendable {
     static let file: LineLog? = FileManager.default
         .urls(for: .cachesDirectory, in: .userDomainMask).first
@@ -16,7 +18,7 @@ struct Diagnostics: Sendable {
     private let category: String
 
     init(category: String) {
-        logger = Logger(subsystem: "me.jishnu.keyboard.extension", category: category)
+        logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "KeyboardExtension", category: category)
         self.category = category
     }
 

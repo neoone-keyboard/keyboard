@@ -54,9 +54,22 @@ make build      # build the app for the iOS Simulator (SIM="iPhone 17" by defaul
 
 `make build` does the first two steps as well, and builds unsigned for the Simulator.
 
-To run on a device, change `DEVELOPMENT_TEAM` in `apps/ios/project.yml` to your own Apple
-developer team. The bundle identifiers and the App Group (`me.jishnu.keyboard`,
-`group.me.jishnu.keyboard`) belong to the published app, so change those to your own too.
+To run on a device, sign with your own Apple developer team and identifiers. The defaults in
+`apps/ios/Signing.xcconfig` are the published app's (`me.jishnu.keyboard`, App Group
+`group.me.jishnu.keyboard`). Don't edit that file: create `apps/ios/Signing.local.xcconfig`
+beside it (git-ignored) with your own values:
+
+```
+DEVELOPMENT_TEAM = ABCDE12345
+BUNDLE_ID_PREFIX = com.example.neoone
+```
+
+Every identifier follows from these two: the app is `BUNDLE_ID_PREFIX`, the keyboard
+`BUNDLE_ID_PREFIX.extension`, the App Group `group.BUNDLE_ID_PREFIX` (set `APP_GROUP` to use
+another), and the `.neopack` file type `BUNDLE_ID_PREFIX.neopack`. The project, the app and
+the keyboard, and the Makefile all read them from there, so nothing else needs editing. The
+Info.plist and `.entitlements` files are written by `make project` and aren't tracked.
+
 Then name the device, on the command line or in an untracked `local.mk`
 (`DEVICE := <your-device-id>`):
 

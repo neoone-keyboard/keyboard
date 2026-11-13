@@ -1,0 +1,28 @@
+// Who signs the app and the identifiers it ships under. Every bundle identifier, the App Group,
+// the .neopack type and the URL type's name come from these (project.yml); the app and the
+// keyboard read the App Group and the pack type from their Info.plist; the Makefile reads them
+// for `make device` and `make testflight`.
+//
+// These defaults are the published app's. To build your own, don't edit this file: create
+// Signing.local.xcconfig beside it (git-ignored) with your own values, for example
+//
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   BUNDLE_ID_PREFIX = com.example.neoone
+//
+// Nothing else needs editing. DEVELOPMENT_TEAM, BUNDLE_ID_PREFIX and EXPORT_PROFILE_PREFIX
+// take plain values (no $(...) and no trailing comment): the Makefile reads those lines as text.
+
+// The Apple developer team that signs both targets.
+DEVELOPMENT_TEAM = Z52A4S8VKP
+// The app's bundle id. The keyboard is <prefix>.extension, the test bundles <prefix>.tests and
+// <prefix>.uitests, the pack file type <prefix>.neopack.
+BUNDLE_ID_PREFIX = me.jishnu.keyboard
+// The App Group the app writes packs into and the keyboard reads them from:
+// group.me.jishnu.keyboard by default, and follows a BUNDLE_ID_PREFIX set in
+// Signing.local.xcconfig unless that sets APP_GROUP too.
+APP_GROUP = group.$(BUNDLE_ID_PREFIX)
+// `make testflight` with an App Store Connect API key signs by hand with the profiles named
+// "<this> <bundle id>" (build/ExportOptions-key.plist).
+EXPORT_PROFILE_PREFIX = NeoOne AppStore
+
+#include? "Signing.local.xcconfig"
