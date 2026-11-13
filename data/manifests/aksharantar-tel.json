@@ -18,7 +18,7 @@
       "path": "tel.zip"
     }
   ],
-  "status": "in packs/te.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/te.neopack, a beta download on the site (credited in its manifest), not in the app",
   "extracted": {
     "tel_train.json": "eb77e61d9bc2b3fc4ed1f94d5b56f0fdf0f13c916ea7bb66b1c810f5f00e55f8",
     "tel_valid.json": "7499bcb041cca2dc3aa1796fb3757fa8a5a98484f4de63acff7a7ec2462b0d22",

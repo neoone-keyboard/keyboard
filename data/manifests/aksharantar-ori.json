@@ -18,7 +18,7 @@
       "sha256": "9095e8dc4221708ad02826e84c1bbb7e5033e1cbf4e4f7396272ded0947b7c0b"
     }
   ],
-  "status": "in packs/or.neopack, a file handed out for a trial, not offered for download, not in the app",
+  "status": "in packs/or.neopack (credited in its manifest), not listed on the download site yet, not in the app",
   "extracted": {
     "ori_train.json": "81f8ebd46bfbea0c7f396dcb5153e8291fb418b2dc8056d6281b39442be98c95",
     "ori_valid.json": "a3ef3afc7e8079b506aa56a6eeecf334f3d792b221f989ad73560dfbedb0132c",

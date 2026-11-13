@@ -23,5 +23,5 @@
     "mar_valid.json": "259547775b32981615f48eeb1c82246996ac5aeaa5d020ca7caba6210b917187",
     "mar_test.json": "512a5b66a63c8bc8b55826801680ba34bb66719565f938c742c073eba442fa9f"
   },
-  "status": "in packs/mr.neopack, a trial pack handed out as a file (credited in its manifest); not published on the site, not in the app"
+  "status": "in packs/mr.neopack (credited in its manifest), not listed on the download site yet, not in the app"
 }

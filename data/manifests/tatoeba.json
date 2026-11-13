@@ -1,0 +1,24 @@
+{
+  "id": "tatoeba",
+  "name": "Tatoeba Japanese sentences with reviewed readings",
+  "homepage": "https://tatoeba.org/",
+  "licence": "CC BY 2.0 FR",
+  "licence_url": "https://creativecommons.org/licenses/by/2.0/fr/",
+  "licence_source": "https://tatoeba.org/en/downloads, as cited in scripts/ja-eval-set.py and the header of data/eval/ja/tatoeba-convert.tsv (\"CC BY 2.0 FR, by Tatoeba's contributors\").",
+  "attribution": "Japanese sentences and their readings from Tatoeba (https://tatoeba.org), by Tatoeba's contributors, CC BY 2.0 FR.",
+  "verdict": "eval only",
+  "verdict_reason": "Used only to measure the Japanese conversion; never trained on, never in a pack.",
+  "used_for": "The Japanese conversion eval set (data/eval/ja/tatoeba-convert.tsv: a sample of 2,000 sentences whose reading a person reviewed), written by scripts/ja-eval-set.py and read by engine/core/tests/ja_eval.rs.",
+  "local": "data/eval/ja/tatoeba-convert.tsv",
+  "candidate_files": [
+    {
+      "url": "https://downloads.tatoeba.org/exports/transcriptions.tar.bz2",
+      "path": "transcriptions.tar.bz2"
+    },
+    {
+      "url": "https://downloads.tatoeba.org/exports/per_language/jpn/jpn_sentences.tsv.bz2",
+      "path": "jpn_sentences.tsv.bz2"
+    }
+  ],
+  "files": []
+}

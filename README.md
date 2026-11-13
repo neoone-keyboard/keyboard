@@ -90,9 +90,16 @@ every check of one pack.
 
 The source code is licensed under the Apache License, Version 2.0; see [LICENSE](LICENSE).
 
-Data is not covered by that licence. The language packs, the word lists and the trained
-models are built from third-party sources and keep those sources' licences. See
-[NOTICE](NOTICE), the `credits` in each pack's `manifest.json`, and
+Data written for this project (the script rules and hand-written romanisation tables in
+`data/langs/`, the packs' layouts, chat forms and suffixes, `data/indian-english.txt` and the
+hand-written eval sets) is licensed under the Apache License 2.0 as well. Where such a file
+ships inside a language pack, it is also offered under that pack's CC BY-SA 4.0.
+
+Other data is not covered by the Apache licence. The language packs, the word lists and the
+trained models are built from third-party sources and keep those sources' licences: each pack
+as a whole is CC BY-SA 4.0, except the Japanese pack's dictionary files (see
+[packs/README.md](packs/README.md)). See [NOTICE](NOTICE) for the list of third-party data in
+this repository, the `credits` in each pack's `manifest.json`, and
 https://neoone.jishnu.me/credits.
 
 ## Issues and support

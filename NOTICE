@@ -4,12 +4,96 @@ Copyright 2026 Jishnu Viswanath
 The source code in this repository is licensed under the Apache License,
 Version 2.0 (see LICENSE).
 
-Data is not covered by that licence. The language packs (packs/), the
-English word lists and the trained models are built from third-party
-sources and keep those sources' licences, for example Wikipedia text under
-CC BY-SA 4.0. Each pack lists its sources and their licences in its
-manifest.json ("credits"); the apps show them under About and credits, and
+Data written for this project is licensed under the Apache License,
+Version 2.0, the same as the code. This covers, among others,
+data/langs/*/lang.json and romanisation.hand.json, the packs' layout.json,
+chat-forms.tsv and suffixes.tsv, data/indian-english.txt, and the
+hand-written eval sets in data/eval/ (chat-golden.tsv,
+english-sentences.txt, english-typos*.tsv, language-choice*.tsv). Where
+such a file also ships inside a language pack, it is also offered under
+that pack's CC BY-SA 4.0.
+
+Other data is not covered by the Apache licence. The language packs
+(packs/), the English word lists and the trained models are built from
+third-party sources and keep those sources' licences, for example
+Wikipedia text under CC BY-SA 4.0. Each pack as a whole is CC BY-SA 4.0,
+except the Japanese pack's dictionary files (see packs/README.md). Each
+pack lists its sources and their licences in its manifest.json
+("credits"); the apps show them under About and credits, and
 https://neoone.jishnu.me/credits lists them too.
 
 Third-party software built into the apps is listed, with its licence, in
 engine/shipped-crates.txt and in the apps' credits screens.
+
+Third-party data in this repository
+-----------------------------------
+
+The files below are, or are built from, third-party data, under the
+licence shown. data/manifests/<id>.json gives each source's licence,
+where it was read, its attribution and what it is used for; the packs'
+manifest.json "credits" credit the sources of each pack.
+
+- Wikipedia, Wikisource, Wikiquote and Wikibooks text, by their
+  contributors. CC BY-SA 4.0. Built into the packs' lexicons and models
+  and the English lexicons (apps/ios/KeyboardExtension/Lexicon/*.fst);
+  sampled sentences in the next-word eval sets (data/eval/next-ml.heldout.txt,
+  next-ml.tune.txt, next-en.tune.txt, and the next-*.heldout.txt and
+  next-*.tune.txt files in data/eval/as, hi and ta, with the synthetic
+  romanised sets data/eval/as/next-romanised*.tsv made from them); short
+  quoted spans in data/eval/**/memorisation.json.
+  Manifests: data/manifests/*wiki*.json.
+- English Wikinews, by Wikinews contributors. CC BY 2.5 and CC BY 4.0.
+  Language model training text (the ml and hi packs); sentences in
+  data/eval/next-en.tune.txt. data/manifests/enwikinews.json.
+- Project Gutenberg texts. Public domain. Language model training text
+  (the ml and hi packs). data/manifests/gutenberg.json.
+- Dakshina dataset v1.0, Google Research (Roark et al., 2020). CC BY-SA
+  4.0. Transliterator training data for the packs that credit it; the
+  eval extracts data/eval/translit-human.tsv, hi/translit-human.tsv,
+  si/translit-human.tsv, next-manglish*.tsv, hi/next-hinglish*.tsv and
+  ta/next-tanglish*.tsv. data/manifests/dakshina.json.
+- Aksharantar, AI4Bharat (Madhani et al., 2022). Manually collected data
+  CC BY; mined data and existing sources CC0 1.0; includes Wikidata
+  labels (CC0). Transliterator training data and romanisation tables for
+  the packs that credit it; the eval extracts
+  data/eval/<id>/translit-human.tsv (manual rows, CC BY) for as, bho, bn,
+  gu, kn, mai, mr, ne, or, pa, ta, te and ur.
+  data/manifests/aksharantar*.json.
+- SMC Malayalam Speech Corpus, conversation sentences, Swathanthra
+  Malayalam Computing. CC BY-SA 4.0. data/eval/next-ml.txt.
+  data/manifests/smc-msc-conversations.json.
+- SMC Malayalam word lists, Swathanthra Malayalam Computing. CC BY-SA
+  3.0. Built into packs/ml.neopack/ml.fst. data/manifests/smc-words.json.
+- Unicode CLDR emoji annotations and Unicode Emoji data (emoji-test.txt),
+  Copyright (c) 1991-2026 Unicode, Inc. Unicode License v3, full notice
+  in LICENSES/Unicode-3.0.txt. The emoji-words.txt and emoji-search.txt
+  files in data/langs/, packs/ and apps/ios/KeyboardExtension/Emoji/, and
+  apps/ios/KeyboardExtension/Emoji/emoji.txt.
+  data/manifests/cldr-annotations.json, unicode-emoji.json.
+- SCOWL (Spell Checker Oriented Word Lists) 2020.12.07. Used to choose
+  the words of the English lexicon (apps/ios/KeyboardExtension/Lexicon/
+  en.fst). data/manifests/scowl.json. Its notice:
+    Copyright 2000-2018 by Kevin Atkinson. Permission to use, copy,
+    modify, distribute and sell these word lists, the associated
+    scripts, the output created from the scripts, and its documentation
+    for any purpose is hereby granted without fee, provided that the
+    above copyright notice appears in all copies and that both that
+    copyright notice and this permission notice appear in supporting
+    documentation. Kevin Atkinson makes no representations about the
+    suitability of this array for any purpose. It is provided "as is"
+    without express or implied warranty.
+- Mozc OSS dictionary (IPAdic by NAIST, with entries from ICOT Free
+  Software, the Okinawa dictionary and Google's additions). IPAdic
+  licence with ICOT's conditions, and Google's BSD 3-Clause licence for
+  Mozc; not CC BY-SA. packs/ja.neopack/conversion.dict and
+  connection.bin. Full notices: packs/ja.neopack/dictionary-notices.txt
+  (a copy of data/langs/ja/dictionary-notices.txt).
+- Tatoeba sentences with reviewed readings, by Tatoeba's contributors.
+  CC BY 2.0 FR. data/eval/ja/tatoeba-convert.tsv.
+  data/manifests/tatoeba.json.
+
+Sources that are downloaded at build time and not redistributed here
+(data/fetch.sh puts them in data/raw/, which is not committed): the raw
+dumps and datasets above, and the eval-only code-mixed Malayalam
+sentiment dataset (data/manifests/codemix-ml-sentiment.json). IndicCorp
+v2 and SMC Deshabhimani are audited but not fetched.
