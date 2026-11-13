@@ -695,42 +695,42 @@ struct InputControllerTests {
 
     @Test func aDottedNumberIsReportedThoughADottedWordIsNot() {
         let reported = uses {
-            output.text = "98.470.12345"
+            output.text = "55.501.12345"
             input.handle(.space, at: 0)
             output.text = "x.com"
             input.handle(.space, at: 0)
         }
-        #expect(reported == [use("98.470.12345", after: "")])
+        #expect(reported == [use("55.501.12345", after: "")])
     }
 
     @Test func digitsThatBeginALearnedNumberAreOneWord() {
         input.learnedAddresses = ["+91 55501 12345", "55501-12345", "sam@example.com"]
         for (text, word) in [
-            ("call +91 98", "+91 98"),
-            ("call +91 9", "+91 9"),
+            ("call +91 55", "+91 55"),
+            ("call +91 5", "+91 5"),
             ("55501-1", "55501-1"),
-            ("\"+91 98", "+91 98"),
-            ("call 98", "98"),
-            ("call +91  98", "98"),
+            ("\"+91 55", "+91 55"),
+            ("call 55", "55"),
+            ("call +91  55", "55"),
             ("call 99 55501", "55501"),
             ("call +91", "91"),
         ] {
             output.text = text
             #expect(input.currentWord == word, "\(text)")
         }
-        output.text = "call +91 98"
-        input.updateSuggestions(SuggestionResult(typed: "98", candidates: [Suggestion("98", kind: .verbatim)]))
+        output.text = "call +91 55"
+        input.updateSuggestions(SuggestionResult(typed: "55", candidates: [Suggestion("55", kind: .verbatim)]))
         input.commitSuggestion("+91 55501 12345")
         #expect(output.text == "call +91 55501 12345 ")
     }
 
     @Test func aFullStopInsideALearnedNumberIsPartOfIt() {
-        input.learnedAddresses = ["98.470.12345"]
-        output.text = "98"
+        input.learnedAddresses = ["55.501.12345"]
+        output.text = "55"
         typeText(".")
-        #expect(input.currentWord == "98.")
-        typeText("4")
-        #expect(input.currentWord == "98.4")
+        #expect(input.currentWord == "55.")
+        typeText("5")
+        #expect(input.currentWord == "55.5")
     }
 
     @Test func noUseIsReportedInASecureField() {

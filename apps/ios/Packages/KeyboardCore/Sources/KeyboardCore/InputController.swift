@@ -138,7 +138,7 @@ public final class InputController {
     public var secureTextEntry = false
     /// The engine's learned emails, URLs and phone numbers. Letters that begin one are one
     /// word with their punctuation (`sam.2` of sam.2024@example.com), and digits that begin a
-    /// number with its spaces (`+91 98` of +91 55501 12345), as in the engine. May be a little stale.
+    /// number with its spaces (`+91 55` of +91 55501 12345), as in the engine. May be a little stale.
     public var learnedAddresses: [String] = []
 
     /// The composer and converter of the phrase-conversion language among `languages`
@@ -900,7 +900,7 @@ public final class InputController {
         if Self.isAddress(token) { return token }
         guard token.count >= 2, token != Self.plainWord(endingAt: context) else { return nil }
         let lower = token.lowercased()
-        // A phone number only when it is dotted (`98.470.12345`), as in the engine.
+        // A phone number only when it is dotted (`55.501.12345`), as in the engine.
         return learnedAddresses.contains { Self.isAddress(Substring($0)) && $0.lowercased().hasPrefix(lower) } ? token : nil
     }
 
@@ -911,7 +911,7 @@ public final class InputController {
     private static let maxNumberGroups = 4
 
     /// The longest end of `context` (`numberTails`) with `numberPrefixDigits` or more that
-    /// begins a learned phone number (`+91 98` of +91 55501 12345). Matches the engine's
+    /// begins a learned phone number (`+91 55` of +91 55501 12345). Matches the engine's
     /// `Engine::begun_number`. Of the learned addresses, the phone numbers are those all
     /// digits, spaces and `+-.()`: an email or URL learned has a letter.
     private func learnedNumber(endingAt context: String) -> Substring? {
@@ -925,7 +925,7 @@ public final class InputController {
 
     /// The ends of `context` that may be a phone number or its start, longest first: its last
     /// words of digits and `+-.()` back over single spaces, at most `maxNumberGroups`
-    /// (`call +91 98` → `+91 98`, `98`). An opening quote before the first is no part of it.
+    /// (`call +91 55` → `+91 55`, `55`). An opening quote before the first is no part of it.
     /// Matches the engine's `text::number_tails`.
     private static func numberTails(endingAt context: String) -> [Substring] {
         var tails: [Substring] = []
@@ -984,7 +984,7 @@ public final class InputController {
 
     /// Reports a word that went into the text after `before`, except from a password field
     /// and except an address: an email or URL is no part of a phrase. A number is reported,
-    /// dotted too (`98.470.12345`), for the engine to learn phone numbers from. Unlike
+    /// dotted too (`55.501.12345`), for the engine to learn phone numbers from. Unlike
     /// `.committed`, with autocorrect off too: the engine counts only words it knows or learned.
     private func reportUse(_ word: String, before: String, chosenFor: String? = nil, chosenLanguage: String? = nil) {
         guard !secureTextEntry, !word.isEmpty, Self.isNumber(word) || !Self.isAddress(Substring(word)) else { return }

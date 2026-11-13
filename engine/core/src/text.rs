@@ -103,8 +103,8 @@ fn is_number_word(word: &str) -> bool {
 }
 
 /// The ends of `context_before` that may be a phone number or its start, longest first: its
-/// last `is_number_word`s back over single spaces, at most `MAX_NUMBER_GROUPS` (`call +91 98`
-/// → `+91 98`, `98`). The space is the word break, so a number typed in groups arrives as
+/// last `is_number_word`s back over single spaces, at most `MAX_NUMBER_GROUPS` (`call +91 55`
+/// → `+91 55`, `55`). The space is the word break, so a number typed in groups arrives as
 /// several words. An opening quote before the first is no part of it, as in `last_token`.
 /// None when the text ends in whitespace.
 pub fn number_tails(context_before: &str) -> impl Iterator<Item = &str> {
@@ -149,7 +149,7 @@ pub fn phone_number_at_end(text: &str) -> Option<&str> {
 /// or a code, not a number to call.
 ///
 /// One word: an optional `+`, an optional area code in brackets, then digits with single
-/// `-` or `.` between groups (`+91-55501-12345`, `(0484)5550123`, `98.470.12345`), 7 to 15
+/// `-` or `.` between groups (`+91-55501-12345`, `(0484)5550123`, `55.501.12345`), 7 to 15
 /// digits. Bare digits need 10 (a mobile number with its prefix), as 7 digits alone are as
 /// likely an amount (`1000000`). One `.` is a decimal point (`1234567.89`).
 ///
@@ -637,7 +637,7 @@ mod tests {
             "+915550112345",
             "55501-12345",
             "+91-55501-12345",
-            "98.470.12345",
+            "55.501.12345",
             "(0484)5550123",
             "+1(415)555-0123",
             "1-800-555-0199",
@@ -676,7 +676,7 @@ mod tests {
             "$5550112345",
             "5550112345%",
             "+91",
-            "+91 98",
+            "+91 55",
             "55501  12345",
             " 55501 12345",
             "55501 12345 ",
@@ -720,14 +720,14 @@ mod tests {
 
     #[test]
     fn number_tails_are_longest_first() {
-        let tails: Vec<&str> = number_tails("call +91 98").collect();
-        assert_eq!(tails, ["+91 98", "98"]);
+        let tails: Vec<&str> = number_tails("call +91 55").collect();
+        assert_eq!(tails, ["+91 55", "55"]);
         let tails: Vec<&str> = number_tails("a 1 2 3 4 5").collect();
         assert_eq!(tails, ["2 3 4 5", "3 4 5", "4 5", "5"], "four groups at most");
         let tails: Vec<&str> = number_tails("x  55501-1").collect();
         assert_eq!(tails, ["55501-1"]);
-        let tails: Vec<&str> = number_tails("(0484) 23").collect();
-        assert_eq!(tails, ["(0484) 23", "23"]);
+        let tails: Vec<&str> = number_tails("(0484) 55").collect();
+        assert_eq!(tails, ["(0484) 55", "55"]);
         assert_eq!(number_tails("hi 98a").count(), 0);
         assert_eq!(number_tails("98 ").count(), 0);
         let tails: Vec<&str> = number_tails("\"98 76").collect();

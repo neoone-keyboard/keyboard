@@ -1236,8 +1236,8 @@ mod tests {
         drop(engine);
         let engine = Engine::new(config).unwrap();
         assert_eq!(engine.learned_addresses().unwrap(), ["+91 55501 12345"]);
-        let s = engine.suggest("call +91 98".into(), InputLayout::Latin, true).unwrap();
-        assert_eq!(s.typed, "+91 98");
+        let s = engine.suggest("call +91 55".into(), InputLayout::Latin, true).unwrap();
+        assert_eq!(s.typed, "+91 55");
         assert_eq!(s.candidates[1].text, "+91 55501 12345");
         engine.remove_word("+91 55501 12345".into()).unwrap();
         assert!(engine.learned_addresses().unwrap().is_empty());
