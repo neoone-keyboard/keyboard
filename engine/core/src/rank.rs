@@ -183,7 +183,8 @@ pub const MANGLISH_MODEL_FLOOR: f32 = -1.0;
 /// trailing readings instead scored the same first suggestion and lost words from the longer
 /// bar. Capping what the skeleton lookup found of the same words as well moved nothing.
 ///
-/// Not for Malayalam, whose ranking is held as recorded (`make golden-check`): there 0.3
+/// Not for a pack that sets `readingsByFrequency` (`pack::Ranking`): Malayalam's, whose ranking
+/// is held as recorded (`make golden-check`): there 0.3
 /// lifts translit-human top-1 0.5745 → 0.6205 and costs chat_golden two rows
 /// (0.8043 → 0.7981), a trade for its own sweep.
 pub const MANGLISH_MODEL_TRAILS: f32 = 0.3;
@@ -198,7 +199,7 @@ pub const MANGLISH_MODEL_TRAILS: f32 = 0.3;
 /// held-out sets (first native suggestion), Urdu 27.45% → 29.33%, Hindi 57.85% → 58.45%,
 /// Tamil 47.87% → 48.09%, Assamese 54.50% → 54.70%; the English no-harm set unchanged, and
 /// the English typo set at the start of the text unchanged but for Urdu, 145 → 148 of 176.
-/// Not for Malayalam, as above.
+/// Not for a pack that sets `readingsByFrequency`, as above.
 pub const MANGLISH_MODEL_TRAILS_STEP: f32 = 0.01;
 /// A model spelling scoring at least this per token is a confident reading:
 /// it may take the middle with its unfitted score (log probability, bias,
@@ -281,15 +282,17 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// Malayalam too, since `thookkal` had no തൂക്കൽ (off its lexicon; the model reads it at −0.20
 /// per token, its best lexicon reading തൂക്കിൽ at −0.90): only തൂക്കിൽ, തുകൽ and ടുക്കൽ. There
 /// the free spelling is also held under the pack's best side or completion and under a likely
-/// English word once context has moved them (`Engine::keep_free_beside`), and the lexicon beam
-/// keeps its rows. `make eval`, before → after: every top-1 unchanged; translit-human in the
+/// English word once context has moved them (`Engine::keep_free_beside`, the pack's
+/// `holdOwnSpelling`), and the lexicon beam keeps its rows (`keepLexiconBeam`). `make eval`,
+/// before → after: every top-1 unchanged; translit-human in the
 /// bar 80.25% → 80.10% (lost കുടുംബാസൂത്രണ, ഗ്രന്ഥങ്ങളിലെ, ദിവസത്തിന്, റസാക്ക് to the model's own
 /// spellings; gained മൂപ്പിച്ച്); next_manglish keystroke savings 0.2092 → 0.2084; the rest
 /// unchanged. Without the hold, `maintainance` lost `maintenance` (English typos in the bar
 /// 97.16% → 96.59%) and `Decembe` showed ഡിസംബെ in place of ഡിസംബർ.
 ///
-/// For Malayalam, a rare form the previous word lifted over the floor of words that may
-/// replace (തൂക്കിൽ after എന്റെ) is still a rare one: the free spelling runs and is offered
+/// For Malayalam (its `liftedWordsStayRare`), a rare form the previous word lifted over the
+/// floor of words that may replace (തൂക്കിൽ after എന്റെ) is still a rare one: the free
+/// spelling runs and is offered
 /// beside it (`ManglishCandidates::lift`), and it follows the best lexicon word once context
 /// has moved them, not the one it was put under (`Ok. Thookkal`). `make eval`, before →
 /// after: every top-1 unchanged; translit-human in the bar 80.10% → 80.05% (lost താരിഖ് for
@@ -340,8 +343,9 @@ pub const OWN_WORD_REPLACES_AFTER: u32 = 2;
 /// English, at the start. English's prior is 0.
 pub const CONTEXT_AFTER_MALAYALAM: f32 = 2.0;
 pub const CONTEXT_AFTER_ENGLISH: f32 = -2.0;
+/// At the start of the text, for a pack that sets `startBelowEnglish` (`pack::Ranking`).
 pub const CONTEXT_AT_START: f32 = -1.0;
-/// At the start of the text, with no Malayalam pack active: nothing before the first word of
+/// At the start of the text, for every other pack: nothing before the first word of
 /// a message says which language it is in, so it is read as after a sentence end (`Ok.
 /// mera`), where the previous word is in no lexicon. At `CONTEXT_AT_START` a common word the
 /// letters fit lost there to a weak English correction or to the typed letters: Urdu `mera`
@@ -358,8 +362,9 @@ pub const CONTEXT_AT_START: f32 = -1.0;
 /// word the letters only begin now crosses `MIN_REPLACE` there too, as after a word of the
 /// pack: `kshitijavardhan` gives क्षितिज, and the model's क्षितिजवर्धन isn't offered.
 ///
-/// Malayalam keeps `CONTEXT_AT_START`, its ranking held as recorded (`make golden-check`);
-/// while it is active every pack does, so that none is favoured at the start.
+/// Malayalam's pack sets `startBelowEnglish` and keeps `CONTEXT_AT_START`, its ranking held as
+/// recorded (`make golden-check`); while it is active every pack does, so that none is
+/// favoured at the start.
 pub const CONTEXT_AT_START_PACK: f32 = 0.0;
 
 /// LM context window in tokens (design §2): the oldest whole words are dropped past it.

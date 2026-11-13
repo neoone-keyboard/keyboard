@@ -10,6 +10,7 @@ use mlengine_core::lm_context::LmWeights;
 use mlengine_core::nn::tokenizer::{BOS, flag};
 use mlengine_core::nn::translit::Search;
 use mlengine_core::nn::{Cache, LmScratch};
+use mlengine_core::pack::Ranking;
 use mlengine_core::{Engine as Core, Kind, Layout, PackPaths, Paths, Sources, manglish, rank, script};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -18,7 +19,9 @@ use pyo3::prelude::*;
 /// and language model (`lm`); a missing or unreadable file is left out, and an LM built
 /// against other lexicons is not loaded, exactly as on the device. The pack is Malayalam's
 /// (`pack="ml"`, `script="mlym"`) unless another is named: `malayalam`, `manglish` and the
-/// other pack paths are then that pack's (its lexicon, its romanised lexicon, ...).
+/// other pack paths are then that pack's (its lexicon, its romanised lexicon, ...). The pack's
+/// ranking choices are those of the `manifest.json` beside its lexicon (`Ranking::beside`),
+/// none without one.
 #[pyclass]
 struct Engine {
     core: Core,
@@ -48,7 +51,9 @@ impl Engine {
         pack: &str,
         script: &str,
     ) -> Self {
+        let ranking = malayalam.as_deref().map(Ranking::beside).unwrap_or_default();
         let paths = PackPaths {
+            ranking,
             lexicon: malayalam,
             romanised: manglish,
             romanisation,

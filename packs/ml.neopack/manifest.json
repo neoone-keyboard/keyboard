@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "ml",
-  "version": "2026.11.13",
+  "version": "2026.11.14",
   "name": "Malayalam",
   "nativeName": "മലയാളം",
   "script": "mlym",
@@ -9,6 +9,14 @@
     "name": "Manglish"
   },
   "minEngine": 1,
+  "ranking": {
+    "startBelowEnglish": true,
+    "swipeIgnoresEnglishMargin": true,
+    "readingsByFrequency": true,
+    "keepLexiconBeam": true,
+    "liftedWordsStayRare": true,
+    "holdOwnSpelling": true
+  },
   "files": {
     "lexicon": "ml.fst",
     "romanisedLexicon": "manglish.fst",

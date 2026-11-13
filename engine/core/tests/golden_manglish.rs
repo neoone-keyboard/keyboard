@@ -57,6 +57,7 @@ fn engine() -> Engine {
             romanisation: Some(tables()),
             suffixes: Some(Suffixes::load(&pack_file("suffixes.tsv")).unwrap()),
             chat_forms: Some(ChatForms::load(&pack_file("chat-forms.tsv")).unwrap()),
+            ranking: mlengine_core::pack::Ranking::beside(&pack_file("manifest.json")),
             ..PackSources::new(
                 LangId("ml".into()),
                 mlengine_core::script::rules("mlym").unwrap(),

@@ -976,6 +976,25 @@ writes its checksums, and stops at the start if it is missing. Copy
 - `englishFingerprint` (Hindi has one) names the English lexicon that the pack's next words and
   LM were built against. Leave it out: no tool writes it yet, and a wrong one makes a test
   fail.
+- `ranking` is optional, and most packs leave it out. It holds a few ranking choices, each
+  `true` or `false`, that change how your pack's words are ranked and nobody else's. Left
+  out, each is `false`: the way Hindi, Assamese, Tamil and every other pack are ranked.
+  Malayalam's manifest sets all of them to `true`, because its results were tuned that way
+  before they were choices. Set one only when your pack's eval (step 11) is better with it,
+  and write that number down. Setting any of them needs `minEngine` 10.
+
+  ```json
+  "ranking": { "startBelowEnglish": true }
+  ```
+
+  | Field | With `true` | Left out or `false` |
+  |---|---|---|
+  | `startBelowEnglish` | At the start of a message your words start a step behind English, so a typed English word or a correction wins more often there. | At the start of a message your words and English start level, as after a full stop. |
+  | `swipeIgnoresEnglishMargin` | A swiped word of yours can beat a common English word the path fits just as well, on how common it is and on context. | A swiped word of yours beats a common English word only when the path fits it clearly better (or the English word is your word written in Latin letters). |
+  | `readingsByFrequency` | Among the words the transliterator reads for the letters, the commoner word comes first, however unsure the model is of it. | A word the model reads far behind its best reading, or a loose spelling match it doesn't read at all, comes just after that best reading. |
+  | `keepLexiconBeam` | When the transliterator also looks for a spelling off your word list, it still looks for as many word-list readings as before (a little slower). | It gives one of its word-list readings up to the spelling off the list. |
+  | `liftedWordsStayRare` | A rare word that the previous word pushed up still counts as rare, so the transliterator's own spelling is offered beside it. | A rare word the previous word pushed up counts as common, and the transliterator's own spelling isn't looked for. |
+  | `holdOwnSpelling` | The transliterator's own spelling, offered beside rare words, stays just behind your best word and behind a likely English word. | The transliterator's own spelling stays where it was first placed. |
 - Every value in `files` must be a plain file name (no `/`, not starting with `.`).
 
 ### 6. The keyboard layout: `layout.json`
