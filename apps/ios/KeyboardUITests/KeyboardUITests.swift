@@ -23,6 +23,11 @@ final class KeyboardUITests: XCTestCase {
         shot("home")
         app.swipeUp()
         shot("home-scrolled")
+        let version = app.staticTexts["app-version"]
+        for _ in 0..<3 where !version.isHittable { app.swipeUp() }
+        XCTAssertTrue(version.label.hasPrefix("Version "), version.label)
+        shot("home-bottom")
+        for _ in 0..<3 where !app.buttons["languages"].isHittable { app.swipeDown() }
 
         app.buttons["languages"].tap()
         XCTAssertTrue(app.navigationBars["Languages"].waitForExistence(timeout: 5))
@@ -60,6 +65,11 @@ final class KeyboardUITests: XCTestCase {
         let diagnostics = app.buttons["insert-diagnostics"]
         reveal(diagnostics, in: scroll)
         XCTAssertTrue(diagnostics.isHittable)
+        // Help, last: the diagnostics button, its caption, and which build this is.
+        let version = app.staticTexts["keyboard-version"]
+        reveal(version, in: scroll)
+        XCTAssertTrue(scroll.frame.contains(version.frame))
+        XCTAssertTrue(version.label.hasPrefix("Version "), version.label)
         shot("panel-bottom")
         app.buttons["settings-done"].tap()
         XCTAssertFalse(app.buttons["settings-done"].isHittable)

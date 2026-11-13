@@ -7,7 +7,9 @@ import KeyboardCore
 ///
 /// Laid out like the app's home screen: a fixed title bar, then rounded section cards with
 /// small uppercase headers, scrolling within the keys' height. Languages first, then
-/// Suggestions, Typing, Look, and Your words / Forget / diagnostics.
+/// Suggestions, Typing, Look, Learned words (Your words, Forget), and Help last: the diagnostics
+/// report (the only support tool, since nothing is collected; release builds keep it) and the
+/// build the keyboard is.
 final class SettingsPanelView: UIView {
     var onChange: (@MainActor (KeyboardSettings) -> Void)?
     var onDone: (@MainActor () -> Void)?
@@ -46,6 +48,9 @@ final class SettingsPanelView: UIView {
     private(set) var languages = ActiveLanguages([ActiveLanguages.english])
     private let forgetButton = UIButton(type: .system)
     private let diagnosticsButton = UIButton(type: .system)
+    private let diagnosticsHint = UILabel()
+    /// "NeoOne Keyboard 1.0 (9) · 8e49416", from the extension's Info.plist (`AppVersion`).
+    private let versionLabel = UILabel()
     /// Forgetting needs a second tap, so a stray touch can't wipe learned words.
     private var forgetArmed = false
     /// Puts the Forget row back to its first state a few seconds after a tap.
@@ -150,6 +155,16 @@ final class SettingsPanelView: UIView {
         diagnosticsButton.contentHorizontalAlignment = .leading
         diagnosticsButton.accessibilityIdentifier = "insert-diagnostics"
         diagnosticsButton.addAction(UIAction { [weak self] _ in self?.onInsertDiagnostics?() }, for: .touchUpInside)
+        diagnosticsHint.text = "Types a short technical report here. It never includes what you typed."
+        diagnosticsHint.font = .systemFont(ofSize: 13)
+        diagnosticsHint.numberOfLines = 0
+        let info = Bundle.main.infoDictionary ?? [:]
+        versionLabel.text = AppVersion.display(info: info)
+        versionLabel.accessibilityLabel = AppVersion.spoken(info: info)
+        versionLabel.accessibilityIdentifier = "keyboard-version"
+        versionLabel.font = .systemFont(ofSize: 12)
+        versionLabel.adjustsFontSizeToFitWidth = true
+        versionLabel.minimumScaleFactor = 0.8
 
         for label in rowLabels {
             label.font = .systemFont(ofSize: 15)
@@ -170,22 +185,25 @@ final class SettingsPanelView: UIView {
         let wordsCard = SettingsCard(rows: [
             Self.row(yourWordsButton, trailing: chevron()),
             Self.row(forgetButton, trailing: nil),
-            Self.row(diagnosticsButton, trailing: nil),
         ])
-        cards = [languageCard, suggestionsCard, typingCard, lookCard, wordsCard]
+        let helpCard = SettingsCard(rows: [Self.row(diagnosticsButton, trailing: nil)])
+        cards = [languageCard, suggestionsCard, typingCard, lookCard, wordsCard, helpCard]
 
         let hint = Self.padded(languagesHint, vertical: 0)
+        let diagnosticsCaption = Self.padded(diagnosticsHint, vertical: 0)
+        let version = Self.padded(versionLabel, vertical: 0)
         let stack = UIStackView(arrangedSubviews: [
             header("Languages"), languageCard, hint,
             header("Suggestions"), suggestionsCard,
             header("Typing"), typingCard,
             header("Look"), lookCard,
             header("Learned words"), wordsCard,
+            header("Help"), helpCard, diagnosticsCaption, version,
         ])
         stack.axis = .vertical
         stack.spacing = 6
-        for view in [languageCard, hint, suggestionsCard, typingCard, lookCard] {
-            stack.setCustomSpacing(view === languageCard ? 6 : 14, after: view)
+        for view in [languageCard, hint, suggestionsCard, typingCard, lookCard, wordsCard, helpCard, diagnosticsCaption] {
+            stack.setCustomSpacing(view === languageCard || view === helpCard ? 6 : 14, after: view)
         }
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -256,7 +274,7 @@ final class SettingsPanelView: UIView {
         for label in [titleLabel] + rowLabels + languageSwitches.map(\.label) {
             label.textColor = theme.keyText
         }
-        for label in headers + [languagesHint] {
+        for label in headers + [languagesHint, diagnosticsHint, versionLabel] {
             label.textColor = theme.hintText
         }
         doneButton.tintColor = theme.keyText
