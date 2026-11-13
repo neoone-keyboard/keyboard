@@ -931,7 +931,11 @@ mod tests {
     fn no_committed_pack_needs_more_than_this_engine() {
         let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packs");
         for entry in fs::read_dir(packs).unwrap() {
-            let pack = Pack::open(&entry.unwrap().path()).unwrap();
+            let path = entry.unwrap().path();
+            if !path.is_dir() {
+                continue; // README.md
+            }
+            let pack = Pack::open(&path).unwrap();
             assert!(pack.needed_engine().unwrap() <= PACK_ENGINE, "{}", pack.manifest.id);
         }
     }
