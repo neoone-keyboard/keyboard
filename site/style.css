@@ -28,10 +28,8 @@ body {
 }
 main, header, footer { max-width: 42rem; margin: 0 auto; padding: 0 16px; }
 header { padding-top: 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-header .mark {
-  width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: #fff;
-  display: grid; place-items: center; font-weight: 700; font-size: 15px; letter-spacing: .02em;
-}
+header .mark { display: block; width: 40px; height: 40px; }
+header .mark img { display: block; width: 40px; height: 40px; border-radius: 10px; }
 header a.home { color: var(--text); text-decoration: none; font-weight: 650; font-size: 19px; }
 nav { margin-left: auto; display: flex; gap: 16px; font-size: 15px; }
 nav a { color: var(--muted); text-decoration: none; }

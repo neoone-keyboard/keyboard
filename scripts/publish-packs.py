@@ -480,6 +480,9 @@ def render(page: str, content: str, cfg: dict) -> str:
     return text
 
 
+SITE_IMAGES = ("logo.png", "logo-dark.png", "favicon.png", "apple-touch-icon.png")
+
+
 def site_files(cfg: dict, releases: list[dict], kept: list[dict], english: dict,
                beta=(), also=()) -> dict[str, bytes]:
     """Every file of site/, by path."""
@@ -487,6 +490,8 @@ def site_files(cfg: dict, releases: list[dict], kept: list[dict], english: dict,
         # Workers static assets' header rules; the pack files' headers are hosting/worker.js's.
         "_headers": f"/packs/index.json\n  Cache-Control: {INDEX_CACHE}\n".encode(),
         "style.css": (SITE_SRC / "style.css").read_bytes(),
+        # The app's own logo (light and dark) and icon, copied from its asset catalog.
+        **{name: (SITE_SRC / name).read_bytes() for name in SITE_IMAGES},
         "packs/index.json": index_json(releases, kept, beta, also).encode(),
     }
     for page in PAGES:
