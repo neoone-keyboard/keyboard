@@ -138,6 +138,10 @@ struct Skeleton {
     /// drop is also keyed with the trailing letter kept (`Romanisation::word_skeletons`).
     trailing_also_kept: bool,
     pairs: Vec<(Vec<u8>, Vec<u8>)>,
+    /// The `pairs` starting with each letter a–z, by index, in `pairs` order: the first that
+    /// matches wins, and the typo search (`manglish::lookup_slips`) skeletons hundreds of
+    /// spellings a keystroke.
+    pairs_by_first: [Vec<usize>; 26],
     singles: [Option<Vec<u8>>; 26],
     collapse_doubles: bool,
     between: Vec<u8>,
@@ -377,6 +381,9 @@ impl Romanisation {
             trailing_after_vowel: s.drop_trailing.after_vowel,
             trailing_min: s.drop_trailing.min_length,
             trailing_also_kept: s.drop_trailing.also_kept,
+            pairs_by_first: std::array::from_fn(|k| {
+                (0..pairs.len()).filter(|&i| pairs[i].0[0] == b'a' + k as u8).collect()
+            }),
             pairs,
             singles,
             collapse_doubles: s.collapse_doubles,
@@ -609,7 +616,11 @@ impl Romanisation {
         let mut i = 0;
         while i < s.len() {
             let (sym, used): (&[u8], usize) =
-                match rules.pairs.iter().find(|(pat, _)| s[i..].starts_with(pat)) {
+                match rules.pairs_by_first[(s[i] - b'a') as usize]
+                    .iter()
+                    .map(|&k| &rules.pairs[k])
+                    .find(|(pat, _)| s[i..].starts_with(pat))
+                {
                     Some((pat, sym)) => (sym, pat.len()),
                     None => (
                         rules.singles[(s[i] - b'a') as usize]

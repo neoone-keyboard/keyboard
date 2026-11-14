@@ -25,7 +25,7 @@ GIT_COMMIT := $(shell git describe --always --dirty=+ 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: need-device export-options pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: need-device export-options pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-typos eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -175,6 +175,13 @@ LM_MODEL := packs/ml.neopack/lm.mlkbnn
 eval:
 	cd training && uv run --quiet python -m mlkb.eval --translit $(CURDIR)/$(TRANSLIT_MODEL) \
 	  $(if $(wildcard $(LM_MODEL)),--lm $(CURDIR)/$(LM_MODEL))
+
+# Romanised words typed with one slip (a neighbouring key, two letters swapped, one missed or
+# doubled) in each pack's held-out human set: how often the native word is still offered, against
+# data/eval/typos-baselines.json. The sets are data/eval/translit-typos.tsv and
+# data/eval/<id>/translit-typos.tsv (`python -m mlkb.eval.typos --write`); --record re-records.
+eval-typos:
+	cd training && uv run --quiet python -m mlkb.eval.typos
 
 # Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json: English
 # and Malayalam (swipe_eval), then each pack of SWIPE_PACKS (swipe_eval_packs; hi, as and ta

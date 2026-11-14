@@ -94,10 +94,13 @@ fn free_spellings_are_in_the_pack_script() {
 /// Without its transliterator a pack's word off the lexicon gets the rule-based spelling of
 /// its own tables (`Romanisation::spell`; once Malayalam's only): rough, here with the lower
 /// of ত and ট. The Assamese model, whose vocabulary has the apostrophe (134 tokens), must load
-/// for `kolkatar` to get its own, better one.
+/// for `kolkatar` to get its own, better one. The typo search is off for the rule's spelling:
+/// without the model it finds কলকাতাৰ a slip away, and the bar has no room left for the rule's.
 #[test]
 fn an_assamese_word_off_the_lexicon_gets_a_spelling() {
-    let by_rule = romanised(&engine("as", false), "kolkatar");
+    let mut rule_only = engine("as", false);
+    rule_only.set_slip_weights(mlengine_core::rank::SlipWeights { min_letters: 0, ..Default::default() });
+    let by_rule = romanised(&rule_only, "kolkatar");
     assert_eq!(by_rule, ["কল্কাটাৰ"]);
     let got = romanised(&engine("as", true), "kolkatar");
     assert!(!got.is_empty(), "kolkatar: no Assamese spelling");

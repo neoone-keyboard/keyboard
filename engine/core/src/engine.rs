@@ -463,6 +463,7 @@ pub struct Engine {
     lm_context: Mutex<LmContext>,
     lm_weights: LmWeights,
     swipe_weights: swipe::Weights,
+    slip_weights: rank::SlipWeights,
     /// The languages that offer candidates (`packs_active`).
     active: Active,
     /// Why each pack left out at open was left out (`Sources::open_reporting`).
@@ -557,6 +558,7 @@ impl Engine {
             lm_context: Mutex::new(LmContext::default()),
             lm_weights: LmWeights::default(),
             swipe_weights: swipe::Weights::default(),
+            slip_weights: rank::SlipWeights::default(),
             pack_problems: Vec::new(),
             shown: DEFAULT_SUGGESTIONS,
             own: Mutex::new(OwnIndex::default()),
@@ -676,6 +678,11 @@ impl Engine {
     /// For the swipe eval's sweeps; the keyboard keeps the defaults.
     pub fn set_swipe_weights(&mut self, weights: swipe::Weights) {
         self.swipe_weights = weights;
+    }
+
+    /// The romanised typo search's weights (`rank::SlipWeights`), for the eval's sweeps.
+    pub fn set_slip_weights(&mut self, weights: rank::SlipWeights) {
+        self.slip_weights = weights;
     }
 
     pub fn loaded_sources(&self) -> Vec<String> {
@@ -2315,8 +2322,15 @@ impl Engine {
                     .is_some_and(|(_, cost)| cost.is_some_and(|c| c > fuzzy::CHEAP_EDIT));
             // A Malayalam word with exactly the typed skeleton competes as a
             // correction (with `spelled_bonus`).
+            // A word one slip from the letters counts for less (`rank::SlipWeights::behind_english`).
             let natives = manglish.exact.iter().map(|(c, spelled)| {
-                let against_english = c.score + if *spelled { spelled_bonus(c.lang) } else { 0.0 };
+                let against_english = c.score
+                    + if *spelled { spelled_bonus(c.lang) } else { 0.0 }
+                    - if manglish.slips.contains(&c.text) {
+                        self.slip_weights.behind_english
+                    } else {
+                        0.0
+                    };
                 (c.clone(), against_english)
             });
             let best = |of: Option<Lang>| {
@@ -2677,8 +2691,8 @@ impl Engine {
         // Names and rare words: the model's own spelling (or, without the model, the
         // pack's rule-based one, `romanisation.json`'s `fromLatin`), as a side-slot guess.
         if found.exact.is_empty() && found.side.is_empty() {
-            let guess = match free {
-                Some(text) => Some((text, rank::MANGLISH_MODEL_FREE)),
+            let guess = match &free {
+                Some(text) => Some((text.clone(), rank::MANGLISH_MODEL_FREE)),
                 None => r.spell(typed_n).map(|text| (text, rank::UNKNOWN)),
             };
             if let Some((text, score)) = guess {
@@ -2690,6 +2704,19 @@ impl Engine {
                 });
             }
         }
+        // Nothing the letters spell out: the words one slip away (`nkan` for ഞാൻ, `njan`).
+        if !english_word && !found.exact.iter().any(|(_, spelled)| *spelled) {
+            Self::add_slips(
+                r,
+                lex,
+                &pack.lexicon,
+                typed_n,
+                bias,
+                free.as_deref(),
+                self.slip_weights,
+                &mut found,
+            );
+        }
         {
             let user = self.user();
             found.exact.retain(|(c, _)| !user.is_removed(&c.text));
@@ -2697,6 +2724,88 @@ impl Engine {
         self.drop_removed(&mut found.completions);
         self.drop_removed(&mut found.side);
         found
+    }
+
+    /// The pack's words one slip from the typed letters (`manglish::lookup_slips`), scored as a
+    /// skeleton match is, less `w.penalty` per half-edit of the slip (`rank::MANGLISH_SLIP_*`
+    /// say why each limit is where it is), and filed as one is (`ManglishCandidates::push`):
+    /// one common enough may take the middle, the rest go beside. Each ranks below every lexicon
+    /// word found for the letters as typed that they fit within `w.cap_distance` (`words` is
+    /// the pack's lexicon) or start within `w.cap_prefix_distance` (completions too), and below `free`, the model's own spelling of the letters, when that
+    /// is offered, unless no such word was found and it scores `w.trails_free_below` or more.
+    /// Only for typed words of
+    /// `w.min_letters` or more; a word already found for the letters as typed keeps that.
+    /// Against English for the middle, each counts `w.behind_english` less (`suggest_latin`).
+    #[allow(clippy::too_many_arguments)]
+    fn add_slips(
+        r: &Romanisation,
+        lex: &Lexicon,
+        words: &Lexicon,
+        typed_n: &str,
+        bias: f32,
+        free: Option<&str>,
+        w: rank::SlipWeights,
+        found: &mut ManglishCandidates,
+    ) {
+        if w.min_letters == 0 || typed_n.len() < w.min_letters {
+            return;
+        }
+        let found_words = || {
+            found
+                .exact
+                .iter()
+                .map(|(c, _)| c)
+                .chain(&found.side)
+                .filter(|c| words.get(c.text.as_bytes()).is_some())
+        };
+        let whole = found_words()
+            .filter(|c| {
+                let (spelled, distance) = manglish::fit(r, typed_n, &c.text, false);
+                spelled || distance <= w.cap_distance
+            })
+            .map(|c| c.score)
+            .fold(f32::INFINITY, f32::min);
+        // Mid-word: the words the letters start.
+        let started = w.cap_prefix_distance.map_or(f32::INFINITY, |d| {
+            found_words()
+                .chain(&found.completions)
+                .filter(|c| manglish::fit(r, typed_n, &c.text, true).1 <= d)
+                .map(|c| c.score)
+                .fold(f32::INFINITY, f32::min)
+        });
+        let matches = whole.min(started);
+        let own_spelling = found
+            .side
+            .iter()
+            .filter(|c| free == Some(c.text.as_str()))
+            .map(|c| c.score)
+            .fold(f32::INFINITY, f32::min);
+        let penalty = |cost: u8, distance: usize| {
+            w.penalty * f32::from(cost) + rank::MANGLISH_DISTANCE * distance as f32
+        };
+        // The most `unfitted` may be to score below `score` once the fit bonus is added.
+        let under = |score: f32| score - rank::MANGLISH_EXACT_BONUS - rank::MANGLISH_SLIP_UNDER;
+        let slips =
+            manglish::lookup_slips(r, lex, typed_n, w.min_log_prob, w.max_distance, penalty);
+        for slip in slips {
+            if found.exact.iter().any(|(c, _)| c.text == slip.word) {
+                continue;
+            }
+            let mut unfitted =
+                (slip.log_prob - penalty(slip.cost, slip.distance) + bias).min(under(matches));
+            if unfitted < w.trails_free_below || matches.is_finite() {
+                unfitted = unfitted.min(under(own_spelling));
+            }
+            found.slips.push(slip.word.clone());
+            found.push(
+                slip.word,
+                unfitted,
+                rank::MANGLISH_EXACT_BONUS,
+                0,
+                false,
+                rank::MIN_REPLACE,
+            );
+        }
     }
 
     /// Puts each free spelling offered beside rare whole forms (`free_beside`, a pack's that
@@ -3595,6 +3704,9 @@ struct ManglishCandidates {
     /// stays just under its pack's best lexicon word, whatever context says
     /// (`Engine::keep_free_beside`).
     free_beside: Vec<String>,
+    /// Words found for a slip of the typed letters (`Engine::add_slips`): against English they
+    /// count `rank::MANGLISH_SLIP_BEHIND_ENGLISH` less.
+    slips: Vec<String>,
     /// How far context lifted this pack's words over where the start of the text puts them
     /// (`Engine::romanised`), which `push` takes back out to tell a common word from a rare one.
     lift: f32,
@@ -3621,6 +3733,7 @@ impl ManglishCandidates {
             side: Vec::new(),
             neighbours: Vec::new(),
             free_beside: Vec::new(),
+            slips: Vec::new(),
             lift: 0.0,
             common: Vec::new(),
         }
@@ -3639,6 +3752,7 @@ impl ManglishCandidates {
         self.side.extend(other.side);
         self.neighbours.extend(other.neighbours);
         self.free_beside.extend(other.free_beside);
+        self.slips.extend(other.slips);
         self.common.extend(other.common);
     }
 
@@ -4647,7 +4761,10 @@ mod tests {
                 pack.chat_forms = None;
                 pack.suffixes = None;
             }
-            Engine::new(sources, UserStore::in_memory())
+            let mut engine = Engine::new(sources, UserStore::in_memory());
+            // In a two-word lexicon `nanni` is a slip from നന്ദി; this is about the files.
+            engine.set_slip_weights(rank::SlipWeights { min_letters: 0, ..Default::default() });
+            engine
         };
         let offers = |e: &Engine, typed: &str, word: &str| {
             texts(&e.suggest(typed, Layout::Latin, true)).contains(&word)
