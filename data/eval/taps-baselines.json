@@ -1,0 +1,1010 @@
+{
+  "as clean 0.25": {
+    "with": {
+      "first": 0.2976,
+      "n": 5484,
+      "top1": 0.4311,
+      "top3": 0.4778
+    },
+    "without": {
+      "first": 0.2896,
+      "n": 5484,
+      "top1": 0.4267,
+      "top3": 0.4716
+    }
+  },
+  "as clean 0.25 [right]": {
+    "with": {
+      "first": 0.3798,
+      "n": 3805,
+      "top1": 0.5456,
+      "top3": 0.6045
+    },
+    "without": {
+      "first": 0.3787,
+      "n": 3805,
+      "top1": 0.5406,
+      "top3": 0.5961
+    }
+  },
+  "as clean 0.25 [slipped]": {
+    "with": {
+      "first": 0.1114,
+      "n": 1679,
+      "top1": 0.1715,
+      "top3": 0.1906
+    },
+    "without": {
+      "first": 0.0876,
+      "n": 1679,
+      "top1": 0.1686,
+      "top3": 0.1894
+    }
+  },
+  "as clean 0.4": {
+    "with": {
+      "first": 0.093,
+      "n": 5484,
+      "top1": 0.1286,
+      "top3": 0.1451
+    },
+    "without": {
+      "first": 0.0864,
+      "n": 5484,
+      "top1": 0.1276,
+      "top3": 0.1441
+    }
+  },
+  "as clean 0.4 [right]": {
+    "with": {
+      "first": 0.3592,
+      "n": 863,
+      "top1": 0.4739,
+      "top3": 0.533
+    },
+    "without": {
+      "first": 0.3604,
+      "n": 863,
+      "top1": 0.4681,
+      "top3": 0.5249
+    }
+  },
+  "as clean 0.4 [slipped]": {
+    "with": {
+      "first": 0.0433,
+      "n": 4621,
+      "top1": 0.0641,
+      "top3": 0.0727
+    },
+    "without": {
+      "first": 0.0353,
+      "n": 4621,
+      "top1": 0.0641,
+      "top3": 0.0729
+    }
+  },
+  "as typos 0.25": {
+    "with": {
+      "first": 0.1636,
+      "n": 2200,
+      "top1": 0.2668,
+      "top3": 0.3036
+    },
+    "without": {
+      "first": 0.1491,
+      "n": 2200,
+      "top1": 0.2627,
+      "top3": 0.3005
+    }
+  },
+  "as typos 0.4": {
+    "with": {
+      "first": 0.1536,
+      "n": 2200,
+      "top1": 0.2641,
+      "top3": 0.3023
+    },
+    "without": {
+      "first": 0.1491,
+      "n": 2200,
+      "top1": 0.2627,
+      "top3": 0.3005
+    }
+  },
+  "as typos deletion 0.25": {
+    "with": {
+      "first": 0.1225,
+      "n": 400,
+      "top1": 0.2175,
+      "top3": 0.28
+    },
+    "without": {
+      "first": 0.1225,
+      "n": 400,
+      "top1": 0.2175,
+      "top3": 0.28
+    }
+  },
+  "as typos deletion 0.4": {
+    "with": {
+      "first": 0.1225,
+      "n": 400,
+      "top1": 0.2175,
+      "top3": 0.28
+    },
+    "without": {
+      "first": 0.1225,
+      "n": 400,
+      "top1": 0.2175,
+      "top3": 0.28
+    }
+  },
+  "as typos doubling 0.25": {
+    "with": {
+      "first": 0.2725,
+      "n": 400,
+      "top1": 0.45,
+      "top3": 0.49
+    },
+    "without": {
+      "first": 0.2725,
+      "n": 400,
+      "top1": 0.445,
+      "top3": 0.485
+    }
+  },
+  "as typos doubling 0.4": {
+    "with": {
+      "first": 0.2725,
+      "n": 400,
+      "top1": 0.4475,
+      "top3": 0.4875
+    },
+    "without": {
+      "first": 0.2725,
+      "n": 400,
+      "top1": 0.445,
+      "top3": 0.485
+    }
+  },
+  "as typos neighbour 0.25": {
+    "with": {
+      "first": 0.144,
+      "n": 1000,
+      "top1": 0.213,
+      "top3": 0.239
+    },
+    "without": {
+      "first": 0.112,
+      "n": 1000,
+      "top1": 0.206,
+      "top3": 0.236
+    }
+  },
+  "as typos neighbour 0.4": {
+    "with": {
+      "first": 0.123,
+      "n": 1000,
+      "top1": 0.208,
+      "top3": 0.237
+    },
+    "without": {
+      "first": 0.112,
+      "n": 1000,
+      "top1": 0.206,
+      "top3": 0.236
+    }
+  },
+  "as typos transposition 0.25": {
+    "with": {
+      "first": 0.145,
+      "n": 400,
+      "top1": 0.2675,
+      "top3": 0.3025
+    },
+    "without": {
+      "first": 0.145,
+      "n": 400,
+      "top1": 0.2675,
+      "top3": 0.2975
+    }
+  },
+  "as typos transposition 0.4": {
+    "with": {
+      "first": 0.1425,
+      "n": 400,
+      "top1": 0.2675,
+      "top3": 0.3025
+    },
+    "without": {
+      "first": 0.145,
+      "n": 400,
+      "top1": 0.2675,
+      "top3": 0.2975
+    }
+  },
+  "english clean 0.25": {
+    "with": {
+      "first": 0.9574,
+      "n": 1876,
+      "top1": 0.9574,
+      "top3": 0.9931
+    },
+    "without": {
+      "first": 0.9515,
+      "n": 1876,
+      "top1": 0.9515,
+      "top3": 0.9877
+    }
+  },
+  "english clean 0.25 [right]": {
+    "with": {
+      "first": 0.9974,
+      "n": 1561,
+      "top1": 0.9974,
+      "top3": 0.9987
+    },
+    "without": {
+      "first": 0.9974,
+      "n": 1561,
+      "top1": 0.9974,
+      "top3": 0.9987
+    }
+  },
+  "english clean 0.25 [slipped]": {
+    "with": {
+      "first": 0.7587,
+      "n": 315,
+      "top1": 0.7587,
+      "top3": 0.9651
+    },
+    "without": {
+      "first": 0.7238,
+      "n": 315,
+      "top1": 0.7238,
+      "top3": 0.9333
+    }
+  },
+  "english clean 0.4": {
+    "with": {
+      "first": 0.8374,
+      "n": 1876,
+      "top1": 0.8374,
+      "top3": 0.96
+    },
+    "without": {
+      "first": 0.7862,
+      "n": 1876,
+      "top1": 0.7862,
+      "top3": 0.943
+    }
+  },
+  "english clean 0.4 [right]": {
+    "with": {
+      "first": 1.0,
+      "n": 727,
+      "top1": 1.0,
+      "top3": 1.0
+    },
+    "without": {
+      "first": 1.0,
+      "n": 727,
+      "top1": 1.0,
+      "top3": 1.0
+    }
+  },
+  "english clean 0.4 [slipped]": {
+    "with": {
+      "first": 0.7346,
+      "n": 1149,
+      "top1": 0.7346,
+      "top3": 0.9347
+    },
+    "without": {
+      "first": 0.651,
+      "n": 1149,
+      "top1": 0.651,
+      "top3": 0.9069
+    }
+  },
+  "english typos 0.25": {
+    "with": {
+      "first": 0.858,
+      "n": 176,
+      "top1": 0.858,
+      "top3": 0.9773
+    },
+    "without": {
+      "first": 0.858,
+      "n": 176,
+      "top1": 0.858,
+      "top3": 0.9716
+    }
+  },
+  "english typos 0.4": {
+    "with": {
+      "first": 0.858,
+      "n": 176,
+      "top1": 0.858,
+      "top3": 0.9773
+    },
+    "without": {
+      "first": 0.858,
+      "n": 176,
+      "top1": 0.858,
+      "top3": 0.9716
+    }
+  },
+  "hi clean 0.25": {
+    "with": {
+      "first": 0.34,
+      "n": 2000,
+      "top1": 0.5005,
+      "top3": 0.5655
+    },
+    "without": {
+      "first": 0.32,
+      "n": 2000,
+      "top1": 0.494,
+      "top3": 0.5585
+    }
+  },
+  "hi clean 0.25 [right]": {
+    "with": {
+      "first": 0.4254,
+      "n": 1474,
+      "top1": 0.6208,
+      "top3": 0.7035
+    },
+    "without": {
+      "first": 0.4199,
+      "n": 1474,
+      "top1": 0.6153,
+      "top3": 0.6947
+    }
+  },
+  "hi clean 0.25 [slipped]": {
+    "with": {
+      "first": 0.1008,
+      "n": 526,
+      "top1": 0.1635,
+      "top3": 0.1787
+    },
+    "without": {
+      "first": 0.0399,
+      "n": 526,
+      "top1": 0.154,
+      "top3": 0.1768
+    }
+  },
+  "hi clean 0.4": {
+    "with": {
+      "first": 0.1015,
+      "n": 2000,
+      "top1": 0.168,
+      "top3": 0.187
+    },
+    "without": {
+      "first": 0.094,
+      "n": 2000,
+      "top1": 0.165,
+      "top3": 0.182
+    }
+  },
+  "hi clean 0.4 [right]": {
+    "with": {
+      "first": 0.4063,
+      "n": 411,
+      "top1": 0.5839,
+      "top3": 0.6496
+    },
+    "without": {
+      "first": 0.4088,
+      "n": 411,
+      "top1": 0.5693,
+      "top3": 0.6277
+    }
+  },
+  "hi clean 0.4 [slipped]": {
+    "with": {
+      "first": 0.0227,
+      "n": 1589,
+      "top1": 0.0604,
+      "top3": 0.0673
+    },
+    "without": {
+      "first": 0.0126,
+      "n": 1589,
+      "top1": 0.0604,
+      "top3": 0.0667
+    }
+  },
+  "hi typos 0.25": {
+    "with": {
+      "first": 0.1336,
+      "n": 2200,
+      "top1": 0.2723,
+      "top3": 0.3105
+    },
+    "without": {
+      "first": 0.1114,
+      "n": 2200,
+      "top1": 0.2645,
+      "top3": 0.3041
+    }
+  },
+  "hi typos 0.4": {
+    "with": {
+      "first": 0.1218,
+      "n": 2200,
+      "top1": 0.2673,
+      "top3": 0.3041
+    },
+    "without": {
+      "first": 0.1114,
+      "n": 2200,
+      "top1": 0.2645,
+      "top3": 0.3041
+    }
+  },
+  "hi typos deletion 0.25": {
+    "with": {
+      "first": 0.1025,
+      "n": 400,
+      "top1": 0.2325,
+      "top3": 0.2775
+    },
+    "without": {
+      "first": 0.1025,
+      "n": 400,
+      "top1": 0.2275,
+      "top3": 0.2725
+    }
+  },
+  "hi typos deletion 0.4": {
+    "with": {
+      "first": 0.1,
+      "n": 400,
+      "top1": 0.235,
+      "top3": 0.2775
+    },
+    "without": {
+      "first": 0.1025,
+      "n": 400,
+      "top1": 0.2275,
+      "top3": 0.2725
+    }
+  },
+  "hi typos doubling 0.25": {
+    "with": {
+      "first": 0.3375,
+      "n": 400,
+      "top1": 0.6075,
+      "top3": 0.675
+    },
+    "without": {
+      "first": 0.3375,
+      "n": 400,
+      "top1": 0.5975,
+      "top3": 0.665
+    }
+  },
+  "hi typos doubling 0.4": {
+    "with": {
+      "first": 0.34,
+      "n": 400,
+      "top1": 0.6025,
+      "top3": 0.6675
+    },
+    "without": {
+      "first": 0.3375,
+      "n": 400,
+      "top1": 0.5975,
+      "top3": 0.665
+    }
+  },
+  "hi typos neighbour 0.25": {
+    "with": {
+      "first": 0.082,
+      "n": 1000,
+      "top1": 0.163,
+      "top3": 0.187
+    },
+    "without": {
+      "first": 0.034,
+      "n": 1000,
+      "top1": 0.153,
+      "top3": 0.18
+    }
+  },
+  "hi typos neighbour 0.4": {
+    "with": {
+      "first": 0.056,
+      "n": 1000,
+      "top1": 0.154,
+      "top3": 0.179
+    },
+    "without": {
+      "first": 0.034,
+      "n": 1000,
+      "top1": 0.153,
+      "top3": 0.18
+    }
+  },
+  "hi typos transposition 0.25": {
+    "with": {
+      "first": 0.09,
+      "n": 400,
+      "top1": 0.25,
+      "top3": 0.2875
+    },
+    "without": {
+      "first": 0.0875,
+      "n": 400,
+      "top1": 0.2475,
+      "top3": 0.285
+    }
+  },
+  "hi typos transposition 0.4": {
+    "with": {
+      "first": 0.09,
+      "n": 400,
+      "top1": 0.2475,
+      "top3": 0.28
+    },
+    "without": {
+      "first": 0.0875,
+      "n": 400,
+      "top1": 0.2475,
+      "top3": 0.285
+    }
+  },
+  "ml clean 0.25": {
+    "with": {
+      "first": 0.4125,
+      "n": 2000,
+      "top1": 0.5565,
+      "top3": 0.6555
+    },
+    "without": {
+      "first": 0.392,
+      "n": 2000,
+      "top1": 0.517,
+      "top3": 0.6425
+    }
+  },
+  "ml clean 0.25 [right]": {
+    "with": {
+      "first": 0.5638,
+      "n": 1309,
+      "top1": 0.6631,
+      "top3": 0.7907
+    },
+    "without": {
+      "first": 0.56,
+      "n": 1309,
+      "top1": 0.66,
+      "top3": 0.7861
+    }
+  },
+  "ml clean 0.25 [slipped]": {
+    "with": {
+      "first": 0.1259,
+      "n": 691,
+      "top1": 0.3546,
+      "top3": 0.3994
+    },
+    "without": {
+      "first": 0.0738,
+      "n": 691,
+      "top1": 0.246,
+      "top3": 0.3705
+    }
+  },
+  "ml clean 0.4": {
+    "with": {
+      "first": 0.0975,
+      "n": 2000,
+      "top1": 0.159,
+      "top3": 0.1905
+    },
+    "without": {
+      "first": 0.09,
+      "n": 2000,
+      "top1": 0.1495,
+      "top3": 0.1865
+    }
+  },
+  "ml clean 0.4 [right]": {
+    "with": {
+      "first": 0.4676,
+      "n": 278,
+      "top1": 0.5791,
+      "top3": 0.6763
+    },
+    "without": {
+      "first": 0.4676,
+      "n": 278,
+      "top1": 0.5791,
+      "top3": 0.6763
+    }
+  },
+  "ml clean 0.4 [slipped]": {
+    "with": {
+      "first": 0.0377,
+      "n": 1722,
+      "top1": 0.0912,
+      "top3": 0.1121
+    },
+    "without": {
+      "first": 0.029,
+      "n": 1722,
+      "top1": 0.0801,
+      "top3": 0.1074
+    }
+  },
+  "ml typos 0.25": {
+    "with": {
+      "first": 0.215,
+      "n": 2200,
+      "top1": 0.4036,
+      "top3": 0.5027
+    },
+    "without": {
+      "first": 0.1982,
+      "n": 2200,
+      "top1": 0.3682,
+      "top3": 0.4923
+    }
+  },
+  "ml typos 0.4": {
+    "with": {
+      "first": 0.2095,
+      "n": 2200,
+      "top1": 0.3873,
+      "top3": 0.4991
+    },
+    "without": {
+      "first": 0.1982,
+      "n": 2200,
+      "top1": 0.3682,
+      "top3": 0.4923
+    }
+  },
+  "ml typos deletion 0.25": {
+    "with": {
+      "first": 0.2175,
+      "n": 400,
+      "top1": 0.3325,
+      "top3": 0.4875
+    },
+    "without": {
+      "first": 0.22,
+      "n": 400,
+      "top1": 0.33,
+      "top3": 0.4775
+    }
+  },
+  "ml typos deletion 0.4": {
+    "with": {
+      "first": 0.22,
+      "n": 400,
+      "top1": 0.3325,
+      "top3": 0.4825
+    },
+    "without": {
+      "first": 0.22,
+      "n": 400,
+      "top1": 0.33,
+      "top3": 0.4775
+    }
+  },
+  "ml typos doubling 0.25": {
+    "with": {
+      "first": 0.5,
+      "n": 400,
+      "top1": 0.7075,
+      "top3": 0.815
+    },
+    "without": {
+      "first": 0.5,
+      "n": 400,
+      "top1": 0.7025,
+      "top3": 0.81
+    }
+  },
+  "ml typos doubling 0.4": {
+    "with": {
+      "first": 0.5,
+      "n": 400,
+      "top1": 0.7025,
+      "top3": 0.81
+    },
+    "without": {
+      "first": 0.5,
+      "n": 400,
+      "top1": 0.7025,
+      "top3": 0.81
+    }
+  },
+  "ml typos neighbour 0.25": {
+    "with": {
+      "first": 0.135,
+      "n": 1000,
+      "top1": 0.343,
+      "top3": 0.406
+    },
+    "without": {
+      "first": 0.097,
+      "n": 1000,
+      "top1": 0.268,
+      "top3": 0.389
+    }
+  },
+  "ml typos neighbour 0.4": {
+    "with": {
+      "first": 0.122,
+      "n": 1000,
+      "top1": 0.31,
+      "top3": 0.403
+    },
+    "without": {
+      "first": 0.097,
+      "n": 1000,
+      "top1": 0.268,
+      "top3": 0.389
+    }
+  },
+  "ml typos transposition 0.25": {
+    "with": {
+      "first": 0.1275,
+      "n": 400,
+      "top1": 0.3225,
+      "top3": 0.4475
+    },
+    "without": {
+      "first": 0.1275,
+      "n": 400,
+      "top1": 0.3225,
+      "top3": 0.4475
+    }
+  },
+  "ml typos transposition 0.4": {
+    "with": {
+      "first": 0.1275,
+      "n": 400,
+      "top1": 0.32,
+      "top3": 0.445
+    },
+    "without": {
+      "first": 0.1275,
+      "n": 400,
+      "top1": 0.3225,
+      "top3": 0.4475
+    }
+  },
+  "ta clean 0.25": {
+    "with": {
+      "first": 0.2386,
+      "n": 4648,
+      "top1": 0.3634,
+      "top3": 0.4071
+    },
+    "without": {
+      "first": 0.2225,
+      "n": 4648,
+      "top1": 0.3565,
+      "top3": 0.4006
+    }
+  },
+  "ta clean 0.25 [right]": {
+    "with": {
+      "first": 0.3059,
+      "n": 3043,
+      "top1": 0.4617,
+      "top3": 0.5189
+    },
+    "without": {
+      "first": 0.3056,
+      "n": 3043,
+      "top1": 0.4551,
+      "top3": 0.5117
+    }
+  },
+  "ta clean 0.25 [slipped]": {
+    "with": {
+      "first": 0.1109,
+      "n": 1605,
+      "top1": 0.1769,
+      "top3": 0.195
+    },
+    "without": {
+      "first": 0.0648,
+      "n": 1605,
+      "top1": 0.1695,
+      "top3": 0.19
+    }
+  },
+  "ta clean 0.4": {
+    "with": {
+      "first": 0.051,
+      "n": 4648,
+      "top1": 0.0815,
+      "top3": 0.0938
+    },
+    "without": {
+      "first": 0.0439,
+      "n": 4648,
+      "top1": 0.0811,
+      "top3": 0.0932
+    }
+  },
+  "ta clean 0.4 [right]": {
+    "with": {
+      "first": 0.2612,
+      "n": 559,
+      "top1": 0.3685,
+      "top3": 0.415
+    },
+    "without": {
+      "first": 0.2594,
+      "n": 559,
+      "top1": 0.3631,
+      "top3": 0.4114
+    }
+  },
+  "ta clean 0.4 [slipped]": {
+    "with": {
+      "first": 0.0223,
+      "n": 4089,
+      "top1": 0.0423,
+      "top3": 0.0499
+    },
+    "without": {
+      "first": 0.0144,
+      "n": 4089,
+      "top1": 0.0426,
+      "top3": 0.0496
+    }
+  },
+  "ta typos 0.25": {
+    "with": {
+      "first": 0.1382,
+      "n": 2200,
+      "top1": 0.2441,
+      "top3": 0.2795
+    },
+    "without": {
+      "first": 0.1155,
+      "n": 2200,
+      "top1": 0.2395,
+      "top3": 0.2755
+    }
+  },
+  "ta typos 0.4": {
+    "with": {
+      "first": 0.1273,
+      "n": 2200,
+      "top1": 0.2409,
+      "top3": 0.28
+    },
+    "without": {
+      "first": 0.1155,
+      "n": 2200,
+      "top1": 0.2395,
+      "top3": 0.2755
+    }
+  },
+  "ta typos deletion 0.25": {
+    "with": {
+      "first": 0.1075,
+      "n": 400,
+      "top1": 0.19,
+      "top3": 0.25
+    },
+    "without": {
+      "first": 0.1075,
+      "n": 400,
+      "top1": 0.195,
+      "top3": 0.2525
+    }
+  },
+  "ta typos deletion 0.4": {
+    "with": {
+      "first": 0.1075,
+      "n": 400,
+      "top1": 0.1925,
+      "top3": 0.2525
+    },
+    "without": {
+      "first": 0.1075,
+      "n": 400,
+      "top1": 0.195,
+      "top3": 0.2525
+    }
+  },
+  "ta typos doubling 0.25": {
+    "with": {
+      "first": 0.25,
+      "n": 400,
+      "top1": 0.4475,
+      "top3": 0.51
+    },
+    "without": {
+      "first": 0.25,
+      "n": 400,
+      "top1": 0.445,
+      "top3": 0.505
+    }
+  },
+  "ta typos doubling 0.4": {
+    "with": {
+      "first": 0.25,
+      "n": 400,
+      "top1": 0.4475,
+      "top3": 0.51
+    },
+    "without": {
+      "first": 0.25,
+      "n": 400,
+      "top1": 0.445,
+      "top3": 0.505
+    }
+  },
+  "ta typos neighbour 0.25": {
+    "with": {
+      "first": 0.124,
+      "n": 1000,
+      "top1": 0.205,
+      "top3": 0.22
+    },
+    "without": {
+      "first": 0.074,
+      "n": 1000,
+      "top1": 0.194,
+      "top3": 0.212
+    }
+  },
+  "ta typos neighbour 0.4": {
+    "with": {
+      "first": 0.1,
+      "n": 1000,
+      "top1": 0.197,
+      "top3": 0.219
+    },
+    "without": {
+      "first": 0.074,
+      "n": 1000,
+      "top1": 0.194,
+      "top3": 0.212
+    }
+  },
+  "ta typos transposition 0.25": {
+    "with": {
+      "first": 0.0925,
+      "n": 400,
+      "top1": 0.1925,
+      "top3": 0.2275
+    },
+    "without": {
+      "first": 0.0925,
+      "n": 400,
+      "top1": 0.1925,
+      "top3": 0.2275
+    }
+  },
+  "ta typos transposition 0.4": {
+    "with": {
+      "first": 0.0925,
+      "n": 400,
+      "top1": 0.1925,
+      "top3": 0.23
+    },
+    "without": {
+      "first": 0.0925,
+      "n": 400,
+      "top1": 0.1925,
+      "top3": 0.2275
+    }
+  }
+}

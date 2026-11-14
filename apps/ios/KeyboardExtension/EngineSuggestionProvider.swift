@@ -164,10 +164,15 @@ actor EngineSuggestionProvider: SuggestionProvider {
     private func suggest(_ request: SuggestionRequest) throws -> SuggestionResult {
         let engine = try loadedEngine()
         let start = ContinuousClock.now
-        let result = try engine.suggest(
+        // The taps go to the engine and nowhere else: never into a log line.
+        let result = try engine.suggestWithTaps(
             contextBefore: request.contextBefore,
             layout: Self.inputLayout(request.language),
-            autocorrect: request.autocorrect
+            autocorrect: request.autocorrect,
+            taps: request.taps.map {
+                TapLetter(letter: $0.letter, probability: $0.probability,
+                          alternatives: $0.others.map { TapAlternative(letter: $0.letter, probability: $0.probability) })
+            }
         )
         let elapsed = ContinuousClock.now - start
         if elapsed > .milliseconds(10) {

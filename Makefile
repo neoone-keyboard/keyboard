@@ -25,7 +25,7 @@ GIT_COMMIT := $(shell git describe --always --dirty=+ 2>/dev/null)
 ENGINE_SOURCES := $(shell find engine -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' | grep -v target) \
   data/langs/ml/lang.json data/langs/hi/lang.json data/langs/as/lang.json packs/ml.neopack/romanisation.json
 
-.PHONY: need-device export-options pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-typos eval-swipe spike-assets pack-lexicons pack-models icon
+.PHONY: need-device export-options pack-needs golden golden-save golden-check golden-more golden-packs golden-save-packs golden-check-packs testflight pack site-packs site-deploy all tools engine project build device twopacks test test-engine coverage-engine test-data test-pack test-training test-swift test-app lexicons emoji lm-data lm models bench bench-hi bench-pack-lm ja-pack eval-ja bench-ja eval eval-typos eval-taps eval-swipe spike-assets pack-lexicons pack-models icon
 
 all: build
 
@@ -182,6 +182,16 @@ eval:
 # data/eval/<id>/translit-typos.tsv (`python -m mlkb.eval.typos --write`); --record re-records.
 eval-typos:
 	cd training && uv run --quiet python -m mlkb.eval.typos
+
+# Tapped typing with where each tap landed (engine/core/tests/tap_eval.rs): every word of the
+# romanised typo sets and the clean held-out sets of ml, hi, ta and as, and English typos and
+# clean English words, typed as synthetic taps (a seeded Gaussian around each key, at two noise
+# levels), asked for with and without the taps; gated on data/eval/taps-baselines.json.
+# TAP_RECORD=1 re-records; TAP_SIGMA and TAP_SCALE sweep the app's spread and the engine's
+# scale (ungated); TAP_PACKS names the packs.
+#   make eval-taps TAP_SIGMA="0.35 0.4 0.45"
+eval-taps:
+	cd engine && $(CARGO) test -q --release -p mlengine-core --test tap_eval tap_eval -- --ignored --nocapture
 
 # Swipe accuracy on synthetic paths, checked against data/eval/baselines-swipe.json: English
 # and Malayalam (swipe_eval), then each pack of SWIPE_PACKS (swipe_eval_packs; hi, as and ta

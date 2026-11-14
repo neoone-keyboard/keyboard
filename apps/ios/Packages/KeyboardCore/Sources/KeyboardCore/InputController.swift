@@ -127,6 +127,19 @@ public final class InputController {
     public var onWordUsed: (@MainActor (WordUse) -> Void)?
     /// The latest suggestions; space and punctuation commit their middle slot.
     public private(set) var suggestions: SuggestionResult = .empty
+    /// Where the finger landed for the characters typed last, one per character, the last one
+    /// just before the cursor (`TapAlternatives`), for the word being typed: the engine reads
+    /// it against them (`SuggestionRequest.taps`). A letter typed with no touch (VoiceOver, a
+    /// long-press alternate) starts the list again after it; space, return, punctuation that
+    /// ends a word, a suggestion, a swipe, the cursor moving and any change the host makes
+    /// (a paste) clear it; backspace takes the last one off.
+    ///
+    /// Privacy: these stay in this property, in memory, and go nowhere but the engine's
+    /// suggest; they hold no touch point, and are never logged or written to any file (the
+    /// diagnostics log, the learned words or anything else).
+    public private(set) var taps: [TapAlternatives] = []
+    /// The most `taps` kept: the engine reads no word longer than 24 letters.
+    static let maxTaps = 48
     /// What became of each swipe: for the diagnostics' count of words fixed straight away.
     public var onSwipeOutcome: (@MainActor (SwipeOutcome) -> Void)?
     /// The bar shows the last swipe's word and its alternatives until the next key.
@@ -268,9 +281,13 @@ public final class InputController {
         manualShiftPending = false
     }
 
-    /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`.
-    public func handle(_ action: KeyAction, at time: TimeInterval) {
-        if let phrase = composing, handlePhrase(action, phrase) { return }
+    /// `time` is monotonic seconds, e.g. `ProcessInfo.processInfo.systemUptime`. `tap`: where
+    /// the finger landed on the letter key it typed (`TapReading`), when it was a tap.
+    public func handle(_ action: KeyAction, at time: TimeInterval, tap: TapAlternatives? = nil) {
+        if let phrase = composing, handlePhrase(action, phrase) {
+            taps = []
+            return
+        }
         if let swipe = takeSwipe() {
             if action == .backspace, deleteSwipe(swipe) { return }
             settleSwipe(swipe)
@@ -285,6 +302,8 @@ public final class InputController {
         heldStop = nil
         let spaced = afterSpace
         afterSpace = nil
+        let tapsBefore = taps
+        taps = []
         switch action {
         case .character(let c) where latinTwin(of: c) == "." && !continuesAddress(with: c):
             holdFullStop(c)
@@ -294,7 +313,8 @@ public final class InputController {
                 type(mark(c, after: output.contextBefore ?? ""))
             }
         case .character(let c):
-            type(c)
+            let inserted = type(c)
+            taps = Self.taps(tapsBefore, typing: inserted, tap: tap)
         case .space:
             if let spaced, spaced == output.contextBefore, let stop = spacesMark(endingAt: spaced) {
                 // The second space: the sentence ends in the script's full stop (Urdu's ۔).
@@ -316,6 +336,7 @@ public final class InputController {
         case .backspace:
             if let undoable, undo(undoable) { break }
             output.deleteBackward()
+            taps = Array(tapsBefore.dropLast())
         case .shift:
             let interval = lastShiftTap.map { time - $0 }
             lastShiftTap = time
@@ -324,13 +345,15 @@ public final class InputController {
             shiftIsAutomatic = false
             manualShiftPending = true
             manualShiftContext = output.contextBefore
+            taps = tapsBefore
         case .nextKeyboard, .emoji:
-            break // The host view controller switches keyboards, or shows the emoji panel.
+            taps = tapsBefore // The host view controller switches keyboards, or shows the emoji panel.
         case .page(let target):
             // The text is unchanged, so the result still describes the word:
             // `teh`, 123, `,` gives `the,`, as the bar showed.
             heldStop = stop
             page = target == .letters ? alphabetPage : target
+            taps = tapsBefore
         case .toggleLanguage:
             switchLanguage(to: nextLanguage)
         }
@@ -371,7 +394,7 @@ public final class InputController {
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
-        type(text)
+        taps = Self.taps(taps, typing: type(text), tap: nil)
     }
 
     /// Types an emoji from the panel as it is, with no space. Never reported for learning.
@@ -380,6 +403,7 @@ public final class InputController {
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
+        taps = []
         output.insertText(emoji)
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
@@ -451,6 +475,7 @@ public final class InputController {
         heldStop = nil
         afterSpace = nil
         suggestions = .empty
+        taps = []
     }
 
     /// The word before the cursor, as the host shares it ("" after a space).
@@ -495,6 +520,7 @@ public final class InputController {
         settlePendingSwipe()
         lastReplacement = nil
         heldStop = nil
+        taps = []
         let context = output.contextBefore ?? ""
         if let last = context.last, !last.isWhitespace, !Self.openingMarks.contains(last) {
             output.insertText(" ")
@@ -588,6 +614,7 @@ public final class InputController {
         lastReplacement = nil
         heldStop = nil
         suggestions = .empty
+        taps = []
         let context = output.contextBefore ?? ""
         let word = self.word(endingAt: context)
         if !word.isEmpty { delete(String(word), from: context) }
@@ -629,6 +656,28 @@ public final class InputController {
         guard case .character(let c) = action, c.unicodeScalars.count == 1,
               let scalar = c.unicodeScalars.first, scalar.isASCII, scalar.properties.isAlphabetic else { return nil }
         return showsUppercase ? c.uppercased() : c
+    }
+
+    /// `taps` once a tap on `action` has typed `insertion(for:)`, `tap` being where it landed:
+    /// what the key-up's request will carry, for the request made while the finger is down.
+    public func taps(after action: KeyAction, tap: TapAlternatives?) -> [TapAlternatives] {
+        guard let text = insertion(for: action) else { return taps }
+        return Self.taps(taps, typing: text, tap: tap)
+    }
+
+    /// `taps` after `inserted` went in: its tap added (a character that is no letter, typed by
+    /// a key, with none: it has no neighbours to mistake), or, for a letter typed with no
+    /// touch, none at all (the engine reads the word only back to it).
+    private static func taps(_ taps: [TapAlternatives], typing inserted: String, tap: TapAlternatives?) -> [TapAlternatives] {
+        var taps = taps
+        if let tap, inserted.count == 1 {
+            taps.append(tap.typed(as: inserted))
+        } else if inserted.count == 1, let c = inserted.first, !c.isLetter {
+            taps.append(TapAlternatives(letter: inserted, probability: 1, others: []))
+        } else {
+            return []
+        }
+        return Array(taps.suffix(maxTaps))
     }
 
     /// The text before the cursor once a space tap has done its work: the word corrected if
@@ -1003,13 +1052,17 @@ public final class InputController {
         return word
     }
 
-    private func type(_ text: String) {
+    /// Types `text` as shift has it, and returns what went in.
+    @discardableResult
+    private func type(_ text: String) -> String {
         if keptWord != nil, let first = text.first, Self.isWordCharacter(first), currentWord.isEmpty {
             keptWord = nil // A new word starts after the kept one.
         }
-        output.insertText(showsUppercase ? text.uppercased() : text)
+        let inserted = showsUppercase ? text.uppercased() : text
+        output.insertText(inserted)
         shift = shift.afterCharacter
         if shift == .off { shiftIsAutomatic = false }
+        return inserted
     }
 
     /// Deletes `suffix` from the end of `context`. iOS removes one code point per

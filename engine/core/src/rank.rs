@@ -14,6 +14,17 @@ pub const EDIT_PENALTY: f32 = 1.6;
 /// → whats). On the eval sets, 1.0–2.5 all helped: chat top-1 0.795 → 0.804, typos
 /// 0.832 → 0.856, human 0.568 → 0.575 at 2.0; English wrong rate unchanged.
 pub const EXTRA_SLIP_PENALTY: f32 = 2.0;
+/// Where a tap landed (`fuzzy::Tap`): putting another key's letter in a tapped letter's place
+/// costs this × ln(p(typed) / p(other)) half-edits (`fuzzy::tap_row`), in place of the flat
+/// neighbouring-key `fuzzy::CHEAP_EDIT`. At 1 / `EDIT_PENALTY` (0.625) the penalty is the
+/// log-ratio itself, as if the touch model were the slip's whole likelihood.
+///
+/// Chosen on the synthetic-tap eval (`make eval-taps`) with the apps' sigma 0.4 key widths,
+/// sweeping sigma 0.4/0.5/0.6 × scale 0.3/0.4/0.5: 0.5 was the one setting where no set, and
+/// no "typed right" bucket, lost top-1 against typing without taps (Malayalam typos +4.0 pt at
+/// noise 0.25). Lower scales and wider sigmas let a slightly off-centre tap drag a word typed
+/// right to a neighbour's (Hindi words typed right −1 to −3 pt).
+pub const TAP_SCALE: f32 = 0.5;
 /// Penalty for a completion, plus a little for every letter it adds.
 pub const COMPLETION_PENALTY: f32 = 1.0;
 pub const COMPLETION_PER_CHAR: f32 = 0.3;
