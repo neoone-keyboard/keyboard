@@ -82,6 +82,51 @@ pub struct SwipeKey {
     pub height: f32,
 }
 
+/// Where the finger landed for one typed character (`mlengine_core::Tap`): the key under it
+/// with its probability, and up to two other letter keys it could have meant with theirs. The
+/// keyboard keeps these in memory for the word being typed only, and never logs or stores them.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TapLetter {
+    /// The character typed (one character).
+    pub letter: String,
+    pub probability: f32,
+    /// Other letter keys, most likely first; empty for a tap in the middle of its key.
+    pub alternatives: Vec<TapAlternative>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TapAlternative {
+    /// One letter.
+    pub letter: String,
+    pub probability: f32,
+}
+
+/// `taps` for the engine; a tap whose letter isn't one character ends the list there (only the
+/// taps after it, nearer the cursor, are kept), so no tap is matched to the wrong letter.
+fn core_taps(taps: &[TapLetter]) -> Vec<mlengine_core::Tap> {
+    let one = |s: &str| {
+        let mut chars = s.chars();
+        chars.next().filter(|_| chars.next().is_none())
+    };
+    let mut out: Vec<mlengine_core::Tap> = Vec::new();
+    for tap in taps {
+        let Some(letter) = one(&tap.letter) else {
+            out.clear();
+            continue;
+        };
+        out.push(mlengine_core::Tap {
+            letter,
+            probability: tap.probability,
+            others: tap
+                .alternatives
+                .iter()
+                .filter_map(|a| one(&a.letter).map(|c| (c, a.probability)))
+                .collect(),
+        });
+    }
+    out
+}
+
 /// The composing text of a phrase-conversion language (Japanese) as typed so far: the kana
 /// written and the letters still waiting for more (`k` of `kyouk`). The keyboard shows both,
 /// kana then letters, as marked text.
@@ -354,7 +399,22 @@ impl Engine {
         layout: InputLayout,
         autocorrect: bool,
     ) -> Result<Suggestions, EngineError> {
+        self.suggest_with_taps(context_before, layout, autocorrect, Vec::new())
+    }
+
+    /// `suggest`, with where the finger landed for the characters typed last (`TapLetter`, one
+    /// per character, the last one just before the cursor;
+    /// `mlengine_core::Engine::suggest_tapped`): a letter tapped near another key is cheap to
+    /// correct to it, one tapped in the middle of its key is not. Empty: `suggest`.
+    pub fn suggest_with_taps(
+        &self,
+        context_before: String,
+        layout: InputLayout,
+        autocorrect: bool,
+        taps: Vec<TapLetter>,
+    ) -> Result<Suggestions, EngineError> {
         guarded(|| {
+            let taps = core_taps(&taps);
             let inner = self.inner();
             let layout = core_layout(&inner, &layout);
             let start = std::time::Instant::now();
@@ -366,7 +426,7 @@ impl Engine {
                 lm_after_space: self.lm_after_space,
                 lm_deadline: self.lm_deadline,
             };
-            let s = inner.suggest_timed(&context_before, layout, autocorrect, Some(&timing));
+            let s = inner.suggest_tapped(&context_before, layout, autocorrect, Some(&timing), &taps);
             Suggestions {
                 typed: s.typed,
                 candidates: s
@@ -958,6 +1018,43 @@ mod tests {
         engine.prepare("hello there ".into()).unwrap();
         let s = engine.suggest("hello th".into(), InputLayout::Latin, true).unwrap();
         assert_eq!(s.typed, "th");
+    }
+
+    #[test]
+    fn taps_cross_ffi() {
+        let tap = |letter: &str, probability: f32, alternatives: &[(&str, f32)]| TapLetter {
+            letter: letter.into(),
+            probability,
+            alternatives: alternatives
+                .iter()
+                .map(|&(letter, probability)| TapAlternative { letter: letter.into(), probability })
+                .collect(),
+        };
+        let core = core_taps(&[tap("a", 0.6, &[("s", 0.4), ("xy", 0.1)]), tap("b", 0.9, &[])]);
+        assert_eq!(
+            core,
+            [
+                mlengine_core::Tap { letter: 'a', probability: 0.6, others: vec![('s', 0.4)] },
+                mlengine_core::Tap { letter: 'b', probability: 0.9, others: vec![] },
+            ]
+        );
+        // A tap that isn't one character drops it and every tap before it.
+        let core = core_taps(&[tap("a", 0.6, &[]), tap("", 1.0, &[]), tap("b", 0.9, &[])]);
+        assert_eq!(core.iter().map(|t| t.letter).collect::<String>(), "b");
+
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+        let config = EngineConfig {
+            english: Some(format!("{root}/apps/ios/KeyboardExtension/Lexicon/en.fst")),
+            pack_dir: Some(format!("{root}/packs/ml.neopack")),
+            ..EngineConfig::default()
+        };
+        let engine = Engine::new(config).unwrap();
+        let taps = vec![tap("t", 0.97, &[]), tap("g", 0.6, &[("h", 0.4)]), tap("e", 0.97, &[])];
+        let s = engine.suggest_with_taps("I saw tge".into(), InputLayout::Latin, true, taps).unwrap();
+        assert_eq!(s.candidates[0].text, "the");
+        let plain = engine.suggest("I saw tge".into(), InputLayout::Latin, true).unwrap();
+        let none = engine.suggest_with_taps("I saw tge".into(), InputLayout::Latin, true, vec![]).unwrap();
+        assert_eq!(plain, none);
     }
 
     #[test]

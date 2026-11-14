@@ -29,3 +29,4 @@ pub use engine::{
     Candidate, DEFAULT_SUGGESTIONS, Engine, Kind, Layout, MAX_SUGGESTIONS, PackPaths, PackSources,
     Paths, Sources, Suggestions, Timing,
 };
+pub use fuzzy::Tap;

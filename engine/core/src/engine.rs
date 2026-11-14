@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use crate::chat_forms::ChatForms;
 use crate::convert::{Conversion, ConversionPaths, Converter};
-use crate::fuzzy::{self, WeightedEdit};
+use crate::fuzzy::{self, Tap, TapCosts, WeightedEdit};
 use crate::lang::{Active, ActiveError, EN, Lang, LangId, MAX_ACTIVE};
 use crate::lexicon::{Lexicon, SEPARATOR, TOP_K};
 use crate::lm_context::{ContextScores, LmContext, LmView, LmWeights, NextPiece, lm_words_of};
@@ -464,6 +464,8 @@ pub struct Engine {
     lm_weights: LmWeights,
     swipe_weights: swipe::Weights,
     slip_weights: rank::SlipWeights,
+    /// How a tap's probabilities become substitution costs (`rank::TAP_SCALE`).
+    tap_scale: f32,
     /// The languages that offer candidates (`packs_active`).
     active: Active,
     /// Why each pack left out at open was left out (`Sources::open_reporting`).
@@ -559,6 +561,7 @@ impl Engine {
             lm_weights: LmWeights::default(),
             swipe_weights: swipe::Weights::default(),
             slip_weights: rank::SlipWeights::default(),
+            tap_scale: rank::TAP_SCALE,
             pack_problems: Vec::new(),
             shown: DEFAULT_SUGGESTIONS,
             own: Mutex::new(OwnIndex::default()),
@@ -683,6 +686,12 @@ impl Engine {
     /// The romanised typo search's weights (`rank::SlipWeights`), for the eval's sweeps.
     pub fn set_slip_weights(&mut self, weights: rank::SlipWeights) {
         self.slip_weights = weights;
+    }
+
+    /// How a tap's probabilities become substitution costs (`rank::TAP_SCALE`), for the tap
+    /// eval's sweeps.
+    pub fn set_tap_scale(&mut self, scale: f32) {
+        self.tap_scale = scale;
     }
 
     pub fn loaded_sources(&self) -> Vec<String> {
@@ -1230,6 +1239,7 @@ impl Engine {
                     None,
                     None,
                     &[],
+                    &TapCosts::none(),
                 )
                 .first()
                 .is_some_and(|c| c.kind != Kind::Verbatim)
@@ -1310,7 +1320,7 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
     ) -> Suggestions {
-        self.suggest_lm(context_before, layout, autocorrect, deadline, &|_| true)
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &|_| true, &[])
     }
 
     /// `suggest`, with each optional stage held to its cutoff in `timing` (design §4). The
@@ -1323,8 +1333,26 @@ impl Engine {
         autocorrect: bool,
         timing: Option<&Timing<'_>>,
     ) -> Suggestions {
+        self.suggest_tapped(context_before, layout, autocorrect, timing, &[])
+    }
+
+    /// `suggest_timed`, with where the finger landed for the characters typed last
+    /// (`fuzzy::Tap`, one per character, the last one just before the cursor): the word being
+    /// typed is read from its end against them (`fuzzy::TapCosts::of`), and a letter whose tap
+    /// was near another key costs little to correct to that key, one in the middle of its key
+    /// nearly a full edit (`fuzzy::tap_row`), in the English correction search and the
+    /// romanised typo search alike. Letters with no tap cost what they do in `suggest`, and so
+    /// does every letter when `taps` is empty. Nothing of `taps` is kept.
+    pub fn suggest_tapped(
+        &self,
+        context_before: &str,
+        layout: Layout,
+        autocorrect: bool,
+        timing: Option<&Timing<'_>>,
+        taps: &[Tap],
+    ) -> Suggestions {
         let Some(t) = timing else {
-            return self.suggest_until(context_before, layout, autocorrect, None);
+            return self.suggest_lm(context_before, layout, autocorrect, None, &|_| true, taps);
         };
         let budget = t.translit.unwrap_or_default();
         let left = || budget.saturating_sub((t.elapsed)());
@@ -1340,7 +1368,7 @@ impl Engine {
             };
             cutoff.is_none_or(|c| (t.elapsed)() < c)
         };
-        self.suggest_lm(context_before, layout, autocorrect, deadline, &more)
+        self.suggest_lm(context_before, layout, autocorrect, deadline, &more, taps)
     }
 
     /// The words a swipe could have drawn (`swipe`), best first: English words, the native
@@ -1585,9 +1613,10 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
         more: &dyn Fn(bool) -> bool,
+        taps: &[Tap],
     ) -> Suggestions {
         let Some((lm_lang, _, lm)) = self.lm() else {
-            return self.suggest_with(context_before, layout, autocorrect, deadline, None);
+            return self.suggest_with(context_before, layout, autocorrect, deadline, None, taps);
         };
         let (typed, _) = self.current_word(context_before);
         let before = &context_before[..context_before.len() - typed.len()];
@@ -1611,7 +1640,7 @@ impl Engine {
             weights: self.lm_weights,
         });
         let scores = view.as_ref().map(|v| v as &dyn ContextScores);
-        self.suggest_with(context_before, layout, autocorrect, deadline, scores)
+        self.suggest_with(context_before, layout, autocorrect, deadline, scores, taps)
     }
 
     /// `suggest` with `scores` in place of the LM, for the engine's tests.
@@ -1623,10 +1652,11 @@ impl Engine {
         autocorrect: bool,
         scores: &dyn ContextScores,
     ) -> Suggestions {
-        self.suggest_with(context_before, layout, autocorrect, None, Some(scores))
+        self.suggest_with(context_before, layout, autocorrect, None, Some(scores), &[])
     }
 
     /// The suggestions, with the context's scores when the LM is ready (`scores`), else M3a's.
+    /// `taps`: as in `suggest_tapped`.
     fn suggest_with(
         &self,
         context_before: &str,
@@ -1634,6 +1664,7 @@ impl Engine {
         autocorrect: bool,
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
+        taps: &[Tap],
     ) -> Suggestions {
         let (typed, address) = self.current_word(context_before);
         if typed.is_empty() {
@@ -1664,6 +1695,7 @@ impl Engine {
                     previous.is_some_and(|w| self.word_lang(&self.normal(w)) == Some(EN));
                 let priors = self.add_habit(self.with_lm(self.priors(previous), scores));
                 let favoured = self.favoured(&self.add_habit(self.priors_level(previous)));
+                let taps = TapCosts::of(&typed_n, taps, self.tap_scale);
                 self.suggest_latin(
                     typed,
                     &typed_n,
@@ -1676,6 +1708,7 @@ impl Engine {
                     deadline,
                     scores,
                     &own,
+                    &taps,
                 )
             }
             (_, Script::Native(_)) | (Layout::Native(_), _) => {
@@ -1840,6 +1873,8 @@ impl Engine {
     /// romanised words. `favoured`: the pack the previous word and the habit favour among
     /// several (`favoured`). `scores`: the LM's in-context corrections (design §6), when it is
     /// ready. `own`: the user's own continuations of the words before it (`own_followers`).
+    /// `taps`: what each typed letter's tap says (`suggest_tapped`), for the correction search
+    /// and the romanised typo search.
     #[allow(clippy::too_many_arguments)]
     fn suggest_latin(
         &self,
@@ -1854,6 +1889,7 @@ impl Engine {
         deadline: Option<Deadline<'_>>,
         scores: Option<&dyn ContextScores>,
         own: &[String],
+        taps: &TapCosts,
     ) -> Vec<Candidate> {
         let learned = self.user().is_learned(typed_n);
         // How a stored word is shown: in the typed case, capitalised at a sentence start.
@@ -1921,6 +1957,7 @@ impl Engine {
                 favoured,
                 known_score.is_some(),
                 deadline,
+                taps,
             );
             // Letters that spell a Malayalam word are not a mistyped English one: the
             // long-word search's extra reach (`rank::LONG_WORD`) is not used for them.
@@ -1935,6 +1972,7 @@ impl Engine {
                 _ => 2 * fuzzy::EDIT,
             };
             let automaton = WeightedEdit::new(typed_n, max_cost).map(|a| {
+                let a = if taps.is_empty() { a } else { a.with_taps(taps.clone()) };
                 if long {
                     a.with_cheap_vowels().with_tail()
                 } else {
@@ -1959,7 +1997,7 @@ impl Engine {
                         .tail(&probe)
                         .filter(|&(cost, _)| cost <= rank::NEAR_COMPLETION_COST)
                     {
-                        let middle = score_of(count) - rank::EDIT_PENALTY * f32::from(cost);
+                        let middle = score_of(count) - rank::EDIT_PENALTY * fuzzy::half_edits(cost);
                         if near_completion
                             .as_ref()
                             .is_none_or(|n| middle > n.candidate.score)
@@ -1980,7 +2018,7 @@ impl Engine {
                             kind: Kind::Completion,
                             lang: EN,
                             score: lex.log_prob(count)
-                                - rank::EDIT_PENALTY * f32::from(cost)
+                                - rank::EDIT_PENALTY * fuzzy::half_edits(cost)
                                 - rank::COMPLETION_PENALTY
                                 - rank::COMPLETION_PER_CHAR * extra as f32,
                         });
@@ -2139,7 +2177,7 @@ impl Engine {
 
         let mut manglish =
             manglish.unwrap_or_else(|| {
-                self.manglish(typed_n, capitals.english, priors, favoured, false, deadline)
+                self.manglish(typed_n, capitals.english, priors, favoured, false, deadline, taps)
             });
 
         // The LM's in-context correction (design §6), on every pool before any comparison.
@@ -2491,7 +2529,8 @@ impl Engine {
     /// transliterator's `deadline`, and on a slow request the last ones get none of it.
     /// `favoured`: as in `suggest_latin`; the other packs get no lexicon readings from the
     /// model (`add_model`). `english_capitals`: the typed capitals hint at English or a name
-    /// (`Capitals::english`).
+    /// (`Capitals::english`). `taps`: as in `suggest_latin`, for the typo search (`add_slips`).
+    #[allow(clippy::too_many_arguments)]
     fn manglish(
         &self,
         typed_n: &str,
@@ -2500,6 +2539,7 @@ impl Engine {
         favoured: Option<Lang>,
         english_word: bool,
         deadline: Option<Deadline<'_>>,
+        taps: &TapCosts,
     ) -> ManglishCandidates {
         let mut packs: Vec<(Lang, &PackSources)> = self.packs_active().collect();
         packs.sort_by(|a, b| priors.get(b.0).total_cmp(&priors.get(a.0)));
@@ -2518,6 +2558,7 @@ impl Engine {
                 another_favoured,
                 english_word,
                 deadline,
+                taps,
             );
             match &mut all {
                 Some(all) => all.absorb(found),
@@ -2547,6 +2588,7 @@ impl Engine {
         another_favoured: bool,
         english_word: bool,
         deadline: Option<Deadline<'_>>,
+        taps: &TapCosts,
     ) -> ManglishCandidates {
         let mut found = ManglishCandidates::new(lang);
         let (Some(lex), Some(r)) = (pack.romanised.as_ref(), pack.romanisation.as_ref()) else {
@@ -2714,6 +2756,7 @@ impl Engine {
                 bias,
                 free.as_deref(),
                 self.slip_weights,
+                taps,
                 &mut found,
             );
         }
@@ -2736,6 +2779,7 @@ impl Engine {
     /// Only for typed words of
     /// `w.min_letters` or more; a word already found for the letters as typed keeps that.
     /// Against English for the middle, each counts `w.behind_english` less (`suggest_latin`).
+    /// A slip of a letter whose tap gave a row costs what the row says (`fuzzy::slips_tapped`).
     #[allow(clippy::too_many_arguments)]
     fn add_slips(
         r: &Romanisation,
@@ -2745,6 +2789,7 @@ impl Engine {
         bias: f32,
         free: Option<&str>,
         w: rank::SlipWeights,
+        taps: &TapCosts,
         found: &mut ManglishCandidates,
     ) {
         if w.min_letters == 0 || typed_n.len() < w.min_letters {
@@ -2781,12 +2826,19 @@ impl Engine {
             .map(|c| c.score)
             .fold(f32::INFINITY, f32::min);
         let penalty = |cost: u8, distance: usize| {
-            w.penalty * f32::from(cost) + rank::MANGLISH_DISTANCE * distance as f32
+            w.penalty * fuzzy::half_edits(cost) + rank::MANGLISH_DISTANCE * distance as f32
         };
         // The most `unfitted` may be to score below `score` once the fit bonus is added.
         let under = |score: f32| score - rank::MANGLISH_EXACT_BONUS - rank::MANGLISH_SLIP_UNDER;
-        let slips =
-            manglish::lookup_slips(r, lex, typed_n, w.min_log_prob, w.max_distance, penalty);
+        let slips = manglish::lookup_slips(
+            r,
+            lex,
+            typed_n,
+            taps,
+            w.min_log_prob,
+            w.max_distance,
+            penalty,
+        );
         for slip in slips {
             if found.exact.iter().any(|(c, _)| c.text == slip.word) {
                 continue;
@@ -3836,8 +3888,8 @@ fn same_first_letter(a: &str, b: &str) -> bool {
 /// Whether `word` is `typed` with apostrophes put back, ignoring case.
 /// What a correction's edits cost (`fuzzy` half-edits) against its frequency.
 fn slip_penalty(cost: u8) -> f32 {
-    rank::EDIT_PENALTY * f32::from(cost)
-        + rank::EXTRA_SLIP_PENALTY * f32::from(cost.saturating_sub(fuzzy::EDIT))
+    rank::EDIT_PENALTY * fuzzy::half_edits(cost)
+        + rank::EXTRA_SLIP_PENALTY * fuzzy::half_edits(cost.saturating_sub(fuzzy::EDIT))
 }
 
 fn only_apostrophes_missing(word: &str, typed: &str) -> bool {

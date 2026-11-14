@@ -228,10 +228,13 @@ pub struct Slip {
 /// so `lookup` never sees these words. Only words of at least `min_log_prob`, fitted within
 /// `max_distance`; each word once, by the reading `penalty(cost, distance)` (lower is better)
 /// likes best. Bounded: one exact-skeleton read (`same_skeleton`) per distinct skeleton.
+/// `taps`: the typed letters' tap rows (`fuzzy::TapCosts`), which set what a letter's slip
+/// costs (`fuzzy::slips_tapped`); none, the flat costs.
 pub fn lookup_slips(
     r: &Romanisation,
     lexicon: &Lexicon,
     typed: &str,
+    taps: &crate::fuzzy::TapCosts,
     min_log_prob: f32,
     max_distance: usize,
     penalty: impl Fn(u8, usize) -> f32,
@@ -247,7 +250,8 @@ pub fn lookup_slips(
     // Spellings by skeleton, so each skeleton is read once.
     let mut by_skeleton: std::collections::HashMap<String, Vec<(String, u8)>> =
         std::collections::HashMap::new();
-    for (spelling, cost) in crate::fuzzy::slips(&letters) {
+    let rows = taps.filtered(typed.as_bytes(), u8::is_ascii_alphabetic);
+    for (spelling, cost) in crate::fuzzy::slips_tapped(&letters, &rows) {
         let spelling = String::from_utf8(spelling).unwrap_or_default();
         let skeleton = r.skeleton(&spelling);
         if !skeleton.is_empty() {

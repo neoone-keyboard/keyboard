@@ -135,7 +135,7 @@ fn slip_time() {
             let start = std::time::Instant::now();
             let mut found = 0;
             for _ in 0..n {
-                found = manglish::lookup_slips(&r, &lex, typed, -13.0, 1, |c, d| f32::from(c) + d as f32).len();
+                found = manglish::lookup_slips(&r, &lex, typed, &mlengine_core::fuzzy::TapCosts::none(), -13.0, 1, |c, d| mlengine_core::fuzzy::half_edits(c) + d as f32).len();
             }
             let per_call = start.elapsed() / n;
             let spellings = mlengine_core::fuzzy::slips(typed.as_bytes());
