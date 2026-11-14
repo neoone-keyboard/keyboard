@@ -5,8 +5,11 @@ import KeyboardCore
 /// KeyGesture and InputController; this view only does layout and touch plumbing.
 final class KeyboardView: UIView {
     var onEvent: (@MainActor (GestureEvent) -> Void)?
-    /// A finger came down on a key, before its gesture is known (the key-up may never type it).
-    var onPress: (@MainActor (KeyAction) -> Void)?
+    /// A finger came down on a key, before its gesture is known (the key-up may never type it),
+    /// with where it landed on a letter key (`TapReading`).
+    var onPress: (@MainActor (KeyAction, TapAlternatives?) -> Void)?
+    /// Where the finger landed on the letter key whose tap `onEvent` gets next, just before it.
+    var onTapReading: (@MainActor (TapAlternatives) -> Void)?
     /// Clicks only sound because the controller's input view is a KeyboardInputView.
     var playsClicks = false
 
@@ -17,7 +20,10 @@ final class KeyboardView: UIView {
     private var frames: [KeyFrame] = []
     private var caps: [KeyCapView] = []
     /// `index` is the touched key's cap, or nil once the keys were replaced mid-touch.
-    private var activeTouches: [ObjectIdentifier: (gesture: KeyGesture, index: Int?)] = [:]
+    /// `reading`: where the finger came down on a letter key (`TapReading`), for its tap. The
+    /// touch point itself is dropped here; only the reading (letters and probabilities) goes
+    /// on, in memory, and it is never logged or stored (`InputController.taps`).
+    private var activeTouches: [ObjectIdentifier: (gesture: KeyGesture, index: Int?, reading: TapAlternatives?)] = [:]
     private var timer: Timer?
     private let popup = AlternatesPopupView()
     /// The touch whose long-press is showing the alternates popup.
@@ -100,7 +106,7 @@ final class KeyboardView: UIView {
 
     /// VoiceOver typed a key: as a tap, without the touch's long-press or swipe.
     private func typeForAccessibility(_ action: KeyAction) {
-        onPress?(action)
+        onPress?(action, nil)
         onEvent?(.tap(action))
     }
 
@@ -168,9 +174,10 @@ final class KeyboardView: UIView {
                 key: frame.key, at: point, time: touch.timestamp,
                 alternateWidth: frame.rect.width, alternateHeight: frame.rect.height
             )
-            activeTouches[ObjectIdentifier(touch)] = (gesture, index)
+            let reading = Self.reading(of: frame.key.action, at: point, keys: letterKeys)
+            activeTouches[ObjectIdentifier(touch)] = (gesture, index, reading)
             setPressed(true, at: index)
-            onPress?(frame.key.action)
+            onPress?(frame.key.action, reading)
             if playsClicks { UIDevice.current.playInputClick() }
         }
         startTimerIfNeeded()
@@ -198,9 +205,19 @@ final class KeyboardView: UIView {
             setPressed(false, at: entry.index)
             if id == popupOwner { hidePopup() }
             if entry.gesture.isSwiping { fadeTrail() }
-            handle(entry.gesture.ended(), for: nil)
+            handle(entry.gesture.ended(), for: nil, reading: entry.reading)
         }
         stopTimerIfIdle()
+    }
+
+    /// Where a touch at `point` landed on the letter key it typed: only an ASCII letter key of
+    /// the visible layout, read against the others (`TapReading`). Nil for any other key.
+    private static func reading(of action: KeyAction, at point: CGPoint,
+                                keys: [(letter: String, rect: CGRect)]) -> TapAlternatives? {
+        guard case .character(let c) = action, c.count == 1,
+              let scalar = c.unicodeScalars.first, scalar.isASCII, scalar.properties.isAlphabetic
+        else { return nil }
+        return TapReading.read(at: point, typed: c.lowercased(), keys: keys)
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -255,7 +272,7 @@ final class KeyboardView: UIView {
         CATransaction.commit()
     }
 
-    private func handle(_ events: [GestureEvent], for id: ObjectIdentifier?) {
+    private func handle(_ events: [GestureEvent], for id: ObjectIdentifier?, reading: TapAlternatives? = nil) {
         for event in events {
             switch event {
             case .showAlternates(let options):
@@ -275,6 +292,9 @@ final class KeyboardView: UIView {
             case .highlightAlternate(let index):
                 guard let id, id == popupOwner else { continue }
                 popup.highlight(index)
+            case .tap(.character):
+                if let reading { onTapReading?(reading) }
+                onEvent?(event)
             default:
                 onEvent?(event)
             }

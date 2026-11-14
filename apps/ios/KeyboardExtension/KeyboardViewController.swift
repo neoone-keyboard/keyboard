@@ -52,6 +52,9 @@ final class KeyboardViewController: UIInputViewController {
 
     private let provider = EngineSuggestionProvider.shared
     private var lastRequest: SuggestionRequest?
+    /// Where the finger landed on the letter key whose tap `handle` gets next
+    /// (`KeyboardView.onTapReading`), for that tap only. In memory, never logged.
+    private var pendingTap: TapAlternatives?
     private var latest = SuggestionResult.empty
     /// A request was sent and neither its result nor its timeout has arrived.
     private var awaitingResult = false
@@ -163,7 +166,8 @@ final class KeyboardViewController: UIInputViewController {
             }
         }
         keyboardView.onEvent = { [unowned self] in handle($0) }
-        keyboardView.onPress = { [unowned self] in prefetchSuggestions(after: $0) }
+        keyboardView.onPress = { [unowned self] in prefetchSuggestions(after: $0, tap: $1) }
+        keyboardView.onTapReading = { [unowned self] in pendingTap = $0 }
         topBar.onVowelSign = { [unowned self] sign in
             let keys = input.keysShown, shift = input.shift
             output.beginEdit()
@@ -543,6 +547,8 @@ final class KeyboardViewController: UIInputViewController {
     // MARK: Input
 
     private func handle(_ event: GestureEvent) {
+        let tap = pendingTap
+        pendingTap = nil
         if yourWordsOpen {
             handleSearch(event)
             return
@@ -567,7 +573,7 @@ final class KeyboardViewController: UIInputViewController {
             showEmojiPanel()
             return
         case .tap(let action):
-            input.handle(action, at: ProcessInfo.processInfo.systemUptime)
+            input.handle(action, at: ProcessInfo.processInfo.systemUptime, tap: tap)
         case .commitAlternate(let text):
             input.insertAlternate(text)
         case .moveCursor(let offset):
@@ -1215,15 +1221,16 @@ final class KeyboardViewController: UIInputViewController {
         awaitingResult = suggestions.isEnabled
     }
 
-    private func suggestionRequest(contextBefore: String) -> SuggestionRequest {
-        SuggestionRequest(textBefore: contextBefore, language: input.language, autocorrect: input.autocorrectEnabled)
+    private func suggestionRequest(contextBefore: String, taps: [TapAlternatives]? = nil) -> SuggestionRequest {
+        SuggestionRequest(textBefore: contextBefore, language: input.language, autocorrect: input.autocorrectEnabled,
+                          taps: taps ?? input.taps)
     }
 
     /// A finger is on a letter: the engine starts on the suggestions its key-up will ask for
     /// (`EngineSuggestionProvider.prefetch`). The key-up still makes its own request.
     /// On space it only brings the LM's context up to the finished word: the key-up reports
     /// the word's use, which would drop a result made ahead, but the LM's context is kept.
-    private func prefetchSuggestions(after action: KeyAction) {
+    private func prefetchSuggestions(after action: KeyAction, tap: TapAlternatives?) {
         guard suggestions.isEnabled, !input.language.convertsPhrases, !yourWordsOpen, !emojiSearchOpen, emojiPanel == nil else { return }
         if action == .space {
             let context = String(input.contextAfterSpace().suffix(64))
@@ -1231,7 +1238,8 @@ final class KeyboardViewController: UIInputViewController {
             return
         }
         guard let text = input.insertion(for: action) else { return }
-        let request = suggestionRequest(contextBefore: (textDocumentProxy.documentContextBeforeInput ?? "") + text)
+        let request = suggestionRequest(contextBefore: (textDocumentProxy.documentContextBeforeInput ?? "") + text,
+                                        taps: input.taps(after: action, tap: tap))
         Task { [provider] in await provider.prefetch(request) }
     }
 }

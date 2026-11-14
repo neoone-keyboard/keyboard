@@ -26,8 +26,9 @@ extension SuggestionRequest {
     public static let contextLength = 64
 
     /// The request for the text before the cursor, of which the engine gets the end.
-    public init(textBefore: String, language: Language, autocorrect: Bool) {
-        self.init(contextBefore: String(textBefore.suffix(Self.contextLength)), language: language, autocorrect: autocorrect)
+    public init(textBefore: String, language: Language, autocorrect: Bool, taps: [TapAlternatives] = []) {
+        self.init(contextBefore: String(textBefore.suffix(Self.contextLength)), language: language,
+                  autocorrect: autocorrect, taps: taps)
     }
 }
 

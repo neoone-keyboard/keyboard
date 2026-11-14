@@ -93,6 +93,20 @@ import MLEngine
     }
 }
 
+/// Where each tap landed crosses to the engine: `tge` with the g tapped near h is the, and no
+/// taps is the plain suggest.
+@Test func tapsCrossToTheEngine() throws {
+    let pack = packDir.deletingLastPathComponent().appending(path: "ml.neopack")
+    let engine = try Engine(config: EngineConfig(english: lexiconDir.appending(path: "en.fst").path, packDirs: [pack.path]))
+    let centre = { (letter: String) in TapLetter(letter: letter, probability: 0.97, alternatives: []) }
+    let taps = [centre("t"), TapLetter(letter: "g", probability: 0.6, alternatives: [TapAlternative(letter: "h", probability: 0.4)]), centre("e")]
+    let tapped = try engine.suggestWithTaps(contextBefore: "I saw tge", layout: .latin, autocorrect: true, taps: taps)
+    #expect(tapped.candidates.first?.text == "the")
+    let plain = try engine.suggest(contextBefore: "I saw tge", layout: .latin, autocorrect: true)
+    let none = try engine.suggestWithTaps(contextBefore: "I saw tge", layout: .latin, autocorrect: true, taps: [])
+    #expect(plain == none)
+}
+
 /// Spec §10 risk: Swift ↔ Rust call overhead. The whole keystroke budget is 15 ms;
 /// one FFI round-trip must be a tiny fraction of it.
 @Test func ffiRoundTripIsFast() throws {

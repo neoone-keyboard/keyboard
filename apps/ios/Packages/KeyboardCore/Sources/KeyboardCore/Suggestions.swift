@@ -31,11 +31,16 @@ public struct SuggestionRequest: Equatable, Sendable {
     public var contextBefore: String
     public var language: Language
     public var autocorrect: Bool
+    /// Where the finger landed for the characters typed last, the last one just before the
+    /// cursor (`InputController.taps`): the engine reads the word being typed against them.
+    /// Empty when there are none. In memory only, never logged (`TapAlternatives`).
+    public var taps: [TapAlternatives]
 
-    public init(contextBefore: String, language: Language, autocorrect: Bool) {
+    public init(contextBefore: String, language: Language, autocorrect: Bool, taps: [TapAlternatives] = []) {
         self.contextBefore = contextBefore
         self.language = language
         self.autocorrect = autocorrect
+        self.taps = taps
     }
 }
 
