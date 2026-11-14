@@ -159,11 +159,13 @@ fn lifted_words_stay_rare_offers_the_own_spelling_after_context() {
 #[test]
 fn hold_own_spelling_keeps_the_own_spelling_under_the_words_found() {
     let (ml, ml_off, _dir) = malayalam_without("holdOwnSpelling");
-    assert_eq!(bar(&ml, "jersi"), ["jersi", "ജെർസി", "Jeri"]);
+    // Third, ജെറി: `jersi` less its `s`, a slip (the typo search, `Engine::add_slips`).
+    assert_eq!(bar(&ml, "jersi"), ["jersi", "ജെർസി", "ജെറി"]);
     assert_eq!(bar(&ml_off, "jersi"), ["jersi", "ജെർസി", "ജേർസി"]);
     let (hi, hi_on, _dir) = hindi_with("holdOwnSpelling");
     assert_eq!(bar(&hi, "aryama"), ["aryama", "अर्यमा", "आर्यम"]);
-    assert_eq!(bar(&hi_on, "aryama"), ["aryama", "अर्यमा", "Aryans"]);
+    // Third, आर्या: `aryama` less its `m`, a slip (the typo search).
+    assert_eq!(bar(&hi_on, "aryama"), ["aryama", "अर्यमा", "आर्या"]);
 }
 
 /// `swipeIgnoresEnglishMargin`: a swiped word of the pack competes with a common English word

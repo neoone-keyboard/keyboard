@@ -1346,6 +1346,16 @@ Swipe accuracy on the same held-out words, each drawn as a noisy path over QWERT
 all rows and over the words your romanised lexicon has; a pack with no entry in
 `data/eval/baselines-swipe.json` is printed and not gated.
 
+Typing with one slip (a neighbouring key, two letters swapped, one missed or doubled) is
+`make eval-typos`: the engine searches the words one slip from what was typed when it spells
+out none of the pack's words, and this measures how often the native word is still offered.
+`cd training && uv run python -m mlkb.eval.typos --write --lang xx` makes the set from your
+held-out words (`data/eval/xx/translit-typos.tsv`); `--lang xx` scores it, and `--record`
+adds it to `data/eval/typos-baselines.json`, which `make eval-typos` gates (`ml hi ta as` by
+default). A pack whose held-out words are mostly not in its lexicon (Bhojpuri's) loses about a
+point of first suggestions on the clean set: a common word a slip away goes ahead of the
+model's own spelling.
+
 ### 12. Optional: a neural language model
 
 Malayalam's pack has a bilingual language model trained on Malayalam, its romanised form and

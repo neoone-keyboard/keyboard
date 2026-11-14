@@ -208,6 +208,95 @@ pub fn lookup(r: &Romanisation, lexicon: &Lexicon, typed: &str) -> Vec<Match> {
         .collect()
 }
 
+/// A native word one slip from the typed letters (`lookup_slips`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Slip {
+    pub word: String,
+    /// Log probability of the native word.
+    pub log_prob: f32,
+    /// What the slip costs, in `fuzzy` half-edits (`fuzzy::slips`).
+    pub cost: u8,
+    /// Edit distance between the letters with the slip undone and the word's romanisation;
+    /// 0 when they spell it out (`Match::spelled`).
+    pub distance: usize,
+}
+
+/// Native words the typed letters reach with one slip undone (`fuzzy::slips`: a neighbouring
+/// key, two letters swapped, a letter missed or doubled): each spelling one slip away is
+/// collapsed to its skeleton, and the words with exactly that skeleton are fitted to it as
+/// `fit` fits the typed letters. A slip changes the skeleton (`nkan` is `nkn`, ഞാൻ's is `njn`),
+/// so `lookup` never sees these words. Only words of at least `min_log_prob`, fitted within
+/// `max_distance`; each word once, by the reading `penalty(cost, distance)` (lower is better)
+/// likes best. Bounded: one exact-skeleton read (`same_skeleton`) per distinct skeleton.
+pub fn lookup_slips(
+    r: &Romanisation,
+    lexicon: &Lexicon,
+    typed: &str,
+    min_log_prob: f32,
+    max_distance: usize,
+    penalty: impl Fn(u8, usize) -> f32,
+) -> Vec<Slip> {
+    let letters: Vec<u8> = typed
+        .bytes()
+        .filter(u8::is_ascii_alphabetic)
+        .map(|b| b.to_ascii_lowercase())
+        .collect();
+    let Some(packing) = packing(r) else {
+        return Vec::new();
+    };
+    // Spellings by skeleton, so each skeleton is read once.
+    let mut by_skeleton: std::collections::HashMap<String, Vec<(String, u8)>> =
+        std::collections::HashMap::new();
+    for (spelling, cost) in crate::fuzzy::slips(&letters) {
+        let spelling = String::from_utf8(spelling).unwrap_or_default();
+        let skeleton = r.skeleton(&spelling);
+        if !skeleton.is_empty() {
+            by_skeleton.entry(skeleton).or_default().push((spelling, cost));
+        }
+    }
+    let mut best: std::collections::HashMap<String, (f32, Slip)> = std::collections::HashMap::new();
+    for (skeleton, spellings) in by_skeleton {
+        // Most skeletons a slip makes are no word's: a walk down the FST says so.
+        let mut key = skeleton.clone().into_bytes();
+        key.push(SEPARATOR);
+        if !lexicon.has_prefix(&key) {
+            continue;
+        }
+        for (word, count) in same_skeleton(lexicon, &skeleton, packing) {
+            let log_prob = lexicon.log_prob(count);
+            if log_prob < min_log_prob {
+                continue;
+            }
+            let roman = r.romanize(&word);
+            let short = r.romanize_short(&word);
+            for (spelling, cost) in &spellings {
+                let mut fitted = fit_latin(r, spelling, &roman, false);
+                if let Some(short) = short.as_deref().filter(|_| !fitted.0) {
+                    let other = fit_latin(r, spelling, short, false);
+                    fitted = (other.0, fitted.1.min(other.1));
+                }
+                let distance = if fitted.0 { 0 } else { fitted.1 };
+                if distance > max_distance {
+                    continue;
+                }
+                let p = penalty(*cost, distance);
+                if best.get(&word).is_none_or(|(q, _)| p < *q) {
+                    let slip = Slip {
+                        word: word.clone(),
+                        log_prob,
+                        cost: *cost,
+                        distance,
+                    };
+                    best.insert(word.clone(), (p, slip));
+                }
+            }
+        }
+    }
+    let mut out: Vec<Slip> = best.into_values().map(|(_, s)| s).collect();
+    out.sort_by(|a, b| b.log_prob.total_cmp(&a.log_prob).then_with(|| a.word.cmp(&b.word)));
+    out
+}
+
 /// Native words whose skeleton is exactly `skeleton`, most frequent first, with their counts,
 /// unpacked by the pack's `packing`. One bounded lookup.
 pub fn same_skeleton(lexicon: &Lexicon, skeleton: &str, packing: Packing) -> Vec<(String, u64)> {

@@ -300,6 +300,103 @@ pub const MANGLISH_MODEL_FREE: f32 = UNKNOWN;
 /// begun word's own spelling takes the third slot: സന്തോഷമുൻ for `valare santhoshamun`, as
 /// at the start, and ബീച്ചുക് for `kurachu beachuk`); the rest unchanged.
 pub const MANGLISH_MODEL_FREE_BESIDE: f32 = 0.01;
+/// Romanised typos (`Engine::add_slips`): where the typed letters spell out none of a pack's
+/// words, the words one slip from them (`fuzzy::slips`: a neighbouring key, two letters
+/// swapped, a letter missed or doubled; `manglish::lookup_slips`) are offered, scored as a
+/// skeleton match is, less this per half-edit of the slip (`fuzzy::CHEAP_EDIT` for a
+/// neighbouring key, `fuzzy::EDIT` for a missed or extra letter).
+///
+/// Measured with `mlkb.eval.typos` (each pack's held-out human set with one slip put in each
+/// word) and the clean held-out sets, with English and one pack
+/// (`tests/romanised_typos.rs::slip_sweep`), first native suggestion on the typo sets (ml, hi,
+/// ta, as): at 1.6 (`EDIT_PENALTY`) 0.398, 0.268, 0.244, 0.268; at 2.0 0.370, 0.266, 0.241,
+/// 0.265; at 2.5 0.344, 0.251, 0.223, 0.251. The clean sets moved by 0.1 point at most between
+/// them. 2.0 keeps a slip a little behind a correction of the same cost.
+pub const MANGLISH_SLIP_PENALTY: f32 = 2.0;
+/// Typed words shorter than this get no slip search: two or three letters are one slip from
+/// many short words. The typo sets scored the same at 3 (their words have four letters or
+/// more before the slip); 5 lost 0.1–0.4 point.
+pub const MANGLISH_SLIP_MIN_LETTERS: usize = 4;
+/// Words rarer than this are not offered for a slip. At −12 the typo sets' first native
+/// suggestion was 2–6 points lower (Malayalam 0.449 → 0.387 before the limits below), the
+/// clean sets within 0.2 point.
+pub const MANGLISH_SLIP_MIN_LOG_PROB: f32 = -13.0;
+/// Most edits between the letters with the slip undone and the word's romanisation (0: they
+/// spell it out): the typed letters are a loose spelling more often than not.
+pub const MANGLISH_SLIP_MAX_DISTANCE: usize = 1;
+/// A lexicon word found for the letters as typed (by skeleton or by the model) whose
+/// romanisation is within this distance of them is an exact romanised match: every slip ranks
+/// below every such word, by `MANGLISH_SLIP_UNDER` at least. Without it clean Hindi fell
+/// 0.6185 → 0.5775 (अपनी over अपनानी, पहला over पगला): a common word a slip away beat the rarer
+/// word typed. At 1 and 2 the typo sets differed by under 0.6 point; 2 kept more of the clean
+/// sets. Further than that, the slip ranks by its score: a word reached only loosely is no
+/// better evidence than one a slip away.
+pub const MANGLISH_SLIP_CAP_DISTANCE: usize = 2;
+pub const MANGLISH_SLIP_UNDER: f32 = 0.01;
+/// Mid-word, the letters typed so far spell out no word, and a short word a letter away took
+/// the middle from the word being typed (`rakthasam` gave രക്തം, `lokab` ലോക). So a word found
+/// or completed that they start (`manglish::fit` with `prefix`) within this many edits caps
+/// the slips too. Over every prefix (four letters or more) of the first 400 human rows, the
+/// target first native / in the bar (ml, hi): search off .1426 / .1973, .1404 / .1890; no
+/// cap .1368 / .1902, .1287 / .1764; at 0 .1405 / .1960, .1368 / .1863; at 1 .1426 / .1977,
+/// .1404 / .1935. At 1 the typo sets lost 0.1 point.
+pub const MANGLISH_SLIP_CAP_PREFIX_DISTANCE: Option<usize> = Some(1);
+/// A slip scoring (before the fit bonus) below this follows the model's own spelling of the
+/// letters (off the lexicon) when that is offered. A name or a word the lexicon lacks, typed
+/// right, lost to a common word a slip away: most of what the clean sets lost was that. The
+/// model's confidence doesn't tell the two apart (it reads a typo as fluently; with its
+/// spelling held ahead of every slip read at −0.5 per token or better, the typo sets kept a
+/// third of their gain). Clean sets' first native suggestion / typo sets', points against the
+/// search off (ml, hi, ta, as): at `MIN_REPLACE` −0.05 / +0.7, −0.10 / +1.6, −0.04 / +1.5,
+/// −0.03 / +5.3; at −15, 0.00 / +6.7, −0.05 / +6.6, −0.24 / +6.5, −0.27 / +10.0; at −16,
+/// +0.15 / +11.9, 0.00 / +7.1, −0.28 / +7.1, −0.42 / +10.6; never, +0.30 / +14.4, 0.00 / +7.3,
+/// −0.39 / +7.4, −0.47 / +10.9. Where a lexicon word fits the letters as typed
+/// (`MANGLISH_SLIP_CAP_DISTANCE`), every slip follows the model's spelling: that spelling is
+/// held just under the word, and a slip held there too tied it (`തൂക്കം` beside `thookkal`
+/// pushed തൂക്കൽ out of the bar after `ente`); the sets didn't move.
+pub const MANGLISH_SLIP_TRAILS_FREE_BELOW: f32 = MIN_REPLACE - 2.0;
+/// Against an English word for the middle, a slip's word counts this much less: it takes the
+/// middle from an English correction only by more than `MARGIN`, and within `AMBIGUOUS` of
+/// that the typed letters stay with both beside them. Without it a slip close to a contraction
+/// kept the typed letters in the middle (`isnt`, `thats` beside Assamese: English typos 0.8693
+/// → 0.8523). At `MARGIN` alone `kause` (cause −10.2, कैसे −8.7) kept the typed letters; here
+/// cause takes the middle, and `mwra` (मेरा −8.4, Mars −11.7) keeps the typed letters with both
+/// beside it. The eval sets scored the same at 2 and 3 (typo sets' first slot within 0.2 point).
+pub const MANGLISH_SLIP_BEHIND_ENGLISH: f32 = MARGIN + AMBIGUOUS;
+
+/// The romanised typo search's numbers (`Engine::add_slips`), the `MANGLISH_SLIP_*` constants
+/// by default; `Engine::set_slip_weights` changes them for a sweep. `min_letters` 0 turns the
+/// search off.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SlipWeights {
+    pub penalty: f32,
+    pub min_letters: usize,
+    pub min_log_prob: f32,
+    pub max_distance: usize,
+    pub cap_distance: usize,
+    pub trails_free_below: f32,
+    pub behind_english: f32,
+    /// A word found whose romanisation starts within this many edits of the letters as typed
+    /// (`manglish::fit` with `prefix`) caps the slips as an exact match does; `None`, only
+    /// whole words do. `MANGLISH_SLIP_CAP_PREFIX_DISTANCE`.
+    pub cap_prefix_distance: Option<usize>,
+}
+
+impl Default for SlipWeights {
+    fn default() -> Self {
+        Self {
+            penalty: MANGLISH_SLIP_PENALTY,
+            min_letters: MANGLISH_SLIP_MIN_LETTERS,
+            min_log_prob: MANGLISH_SLIP_MIN_LOG_PROB,
+            max_distance: MANGLISH_SLIP_MAX_DISTANCE,
+            cap_distance: MANGLISH_SLIP_CAP_DISTANCE,
+            trails_free_below: MANGLISH_SLIP_TRAILS_FREE_BELOW,
+            behind_english: MANGLISH_SLIP_BEHIND_ENGLISH,
+            cap_prefix_distance: MANGLISH_SLIP_CAP_PREFIX_DISTANCE,
+        }
+    }
+}
+
 /// The user's own words (`own::OwnWords`): native-script words tapped in the bar that the
 /// pack's lexicon doesn't hold (the transliterator's free spelling, mostly), which from then on
 /// are words of that pack. One has no corpus count, so it is scored as a lexicon word of this

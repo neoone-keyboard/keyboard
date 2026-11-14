@@ -138,6 +138,57 @@ fn is_vowel(b: u8) -> bool {
     matches!(b, b'a' | b'e' | b'i' | b'o' | b'u')
 }
 
+/// Every spelling one slip from `word` (lower-case ASCII letters), each once with the least the
+/// automaton above charges for that slip: a neighbouring key for a letter, two letters swapped,
+/// a doubled letter typed once or a letter typed twice (`CHEAP_EDIT`); an extra letter or a
+/// missed one (`EDIT`). Not another letter for one far from it: that is any word of the same
+/// length. For the romanised lexicons, whose keys are skeletons, not letters, so the automaton
+/// can't walk them (`manglish::lookup_slips`). Empty for a word with anything but `a`–`z`.
+pub fn slips(word: &[u8]) -> Vec<(Vec<u8>, u8)> {
+    if word.is_empty() || !word.iter().all(u8::is_ascii_lowercase) {
+        return Vec::new();
+    }
+    let neighbours = adjacency_table();
+    let n = word.len();
+    let mut found: std::collections::HashMap<Vec<u8>, u8> = std::collections::HashMap::new();
+    let mut add = |spelling: Vec<u8>, cost: u8| {
+        if spelling != word {
+            let at = found.entry(spelling).or_insert(cost);
+            *at = (*at).min(cost);
+        }
+    };
+    for i in 0..n {
+        let letter = usize::from(word[i] - b'a');
+        for b in b'a'..=b'z' {
+            if neighbours[letter] & (1 << (b - b'a')) != 0 {
+                let mut s = word.to_vec();
+                s[i] = b;
+                add(s, CHEAP_EDIT);
+            }
+        }
+        if i + 1 < n && word[i] != word[i + 1] {
+            let mut s = word.to_vec();
+            s.swap(i, i + 1);
+            add(s, CHEAP_EDIT);
+        }
+        let doubled = (i > 0 && word[i - 1] == word[i]) || (i + 1 < n && word[i + 1] == word[i]);
+        let mut s = word.to_vec();
+        s.remove(i);
+        add(s, if doubled { CHEAP_EDIT } else { EDIT });
+    }
+    for i in 0..=n {
+        for b in b'a'..=b'z' {
+            let doubled = (i > 0 && word[i - 1] == b) || (i < n && word[i] == b);
+            let mut s = word.to_vec();
+            s.insert(i, b);
+            add(s, if doubled { CHEAP_EDIT } else { EDIT });
+        }
+    }
+    let mut out: Vec<(Vec<u8>, u8)> = found.into_iter().collect();
+    out.sort();
+    out
+}
+
 impl Automaton for WeightedEdit {
     type State = EditState;
 
@@ -195,6 +246,36 @@ impl Automaton for WeightedEdit {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn slip_cost(word: &str, spelling: &str) -> Option<u8> {
+        slips(word.as_bytes()).into_iter().find(|(s, _)| s == spelling.as_bytes()).map(|(_, c)| c)
+    }
+
+    #[test]
+    fn slips_cost_what_the_automaton_charges() {
+        // A neighbouring key, two letters swapped, a doubled letter typed once or twice.
+        assert_eq!(slip_cost("nkan", "njan"), Some(CHEAP_EDIT));
+        assert_eq!(slip_cost("kaisw", "kaise"), Some(CHEAP_EDIT));
+        assert_eq!(slip_cost("veertil", "veettil"), Some(CHEAP_EDIT));
+        assert_eq!(slip_cost("mrea", "mera"), Some(CHEAP_EDIT));
+        assert_eq!(slip_cost("vetil", "vettil"), Some(CHEAP_EDIT));
+        assert_eq!(slip_cost("veettil", "vettil"), Some(CHEAP_EDIT));
+        // A letter missed or extra.
+        assert_eq!(slip_cost("dhanyavasd", "dhanyavad"), Some(EDIT));
+        assert_eq!(slip_cost("kase", "kaise"), Some(EDIT));
+        // Not the word itself, nor a far key, nor two slips.
+        assert_eq!(slip_cost("nkan", "nkan"), None);
+        assert_eq!(slip_cost("nkan", "npan"), None);
+        assert_eq!(slip_cost("nkan", "njaan"), None);
+        assert!(slips(b"Nkan").is_empty());
+        assert!(slips(b"").is_empty());
+        for word in ["nkan", "kaisw", "veertil"] {
+            for (spelling, c) in slips(word.as_bytes()) {
+                let spelling = String::from_utf8(spelling).unwrap();
+                assert!(cost(word, &spelling) <= c, "{word} → {spelling}");
+            }
+        }
+    }
 
     /// Runs the automaton over a whole key and returns the final cost.
     fn cost(query: &str, key: &str) -> u8 {
